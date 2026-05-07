@@ -1,0 +1,86 @@
+# Permissions 配置 - agent-001 (Alice)
+# 定义 Agent 的权限和访问控制
+
+# 工具权限
+tools:
+  Read:
+    enabled: true
+    restrictions: []
+  Write:
+    enabled: true
+    restrictions:
+      - "no_system_files"
+      - "require_backup"
+  Edit:
+    enabled: true
+    restrictions:
+      - "no_system_files"
+  Bash:
+    enabled: true
+    restrictions:
+      - "no_destructive_commands"
+      - "require_confirmation_for_sudo"
+    allowed_commands:
+      - "git"
+      - "npm"
+      - "docker"
+      - "kubectl"
+    blocked_commands:
+      - "rm -rf /"
+      - "dd"
+      - "mkfs"
+  Grep:
+    enabled: true
+    restrictions: []
+  Glob:
+    enabled: true
+    restrictions: []
+  LSP:
+    enabled: true
+    restrictions: []
+  WebFetch:
+    enabled: true
+    restrictions:
+      - "no_internal_networks"
+  WebSearch:
+    enabled: true
+    restrictions: []
+
+# 文件系统权限
+filesystem:
+  allowed_paths:
+    - "/Users/kp/项目/**"
+    - "/tmp/**"
+  blocked_paths:
+    - "/etc/**"
+    - "/System/**"
+    - "~/.ssh/**"
+  max_file_size_mb: 100
+  allowed_extensions:
+    - ".md"
+    - ".yaml"
+    - ".json"
+    - ".js"
+    - ".ts"
+    - ".py"
+    - ".go"
+    - ".java"
+
+# 网络权限
+network:
+  allowed_domains:
+    - "github.com"
+    - "gitlab.com"
+    - "stackoverflow.com"
+    - "npmjs.com"
+  blocked_domains:
+    - "*.internal"
+  allow_localhost: true
+  allow_private_ips: false
+
+# 资源配额
+quotas:
+  max_daily_tool_calls: 10000
+  max_daily_tokens: 5000000
+  max_concurrent_operations: 5
+  max_file_operations_per_minute: 100

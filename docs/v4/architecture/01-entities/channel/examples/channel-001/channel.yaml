@@ -1,0 +1,33 @@
+# Channel Entity Example: #general
+id: ch_general_001
+name: general
+type: text
+description: General discussion and announcements
+created_at: 2026-01-15T10:00:00Z
+created_by: usr_admin_001
+
+# Channel settings
+settings:
+  visibility: public
+  allow_threads: true
+  allow_tasks: true
+  message_retention_days: 365
+  
+# Members
+members:
+  - user_id: usr_admin_001
+    role: owner
+    joined_at: 2026-01-15T10:00:00Z
+  - user_id: usr_alice_001
+    role: member
+    joined_at: 2026-01-15T10:30:00Z
+  - agent_id: agt_assistant_001
+    role: member
+    joined_at: 2026-01-15T11:00:00Z
+
+# Statistics
+stats:
+  total_messages: 1247
+  total_threads: 89
+  total_tasks: 23
+  active_members: 15

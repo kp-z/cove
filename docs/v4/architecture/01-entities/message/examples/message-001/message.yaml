@@ -1,0 +1,45 @@
+# Message Entity Example: Task Assignment Message
+id: msg_eca62879
+short_id: eca62879
+type: text
+created_at: 2026-05-05T17:04:00Z
+updated_at: 2026-05-05T17:04:00Z
+
+# Message context
+context:
+  channel_id: dm:usr_kp_001
+  author_id: usr_kp_001
+  thread_id: null  # Top-level message, not in a thread
+
+# Message content
+content:
+  text: "请检查一下 doc/v4 里 entity 相关的内容是否合理，从专业的视角看看有没有什么问题"
+  format: plain_text
+  
+# Message metadata
+metadata:
+  language: zh-CN
+  mentions: []
+  references: []
+  
+# Task metadata (this message was converted to a task)
+task:
+  task_id: task_001
+  task_number: 1
+  title: "Review entity documentation in doc/v4"
+  status: in_review
+  assignee_id: agt_entity_assistant_001
+  created_at: 2026-05-05T17:04:00Z
+  claimed_at: 2026-05-05T17:04:30Z
+  
+# Message state
+state:
+  is_edited: false
+  is_deleted: false
+  is_pinned: false
+  
+# Reactions (if any)
+reactions: []
+
+# Attachments (if any)
+attachments: []

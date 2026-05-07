@@ -1,0 +1,31 @@
+# Step: Run Linter
+id: step_001
+name: "Run linter"
+type: execution
+status: template
+
+# Step configuration
+config:
+  agent_id: agt_code_reviewer_001
+  command: "npm run lint"
+  working_directory: /workspace/project
+  environment:
+    NODE_ENV: test
+  timeout_seconds: 300
+  
+# Step behavior
+behavior:
+  on_success: continue
+  on_failure: continue  # Non-blocking
+  retry_policy:
+    enabled: true
+    max_retries: 1
+    
+# Step outputs
+outputs:
+  - name: lint_results
+    type: json
+    path: /tmp/lint-results.json
+  - name: lint_report
+    type: markdown
+    path: /tmp/lint-report.md

@@ -1,0 +1,193 @@
+# agents/{agent_id}/config/triggers.yaml
+# 触发器配置文件（结构化）
+
+triggers:
+  - trigger_id: "trigger-001"
+    name: "daily-architecture-review"
+    display_name: "每日架构审查"
+    description: "每天早上 9 点自动审查昨日代码变更，生成架构报告"
+    enabled: true
+
+    # 触发器类型
+    trigger_type: "schedule"              # 类型: schedule | event | webhook | manual
+
+    # 定时配置（仅 schedule 类型）
+    schedule:
+      cron: "0 9 * * *"                   # Cron 表达式: 每天 09:00
+      timezone: "Asia/Shanghai"
+      next_run_at: "2026-05-05T09:00:00+08:00"
+
+    # 执行动作
+    action:
+      action_type: "run_skill"
+      skill_name: "architecture-design"
+      parameters:
+        scope: "yesterday_changes"
+        output_format: "markdown"
+        output_path: "reports/architecture-review-{date}.md"
+
+    # 通知配置
+    notifications:
+      on_success:
+        - channel: "#architecture"
+          message: "✅ 架构审查完成，报告已生成"
+      on_failure:
+        - channel: "#architecture"
+          message: "❌ 架构审查失败，请检查日志"
+
+    # 执行历史
+    last_run_at: "2026-05-04T09:00:00+08:00"
+    last_run_status: "success"
+    run_count: 8
+
+  - trigger_id: "trigger-002"
+    name: "pr-auto-review"
+    display_name: "PR 创建时自动审查"
+    description: "当 GitHub PR 创建时，自动进行代码审查并添加评论"
+    enabled: true
+
+    trigger_type: "event"
+
+    # 事件配置（仅 event 类型）
+    event:
+      event_source: "github"              # 事件源: github | gitlab | jira | slack
+      event_type: "pull_request.opened"   # 事件类型
+      filters:
+        - field: "base.ref"
+          operator: "equals"
+          value: "main"
+        - field: "draft"
+          operator: "equals"
+          value: false
+
+    # 执行动作
+    action:
+      action_type: "run_skill"
+      skill_name: "code-review"
+      parameters:
+        pr_number: "${event.pull_request.number}"
+        auto_comment: true
+        review_level: "thorough"
+
+    notifications:
+      on_success:
+        - channel: "#dev"
+          message: "✅ PR #${event.pull_request.number} 审查完成"
+      on_failure:
+        - channel: "#dev"
+          message: "❌ PR #${event.pull_request.number} 审查失败"
+
+    last_run_at: "2026-05-03T15:30:00+08:00"
+    last_run_status: "success"
+    run_count: 23
+
+  - trigger_id: "trigger-003"
+    name: "task-completion-webhook"
+    display_name: "任务完成 Webhook"
+    description: "当任务完成时，通过 Webhook 通知外部系统"
+    enabled: true
+
+    trigger_type: "event"
+
+    event:
+      event_source: "internal"            # 内部事件
+      event_type: "task.completed"
+      filters:
+        - field: "priority"
+          operator: "in"
+          value: ["P0", "P1"]
+
+    action:
+      action_type: "webhook"
+      webhook_url: "https://api.example.com/webhooks/task-completed"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${WEBHOOK_TOKEN}"
+      body_template: |
+        {
+          "task_id": "${event.task.id}",
+          "task_title": "${event.task.title}",
+          "completed_at": "${event.task.completed_at}",
+          "assignee": "${event.task.assignee.name}"
+        }
+
+    notifications:
+      on_failure:
+        - channel: "#ops"
+          message: "❌ Webhook 通知失败: ${error.message}"
+
+    last_run_at: "2026-05-04T16:45:00+08:00"
+    last_run_status: "success"
+    run_count: 15
+
+  - trigger_id: "trigger-004"
+    name: "weekly-performance-report"
+    display_name: "周报生成"
+    description: "每周五下午 5 点生成团队性能报告"
+    enabled: true
+
+    trigger_type: "schedule"
+
+    schedule:
+      cron: "0 17 * * 5"                  # 每周五 17:00
+      timezone: "Asia/Shanghai"
+      next_run_at: "2026-05-09T17:00:00+08:00"
+
+    action:
+      action_type: "run_workflow"
+      workflow_id: "workflow-report-001"
+      parameters:
+        report_type: "weekly_performance"
+        include_metrics: ["task_completion", "code_quality", "response_time"]
+        output_format: "pdf"
+        recipients: ["kp-user", "team-lead"]
+
+    notifications:
+      on_success:
+        - channel: "#general"
+          message: "📊 周报已生成并发送"
+      on_failure:
+        - channel: "#ops"
+          message: "❌ 周报生成失败"
+
+    last_run_at: "2026-05-02T17:00:00+08:00"
+    last_run_status: "success"
+    run_count: 4
+
+  - trigger_id: "trigger-005"
+    name: "manual-deployment"
+    display_name: "手动部署触发器"
+    description: "手动触发生产环境部署"
+    enabled: true
+
+    trigger_type: "manual"
+
+    # 手动触发配置
+    manual:
+      require_confirmation: true
+      allowed_users:
+        - "kp-user"
+        - "admin-user"
+      confirmation_message: "确认要部署到生产环境吗？此操作不可撤销。"
+
+    action:
+      action_type: "run_workflow"
+      workflow_id: "workflow-deploy-prod"
+      parameters:
+        environment: "production"
+        rollback_enabled: true
+        health_check_enabled: true
+
+    notifications:
+      on_success:
+        - channel: "#ops"
+          message: "🚀 生产环境部署成功"
+      on_failure:
+        - channel: "#ops"
+          message: "❌ 生产环境部署失败，请立即检查"
+          mention_users: ["kp-user", "ops-lead"]
+
+    last_run_at: "2026-05-01T20:00:00+08:00"
+    last_run_status: "success"
+    run_count: 2

@@ -1,0 +1,34 @@
+# Device Entity Example: MacBook Pro
+id: dev_mbp_001
+name: kpdeMacBook-Pro-2.local
+type: computer
+os: darwin
+arch: arm64
+hostname: kpdeMacBook-Pro-2.local
+
+# Device registration
+registered_at: 2026-01-10T08:00:00Z
+registered_by: usr_kp_001
+last_seen: 2026-05-06T02:15:00Z
+
+# Device capabilities
+capabilities:
+  - file_system
+  - shell_execution
+  - git
+  - docker
+  - node
+  - python
+
+# Device status
+status:
+  state: online
+  cpu_usage: 45.2
+  memory_usage: 68.5
+  disk_usage: 72.3
+  
+# Daemon info
+daemon:
+  version: v0.44.2
+  uptime_seconds: 86400
+  active_agents: 3

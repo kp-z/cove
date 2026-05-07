@@ -1,0 +1,166 @@
+# agents/{agent_id}/config/plugins.yaml
+# 插件集成配置文件（结构化）
+
+plugins:
+  - plugin_id: "plugin-001"
+    name: "github-integration"
+    display_name: "GitHub Integration"
+    version: "1.2.0"
+    enabled: true
+    description: "GitHub 仓库集成，支持 PR 审查、Issue 管理、代码搜索"
+
+    # 插件配置
+    config:
+      token: "${GITHUB_TOKEN}"              # 环境变量引用
+      repo_owner: "owner"
+      repo_name: "repo"
+      base_url: "https://api.github.com"
+      timeout_seconds: 30
+
+    # 功能列表
+    features:
+      - feature_id: "pr-review"
+        name: "PR 审查"
+        enabled: true
+        permissions:
+          - "read:pull_request"
+          - "write:pull_request_comment"
+
+      - feature_id: "issue-management"
+        name: "Issue 管理"
+        enabled: true
+        permissions:
+          - "read:issue"
+          - "write:issue"
+          - "write:issue_comment"
+
+      - feature_id: "code-search"
+        name: "代码搜索"
+        enabled: true
+        permissions:
+          - "read:code"
+
+    # 事件订阅
+    event_subscriptions:
+      - event_type: "pull_request.opened"
+        handler: "on_pr_opened"
+        enabled: true
+      - event_type: "pull_request.synchronize"
+        handler: "on_pr_updated"
+        enabled: true
+      - event_type: "issue.opened"
+        handler: "on_issue_opened"
+        enabled: false
+
+    # 速率限制
+    rate_limit:
+      requests_per_hour: 5000
+      requests_per_minute: 100
+
+  - plugin_id: "plugin-002"
+    name: "feishu-notification"
+    display_name: "Feishu Notification"
+    version: "1.0.0"
+    enabled: false
+    description: "飞书通知集成，支持消息推送、任务同步"
+
+    config:
+      webhook_url: "${FEISHU_WEBHOOK}"
+      app_id: "${FEISHU_APP_ID}"
+      app_secret: "${FEISHU_APP_SECRET}"
+      timeout_seconds: 10
+
+    features:
+      - feature_id: "message-push"
+        name: "消息推送"
+        enabled: true
+        permissions:
+          - "send:message"
+
+      - feature_id: "task-sync"
+        name: "任务同步"
+        enabled: false
+        permissions:
+          - "read:task"
+          - "write:task"
+
+    event_subscriptions:
+      - event_type: "task.completed"
+        handler: "on_task_completed"
+        enabled: true
+      - event_type: "task.failed"
+        handler: "on_task_failed"
+        enabled: true
+
+    rate_limit:
+      requests_per_hour: 1000
+      requests_per_minute: 20
+
+  - plugin_id: "plugin-003"
+    name: "slack-integration"
+    display_name: "Slack Integration"
+    version: "2.0.0"
+    enabled: false
+    description: "Slack 工作区集成，支持消息发送、频道管理"
+
+    config:
+      bot_token: "${SLACK_BOT_TOKEN}"
+      workspace_id: "${SLACK_WORKSPACE_ID}"
+      base_url: "https://slack.com/api"
+      timeout_seconds: 15
+
+    features:
+      - feature_id: "message-send"
+        name: "发送消息"
+        enabled: true
+        permissions:
+          - "chat:write"
+
+      - feature_id: "channel-management"
+        name: "频道管理"
+        enabled: false
+        permissions:
+          - "channels:read"
+          - "channels:write"
+
+    event_subscriptions:
+      - event_type: "message.channels"
+        handler: "on_channel_message"
+        enabled: false
+
+    rate_limit:
+      requests_per_hour: 3000
+      requests_per_minute: 60
+
+  - plugin_id: "plugin-004"
+    name: "jira-integration"
+    display_name: "Jira Integration"
+    version: "1.5.0"
+    enabled: false
+    description: "Jira 项目管理集成，支持 Issue 创建、状态更新"
+
+    config:
+      base_url: "${JIRA_BASE_URL}"
+      username: "${JIRA_USERNAME}"
+      api_token: "${JIRA_API_TOKEN}"
+      project_key: "PROJ"
+      timeout_seconds: 20
+
+    features:
+      - feature_id: "issue-create"
+        name: "创建 Issue"
+        enabled: true
+        permissions:
+          - "write:issue"
+
+      - feature_id: "issue-update"
+        name: "更新 Issue"
+        enabled: true
+        permissions:
+          - "write:issue"
+
+    event_subscriptions: []
+
+    rate_limit:
+      requests_per_hour: 2000
+      requests_per_minute: 50

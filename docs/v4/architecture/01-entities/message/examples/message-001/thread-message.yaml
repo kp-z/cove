@@ -1,0 +1,30 @@
+# Message Entity Example: Thread Reply
+id: msg_def67890
+short_id: def67890
+type: text
+created_at: 2026-05-06T10:15:00Z
+
+# Message context
+context:
+  channel_id: ch_general_001
+  author_id: usr_bob_001
+  thread_id: msg_abc12345  # Reply to the architecture diagram message
+  parent_message_id: msg_abc12345
+
+# Message content
+content:
+  text: "Great diagram! Can you add the database layer?"
+  format: plain_text
+
+# Mentions
+metadata:
+  mentions:
+    - user_id: usr_alice_001
+      position: 0
+      length: 0  # Implicit mention via thread reply
+      
+# Message state
+state:
+  is_edited: false
+  is_deleted: false
+  is_pinned: false

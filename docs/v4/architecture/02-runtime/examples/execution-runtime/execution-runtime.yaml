@@ -1,0 +1,80 @@
+# runtime/execution_runtime/exec-001/runtime.yaml
+# ExecutionRuntime 运行时状态配置示例
+
+# 运行时信息
+runtime_id: "execution-runtime-001"      # 运行时 ID
+execution_id: "exec-001"                 # 关联的执行 ID
+agent_id: "agent-001"                    # 执行的 Agent ID
+status: "running"                        # 状态: pending | running | completed | failed | cancelled
+started_at: "2026-05-04T10:00:00Z"
+
+# 服务对象
+service_entities:
+  - "ExecutionEntity"
+  - "MessageEntity"
+
+# 实时状态
+realtime_state:
+  current_tool: "Edit"                   # 当前正在使用的工具
+  current_file: "docs/v3/architecture/02-runtime-layer.md"
+  current_line: 1523                     # 当前行号
+  progress_percent: 65.5                 # 进度百分比
+  estimated_remaining_ms: 300000         # 预计剩余时间（毫秒）
+
+# 工具调用队列
+tool_call_queue:
+  pending_calls: 1
+  active_calls: 1
+  completed_calls: 22
+  current_call:
+    tool_name: "Edit"
+    call_id: "call-023"
+    started_at: "2026-05-04T10:29:45Z"
+    parameters:
+      file_path: "docs/v3/architecture/02-runtime-layer.md"
+      operation: "replace"
+
+# 日志流（实时）
+log_stream:
+  log_file: "runtime/agent_daemon/agent-001/executions/exec-001/execution.jsonl"
+  current_size_bytes: 524288
+  lines_written: 1523
+  last_log_time: "2026-05-04T10:29:50Z"
+  tail_lines:
+    - "[10:29:45] Tool call: Edit(file_path='docs/v3/architecture/02-runtime-layer.md')"
+    - "[10:29:48] Edit completed: 50 lines added"
+    - "[10:29:50] Tool call: Read(file_path='docs/v3/architecture/02-runtime-layer.md')"
+
+# Token 使用（实时）
+token_usage_realtime:
+  input_tokens: 50000
+  output_tokens: 30000
+  thinking_tokens: 15000
+  total_tokens: 95000
+  estimated_cost_usd: 6.70
+  rate_limit_remaining: 105000           # 剩余 token 配额
+
+# 文件变更追踪（实时）
+file_changes_realtime:
+  modified_files: 3
+  files:
+    - file_path: "docs/v3/architecture/02-runtime-layer.md"
+      change_type: "modify"
+      lines_added: 150
+      lines_deleted: 5
+      last_modified: "2026-05-04T10:29:48Z"
+
+# 错误和警告（实时）
+errors_and_warnings:
+  error_count: 0
+  warning_count: 1
+  last_error: null
+  warnings:
+    - warning_id: "warn-001"
+      message: "Context window at 47.5% capacity"
+      timestamp: "2026-05-04T10:25:00Z"
+
+# 映射到 Backend 服务
+backend_services:
+  - "ExecutionService"
+  - "AgentChatService"

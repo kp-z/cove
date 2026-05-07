@@ -1,0 +1,143 @@
+# agents/{agent_id}/config/tools.yaml
+# 工具权限配置文件（结构化）
+
+tools:
+  - tool_name: "Read"
+    display_name: "读取文件"
+    enabled: true
+    permissions:
+      allowed_paths:
+        - "**/*"                    # 允许读取所有文件
+      forbidden_paths:
+        - ".env"                    # 禁止读取环境变量文件
+        - "secrets/**/*"            # 禁止读取密钥目录
+        - "*.key"                   # 禁止读取密钥文件
+        - "*.pem"                   # 禁止读取证书文件
+    rate_limit:
+      max_calls_per_minute: 100
+    config:
+      max_file_size_mb: 10
+      timeout_seconds: 30
+
+  - tool_name: "Write"
+    display_name: "创建文件"
+    enabled: true
+    permissions:
+      allowed_paths:
+        - "src/**/*"
+        - "docs/**/*"
+        - "tests/**/*"
+      forbidden_paths:
+        - ".git/**/*"
+        - "node_modules/**/*"
+        - ".env"
+    rate_limit:
+      max_calls_per_minute: 50
+    config:
+      max_file_size_mb: 5
+      backup_before_write: true
+
+  - tool_name: "Edit"
+    display_name: "编辑文件"
+    enabled: true
+    permissions:
+      allowed_paths:
+        - "src/**/*"
+        - "docs/**/*"
+        - "tests/**/*"
+        - "config/**/*"
+      forbidden_paths:
+        - ".git/**/*"
+        - "node_modules/**/*"
+        - ".env"
+    rate_limit:
+      max_calls_per_minute: 50
+    config:
+      max_file_size_mb: 5
+      backup_before_edit: true
+
+  - tool_name: "Bash"
+    display_name: "执行命令"
+    enabled: true
+    permissions:
+      allowed_commands:
+        - "git"
+        - "npm"
+        - "python"
+        - "docker"
+        - "pytest"
+        - "eslint"
+      forbidden_commands:
+        - "rm -rf /"
+        - "sudo"
+        - "chmod 777"
+        - "dd"
+      allowed_directories:
+        - "/Users/kp/项目/**"
+        - "/tmp/**"
+    rate_limit:
+      max_calls_per_minute: 30
+    config:
+      timeout_seconds: 300
+      max_output_size_kb: 1024
+
+  - tool_name: "Agent"
+    display_name: "调用子 Agent"
+    enabled: true
+    permissions:
+      max_subagents: 5
+      allowed_agent_types:
+        - "code-reviewer"
+        - "tdd-guide"
+        - "architect"
+        - "security-reviewer"
+    rate_limit:
+      max_calls_per_minute: 10
+    config:
+      timeout_minutes: 30
+      inherit_permissions: false
+
+  - tool_name: "Grep"
+    display_name: "搜索文件内容"
+    enabled: true
+    permissions:
+      allowed_paths:
+        - "**/*"
+      forbidden_paths:
+        - ".git/**/*"
+        - "node_modules/**/*"
+        - "*.log"
+    rate_limit:
+      max_calls_per_minute: 100
+    config:
+      max_results: 1000
+      timeout_seconds: 30
+
+  - tool_name: "Glob"
+    display_name: "文件模式匹配"
+    enabled: true
+    permissions:
+      allowed_paths:
+        - "**/*"
+      forbidden_paths:
+        - ".git/**/*"
+        - "node_modules/**/*"
+    rate_limit:
+      max_calls_per_minute: 100
+    config:
+      max_results: 1000
+
+  - tool_name: "LSP"
+    display_name: "代码智能提示"
+    enabled: true
+    permissions:
+      allowed_languages:
+        - "python"
+        - "typescript"
+        - "javascript"
+        - "go"
+        - "rust"
+    rate_limit:
+      max_calls_per_minute: 50
+    config:
+      timeout_seconds: 10

@@ -1,0 +1,53 @@
+# conversations/conv-001/metadata.yaml
+# ConversationEntity 元数据文件示例 - Alice 在 #engineering 频道的对话
+
+# 基础信息
+conversation_id: "conv-001"              # 唯一标识（UUID）
+agent_id: "agent-001"                    # 参与的 Agent (Alice)
+channel_id: "channel-001"                # 所属频道 (#engineering)
+user_id: null                            # 对话的 User（群聊时为 null）
+
+# 对话类型
+type: "channel"                          # 类型: channel | dm | thread
+thread_id: null                          # Thread ID（thread 类型时非空）
+
+# 对话状态
+status: "active"                         # 状态: active | archived | expired
+priority: "normal"                       # 优先级: high | normal | low
+
+# 上下文管理
+context:
+  window_size: 200000                    # 上下文窗口大小（tokens）
+  current_tokens: 45000                  # 当前使用 tokens
+  compression_enabled: true              # 是否启用压缩
+  last_compressed_at: "2026-05-06T10:00:00Z"  # 最后压缩时间
+  compression_count: 3                   # 压缩次数
+
+# 消息统计
+statistics:
+  message_count: 25                      # 消息总数
+  user_message_count: 12                 # 用户消息数
+  agent_message_count: 13                # Agent 消息数
+  tool_call_count: 45                    # 工具调用次数
+  thinking_tokens: 15000                 # 思考 tokens
+
+# 时间信息
+created_at: "2026-05-01T10:00:00Z"       # 创建时间
+updated_at: "2026-05-07T01:00:00Z"       # 最后更新时间
+last_message_at: "2026-05-07T01:00:00Z"  # 最后消息时间
+archived_at: null                        # 归档时间（null 表示未归档）
+
+# 执行记录
+executions:                              # 关联的执行记录
+  - execution_id: "exec-001"
+    started_at: "2026-05-01T10:00:00Z"
+    status: "completed"
+  - execution_id: "exec-002"
+    started_at: "2026-05-02T14:00:00Z"
+    status: "completed"
+
+# 扩展元数据
+meta:
+  tags: ["architecture", "design"]
+  category: "development"
+  notes: "Entity 层架构设计讨论"

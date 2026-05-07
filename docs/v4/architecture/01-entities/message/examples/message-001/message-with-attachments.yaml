@@ -1,0 +1,42 @@
+# Message Entity Example: Message with Image Attachment
+id: msg_abc12345
+short_id: abc12345
+type: text
+created_at: 2026-05-06T10:00:00Z
+
+# Message context
+context:
+  channel_id: ch_general_001
+  author_id: usr_alice_001
+  thread_id: null
+
+# Message content
+content:
+  text: "Here's the architecture diagram we discussed"
+  format: plain_text
+
+# Attachments
+attachments:
+  - id: att_001
+    type: image
+    filename: architecture-diagram.png
+    mime_type: image/png
+    size_bytes: 245678
+    url: /attachments/att_001/architecture-diagram.png
+    thumbnail_url: /attachments/att_001/thumb_architecture-diagram.png
+    uploaded_at: 2026-05-06T10:00:00Z
+
+# Reactions
+reactions:
+  - emoji: "👍"
+    user_ids: [usr_bob_001, usr_charlie_001]
+    count: 2
+  - emoji: "🎉"
+    user_ids: [usr_alice_001]
+    count: 1
+
+# Message state
+state:
+  is_edited: false
+  is_deleted: false
+  is_pinned: true

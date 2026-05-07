@@ -1,0 +1,147 @@
+# runtime/server-runtime/server-001/server-runtime.yaml
+# ServerRuntime 运行时状态示例
+# 注意：此文件记录运行时动态状态，与 Entity 层的 server/{server_id}/server.yaml（静态配置）不同
+
+# 标识信息
+server_id: "server-001"                  # 对应的 ServerEntity ID
+runtime_id: "runtime-server-001"         # Runtime 实例 ID
+pid: 54321                               # 操作系统进程 ID
+started_at: "2026-05-01T00:00:00Z"       # 启动时间
+
+# 状态信息
+status: "running"                        # 状态: starting | running | stopping | stopped | error
+health: "healthy"                        # 健康状态: healthy | degraded | unhealthy
+last_health_check: "2026-05-07T01:15:00Z"  # 最后健康检查时间
+last_heartbeat: "2026-05-07T01:15:30Z"   # 最后心跳时间
+
+# 资源使用（实时数据）
+resource_usage:
+  cpu_percent: 35.5                      # CPU 使用率
+  memory_mb: 8192                        # 内存使用（MB）
+  memory_percent: 51.2                   # 内存使用率
+  disk_gb: 45                            # 磁盘使用（GB）
+  disk_percent: 45.0                     # 磁盘使用率
+  network_rx_mbps: 15.3                  # 网络接收速率（Mbps）
+  network_tx_mbps: 12.7                  # 网络发送速率（Mbps）
+
+# Agent 管理
+agent_management:
+  active_agents: 12                      # 当前活跃 Agent 数
+  max_agents: 50                         # 最大 Agent 数
+  agent_list:                            # Agent 列表
+    - agent_id: "agent-001"
+      name: "Alice"
+      status: "running"
+      memory_mb: 512
+      cpu_percent: 2.5
+    - agent_id: "agent-002"
+      name: "Bob"
+      status: "idle"
+      memory_mb: 256
+      cpu_percent: 0.5
+
+# 连接管理
+connection_management:
+  active_connections: 45                 # 当前活跃连接数
+  max_connections: 1000                  # 最大连接数
+  websocket_connections: 30              # WebSocket 连接数
+  http_connections: 15                   # HTTP 连接数
+  total_requests: 125678                 # 总请求数
+  requests_per_minute: 450               # 每分钟请求数
+
+# 运行时组件状态
+components:
+  # HTTP 服务器
+  http_server:
+    enabled: true
+    port: 443
+    status: "running"
+    request_count: 85432
+    error_count: 23
+    avg_response_time_ms: 45
+
+  # WebSocket 服务器
+  websocket_server:
+    enabled: true
+    port: 443
+    status: "running"
+    connection_count: 30
+    message_count: 234567
+    error_count: 12
+
+  # gRPC 服务器
+  grpc_server:
+    enabled: true
+    port: 50051
+    status: "running"
+    request_count: 40246
+    error_count: 8
+
+  # 数据库连接池
+  database_pool:
+    enabled: true
+    pool_size: 20
+    active_connections: 8
+    idle_connections: 12
+    status: "healthy"
+
+  # 缓存服务
+  cache_service:
+    enabled: true
+    type: "redis"
+    status: "healthy"
+    hit_rate: 0.85
+    memory_mb: 512
+
+# 服务注册
+registered_services:
+  - service_name: "AgentRuntimeService"
+    status: "running"
+    endpoint: "grpc://localhost:50051"
+  - service_name: "ChannelRuntimeService"
+    status: "running"
+    endpoint: "grpc://localhost:50051"
+  - service_name: "WorkflowRuntimeService"
+    status: "running"
+    endpoint: "grpc://localhost:50051"
+  - service_name: "ExecutionService"
+    status: "running"
+    endpoint: "grpc://localhost:50051"
+
+# 统计信息
+statistics:
+  uptime_seconds: 518400                 # 运行时长（秒，约 6 天）
+  total_requests: 125678                 # 总请求数
+  total_errors: 43                       # 总错误数
+  error_rate: 0.00034                    # 错误率
+  avg_response_time_ms: 45               # 平均响应时间
+  p95_response_time_ms: 120              # P95 响应时间
+  p99_response_time_ms: 250              # P99 响应时间
+
+# 配置信息
+config:
+  config_version: "v1.2.0"               # 配置版本
+  environment: "production"              # 运行环境
+  log_level: "info"                      # 日志级别
+  debug_mode: false                      # 调试模式
+
+# 告警信息
+alerts:
+  - alert_id: "alert-001"
+    severity: "warning"
+    message: "CPU usage above 80% for 5 minutes"
+    triggered_at: "2026-05-06T15:30:00Z"
+    resolved_at: "2026-05-06T15:45:00Z"
+    status: "resolved"
+
+# 最近事件
+recent_events:
+  - event_type: "agent_started"
+    agent_id: "agent-012"
+    timestamp: "2026-05-07T00:30:00Z"
+  - event_type: "health_check"
+    status: "healthy"
+    timestamp: "2026-05-07T01:15:00Z"
+  - event_type: "config_reloaded"
+    config_version: "v1.2.0"
+    timestamp: "2026-05-06T10:00:00Z"

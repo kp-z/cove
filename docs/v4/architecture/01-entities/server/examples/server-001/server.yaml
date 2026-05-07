@@ -1,0 +1,65 @@
+# server/server-001/server.yaml
+# ServerEntity 示例 - AWS EC2 生产服务器
+
+# 基础信息
+server_id: "server-001"
+name: "slock-prod-01"
+description: "Slock 生产环境主服务器"
+project_id: "project-001"
+
+# 服务器配置
+type: "cloud"
+provider: "aws"
+region: "us-west-2"
+instance_type: "t3.xlarge"
+
+# 计算资源
+resources:
+  cpu_cores: 4
+  memory_gb: 16
+  disk_gb: 100
+  gpu_count: 0
+
+# 网络配置
+network:
+  hostname: "slock-prod-01.example.com"
+  ip_address: "10.0.1.100"
+  port: 443
+  protocol: "https"
+  domain: "api.slock.example.com"
+
+# 安全配置
+security:
+  ssh_enabled: true
+  ssh_port: 22
+  firewall_rules:
+    - port: 443
+      protocol: "tcp"
+      source: "0.0.0.0/0"
+    - port: 22
+      protocol: "tcp"
+      source: "10.0.0.0/16"
+  ssl_enabled: true
+  ssl_cert_path: "/etc/ssl/certs/slock.crt"
+
+# 容量限制
+limits:
+  max_agents: 50
+  max_concurrent_executions: 100
+  max_memory_per_agent_gb: 4
+
+# 状态信息
+status: "running"
+
+# 时间信息
+created_at: "2026-01-01T00:00:00Z"
+updated_at: "2026-05-07T01:00:00Z"
+started_at: "2026-01-01T00:30:00Z"
+stopped_at: null
+
+# 扩展元数据
+meta:
+  tags: ["production", "primary"]
+  environment: "prod"
+  cost_center: "engineering"
+  owner: "devops-team"

@@ -1,0 +1,32 @@
+# User Notification Preferences
+email_enabled: true
+push_enabled: true
+digest_frequency: daily
+
+# Notification rules
+rules:
+  - event: task_assigned
+    channels: [email, push]
+    priority: high
+  - event: mention
+    channels: [push]
+    priority: high
+  - event: direct_message
+    channels: [push]
+    priority: high
+  - event: task_completed
+    channels: [email]
+    priority: normal
+  - event: build_failed
+    channels: [email, push]
+    priority: high
+
+# Quiet hours
+quiet_hours:
+  enabled: true
+  start: "22:00"
+  end: "08:00"
+  timezone: Asia/Shanghai
+  exceptions:
+    - event: critical_alert
+    - event: security_alert

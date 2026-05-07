@@ -1,0 +1,93 @@
+# executions/exec-001/metadata.yaml
+# ExecutionEntity 元数据文件
+
+# 基础信息
+execution_id: "exec_review_001"         # 唯一标识（UUID）
+agent_id: "agt_entity_assistant_001"    # 执行的 Agent
+task_id: "task_001"                     # 关联的任务
+conversation_id: "conv_001"             # 关联的对话
+
+# 输入输出
+input_message_id: "msg_001"             # 输入消息 ID
+output_message_id: "msg_002"            # 输出消息 ID
+
+# 执行状态
+status: "completed"                     # 状态: pending | running | completed | failed | cancelled
+exit_code: 0                            # 退出码（0 表示成功）
+
+# 日志文件
+log_file: "executions/exec_review_001/execution.jsonl"  # 日志文件路径
+log_size_bytes: 524288                  # 日志文件大小
+
+# 执行摘要（结构化，供 Agent 快速查询，无需读取 JSONL）
+summary:
+  outcome: "success"                    # 结果: success | partial | failed
+  key_actions:                          # 主要操作（最多 5 条）
+    - "读取 entity layer 文档（13 个文件）"
+    - "分析架构设计，发现 5 个改进点"
+    - "生成 review 报告并发送"
+  files_changed: 2                      # 修改文件数
+  errors_count: 0                       # 错误数
+  errors_recovered: 0                   # 已恢复错误数
+
+# 文件修改记录
+file_changes:
+  - file_path: "docs/entity-review-report.md"
+    change_type: "create"               # 变更类型: create | modify | delete
+    git_commit: "abc123def456"          # Git commit hash
+    lines_added: 500
+    lines_deleted: 0
+  - file_path: "docs/entity-notes.md"
+    change_type: "create"
+    git_commit: "abc123def456"
+    lines_added: 150
+    lines_deleted: 0
+
+# Token 使用统计
+token_usage:
+  input_tokens: 45000
+  output_tokens: 30000
+  thinking_tokens: 10000
+  total_tokens: 85000
+  cache_read_tokens: 15000              # 缓存读取 token
+  cache_write_tokens: 8000              # 缓存写入 token
+
+# 成本统计
+cost:
+  input_cost_usd: 1.35
+  output_cost_usd: 4.50
+  thinking_cost_usd: 0.30
+  cache_cost_usd: 0.15
+  total_cost_usd: 6.30
+
+# 时间信息
+started_at: "2026-05-05T17:04:00Z"      # 开始时间
+completed_at: "2026-05-05T18:30:00Z"    # 完成时间
+duration_ms: 5160000                    # 执行时长（毫秒）
+
+# 工具调用统计
+tool_calls:
+  - tool_name: "Read"
+    call_count: 13
+    total_duration_ms: 4500
+  - tool_name: "Write"
+    call_count: 2
+    total_duration_ms: 1800
+  - tool_name: "Grep"
+    call_count: 5
+    total_duration_ms: 2000
+
+# 技能调用统计
+skill_invocations:
+  - skill_name: "architecture-review"
+    invocation_count: 1
+    total_duration_ms: 5160000
+
+# 错误信息
+errors: []
+
+# 扩展元数据
+meta:
+  tags: ["architecture", "entity-review"]
+  category: "development"
+  priority: "high"

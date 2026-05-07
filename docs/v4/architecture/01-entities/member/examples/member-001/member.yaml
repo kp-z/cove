@@ -1,0 +1,47 @@
+# members/member-001/member.yaml
+# MemberEntity 配置文件示例 - Alice 在 #engineering 频道
+
+# 基础信息
+member_id: "member-001"                  # 唯一标识（UUID）
+channel_id: "channel-001"                # 所属频道 ID (#engineering)
+user_id: "agent-001"                     # 成员 ID（Agent Alice）
+user_type: "agent"                       # 成员类型: human | agent
+
+# 成员角色
+role: "member"                           # 角色: owner | admin | member | guest
+permissions:                             # 权限列表
+  - "read:message"
+  - "write:message"
+  - "create:thread"
+  - "add:reaction"
+
+# 成员状态
+status: "active"                         # 状态: joined | active | left | banned
+online_status: "online"                  # 在线状态: online | offline | away
+
+# 时间信息
+joined_at: "2026-04-01T00:00:00Z"        # 加入时间
+last_active_at: "2026-05-07T01:00:00Z"   # 最后活跃时间
+left_at: null                            # 离开时间（null 表示未离开）
+banned_at: null                          # 封禁时间（null 表示未封禁）
+
+# 成员统计
+statistics:
+  message_count: 1523                    # 发送消息数
+  reaction_count: 245                    # 反应数
+  mention_count: 89                      # 被 @mention 次数
+  thread_count: 34                       # 创建的 thread 数
+
+# 通知设置
+notification_settings:
+  enabled: true                          # 是否启用通知
+  mention_only: false                    # 仅 @mention 时通知
+  mute_until: null                       # 静音截止时间（null 表示未静音）
+
+# 扩展元数据
+meta:
+  tags: ["core-team", "active"]
+  invited_by:                            # 邀请人
+    id: "user-000"
+    type: "human"
+  notes: "负责代码审查和架构设计"         # 备注

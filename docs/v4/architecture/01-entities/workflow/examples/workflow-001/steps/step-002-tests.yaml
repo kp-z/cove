@@ -1,0 +1,36 @@
+# Step: Run Tests
+id: step_002
+name: "Run tests"
+type: execution
+status: template
+
+# Step configuration
+config:
+  agent_id: agt_code_reviewer_001
+  command: "npm test"
+  working_directory: /workspace/project
+  environment:
+    NODE_ENV: test
+    CI: true
+  timeout_seconds: 600
+  
+# Step behavior
+behavior:
+  on_success: continue
+  on_failure: fail_workflow  # Blocking
+  retry_policy:
+    enabled: true
+    max_retries: 2
+    
+# Step dependencies
+dependencies:
+  depends_on: [step_001]
+  
+# Step outputs
+outputs:
+  - name: test_results
+    type: json
+    path: /tmp/test-results.json
+  - name: coverage_report
+    type: html
+    path: /tmp/coverage/index.html

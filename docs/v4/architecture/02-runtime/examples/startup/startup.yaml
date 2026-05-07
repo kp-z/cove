@@ -1,0 +1,44 @@
+# runtime/agent_daemon/startup.yaml
+# AgentDaemon 启动配置示例
+
+startup:
+  # 启动超时时间（秒）
+  timeout_seconds: 60
+
+  # 依赖检查
+  dependency_checks:
+    - name: "python-version"
+      check_type: "python_version"
+      required_version: "3.10"
+    - name: "database-connection"
+      check_type: "database"
+      connection_string: "${DATABASE_URL}"
+      timeout_seconds: 10
+    - name: "message-queue"
+      check_type: "message_queue"
+      connection_string: "${REDIS_URL}"
+      timeout_seconds: 5
+
+  # 启动重试策略
+  retry_policy:
+    max_retries: 3
+    retry_interval_seconds: 5
+    exponential_backoff: true
+
+  # Skills 加载配置
+  # 对应 Entity 层 agents/{agent_id}/config/skills.yaml 中定义的 Skills
+  skills:
+    enabled: true
+    skills_dir: "~/.openclaw/skills"
+    fail_fast: false                    # false: 跳过无效 Skills; true: 遇到错误立即失败
+    validate_dependencies: true         # 验证依赖完整性（环境变量、npm/Python 包）
+    check_circular_deps: true           # 检测循环依赖
+    load_timeout_seconds: 30            # Skills 加载超时
+    required_skills: []                 # 必需的 Skills 列表（缺失则启动失败）
+
+  # 启动后健康检查
+  health_check:
+    enabled: true
+    initial_delay_seconds: 5
+    interval_seconds: 30
+    failure_threshold: 3

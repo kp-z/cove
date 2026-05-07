@@ -1,0 +1,69 @@
+# Task Entity Example: Entity Documentation Review
+id: task_001
+number: 1
+type: review
+status: in_review
+priority: high
+created_at: 2026-05-05T17:04:00Z
+updated_at: 2026-05-05T18:30:00Z
+
+# Task context
+context:
+  channel_id: dm:usr_kp_001
+  project_id: proj_claude_manager_001
+  message_id: msg_eca62879  # Original message that became this task
+  
+# Task content
+content:
+  title: "Review entity documentation in doc/v4"
+  description: "请检查一下 doc/v4 里 entity 相关的内容是否合理，从专业的视角看看有没有什么问题"
+  
+# Task assignment
+assignment:
+  assignee_id: agt_entity_assistant_001
+  assignee_type: agent
+  assigned_at: 2026-05-05T17:04:00Z
+  claimed_at: 2026-05-05T17:04:30Z
+  
+# Task workflow
+workflow:
+  current_state: in_review
+  state_history:
+    - state: todo
+      entered_at: 2026-05-05T17:04:00Z
+    - state: in_progress
+      entered_at: 2026-05-05T17:04:30Z
+    - state: in_review
+      entered_at: 2026-05-05T18:30:00Z
+      
+# Task dependencies
+dependencies:
+  blocks: []
+  blocked_by: []
+  related: []
+  
+# Task execution
+execution:
+  started_at: 2026-05-05T17:04:30Z
+  completed_at: 2026-05-05T18:30:00Z
+  duration_seconds: 5160
+  execution_id: exec_review_001
+  
+# Task results
+results:
+  summary: "Completed comprehensive review of entity documentation"
+  findings:
+    - "Identified 4 major strengths in architecture design"
+    - "Found 5 improvement areas (P0: 1, P1: 2, P2: 2)"
+    - "Reviewed 3 core entity specifications in detail"
+  artifacts:
+    - type: report
+      path: workspace/review-report.md
+      description: "Detailed review findings and recommendations"
+      
+# Task metadata
+metadata:
+  tags: [documentation, review, entity-layer]
+  estimated_hours: 2
+  actual_hours: 1.43
+  complexity: medium

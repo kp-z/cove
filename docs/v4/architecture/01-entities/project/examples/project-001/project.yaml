@@ -1,0 +1,83 @@
+# Project Entity Example: Claude Manager Platform
+id: proj_claude_manager_001
+name: claude-manager
+display_name: "Claude Manager Platform"
+type: software_platform
+status: active
+created_at: 2026-01-15T00:00:00Z
+updated_at: 2026-05-06T02:00:00Z
+
+# Project metadata
+metadata:
+  description: "Collaborative platform for human-AI interaction with entity-based architecture"
+  repository: "https://github.com/example/claude-manager"
+  documentation: "https://docs.claude-manager.example.com"
+  version: "0.4.0"
+  
+# Project ownership
+owner:
+  user_id: usr_kp_001
+  team_id: team_platform_001
+  
+# Project members
+members:
+  - user_id: usr_kp_001
+    role: owner
+    permissions: [admin, write, read]
+    joined_at: 2026-01-15T00:00:00Z
+  - user_id: usr_alice_001
+    role: developer
+    permissions: [write, read]
+    joined_at: 2026-02-01T00:00:00Z
+  - agent_id: agt_entity_assistant_001
+    role: assistant
+    permissions: [write, read]
+    joined_at: 2026-04-01T00:00:00Z
+
+# Project configuration
+config:
+  # Default agent runtime settings
+  default_runtime:
+    model: claude-opus-4
+    max_tokens: 200000
+    temperature: 1.0
+    
+  # Project-level permissions
+  permissions:
+    allow_agent_file_access: true
+    allow_agent_network_access: true
+    require_human_approval_for:
+      - destructive_operations
+      - external_api_calls
+      
+  # Notification settings
+  notifications:
+    channels:
+      - ch_general_001
+      - ch_dev_001
+    events:
+      - task_completed
+      - build_failed
+      - deployment_success
+
+# Project structure
+structure:
+  channels:
+    - ch_general_001
+    - ch_dev_001
+    - ch_design_001
+  agents:
+    - agt_entity_assistant_001
+    - agt_code_reviewer_001
+  tasks:
+    active_count: 12
+    completed_count: 145
+  okrs:
+    - okr_q2_2026_stability
+
+# Project resources
+resources:
+  storage_used_mb: 2450
+  storage_limit_mb: 10000
+  active_agents: 2
+  agent_limit: 10

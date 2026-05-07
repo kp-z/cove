@@ -1,0 +1,70 @@
+# agents/{agent_id}/config/skills.yaml
+# 技能列表配置文件（结构化）
+
+skills:
+  - skill_id: "skill-001"
+    name: "tdd-workflow"
+    display_name: "TDD 工作流"
+    description: "测试驱动开发流程，先写测试再写实现"
+    version: "1.0.0"
+    enabled: true
+    trigger_conditions:
+      - type: "user_request"
+        pattern: "实现新功能|添加功能|开发.*功能"
+    workflow:
+      - step: 1
+        action: "理解需求，编写测试用例"
+      - step: 2
+        action: "运行测试，确认失败"
+      - step: 3
+        action: "编写最小实现代码"
+      - step: 4
+        action: "运行测试，确认通过"
+      - step: 5
+        action: "重构代码，优化设计"
+    tags: ["testing", "development", "best-practice"]
+
+  - skill_id: "skill-002"
+    name: "code-review"
+    display_name: "代码审查"
+    description: "全面的代码审查流程"
+    version: "1.0.0"
+    enabled: true
+    trigger_conditions:
+      - type: "user_request"
+        pattern: "审查代码|code review|review PR"
+    review_checklist:
+      - category: "代码风格"
+        items: ["命名规范", "缩进格式", "注释完整性"]
+      - category: "逻辑正确性"
+        items: ["边界条件", "错误处理", "空值检查"]
+      - category: "性能优化"
+        items: ["算法复杂度", "内存使用", "数据库查询"]
+      - category: "安全性"
+        items: ["输入验证", "SQL注入", "XSS防护"]
+      - category: "测试覆盖率"
+        items: ["单元测试", "集成测试", "边界测试"]
+    tags: ["review", "quality", "best-practice"]
+
+  - skill_id: "skill-003"
+    name: "architecture-design"
+    display_name: "架构设计"
+    description: "系统架构设计和技术选型"
+    version: "1.0.0"
+    enabled: true
+    trigger_conditions:
+      - type: "user_request"
+        pattern: "设计架构|架构设计|系统设计"
+    design_principles:
+      - "高内聚低耦合"
+      - "可扩展性"
+      - "可维护性"
+      - "性能优化"
+      - "安全性优先"
+    design_patterns:
+      - "分层架构"
+      - "微服务架构"
+      - "事件驱动架构"
+      - "CQRS"
+      - "领域驱动设计"
+    tags: ["architecture", "design", "system"]

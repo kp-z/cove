@@ -1,0 +1,61 @@
+# runtime/agent_daemon/agent-001/gateway.yaml
+# GatewayRuntime（OpenClaw 网关）配置示例
+
+# 网关连接配置
+gateway:
+  url: "${OPENCLAW_GATEWAY_URL}"         # OpenClaw Gateway 地址
+  timeout_seconds: 30
+  reconnect_interval_seconds: 5
+  max_reconnect_attempts: 10
+
+  # 认证配置
+  auth:
+    type: "jwt"                          # 认证类型: jwt | api_key
+    token: "${OPENCLAW_JWT_TOKEN}"       # JWT Token（环境变量）
+    refresh_interval_seconds: 3600      # Token 刷新间隔
+
+# 状态同步配置
+sync:
+  enabled: true
+  sync_on_startup: true                  # 启动时同步
+  sync_interval_seconds: 300            # 定期同步间隔（5 分钟）
+  conflict_resolution: "local_wins"     # 冲突解决策略: local_wins | remote_wins | manual
+
+  # 同步内容
+  sync_items:
+    - "agent_state"                      # Agent 状态
+    - "skills"                           # Skills 列表
+    - "memory"                           # Memory 状态
+
+# Dual-Write 策略配置
+dual_write:
+  enabled: true
+  strategy: "local_first"               # 策略: local_first | remote_first | parallel
+
+  # WAL 队列配置
+  wal_queue:
+    enabled: true
+    batch_size: 10                       # 批量处理大小
+    flush_interval_seconds: 5           # 刷新间隔
+    max_queue_size: 1000                 # 最大队列长度
+
+  # 重试策略
+  retry_policy:
+    max_retries: 3
+    retry_interval_seconds: 5
+    exponential_backoff: true
+    max_retry_interval_seconds: 60
+
+  # 死信队列
+  dead_letter_queue:
+    enabled: true
+    max_size: 100
+    alert_threshold: 10                  # 超过此数量时告警
+
+# Skills 同步配置
+# 对应 Entity 层 agents/{agent_id}/config/skills.yaml
+skills_sync:
+  enabled: true
+  sync_on_startup: true
+  check_interval_seconds: 60
+  auto_repair: true                      # 自动修复不一致的 Skills

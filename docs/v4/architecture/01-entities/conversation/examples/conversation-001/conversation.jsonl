@@ -1,0 +1,9 @@
+{"type":"conversation_start","conversation_id":"conv-001","agent_id":"agent-001","channel_id":"channel-001","started_at":"2026-05-01T10:00:00Z"}
+{"type":"user_message","conversation_id":"conv-001","message_id":"msg-001","sender_id":"user-001","content":"请帮我 review entity layer 的设计","timestamp":"2026-05-01T10:00:05Z"}
+{"type":"agent_message","conversation_id":"conv-001","message_id":"msg-002","sender_id":"agent-001","content":"好的，我来全面 review entity layer 的设计。让我先读取相关文档...","timestamp":"2026-05-01T10:00:10Z"}
+{"type":"tool_call","conversation_id":"conv-001","tool_name":"Read","tool_args":{"file_path":"docs/v4/architecture/01-entities/README.md"},"timestamp":"2026-05-01T10:00:15Z"}
+{"type":"tool_call","conversation_id":"conv-001","tool_name":"Read","tool_args":{"file_path":"docs/v4/architecture/01-entities/agent/agent-entity.md"},"timestamp":"2026-05-01T10:00:20Z"}
+{"type":"agent_message","conversation_id":"conv-001","message_id":"msg-003","sender_id":"agent-001","content":"我已经完成了 entity layer 的 review，发现了以下几个问题...","timestamp":"2026-05-01T10:30:00Z"}
+{"type":"user_message","conversation_id":"conv-001","message_id":"msg-004","sender_id":"user-001","content":"很好，请开始修复这些问题","timestamp":"2026-05-01T10:31:00Z"}
+{"type":"context_compression","conversation_id":"conv-001","before_tokens":180000,"after_tokens":45000,"compression_reason":"approaching_window_limit","timestamp":"2026-05-06T10:00:00Z"}
+{"type":"agent_message","conversation_id":"conv-001","message_id":"msg-025","sender_id":"agent-001","content":"所有问题已修复完成","timestamp":"2026-05-07T01:00:00Z"}

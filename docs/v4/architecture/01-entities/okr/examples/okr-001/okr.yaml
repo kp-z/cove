@@ -1,0 +1,85 @@
+# OKR Entity Example: Q2 2026 Platform Stability
+id: okr_q2_2026_stability
+type: okr
+period: Q2_2026
+status: in_progress
+created_at: 2026-04-01T00:00:00Z
+updated_at: 2026-05-06T02:00:00Z
+
+# OKR ownership
+owner:
+  type: team
+  team_id: team_platform_001
+  lead_id: usr_kp_001
+
+# Objective
+objective:
+  title: "Improve Platform Stability and Reliability"
+  description: "Reduce system downtime and improve user experience through better error handling, monitoring, and documentation"
+  priority: high
+  
+# Key Results
+key_results:
+  - id: kr_001
+    title: "Reduce average response time to < 200ms"
+    type: metric
+    target_value: 200
+    current_value: 285
+    unit: milliseconds
+    progress: 0.45  # 45% progress
+    status: on_track
+    
+  - id: kr_002
+    title: "Achieve 99.9% uptime"
+    type: metric
+    target_value: 99.9
+    current_value: 99.2
+    unit: percentage
+    progress: 0.70
+    status: at_risk
+    
+  - id: kr_003
+    title: "Complete entity layer documentation"
+    type: milestone
+    target_value: 1
+    current_value: 0.8
+    unit: completion
+    progress: 0.80
+    status: on_track
+    milestones:
+      - name: "Core entity specs"
+        status: completed
+        completed_at: 2026-04-15T00:00:00Z
+      - name: "Example structures"
+        status: in_progress
+        progress: 0.60
+      - name: "Integration guides"
+        status: pending
+
+# Progress tracking
+progress:
+  overall: 0.65  # 65% overall progress
+  last_updated: 2026-05-06T02:00:00Z
+  update_frequency: weekly
+  
+# Related entities
+related:
+  projects:
+    - proj_claude_manager_001
+    - proj_monitoring_001
+  tasks:
+    - task_001  # Entity documentation review
+    - task_015  # Performance optimization
+    - task_023  # Monitoring dashboard
+    
+# Timeline
+timeline:
+  start_date: 2026-04-01T00:00:00Z
+  end_date: 2026-06-30T23:59:59Z
+  checkpoints:
+    - date: 2026-04-30T00:00:00Z
+      status: completed
+      progress: 0.35
+    - date: 2026-05-31T00:00:00Z
+      status: upcoming
+      target_progress: 0.75

@@ -1,0 +1,58 @@
+# Skills Configuration for agent-001
+# Skills are reusable prompt templates that enhance agent capabilities
+
+skills:
+  - id: code-review
+    name: "Code Review Assistant"
+    description: "Provides structured code review with focus on security, performance, and best practices"
+    enabled: true
+    trigger: manual
+    template: |
+      Review the following code for:
+      1. Security vulnerabilities (SQL injection, XSS, etc.)
+      2. Performance issues (N+1 queries, unnecessary loops)
+      3. Code style and best practices
+      4. Potential bugs and edge cases
+    parameters:
+      - name: language
+        type: string
+        required: true
+      - name: focus_areas
+        type: array
+        default: ["security", "performance", "style"]
+
+  - id: tdd-guide
+    name: "TDD Workflow Guide"
+    description: "Guides agent through test-driven development workflow"
+    enabled: true
+    trigger: on_task_start
+    template: |
+      Follow TDD workflow:
+      1. Write failing test first
+      2. Implement minimal code to pass
+      3. Refactor while keeping tests green
+      4. Document test coverage
+    parameters:
+      - name: test_framework
+        type: string
+        required: true
+      - name: coverage_threshold
+        type: number
+        default: 80
+
+  - id: security-scan
+    name: "Security Vulnerability Scanner"
+    description: "Scans code for common security vulnerabilities"
+    enabled: false
+    trigger: on_commit
+    template: |
+      Scan for security issues:
+      - Hardcoded credentials
+      - Unsafe deserialization
+      - Command injection risks
+      - Insecure dependencies
+    parameters:
+      - name: severity_threshold
+        type: string
+        enum: ["low", "medium", "high", "critical"]
+        default: "medium"

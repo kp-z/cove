@@ -1,0 +1,93 @@
+# runtime/workflow_runtime/workflow-001/runtime.yaml
+# WorkflowRuntime 运行时状态配置示例
+
+# 运行时信息
+runtime_id: "workflow-runtime-001"       # 运行时 ID
+workflow_id: "workflow-001"              # 关联的工作流 ID
+kr_id: "kr-001"                          # 关联的 KR ID
+status: "running"                        # 状态: pending | running | paused | completed | failed
+started_at: "2026-05-04T10:00:00Z"
+
+# 服务对象
+service_entities:
+  - "WorkflowEntity"
+  - "ExecutionEntity"
+  - "TaskEntity"
+
+# 当前执行状态
+current_execution:
+  execution_id: "exec-015"
+  step_index: 2                          # 当前步骤索引（从 0 开始）
+  step_name: "代码审查"
+  step_status: "running"
+  started_at: "2026-05-04T10:20:00Z"
+  estimated_completion: "2026-05-04T10:35:00Z"
+
+# 步骤执行历史
+step_history:
+  - step_index: 0
+    step_name: "需求分析"
+    status: "completed"
+    started_at: "2026-05-04T10:00:00Z"
+    completed_at: "2026-05-04T10:10:00Z"
+    duration_ms: 600000
+    agent_id: "agent-001"
+
+  - step_index: 1
+    step_name: "架构设计"
+    status: "completed"
+    started_at: "2026-05-04T10:10:00Z"
+    completed_at: "2026-05-04T10:20:00Z"
+    duration_ms: 600000
+    agent_id: "agent-001"
+
+  - step_index: 2
+    step_name: "代码审查"
+    status: "running"
+    started_at: "2026-05-04T10:20:00Z"
+    agent_id: "agent-002"
+
+# 状态机（State Machine）
+state_machine:
+  current_state: "step_2_running"
+  previous_state: "step_1_completed"
+  state_transitions:
+    - from_state: "step_1_completed"
+      to_state: "step_2_running"
+      timestamp: "2026-05-04T10:20:00Z"
+      trigger: "step_completed"
+
+# 条件分支状态
+conditional_branches:
+  - branch_id: "branch-001"
+    condition: "code_quality > 0.8"
+    condition_result: true
+    evaluated_at: "2026-05-04T10:19:00Z"
+    next_step: "部署到生产环境"
+
+# 并行执行状态
+parallel_executions:
+  - parallel_group_id: "parallel-001"
+    steps: ["单元测试", "集成测试", "性能测试"]
+    status: "running"
+    completed_steps: 2
+    total_steps: 3
+
+# 重试状态
+retry_state:
+  current_retry_count: 0
+  max_retries: 3
+  last_retry_at: null
+  retry_reason: null
+
+# 资源使用统计
+resource_usage:
+  total_executions: 15
+  total_duration_ms: 9000000
+  average_duration_ms: 600000
+  success_rate: 0.93
+
+# 映射到 Backend 服务
+backend_services:
+  - "WorkflowService"
+  - "ExecutionService"

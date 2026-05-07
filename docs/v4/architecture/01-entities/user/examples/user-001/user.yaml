@@ -1,0 +1,85 @@
+# User Entity Example: Platform User
+id: usr_kp_001
+username: kp-user
+display_name: "KP"
+email: kp@example.com
+type: human
+status: active
+created_at: 2026-01-10T00:00:00Z
+last_active: 2026-05-06T02:15:00Z
+
+# User profile
+profile:
+  avatar_url: /avatars/usr_kp_001.png
+  bio: "Platform architect and lead developer"
+  timezone: Asia/Shanghai
+  language: zh-CN
+  
+# User roles and permissions
+roles:
+  - platform_admin
+  - project_owner
+  - developer
+  
+permissions:
+  global:
+    - manage_users
+    - manage_projects
+    - manage_agents
+    - view_analytics
+  projects:
+    proj_claude_manager_001:
+      - admin
+      - write
+      - read
+
+# User preferences
+preferences:
+  notifications:
+    email_enabled: true
+    push_enabled: true
+    digest_frequency: daily
+    notify_on:
+      - task_assigned
+      - mention
+      - direct_message
+      - task_completed
+  ui:
+    theme: dark
+    language: zh-CN
+    compact_mode: false
+    show_avatars: true
+  agent_interaction:
+    default_model: claude-opus-4
+    auto_approve_safe_operations: true
+    require_confirmation_for:
+      - destructive_operations
+      - external_api_calls
+
+# User activity
+activity:
+  total_messages: 1247
+  total_tasks_created: 89
+  total_tasks_completed: 67
+  projects_owned: 3
+  projects_member: 7
+  agents_created: 2
+  
+# User devices
+devices:
+  - device_id: dev_mbp_001
+    name: "MacBook Pro"
+    last_used: 2026-05-06T02:15:00Z
+    status: active
+  - device_id: dev_iphone_001
+    name: "iPhone"
+    last_used: 2026-05-05T22:30:00Z
+    status: active
+
+# User sessions
+sessions:
+  - session_id: sess_001
+    device_id: dev_mbp_001
+    created_at: 2026-05-06T00:00:00Z
+    expires_at: 2026-05-13T00:00:00Z
+    status: active

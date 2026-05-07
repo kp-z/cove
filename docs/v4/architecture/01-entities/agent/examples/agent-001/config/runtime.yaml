@@ -1,0 +1,51 @@
+# Runtime 配置 - agent-001 (Alice)
+# 定义 Agent 的运行时行为和资源限制
+
+# Context 管理
+context:
+  max_context_window: 200000
+  auto_compact: true
+  compact_threshold: 0.8
+  compact_strategy: "structured"
+  auto_archive_to_memory: true
+  archive_trigger: "on_compact"
+
+# 资源限制
+resources:
+  max_memory_mb: 2048
+  max_cpu_percent: 80
+  max_concurrent_tasks: 5
+  max_file_size_mb: 100
+
+# 超时配置
+timeouts:
+  default_tool_timeout_ms: 120000
+  bash_timeout_ms: 300000
+  read_timeout_ms: 30000
+  write_timeout_ms: 60000
+
+# 重试策略
+retry:
+  max_retries: 3
+  retry_delay_ms: 1000
+  exponential_backoff: true
+  backoff_multiplier: 2
+
+# 日志配置
+logging:
+  level: "info"
+  format: "json"
+  output: "file"
+  file_path: "logs/agent-001.log"
+  max_file_size_mb: 100
+  max_backup_files: 10
+  include_tool_calls: true
+  include_context_stats: true
+
+# 性能监控
+monitoring:
+  enabled: true
+  metrics_interval_seconds: 60
+  track_token_usage: true
+  track_tool_latency: true
+  track_memory_usage: true
