@@ -4266,10 +4266,10 @@ OpenClaw Gateway ← → PostgreSQL
 
 ### 6.2 GatewayRuntime Design
 
-**Purpose**: Adaptation layer between OA business logic and OpenClaw Gateway
+**Purpose**: Adaptation layer between Cove business logic and OpenClaw Gateway
 
 **Core Responsibilities**:
-1. **Protocol Translation**: Convert OA API calls ↔ OpenClaw Gateway protocol
+1. **Protocol Translation**: Convert Cove API calls ↔ OpenClaw Gateway protocol
 2. **State Synchronization**: Sync agent state between PostgreSQL and OpenClaw runtime
 3. **Message Routing**: Route messages between Channels and OpenClaw agents
 4. **Execution Monitoring**: Track agent executions and update database records
@@ -4284,7 +4284,7 @@ from openclaw import Gateway, Agent as OpenClawAgent
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class GatewayRuntime:
-    """Adaptation layer between OA and OpenClaw Gateway"""
+    """Adaptation layer between Cove and OpenClaw Gateway"""
     
     def __init__(self, gateway_url: str, db_session: AsyncSession):
         self.gateway = Gateway(gateway_url)
@@ -4316,13 +4316,13 @@ class GatewayRuntime:
         if not agent:
             agent = await self._load_agent(agent_id)
         
-        # Convert OA message format to OpenClaw format
+        # Convert Cove message format to OpenClaw format
         openclaw_message = self._convert_message_format(message)
         
         # Send via Gateway
         response = await agent.send(openclaw_message)
         
-        # Convert response back to OA format
+        # Convert response back to Cove format
         oa_response = self._convert_response_format(response)
         
         # Update database
@@ -4353,7 +4353,7 @@ class GatewayRuntime:
             await self._update_agent_status_in_db(agent_id, "stopped")
     
     def _convert_message_format(self, oa_message: dict) -> dict:
-        """Convert OA message format to OpenClaw format"""
+        """Convert Cove message format to OpenClaw format"""
         return {
             "role": "user" if oa_message["sender_type"] == "human" else "assistant",
             "content": oa_message["content"],
@@ -4365,7 +4365,7 @@ class GatewayRuntime:
         }
     
     def _convert_response_format(self, openclaw_response: dict) -> dict:
-        """Convert OpenClaw response to OA format"""
+        """Convert OpenClaw response to Cove format"""
         return {
             "content": openclaw_response["content"],
             "sender_type": "agent",
@@ -4426,8 +4426,8 @@ monitoring:
 
 **Integration Strategy**:
 
-1. **Skill Discovery**: Auto-discover OpenClaw skills and register in OA database
-2. **Skill Mapping**: Map OA plugin concepts to OpenClaw skills
+1. **Skill Discovery**: Auto-discover OpenClaw skills and register in Cove database
+2. **Skill Mapping**: Map Cove plugin concepts to OpenClaw skills
 3. **Skill Execution**: Delegate skill execution to OpenClaw Gateway
 
 **Skill Registry**:
@@ -4460,8 +4460,8 @@ class SkillRegistry:
         return skills
     
     async def register_skill_in_db(self, skill: dict):
-        """Register OpenClaw skill in OA database"""
-        # Map to OA plugin format
+        """Register OpenClaw skill in Cove database"""
+        # Map to Cove plugin format
         plugin_data = {
             "plugin_id": f"openclaw-{skill['name']}",
             "name": skill["name"],
@@ -4500,7 +4500,7 @@ Agent continues execution
 
 ### 6.3.4 Skills System Runtime Layer Integration
 
-**Purpose**: Integrate OpenClaw Skills System with OA Runtime layer for seamless skill discovery, loading, and execution.
+**Purpose**: Integrate OpenClaw Skills System with Cove Runtime layer for seamless skill discovery, loading, and execution.
 
 #### 6.3.4.1 Runtime Architecture
 
@@ -4545,7 +4545,7 @@ import yaml
 from openclaw import Gateway, Skill
 
 class SkillsRuntimeManager:
-    """Manages OpenClaw skills in OA Runtime layer"""
+    """Manages OpenClaw skills in Cove Runtime layer"""
     
     def __init__(
         self, 
@@ -4938,7 +4938,7 @@ async def execute_skill_with_fallback(
 
 **Graceful Degradation**:
 
-- If OpenClaw Gateway is unavailable, fall back to native OA plugin system
+- If OpenClaw Gateway is unavailable, fall back to native Cove plugin system
 - If skill execution fails, return error to agent with retry suggestion
 - If skill loading fails, log error but don't crash agent
 
@@ -4946,9 +4946,9 @@ async def execute_skill_with_fallback(
 
 ### 6.4 API Mapping Layer
 
-**OA API ↔ OpenClaw Gateway Protocol Mapping**:
+**Cove API ↔ OpenClaw Gateway Protocol Mapping**:
 
-| OA API Endpoint | OpenClaw Gateway Method | Notes |
+| Cove API Endpoint | OpenClaw Gateway Method | Notes |
 |----------------|------------------------|-------|
 | `POST /agents` | `gateway.create_agent()` | Create agent instance |
 | `POST /agents/{id}/messages` | `agent.send(message)` | Send message to agent |
@@ -4982,7 +4982,7 @@ async def create_agent(
         config=request.config
     )
     
-    # 3. Return OA-format response
+    # 3. Return Cove-format response
     return {
         "agent_id": request.agent_id,
         "status": "created",
