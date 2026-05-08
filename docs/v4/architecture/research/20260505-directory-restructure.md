@@ -14,10 +14,10 @@
 ```
 docs/v4/architecture/
 ├── README.md                          # 主索引
-├── 01-entity-layer.md                 # 实体层（326行，已精简）
-├── 02-runtime-layer.md                # 运行时层（4,242行）
+├── 01-entity-layer.md                 # 领域层（326行，已精简）
+├── 02-runtime-layer.md                # 应用层（4,242行）
 ├── 04-backend-api.md                  # 后端API（6,035行）
-├── 05-frontend-layer.md               # 前端层（4,413行）
+├── 05-frontend-layer.md               # 表现层（4,413行）
 ├── 06-integration.md                  # 集成层（1,757行）
 │
 ├── entities/                          # ✅ 已优化：扁平结构
@@ -125,10 +125,10 @@ docs/v4/architecture/
 │   └── README.md
 │
 ├── layers/                            # 📁 架构层级文档（主要设计文档）
-│   ├── 01-entity-layer.md             # 实体层概览（326行）
-│   ├── 02-runtime-layer.md            # 运行时层（4,242行）
+│   ├── 01-entity-layer.md             # 领域层概览（326行）
+│   ├── 02-runtime-layer.md            # 应用层（4,242行）
 │   ├── 04-backend-api.md              # 后端API（6,035行）
-│   ├── 05-frontend-layer.md           # 前端层（4,413行）
+│   ├── 05-frontend-layer.md           # 表现层（4,413行）
 │   └── 06-integration.md              # 集成层（1,757行）
 │
 ├── entities/                          # 📁 实体详细规范（已优化）
@@ -156,7 +156,7 @@ docs/v4/architecture/
 │
 ├── examples/                          # 📁 统一的示例目录
 │   ├── README.md                      # 示例索引
-│   ├── entity-layer/                  # 实体层示例
+│   ├── entity-layer/                  # 领域层示例
 │   │   ├── README.md
 │   │   ├── agent-001/                 # Agent完整示例
 │   │   │   ├── agent.yaml
@@ -167,7 +167,7 @@ docs/v4/architecture/
 │   │   ├── config-directory.md
 │   │   └── errors-jsonl.md
 │   │
-│   └── runtime-layer/                 # 运行时层示例
+│   └── runtime-layer/                 # 应用层示例
 │       ├── README.md
 │       ├── daemon.yaml
 │       ├── daemon-yaml.md

@@ -103,7 +103,7 @@ integration/external/design/: 0 个文件
 **证据**:
 ```markdown
 # agent-entity.md 中的引用
-> **相关文档**: [Runtime Layer - Agent Lifecycle](../../runtime/lifecycle/design/), [Backend API - Agent Service](../../backend/services/design/)
+> **相关文档**: [Application Layer - Agent Lifecycle](../../runtime/lifecycle/design/), [Backend API - Agent Service](../../backend/services/design/)
 
 # 但实际情况
 $ ls docs/v4/architecture/runtime/lifecycle/design/
@@ -117,10 +117,10 @@ $ ls docs/v4/architecture/backend/services/design/
 1. **短期修复**: 将所有跨层引用改为指向主层文档的具体章节
    ```markdown
    # 修改前
-   > **相关文档**: [Runtime Layer - Agent Lifecycle](../../runtime/lifecycle/design/)
+   > **相关文档**: [Application Layer - Agent Lifecycle](../../runtime/lifecycle/design/)
    
    # 修改后
-   > **相关文档**: [Runtime Layer - Agent Lifecycle](../../02-runtime-layer.md#21-agentdaemon)
+   > **相关文档**: [Application Layer - Agent Lifecycle](../../02-runtime-layer.md#21-agentdaemon)
    ```
 
 2. **长期修复**: 实施 P0-1 的方案 B，创建实际的目标文件
