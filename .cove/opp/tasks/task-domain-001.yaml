@@ -1,0 +1,220 @@
+# AI_SEARCH_HEADER
+# entity_type: Task
+# entity_id: task-domain-001
+# purpose: 实现 Agent 实体
+# owner: Alice
+# related_workflow: wf-domain-entities
+# related_kr: kr-001-domain-layer
+
+task_id: "task-domain-001"
+task_number: 1
+title: "实现 Agent 实体"
+
+description: |
+  实现 Domain Layer 的 Agent 实体，包括实体类定义、值对象、Repository 接口和单元测试。
+
+  Agent 实体是 Cove 系统的核心实体之一，代表一个 AI Agent。
+
+  实现内容：
+  1. Agent 实体类（AgentEntity）
+  2. Agent 值对象（AgentId, AgentStatus, AgentConfig）
+  3. Agent Repository 接口（IAgentRepository）
+  4. Agent 单元测试（agent.entity.test.ts）
+
+# ============================================================
+# 任务类型和优先级
+# ============================================================
+task_type: "single_agent"  # single_agent | multi_agent | workflow
+priority: "P0"  # P0 | P1 | P2 | P3
+status: "in_progress"  # todo | in_progress | blocked | in_review | done | cancelled
+
+# ============================================================
+# 关联关系
+# ============================================================
+workflow_id: "wf-domain-entities"
+kr_id: "kr-001-domain-layer"
+okr_id: "okr-code-development-2026q2"
+
+# ============================================================
+# 分配信息
+# ============================================================
+assignee:
+  id: "alice"
+  type: "agent"
+  assigned_at: "2026-05-08T21:00:00Z"
+
+# ============================================================
+# 依赖关系
+# ============================================================
+depends_on: []  # 无依赖，可以立即开始
+blocks:
+  - task_id: "task-app-002"
+    reason: "AgentService 依赖 Agent 实体"
+
+# ============================================================
+# 运行配置
+# ============================================================
+run_config:
+  done_type: "normal"
+  max_token: 50000
+  max_duration_minutes: 120
+  auto_review: true
+  test_required: true
+  test_coverage_target: 80
+
+# ============================================================
+# 计划（Plan）
+# ============================================================
+plan:
+  plan_id: "plan-task-domain-001"
+  plan_file: ".cove/opp/tasks/task-domain-001/plan.md"
+
+  steps:
+    - step: 1
+      title: "阅读 Agent 实体设计文档"
+      description: "理解 Agent 实体的业务规则和数据结构"
+      estimated_minutes: 15
+      status: "done"
+
+    - step: 2
+      title: "编写 Agent 实体单元测试（TDD）"
+      description: "先写测试，定义 Agent 实体的行为"
+      estimated_minutes: 30
+      status: "in_progress"
+      files:
+        - "code/backend/01-domain/models/agent/agent.entity.test.ts"
+
+    - step: 3
+      title: "实现 Agent 实体类"
+      description: "实现 AgentEntity 类，使测试通过"
+      estimated_minutes: 45
+      status: "todo"
+      files:
+        - "code/backend/01-domain/models/agent/agent.entity.ts"
+
+    - step: 4
+      title: "实现 Agent 值对象"
+      description: "实现 AgentId, AgentStatus, AgentConfig 等值对象"
+      estimated_minutes: 30
+      status: "todo"
+      files:
+        - "code/backend/01-domain/models/agent/value-objects/agent-id.ts"
+        - "code/backend/01-domain/models/agent/value-objects/agent-status.ts"
+        - "code/backend/01-domain/models/agent/value-objects/agent-config.ts"
+
+    - step: 5
+      title: "定义 Agent Repository 接口"
+      description: "定义 IAgentRepository 接口"
+      estimated_minutes: 20
+      status: "todo"
+      files:
+        - "code/backend/01-domain/models/agent/agent.repository.ts"
+
+    - step: 6
+      title: "运行测试并验证覆盖率"
+      description: "确保所有测试通过，覆盖率 ≥ 80%"
+      estimated_minutes: 10
+      status: "todo"
+
+    - step: 7
+      title: "代码审查"
+      description: "提交代码审查，修复问题"
+      estimated_minutes: 20
+      status: "todo"
+
+# ============================================================
+# 交付物（Deliverables）
+# ============================================================
+deliverables:
+  - file: "code/backend/01-domain/models/agent/agent.entity.ts"
+    description: "Agent 实体类"
+    status: "in_progress"
+
+  - file: "code/backend/01-domain/models/agent/agent.entity.test.ts"
+    description: "Agent 实体单元测试"
+    status: "in_progress"
+
+  - file: "code/backend/01-domain/models/agent/value-objects/"
+    description: "Agent 值对象"
+    status: "pending"
+
+  - file: "code/backend/01-domain/models/agent/agent.repository.ts"
+    description: "Agent Repository 接口"
+    status: "pending"
+
+# ============================================================
+# 验收标准（Acceptance Criteria）
+# ============================================================
+acceptance_criteria:
+  - criterion: "Agent 实体类实现完成"
+    status: "pending"
+
+  - criterion: "所有单元测试通过"
+    status: "pending"
+
+  - criterion: "测试覆盖率 ≥ 80%"
+    status: "pending"
+
+  - criterion: "代码符合 TypeScript 规范"
+    status: "pending"
+
+  - criterion: "通过 ESLint 检查"
+    status: "pending"
+
+  - criterion: "通过代码审查"
+    status: "pending"
+
+# ============================================================
+# 时间信息
+# ============================================================
+estimated_duration_minutes: 170  # 约 2.8 小时
+actual_duration_minutes: null
+created_at: "2026-05-08T21:00:00Z"
+started_at: "2026-05-08T21:15:00Z"
+completed_at: null
+due_date: "2026-05-09T18:00:00Z"
+
+# ============================================================
+# 执行记录
+# ============================================================
+executions:
+  - execution_id: "exec-task-domain-001-001"
+    started_at: "2026-05-08T21:15:00Z"
+    status: "running"
+    current_step: 2
+
+# ============================================================
+# 进度跟踪
+# ============================================================
+progress:
+  total_steps: 7
+  completed_steps: 1
+  current_step: 2
+  completion_percentage: 15
+
+# ============================================================
+# 元数据
+# ============================================================
+meta:
+  tags:
+    - "domain-layer"
+    - "entity"
+    - "agent"
+    - "p0"
+  category: "development-task"
+  priority: "high"
+  created_by: "Alice"
+  created_at: "2026-05-08T21:10:00Z"
+  updated_at: "2026-05-08T21:15:00Z"
+
+  notes: |
+    这是 Domain Layer 的第一个实体实现任务。
+    采用 TDD 方法，先写测试再实现。
+    Agent 实体是核心实体，优先级 P0。
+
+  references:
+    - title: "Agent 实体设计文档"
+      url: "docs/v4/architecture/backend/01-domain/models/agent/agent-entity.md"
+
+    - title: "Domain Layer 架构说明"
+      url: "docs/v4/architecture/backend/01-domain/README.md"

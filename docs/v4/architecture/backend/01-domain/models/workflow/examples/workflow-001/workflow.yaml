@@ -2,22 +2,21 @@
 id: wf_code_review_001
 name: code-review-workflow
 display_name: "Code Review Workflow"
-type: automated
 status: active
 created_at: 2026-03-01T00:00:00Z
-updated_at: 2026-05-06T02:00:00Z
+updated_at: 2026-05-09T00:00:00Z
 
 # Workflow context
 context:
-  project_id: proj_claude_manager_001
+  project_id: proj_cove_001
+  kr_id: kr_001
   owner_id: usr_kp_001
-  trigger_type: pull_request
-  
+
 # Workflow definition
 definition:
   description: "Automated code review workflow triggered by pull requests"
-  version: "1.2.0"
-  
+  version: "2.0.0"
+
   # Workflow triggers
   triggers:
     - type: pull_request_opened
@@ -27,59 +26,61 @@ definition:
     - type: pull_request_updated
       conditions:
         - new_commits: true
-        
-  # Workflow steps
+
+  # Workflow steps (nested array structure)
+  # Outer array: sequential stages
+  # Inner array: parallel steps
   steps:
-    - id: step_001
-      name: "Run linter"
-      type: execution
-      agent_id: agt_code_reviewer_001
-      action: run_linter
-      timeout_seconds: 300
-      on_failure: continue
-      
-    - id: step_002
-      name: "Run tests"
-      type: execution
-      agent_id: agt_code_reviewer_001
-      action: run_tests
-      timeout_seconds: 600
-      on_failure: fail_workflow
-      depends_on: [step_001]
-      
-    - id: step_003
-      name: "Code quality analysis"
-      type: execution
-      agent_id: agt_code_reviewer_001
-      action: analyze_code_quality
-      timeout_seconds: 300
-      on_failure: continue
-      depends_on: [step_002]
-      
-    - id: step_004
-      name: "Post review comment"
-      type: notification
-      agent_id: agt_code_reviewer_001
-      action: post_review_summary
-      timeout_seconds: 60
-      on_failure: continue
-      depends_on: [step_001, step_002, step_003]
-      
-    - id: step_005
-      name: "Request human review"
-      type: approval
-      assignee_id: usr_kp_001
-      action: request_approval
-      timeout_seconds: 86400  # 24 hours
-      on_timeout: notify_owner
-      depends_on: [step_004]
+    # Stage 1: Run linter (sequential)
+    - - id: step_001
+        task_id: task_linter_001
+        timeout_minutes: 5
+        on_failure: continue
+
+    # Stage 2: Run tests (sequential)
+    - - id: step_002
+        task_id: task_tests_001
+        condition: "step_001.status == 'done'"
+        timeout_minutes: 10
+        on_failure: fail
+
+    # Stage 3: Parallel analysis (parallel)
+    - - id: step_003
+        task_id: task_code_quality_001
+        condition: "step_002.status == 'done'"
+        timeout_minutes: 5
+        on_failure: continue
+      - id: step_004
+        task_id: task_security_scan_001
+        condition: "step_002.status == 'done'"
+        timeout_minutes: 5
+        on_failure: continue
+      - id: step_005
+        task_id: task_coverage_check_001
+        condition: "step_002.status == 'done'"
+        timeout_minutes: 3
+        on_failure: continue
+
+    # Stage 4: Post review comment (sequential)
+    - - id: step_006
+        task_id: task_post_comment_001
+        condition: "step_003.status == 'done' || step_004.status == 'done' || step_005.status == 'done'"
+        timeout_minutes: 1
+        on_failure: continue
+
+    # Stage 5: Request human review (sequential)
+    - - id: step_007
+        task_id: task_request_review_001
+        condition: "step_006.status == 'done'"
+        timeout_minutes: 1440  # 24 hours
+        on_failure: notify
 
 # Workflow execution history
 execution_history:
   total_runs: 47
   successful_runs: 42
   failed_runs: 5
-  average_duration_seconds: 420
+  average_duration_minutes: 7
   last_run_id: exec_wf_cr_047
   last_run_at: 2026-05-05T15:30:00Z
   last_run_status: success
@@ -100,6 +101,6 @@ config:
 # Workflow metrics
 metrics:
   success_rate: 0.894
-  average_duration_seconds: 420
-  p95_duration_seconds: 780
+  average_duration_minutes: 7
+  p95_duration_minutes: 13
   total_executions: 47

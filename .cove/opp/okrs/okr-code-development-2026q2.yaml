@@ -1,0 +1,405 @@
+# AI_SEARCH_HEADER
+# entity_type: OKR
+# entity_id: okr-code-development-2026q2
+# purpose: Cove 项目 code 目录开发的详细 OKR
+# owner: Alice
+# timeline: 2026 Q2
+# status: active
+# parent_okr: okr-cove-mvp-2026q2
+# related_entities: [workflows, tasks, plans]
+
+okr_id: "okr-code-development-2026q2"
+objective: "完成 Cove 项目 code 目录的核心代码实现，建立可运行的 MVP 系统"
+
+description: |
+  本 OKR 聚焦于 code 目录的实际代码开发，将架构设计转化为可运行的代码。
+  覆盖后端三层架构（Domain + Application + Infrastructure）和前端 Presentation Layer。
+  每个 KR 关联具体的 Workflow 和 Task，确保开发过程可追踪、可管理。
+
+parent_okr_id: "okr-cove-mvp-2026q2"
+
+key_results:
+  # ============================================================
+  # KR-001: Domain Layer 实现
+  # ============================================================
+  - kr_id: "kr-001-domain-layer"
+    description: "完成 Domain Layer 所有实体和领域服务的代码实现"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 15
+    unit: "%"
+    weight: 0.20
+    status: "in_progress"
+
+    notes: |
+      Domain Layer 是整个系统的核心，定义业务规则和实体模型。
+      包含 16 个核心实体和 5 个领域服务。
+
+      实体列表：
+      - Agent, Project, User, Channel, Message, Task, OKR, Workflow
+      - Execution, Device, Server, Member, Conversation, Attachment, Reaction, Thread
+
+      领域服务列表：
+      - TaskAssignmentPolicy（任务分配策略）
+      - OKRProgressCalculator（OKR 进度计算）
+      - WorkflowDependencyValidator（工作流依赖验证）
+      - PermissionEvaluator（权限评估）
+      - MessageMentionResolver（消息 @mention 解析）
+
+    # 关联的 Workflow
+    workflows:
+      - workflow_id: "wf-domain-entities"
+        name: "Domain 实体开发工作流"
+        description: "按优先级实现 16 个核心实体"
+        status: "in_progress"
+
+      - workflow_id: "wf-domain-services"
+        name: "Domain 服务开发工作流"
+        description: "实现 5 个领域服务"
+        status: "pending"
+
+    # 关联的 Task（示例，实际会有更多）
+    tasks:
+      - task_id: "task-domain-001"
+        title: "实现 Agent 实体"
+        status: "in_progress"
+
+      - task_id: "task-domain-002"
+        title: "实现 Project 实体"
+        status: "pending"
+
+      - task_id: "task-domain-003"
+        title: "实现 User 实体"
+        status: "pending"
+
+    completion_criteria:
+      - "所有 16 个实体类实现完成"
+      - "所有 5 个领域服务实现完成"
+      - "单元测试覆盖率 ≥ 80%"
+      - "通过代码审查"
+
+  # ============================================================
+  # KR-002: Application Layer 实现
+  # ============================================================
+  - kr_id: "kr-002-application-layer"
+    description: "完成 Application Layer 的应用服务和运行时组件实现"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 10
+    unit: "%"
+    weight: 0.25
+    status: "in_progress"
+
+    notes: |
+      Application Layer 负责业务流程编排和运行时管理。
+
+      应用服务（10 个）：
+      - ProjectService, AgentService, ChannelService, MessageService, TaskService
+      - OKRService, WorkflowService, ExecutionService, UserService, ServerService
+
+      运行时组件（4 个）：
+      - AgentDaemon（Agent 生命周期管理）
+      - ChannelRuntime（Channel 消息处理）
+      - WorkflowRuntime（Workflow 执行引擎）
+      - ExecutionRuntime（Execution 执行管理）
+
+    workflows:
+      - workflow_id: "wf-app-services"
+        name: "应用服务开发工作流"
+        description: "实现 10 个应用服务"
+        status: "in_progress"
+
+      - workflow_id: "wf-runtime-components"
+        name: "运行时组件开发工作流"
+        description: "实现 4 个运行时组件"
+        status: "pending"
+
+    tasks:
+      - task_id: "task-app-001"
+        title: "实现 ProjectService"
+        status: "in_progress"
+
+      - task_id: "task-app-002"
+        title: "实现 AgentService"
+        status: "pending"
+
+      - task_id: "task-runtime-001"
+        title: "实现 AgentDaemon 核心逻辑"
+        status: "pending"
+
+    completion_criteria:
+      - "所有 10 个应用服务实现完成"
+      - "所有 4 个运行时组件实现完成"
+      - "集成测试覆盖率 ≥ 70%"
+      - "通过代码审查"
+
+  # ============================================================
+  # KR-003: Infrastructure Layer 实现
+  # ============================================================
+  - kr_id: "kr-003-infrastructure-layer"
+    description: "完成 Infrastructure Layer 的技术实现（API、数据库、WebSocket、CLI）"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 5
+    unit: "%"
+    weight: 0.25
+    status: "in_progress"
+
+    notes: |
+      Infrastructure Layer 提供技术基础设施支持。
+
+      核心模块：
+      - API（REST API 端点）
+      - Database（数据持久化和 Repository 实现）
+      - WebSocket（实时通信）
+      - CLI（命令行客户端）
+      - Auth（认证授权）
+      - Adapters（框架适配器：OpenClaw、Claude Code、Generic）
+
+    workflows:
+      - workflow_id: "wf-infra-api"
+        name: "REST API 开发工作流"
+        description: "实现所有 REST API 端点"
+        status: "pending"
+
+      - workflow_id: "wf-infra-database"
+        name: "数据库开发工作流"
+        description: "实现数据库 Schema 和 Repository"
+        status: "pending"
+
+      - workflow_id: "wf-infra-websocket"
+        name: "WebSocket 开发工作流"
+        description: "实现 WebSocket 实时通信"
+        status: "pending"
+
+      - workflow_id: "wf-infra-cli"
+        name: "CLI 开发工作流"
+        description: "实现 CLI 命令"
+        status: "pending"
+
+    tasks:
+      - task_id: "task-infra-001"
+        title: "设计数据库 Schema"
+        status: "pending"
+
+      - task_id: "task-infra-002"
+        title: "实现 Repository 接口"
+        status: "pending"
+
+      - task_id: "task-infra-003"
+        title: "实现 REST API 路由"
+        status: "pending"
+
+    completion_criteria:
+      - "所有 REST API 端点实现完成"
+      - "数据库 Schema 和 Repository 实现完成"
+      - "WebSocket 实时通信实现完成"
+      - "CLI 核心命令实现完成"
+      - "集成测试覆盖率 ≥ 70%"
+
+  # ============================================================
+  # KR-004: Frontend Presentation Layer 实现
+  # ============================================================
+  - kr_id: "kr-004-frontend-layer"
+    description: "完成 Frontend Presentation Layer 的核心功能界面"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 8
+    unit: "%"
+    weight: 0.20
+    status: "in_progress"
+
+    notes: |
+      Frontend Presentation Layer 提供用户界面。
+
+      核心功能域：
+      - Chat（聊天界面、消息列表、Thread 展示）
+      - Task（任务看板、拖拽排序、状态更新）
+      - Agent（Agent 列表、状态监控、配置管理）
+      - OKR（OKR 树形展示、进度可视化）
+      - Workflow（工作流可视化编辑器）
+      - Project（项目管理界面）
+
+      共享组件：
+      - UI 组件库（Button、Input、Modal 等）
+      - Hooks（useAuth、useWebSocket、useAPI 等）
+      - Utils（格式化、验证、工具函数）
+
+    workflows:
+      - workflow_id: "wf-frontend-chat"
+        name: "Chat 界面开发工作流"
+        description: "实现 Chat 功能域"
+        status: "in_progress"
+
+      - workflow_id: "wf-frontend-task"
+        name: "Task Board 开发工作流"
+        description: "实现 Task 功能域"
+        status: "pending"
+
+      - workflow_id: "wf-frontend-okr"
+        name: "OKR Dashboard 开发工作流"
+        description: "实现 OKR 功能域"
+        status: "pending"
+
+    tasks:
+      - task_id: "task-frontend-001"
+        title: "实现 Chat 消息列表组件"
+        status: "in_progress"
+
+      - task_id: "task-frontend-002"
+        title: "实现 Chat 输入框组件"
+        status: "pending"
+
+      - task_id: "task-frontend-003"
+        title: "实现 Task Board 看板组件"
+        status: "pending"
+
+    completion_criteria:
+      - "所有核心功能域界面实现完成"
+      - "共享组件库建立完成"
+      - "组件测试覆盖率 ≥ 70%"
+      - "通过 UI/UX 审查"
+
+  # ============================================================
+  # KR-005: 测试和质量保证
+  # ============================================================
+  - kr_id: "kr-005-testing-quality"
+    description: "建立完整的测试体系，确保代码质量"
+    metric_type: "percentage"
+    target_value: 80
+    current_value: 5
+    unit: "%"
+    weight: 0.10
+    status: "in_progress"
+
+    notes: |
+      测试覆盖率目标：80%
+
+      测试类型：
+      - 单元测试（Unit Tests）：实体、服务、工具函数
+      - 集成测试（Integration Tests）：API 端点、数据库操作
+      - E2E 测试（End-to-End Tests）：关键用户流程
+
+      测试策略：
+      - 测试文件与源码同级放置（方案 A）
+      - 使用 Vitest/Jest 作为测试框架
+      - 测试命名规范：*.entity.test.ts, *.service.test.ts, *.test.tsx
+
+    workflows:
+      - workflow_id: "wf-testing-unit"
+        name: "单元测试开发工作流"
+        description: "为所有模块编写单元测试"
+        status: "in_progress"
+
+      - workflow_id: "wf-testing-integration"
+        name: "集成测试开发工作流"
+        description: "编写 API 和数据库集成测试"
+        status: "pending"
+
+      - workflow_id: "wf-testing-e2e"
+        name: "E2E 测试开发工作流"
+        description: "编写关键用户流程的 E2E 测试"
+        status: "pending"
+
+    tasks:
+      - task_id: "task-test-001"
+        title: "编写 Domain 实体单元测试"
+        status: "in_progress"
+
+      - task_id: "task-test-002"
+        title: "编写 Application 服务单元测试"
+        status: "pending"
+
+      - task_id: "task-test-003"
+        title: "编写 API 集成测试"
+        status: "pending"
+
+    completion_criteria:
+      - "单元测试覆盖率 ≥ 80%"
+      - "集成测试覆盖关键 API 端点"
+      - "E2E 测试覆盖核心用户流程"
+      - "所有测试通过 CI/CD 流水线"
+
+# ============================================================
+# 所有者和协作者
+# ============================================================
+owner: "alice"
+collaborators:
+  - "kp"  # 项目负责人
+
+# ============================================================
+# 时间线
+# ============================================================
+timeline:
+  start_date: "2026-05-08"
+  end_date: "2026-06-30"
+  quarter: "Q2"
+
+  milestones:
+    - date: "2026-05-20"
+      description: "Domain Layer 核心实体完成"
+      related_kr_ids: ["kr-001-domain-layer"]
+
+    - date: "2026-06-01"
+      description: "Application Layer 应用服务完成"
+      related_kr_ids: ["kr-002-application-layer"]
+
+    - date: "2026-06-10"
+      description: "Infrastructure Layer 核心模块完成"
+      related_kr_ids: ["kr-003-infrastructure-layer"]
+
+    - date: "2026-06-20"
+      description: "Frontend 核心功能完成"
+      related_kr_ids: ["kr-004-frontend-layer"]
+
+    - date: "2026-06-30"
+      description: "测试覆盖率达标，代码质量验收通过"
+      related_kr_ids: ["kr-005-testing-quality"]
+
+status: "active"
+
+# ============================================================
+# 关联关系
+# ============================================================
+related_plan_ids:
+  - "plan-code-development-master"
+
+related_workflow_ids:
+  - "wf-domain-entities"
+  - "wf-domain-services"
+  - "wf-app-services"
+  - "wf-runtime-components"
+  - "wf-infra-api"
+  - "wf-infra-database"
+  - "wf-infra-websocket"
+  - "wf-infra-cli"
+  - "wf-frontend-chat"
+  - "wf-frontend-task"
+  - "wf-frontend-okr"
+  - "wf-testing-unit"
+  - "wf-testing-integration"
+  - "wf-testing-e2e"
+
+related_progress_ids:
+  - "progress-code-development-2026q2"
+
+# ============================================================
+# 元数据
+# ============================================================
+meta:
+  tags:
+    - "code-development"
+    - "2026q2"
+    - "backend"
+    - "frontend"
+    - "testing"
+  category: "development-okr"
+  priority: "high"
+  created_by: "Alice"
+  created_at: "2026-05-08T21:00:00Z"
+  updated_at: "2026-05-08T21:00:00Z"
+
+  notes: |
+    这是 Cove 项目 code 目录开发的详细 OKR，是 okr-cove-mvp-2026q2 的子 OKR。
+    每个 KR 都关联了具体的 Workflow 和 Task，确保开发过程可追踪。
+    Workflow 和 Task 的详细定义存储在 .cove/opp/workflows/ 和 .cove/opp/tasks/ 目录中。

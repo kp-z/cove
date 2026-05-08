@@ -1,0 +1,159 @@
+# AI_SEARCH_HEADER
+# entity_type: OKR
+# entity_id: okr-cove-mvp-2026q2
+# purpose: Cove 平台 MVP 版本开发的顶层 OKR
+# owner: Alice
+# timeline: 2026 Q2
+# status: active
+# related_entities: [plans, progress]
+
+okr_id: "okr-cove-mvp-2026q2"
+objective: "完成 Cove 平台 MVP 版本开发，实现核心 AI 协作功能"
+
+description: |
+  Cove 是一个 AI 协作平台，旨在实现人类与 AI Agent 的无缝协作。
+  MVP 版本需要完成核心架构、Agent 运行时、通信系统、任务管理和前端界面。
+  本 OKR 覆盖 2026 Q2 的开发目标。
+
+key_results:
+  - kr_id: "kr-001-backend-architecture"
+    description: "完成后端三层架构实现（Domain + Application + Infrastructure）"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 30
+    unit: "%"
+    weight: 0.25
+    status: "in_progress"
+    notes: |
+      包含：
+      - Domain Layer: 实体模型、领域服务、仓储接口
+      - Application Layer: 应用服务、Runtime（Agent Daemon、Channel Runtime）
+      - Infrastructure Layer: 数据库、文件系统、外部 API 集成
+    related_plan_ids:
+      - "plan-backend-architecture"
+
+  - kr_id: "kr-002-agent-runtime"
+    description: "实现 Agent 运行时和多渠道通信系统"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 20
+    unit: "%"
+    weight: 0.25
+    status: "in_progress"
+    notes: |
+      包含：
+      - Agent Daemon: Agent 生命周期管理、消息路由
+      - Channel Runtime: Channel、DM、Thread 消息处理
+      - Message Queue: 消息队列和事件总线
+      - Notification System: 实时通知推送
+    related_plan_ids:
+      - "plan-agent-runtime"
+      - "plan-communication-system"
+
+  - kr_id: "kr-003-project-management"
+    description: "实现任务管理和 OKR 跟踪功能"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 15
+    unit: "%"
+    weight: 0.20
+    status: "in_progress"
+    notes: |
+      包含：
+      - Task Management: 任务创建、分配、状态跟踪
+      - OKR System: OKR 创建、KR 进度更新、关联 Plan
+      - Progress Tracking: 自动化进度计算和报告
+      - Workflow Automation: 工作流定义和执行
+    related_plan_ids:
+      - "plan-task-management"
+      - "plan-okr-system"
+
+  - kr_id: "kr-004-frontend-core"
+    description: "完成前端核心功能开发（Chat、Task、OKR 界面）"
+    metric_type: "percentage"
+    target_value: 100
+    current_value: 10
+    unit: "%"
+    weight: 0.20
+    status: "in_progress"
+    notes: |
+      包含：
+      - Chat Interface: 消息列表、输入框、Thread 展示
+      - Task Board: 任务看板、拖拽排序、状态更新
+      - OKR Dashboard: OKR 树形展示、进度可视化
+      - Agent Management: Agent 列表、状态监控
+    related_plan_ids:
+      - "plan-frontend-chat"
+      - "plan-frontend-task"
+      - "plan-frontend-okr"
+
+  - kr_id: "kr-005-test-coverage"
+    description: "测试覆盖率达到 80% 以上"
+    metric_type: "percentage"
+    target_value: 80
+    current_value: 5
+    unit: "%"
+    weight: 0.10
+    status: "in_progress"
+    notes: |
+      包含：
+      - 单元测试: 实体、服务、工具函数
+      - 集成测试: API 端点、数据库操作
+      - E2E 测试: 关键用户流程
+      测试文件已按层级组织，位于源码同级目录
+    related_plan_ids:
+      - "plan-testing-strategy"
+
+owner: "alice"
+collaborators:
+  - "kp"  # 项目负责人
+
+timeline:
+  start_date: "2026-04-01"
+  end_date: "2026-06-30"
+  quarter: "Q2"
+  milestones:
+    - date: "2026-05-15"
+      description: "后端架构基础完成"
+    - date: "2026-06-01"
+      description: "Agent 运行时和通信系统完成"
+    - date: "2026-06-15"
+      description: "前端核心功能完成"
+    - date: "2026-06-30"
+      description: "MVP 版本发布"
+
+status: "active"
+
+parent_okr_id: null  # 顶层 OKR
+child_okr_ids: []    # 可以后续添加子 OKR
+
+related_plan_ids:
+  - "plan-backend-architecture"
+  - "plan-agent-runtime"
+  - "plan-communication-system"
+  - "plan-task-management"
+  - "plan-okr-system"
+  - "plan-frontend-chat"
+  - "plan-frontend-task"
+  - "plan-frontend-okr"
+  - "plan-testing-strategy"
+
+related_progress_ids:
+  - "progress-okr-cove-mvp-2026q2"
+
+meta:
+  tags:
+    - "mvp"
+    - "2026q2"
+    - "backend"
+    - "frontend"
+    - "agent-runtime"
+  category: "project-okr"
+  priority: "high"
+  created_by: "Alice"
+  created_at: "2026-05-08T20:00:00Z"
+  updated_at: "2026-05-08T20:00:00Z"
+  notes: |
+    这是 Cove 项目的顶层 OKR，定义了 MVP 版本的核心目标。
+    每个 KR 都关联了具体的开发计划（Plan），便于跟踪执行进度。
+    当前进度基于已完成的架构设计和测试文件创建工作。

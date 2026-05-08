@@ -1,0 +1,213 @@
+# AI_SEARCH_HEADER
+# entity_type: Workflow
+# entity_id: wf-domain-entities
+# purpose: Domain Layer 实体开发工作流
+# owner: Alice
+# related_okr: okr-code-development-2026q2
+# related_kr: kr-001-domain-layer
+
+workflow_id: "wf-domain-entities"
+name: "Domain 实体开发工作流"
+
+description: |
+  按优先级实现 Domain Layer 的 16 个核心实体。
+  采用 TDD 方法，先写测试再实现。
+  每个实体包含：实体类定义、值对象、Repository 接口、单元测试。
+
+related_okr_id: "okr-code-development-2026q2"
+related_kr_id: "kr-001-domain-layer"
+
+workflow_type: "sequential"  # sequential | parallel | dag
+status: "in_progress"  # draft | active | paused | completed | failed
+
+# ============================================================
+# 工作流步骤（Steps）
+# ============================================================
+steps:
+  # P0 优先级实体（核心实体，必须最先完成）
+  - step_id: "step-001"
+    name: "实现 P0 核心实体"
+    type: "parallel"
+    description: "并行实现 Agent、Project、User、Channel、Message 五个核心实体"
+    status: "in_progress"
+
+    parallel_tasks:
+      - task_id: "task-domain-001"
+        title: "实现 Agent 实体"
+        priority: "P0"
+
+      - task_id: "task-domain-002"
+        title: "实现 Project 实体"
+        priority: "P0"
+
+      - task_id: "task-domain-003"
+        title: "实现 User 实体"
+        priority: "P0"
+
+      - task_id: "task-domain-004"
+        title: "实现 Channel 实体"
+        priority: "P0"
+
+      - task_id: "task-domain-005"
+        title: "实现 Message 实体"
+        priority: "P0"
+
+  # P1 优先级实体（重要实体）
+  - step_id: "step-002"
+    name: "实现 P1 重要实体"
+    type: "parallel"
+    description: "并行实现 Task、OKR、Workflow、Execution 四个重要实体"
+    status: "pending"
+    depends_on: ["step-001"]
+
+    parallel_tasks:
+      - task_id: "task-domain-006"
+        title: "实现 Task 实体"
+        priority: "P1"
+
+      - task_id: "task-domain-007"
+        title: "实现 OKR 实体"
+        priority: "P1"
+
+      - task_id: "task-domain-008"
+        title: "实现 Workflow 实体"
+        priority: "P1"
+
+      - task_id: "task-domain-009"
+        title: "实现 Execution 实体"
+        priority: "P1"
+
+  # P2 优先级实体（辅助实体）
+  - step_id: "step-003"
+    name: "实现 P2 辅助实体"
+    type: "parallel"
+    description: "并行实现 Server、Member、Device、Thread、Conversation、Attachment、Reaction 七个辅助实体"
+    status: "pending"
+    depends_on: ["step-002"]
+
+    parallel_tasks:
+      - task_id: "task-domain-010"
+        title: "实现 Server 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-011"
+        title: "实现 Member 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-012"
+        title: "实现 Device 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-013"
+        title: "实现 Thread 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-014"
+        title: "实现 Conversation 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-015"
+        title: "实现 Attachment 实体"
+        priority: "P2"
+
+      - task_id: "task-domain-016"
+        title: "实现 Reaction 实体"
+        priority: "P2"
+
+  # 代码审查和质量检查
+  - step_id: "step-004"
+    name: "代码审查和质量检查"
+    type: "task"
+    description: "对所有实体代码进行审查，确保质量"
+    status: "pending"
+    depends_on: ["step-003"]
+
+    task_id: "task-domain-review-001"
+
+    checklist:
+      - "所有实体类实现完成"
+      - "所有单元测试通过"
+      - "测试覆盖率 ≥ 80%"
+      - "代码符合 TypeScript 规范"
+      - "通过 ESLint 检查"
+      - "通过代码审查"
+
+# ============================================================
+# 工作流边（Edges）- 定义步骤之间的依赖关系
+# ============================================================
+edges:
+  - source: "step-001"
+    target: "step-002"
+    condition: "all_tasks_completed"
+
+  - source: "step-002"
+    target: "step-003"
+    condition: "all_tasks_completed"
+
+  - source: "step-003"
+    target: "step-004"
+    condition: "all_tasks_completed"
+
+# ============================================================
+# 触发器配置
+# ============================================================
+triggers:
+  - trigger_type: "manual"
+    enabled: true
+    description: "手动启动工作流"
+
+# ============================================================
+# 执行历史
+# ============================================================
+executions:
+  - execution_id: "wf-exec-domain-001"
+    started_at: "2026-05-08T21:00:00Z"
+    status: "running"
+    current_step: "step-001"
+
+# ============================================================
+# 进度统计
+# ============================================================
+progress:
+  total_tasks: 17  # 16 个实体 + 1 个审查任务
+  completed_tasks: 0
+  in_progress_tasks: 1
+  pending_tasks: 16
+  completion_percentage: 5
+
+# ============================================================
+# 时间线
+# ============================================================
+timeline:
+  estimated_start: "2026-05-08"
+  estimated_end: "2026-05-20"
+  estimated_duration_days: 12
+  actual_start: "2026-05-08"
+  actual_end: null
+
+# ============================================================
+# 元数据
+# ============================================================
+meta:
+  tags:
+    - "domain-layer"
+    - "entities"
+    - "backend"
+  category: "development-workflow"
+  priority: "high"
+  created_by: "Alice"
+  created_at: "2026-05-08T21:10:00Z"
+  updated_at: "2026-05-08T21:10:00Z"
+
+  notes: |
+    本工作流采用分优先级并行开发策略：
+    - P0 实体（5 个）：核心实体，必须最先完成
+    - P1 实体（4 个）：重要实体，依赖 P0 完成
+    - P2 实体（7 个）：辅助实体，依赖 P1 完成
+
+    每个实体的开发包含：
+    1. 编写实体类定义（TypeScript）
+    2. 编写值对象（Value Objects）
+    3. 定义 Repository 接口
+    4. 编写单元测试（TDD）
+    5. 确保测试覆盖率 ≥ 80%

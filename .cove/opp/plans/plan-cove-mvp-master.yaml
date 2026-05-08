@@ -1,0 +1,417 @@
+# AI_SEARCH_HEADER
+# entity_type: Plan
+# entity_id: plan-cove-mvp-master
+# purpose: Cove 平台 MVP 版本开发的主计划
+# owner: Alice
+# timeline: 2026 Q2
+# status: active
+# related_entities: [okr-cove-mvp-2026q2]
+
+plan_id: "plan-cove-mvp-master"
+title: "Cove 平台 MVP 版本开发主计划"
+
+description: |
+  本计划定义了 Cove 平台 MVP 版本的完整开发路线图。
+  采用分阶段、并行开发的策略，确保在 2026 Q2 完成核心功能交付。
+
+  核心目标：
+  - 完成后端三层架构（Domain + Application + Infrastructure）
+  - 实现 Agent 运行时和多渠道通信系统
+  - 实现任务管理和 OKR 跟踪功能
+  - 完成前端核心界面开发
+  - 达到 80% 测试覆盖率
+
+related_okr_ids:
+  - "okr-cove-mvp-2026q2"
+
+timeline:
+  start_date: "2026-04-01"
+  end_date: "2026-06-30"
+  duration_weeks: 13
+
+status: "active"
+
+# ============================================================
+# 开发阶段（Phases）
+# ============================================================
+phases:
+  - phase_id: "phase-1-foundation"
+    name: "阶段 1: 基础架构搭建"
+    description: "搭建项目基础架构，定义核心实体和接口"
+    start_date: "2026-04-01"
+    end_date: "2026-04-30"
+    status: "completed"
+    deliverables:
+      - "项目目录结构"
+      - "Domain Layer 实体定义"
+      - "Repository 接口定义"
+      - "基础工具类和类型定义"
+    completion_percentage: 100
+
+  - phase_id: "phase-2-backend-core"
+    name: "阶段 2: 后端核心功能开发"
+    description: "实现后端三层架构的核心功能"
+    start_date: "2026-05-01"
+    end_date: "2026-05-31"
+    status: "in_progress"
+    deliverables:
+      - "Domain Services 实现"
+      - "Application Services 实现"
+      - "Agent Daemon 运行时"
+      - "Channel Runtime 通信系统"
+      - "数据库集成（Infrastructure Layer）"
+    completion_percentage: 25
+    dependencies:
+      - "phase-1-foundation"
+
+  - phase_id: "phase-3-frontend-core"
+    name: "阶段 3: 前端核心功能开发"
+    description: "实现前端核心界面和交互逻辑"
+    start_date: "2026-05-15"
+    end_date: "2026-06-15"
+    status: "in_progress"
+    deliverables:
+      - "Chat 界面（消息列表、输入框、Thread）"
+      - "Task Board 任务看板"
+      - "OKR Dashboard 仪表板"
+      - "Agent Management 界面"
+    completion_percentage: 10
+    dependencies:
+      - "phase-1-foundation"
+    notes: "与后端开发并行进行，使用 Mock 数据先行开发"
+
+  - phase_id: "phase-4-integration"
+    name: "阶段 4: 前后端集成与测试"
+    description: "前后端集成，完善测试覆盖"
+    start_date: "2026-06-01"
+    end_date: "2026-06-20"
+    status: "pending"
+    deliverables:
+      - "API 集成完成"
+      - "单元测试覆盖率 80%+"
+      - "集成测试套件"
+      - "E2E 测试关键流程"
+    completion_percentage: 0
+    dependencies:
+      - "phase-2-backend-core"
+      - "phase-3-frontend-core"
+
+  - phase_id: "phase-5-polish"
+    name: "阶段 5: 优化与发布准备"
+    description: "性能优化、Bug 修复、文档完善"
+    start_date: "2026-06-15"
+    end_date: "2026-06-30"
+    status: "pending"
+    deliverables:
+      - "性能优化完成"
+      - "已知 Bug 修复"
+      - "用户文档和 API 文档"
+      - "部署脚本和配置"
+    completion_percentage: 0
+    dependencies:
+      - "phase-4-integration"
+
+# ============================================================
+# 里程碑（Milestones）
+# ============================================================
+milestones:
+  - milestone_id: "m1-architecture-complete"
+    name: "M1: 架构设计完成"
+    description: "完成项目架构设计和目录结构搭建"
+    target_date: "2026-04-30"
+    status: "completed"
+    completion_date: "2026-04-28"
+    related_phase_id: "phase-1-foundation"
+    deliverables:
+      - "架构文档（docs/v4/architecture/）"
+      - "实体定义文档"
+      - "测试策略文档"
+
+  - milestone_id: "m2-backend-foundation"
+    name: "M2: 后端基础功能完成"
+    description: "完成 Domain Layer 和 Application Layer 核心实现"
+    target_date: "2026-05-15"
+    status: "in_progress"
+    completion_percentage: 30
+    related_phase_id: "phase-2-backend-core"
+    deliverables:
+      - "Domain Services 实现"
+      - "Application Services 实现"
+      - "基础单元测试"
+
+  - milestone_id: "m3-agent-runtime"
+    name: "M3: Agent 运行时完成"
+    description: "完成 Agent Daemon 和 Channel Runtime 实现"
+    target_date: "2026-06-01"
+    status: "pending"
+    related_phase_id: "phase-2-backend-core"
+    deliverables:
+      - "Agent Daemon 完整实现"
+      - "Channel Runtime 完整实现"
+      - "消息路由和事件总线"
+      - "运行时集成测试"
+
+  - milestone_id: "m4-frontend-core"
+    name: "M4: 前端核心界面完成"
+    description: "完成前端核心功能界面开发"
+    target_date: "2026-06-15"
+    status: "pending"
+    related_phase_id: "phase-3-frontend-core"
+    deliverables:
+      - "Chat 界面完整实现"
+      - "Task Board 完整实现"
+      - "OKR Dashboard 完整实现"
+      - "前端组件测试"
+
+  - milestone_id: "m5-mvp-release"
+    name: "M5: MVP 版本发布"
+    description: "完成 MVP 版本所有功能，准备发布"
+    target_date: "2026-06-30"
+    status: "pending"
+    related_phase_id: "phase-5-polish"
+    deliverables:
+      - "所有核心功能完成"
+      - "测试覆盖率 80%+"
+      - "文档完善"
+      - "部署就绪"
+
+# ============================================================
+# 交付物（Deliverables）
+# ============================================================
+deliverables:
+  # Backend Deliverables
+  - deliverable_id: "d-backend-domain"
+    name: "Domain Layer 实现"
+    description: "完成所有领域实体、领域服务和仓储接口"
+    category: "backend"
+    status: "in_progress"
+    completion_percentage: 40
+    target_date: "2026-05-15"
+    owner: "Alice"
+    related_phase_id: "phase-2-backend-core"
+    files:
+      - "code/backend/01-domain/models/"
+      - "code/backend/01-domain/services/"
+      - "code/backend/01-domain/repositories/"
+
+  - deliverable_id: "d-backend-application"
+    name: "Application Layer 实现"
+    description: "完成应用服务和运行时组件"
+    category: "backend"
+    status: "in_progress"
+    completion_percentage: 20
+    target_date: "2026-06-01"
+    owner: "Alice"
+    related_phase_id: "phase-2-backend-core"
+    files:
+      - "code/backend/02-application/services/"
+      - "code/backend/02-application/runtime/"
+
+  - deliverable_id: "d-backend-infrastructure"
+    name: "Infrastructure Layer 实现"
+    description: "完成数据库、文件系统和外部 API 集成"
+    category: "backend"
+    status: "pending"
+    completion_percentage: 0
+    target_date: "2026-06-01"
+    owner: "Alice"
+    related_phase_id: "phase-2-backend-core"
+    files:
+      - "code/backend/03-infrastructure/database/"
+      - "code/backend/03-infrastructure/filesystem/"
+      - "code/backend/03-infrastructure/external/"
+
+  # Frontend Deliverables
+  - deliverable_id: "d-frontend-chat"
+    name: "Chat 界面实现"
+    description: "完成聊天界面、消息列表、Thread 展示"
+    category: "frontend"
+    status: "in_progress"
+    completion_percentage: 15
+    target_date: "2026-06-10"
+    owner: "Alice"
+    related_phase_id: "phase-3-frontend-core"
+    files:
+      - "code/frontend/04-presentation/features/chat/"
+
+  - deliverable_id: "d-frontend-task"
+    name: "Task Board 实现"
+    description: "完成任务看板、拖拽排序、状态更新"
+    category: "frontend"
+    status: "pending"
+    completion_percentage: 0
+    target_date: "2026-06-12"
+    owner: "Alice"
+    related_phase_id: "phase-3-frontend-core"
+    files:
+      - "code/frontend/04-presentation/features/task/"
+
+  - deliverable_id: "d-frontend-okr"
+    name: "OKR Dashboard 实现"
+    description: "完成 OKR 仪表板、进度可视化"
+    category: "frontend"
+    status: "pending"
+    completion_percentage: 0
+    target_date: "2026-06-15"
+    owner: "Alice"
+    related_phase_id: "phase-3-frontend-core"
+    files:
+      - "code/frontend/04-presentation/features/okr/"
+
+  # Testing Deliverables
+  - deliverable_id: "d-testing-unit"
+    name: "单元测试套件"
+    description: "完成所有核心模块的单元测试"
+    category: "testing"
+    status: "in_progress"
+    completion_percentage: 10
+    target_date: "2026-06-20"
+    owner: "Alice"
+    related_phase_id: "phase-4-integration"
+    notes: "测试文件已按层级组织，位于源码同级目录"
+
+  - deliverable_id: "d-testing-integration"
+    name: "集成测试套件"
+    description: "完成 API 端点和数据库操作的集成测试"
+    category: "testing"
+    status: "pending"
+    completion_percentage: 0
+    target_date: "2026-06-20"
+    owner: "Alice"
+    related_phase_id: "phase-4-integration"
+
+  - deliverable_id: "d-testing-e2e"
+    name: "E2E 测试套件"
+    description: "完成关键用户流程的端到端测试"
+    category: "testing"
+    status: "pending"
+    completion_percentage: 0
+    target_date: "2026-06-25"
+    owner: "Alice"
+    related_phase_id: "phase-4-integration"
+
+# ============================================================
+# 依赖关系（Dependencies）
+# ============================================================
+dependencies:
+  - from: "phase-2-backend-core"
+    to: "phase-1-foundation"
+    type: "blocking"
+    description: "后端开发依赖基础架构完成"
+
+  - from: "phase-3-frontend-core"
+    to: "phase-1-foundation"
+    type: "blocking"
+    description: "前端开发依赖基础架构完成"
+
+  - from: "phase-4-integration"
+    to: "phase-2-backend-core"
+    type: "blocking"
+    description: "集成测试依赖后端核心功能完成"
+
+  - from: "phase-4-integration"
+    to: "phase-3-frontend-core"
+    type: "blocking"
+    description: "集成测试依赖前端核心功能完成"
+
+  - from: "phase-5-polish"
+    to: "phase-4-integration"
+    type: "blocking"
+    description: "优化发布依赖集成测试完成"
+
+  - from: "d-backend-application"
+    to: "d-backend-domain"
+    type: "blocking"
+    description: "Application Layer 依赖 Domain Layer"
+
+  - from: "d-backend-infrastructure"
+    to: "d-backend-domain"
+    type: "soft"
+    description: "Infrastructure Layer 实现 Domain 定义的接口"
+
+  - from: "d-testing-integration"
+    to: "d-backend-application"
+    type: "blocking"
+    description: "集成测试依赖应用服务完成"
+
+  - from: "d-testing-e2e"
+    to: "d-frontend-chat"
+    type: "blocking"
+    description: "E2E 测试依赖前端界面完成"
+
+# ============================================================
+# 资源分配（Resources）
+# ============================================================
+resources:
+  team_members:
+    - name: "Alice"
+      role: "架构师 + 全栈开发"
+      allocation: "100%"
+      responsibilities:
+        - "架构设计和文档"
+        - "后端核心开发"
+        - "前端核心开发"
+        - "测试策略和实施"
+
+    - name: "kp"
+      role: "项目负责人"
+      allocation: "20%"
+      responsibilities:
+        - "需求评审"
+        - "代码审查"
+        - "发布决策"
+
+  tools:
+    - name: "TypeScript"
+      purpose: "主要开发语言"
+    - name: "Node.js"
+      purpose: "后端运行时"
+    - name: "React"
+      purpose: "前端框架"
+    - name: "Jest"
+      purpose: "测试框架"
+    - name: "PostgreSQL"
+      purpose: "数据库"
+
+# ============================================================
+# 风险和缓解措施（Risks）
+# ============================================================
+risks:
+  - risk_id: "risk-1-scope-creep"
+    description: "功能范围蔓延，影响 MVP 交付时间"
+    probability: "medium"
+    impact: "high"
+    mitigation: "严格控制 MVP 范围，非核心功能推迟到后续版本"
+    status: "monitoring"
+
+  - risk_id: "risk-2-integration-complexity"
+    description: "前后端集成复杂度超出预期"
+    probability: "medium"
+    impact: "medium"
+    mitigation: "提前定义清晰的 API 契约，使用 Mock 数据并行开发"
+    status: "monitoring"
+
+  - risk_id: "risk-3-test-coverage"
+    description: "测试覆盖率目标难以达成"
+    probability: "low"
+    impact: "medium"
+    mitigation: "从开发初期就编写测试，测试文件与源码同步维护"
+    status: "monitoring"
+
+# ============================================================
+# 元数据（Meta）
+# ============================================================
+meta:
+  tags:
+    - "mvp"
+    - "2026q2"
+    - "master-plan"
+  category: "project-plan"
+  priority: "high"
+  created_by: "Alice"
+  created_at: "2026-05-08T20:15:00Z"
+  updated_at: "2026-05-08T20:15:00Z"
+  notes: |
+    这是 Cove 项目的主开发计划，定义了完整的开发路线图。
+    采用分阶段、并行开发的策略，确保高效交付。
+    所有交付物和里程碑都与 OKR 的关键结果对齐。
