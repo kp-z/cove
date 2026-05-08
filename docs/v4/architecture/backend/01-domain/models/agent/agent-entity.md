@@ -351,7 +351,7 @@ Alice 的完整配置由以下文件组成：
 
 ## 工作日志
 - [2026-05-04](diary/2026-05-04.md) - 完成跨层一致性验证
-- [2026-05-03](diary/2026-05-03.md) - Dual-Write Infrastructure 设计
+- [2026-05-03](diary/2026-05-03.md) - Backend 与 Runtime 隔离架构设计
 - [2026-05-02](diary/2026-05-02.md) - Domain Layer 架构设计
 
 ## 错误记录

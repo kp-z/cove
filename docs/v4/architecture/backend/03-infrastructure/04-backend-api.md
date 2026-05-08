@@ -34,7 +34,7 @@
 
 ## 三、Backend（基础设施层）
 
-Backend 层负责业务逻辑实现、数据持久化、API 服务、与 Runtime 层的集成。采用**混合架构**：自研业务层 + OpenClaw Runtime 适配。
+Backend 层负责业务逻辑实现、数据持久化、API 服务。采用**完全隔离架构**：Backend 和 Agent Runtime 通过 REST API 通信，不共享数据和存储。
 
 ### 3.1 Entity、Runtime、Backend 映射关系
 
@@ -61,11 +61,13 @@ Backend 层负责业务逻辑实现、数据持久化、API 服务、与 Runtime
 
 ---
 
-### 3.2 架构设计
+### 3.2 完全隔离架构设计
+
+**核心原则**：Backend 和 Agent Runtime 完全隔离，通过 REST API 通信，不共享数据和存储。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                        │
+│                        Presentation Layer                    │
 │  (React + TypeScript + Tailwind CSS)                        │
 └─────────────────────────────────────────────────────────────┘
                               ↓ HTTP/WebSocket
@@ -90,560 +92,163 @@ Backend 层负责业务逻辑实现、数据持久化、API 服务、与 Runtime
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                   AgentDaemon Adapter Layer                  │
-│  (连接业务层与 OpenClaw Runtime)                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Agent        │  │ Execution    │  │ Plugin       │      │
-│  │ Adapter      │  │ Adapter      │  │ Adapter      │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    OpenClaw Application Layer                    │
-│  (Agent 执行引擎、对话管理、工具调用)                          │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
 │                      Data Persistence Layer                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ PostgreSQL   │  │ File System  │  │ Redis        │      │
-│  │ (结构化数据)  │  │ (YAML/JSON)  │  │ (缓存/队列)   │      │
+│  │ PostgreSQL   │  │ Redis        │  │ File System  │      │
+│  │ (结构化数据)  │  │ (缓存/队列)   │  │ (附件存储)    │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
-```
 
----
+                              ↕ REST API (完全隔离)
 
-### 3.3 Dual-Write Infrastructure（双写基础设施）
-
-**设计目标**：
-1. 保证 PostgreSQL 和 OpenClaw 之间的数据一致性
-2. 支持异步同步，不阻塞主流程
-3. 提供死信队列处理失败场景
-4. 记录同步日志，便于审计和故障排查
-
-**架构设计**：
-
-```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Dual-Write Flow                          │
+│                  OpenClaw Agent Runtime                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Agent        │  │ Execution    │  │ Message      │      │
+│  │ Daemon       │  │ Runtime      │  │ Queue        │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                             │
+│  独立数据存储: YAML/JSON 文件系统                            │
 └─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │  Business Logic  │
-                    │  (Service Layer) │
-                    └──────────────────┘
-                              │
-                ┌─────────────┴─────────────┐
-                ▼                           ▼
-    ┌──────────────────┐        ┌──────────────────┐
-    │  PostgreSQL      │        │  WAL Queue       │
-    │  (Primary)       │        │  (Redis Streams) │
-    └──────────────────┘        └──────────────────┘
-                                            │
-                                            ▼
-                                ┌──────────────────┐
-                                │  WAL Worker      │
-                                │  (Background)    │
-                                └──────────────────┘
-                                            │
-                        ┌───────────────────┼───────────────────┐
-                        ▼                   ▼                   ▼
-            ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-            │  OpenClaw        │  │  Dead Letter     │  │  Sync Log        │
-            │  (Secondary)     │  │  Queue           │  │  (Audit)         │
-            └──────────────────┘  └──────────────────┘  └──────────────────┘
-```
 
-#### 3.3.1 数据库表设计
+                              ↕ REST API (完全隔离)
 
-**1. dual_write_queue 表（WAL 队列）**
-
-```sql
--- ============================================
--- dual_write_queue 表（双写队列）
--- ============================================
-CREATE TABLE dual_write_queue (
-    id BIGSERIAL PRIMARY KEY,
-    entity_type VARCHAR(50) NOT NULL CHECK(entity_type IN ('message', 'task', 'agent', 'channel', 'execution')),
-    entity_id UUID NOT NULL,
-    operation VARCHAR(20) NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
-    payload JSONB NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
-    retry_count INT DEFAULT 0,
-    max_retries INT DEFAULT 3,
-    next_retry_at TIMESTAMPTZ,  -- NULL 表示立即重试
-    error_message TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
--- 索引
-CREATE INDEX idx_dual_write_queue_status ON dual_write_queue(status, next_retry_at) 
-    WHERE status IN ('pending', 'failed');
-CREATE INDEX idx_dual_write_queue_entity ON dual_write_queue(entity_type, entity_id);
-CREATE INDEX idx_dual_write_queue_created ON dual_write_queue(created_at DESC);
-
--- 触发器：自动更新 updated_at
-CREATE TRIGGER update_dual_write_queue_updated_at 
-    BEFORE UPDATE ON dual_write_queue
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-**2. dual_write_dead_letter 表（死信队列）**
-
-```sql
--- ============================================
--- dual_write_dead_letter 表（死信队列）
--- ============================================
-CREATE TABLE dual_write_dead_letter (
-    id BIGSERIAL PRIMARY KEY,
-    queue_id BIGINT REFERENCES dual_write_queue(id) ON DELETE CASCADE,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id UUID NOT NULL,
-    operation VARCHAR(20) NOT NULL,
-    payload JSONB NOT NULL,
-    failure_reason TEXT NOT NULL,
-    retry_history JSONB DEFAULT '[]',  -- [{attempt, timestamp, error}]
-    resolution_status VARCHAR(20) DEFAULT 'pending' CHECK(resolution_status IN ('pending', 'resolved', 'ignored')),
-    resolution_note TEXT,
-    moved_at TIMESTAMPTZ DEFAULT NOW(),
-    resolved_at TIMESTAMPTZ
-);
-
--- 索引
-CREATE INDEX idx_dead_letter_pending ON dual_write_dead_letter(resolution_status, moved_at) 
-    WHERE resolution_status = 'pending';
-CREATE INDEX idx_dead_letter_entity_type ON dual_write_dead_letter(entity_type) 
-    WHERE resolution_status = 'pending';
-CREATE INDEX idx_dead_letter_moved_at ON dual_write_dead_letter(moved_at DESC);
-
--- 触发器：自动移动到死信队列
--- IMPORTANT: This trigger modifies NEW.status to 'completed' to prevent re-processing.
--- The UPDATE statement should set status='failed', and this trigger will override it to 'completed'
--- after moving the record to the dead letter queue.
-CREATE OR REPLACE FUNCTION move_to_dead_letter()
-RETURNS TRIGGER AS $$
-DECLARE
-    existing_history JSONB;
-BEGIN
-    -- 当重试次数超过最大值时，自动移动到死信队列
-    IF NEW.retry_count >= NEW.max_retries AND NEW.status = 'failed' THEN
-        -- 获取现有的 retry_history（如果有）
-        SELECT retry_history INTO existing_history
-        FROM dual_write_queue
-        WHERE id = NEW.id;
-        
-        -- 追加当前重试记录到历史（而非覆盖）
-        INSERT INTO dual_write_dead_letter (
-            queue_id, entity_type, entity_id, operation, payload, failure_reason, retry_history
-        ) VALUES (
-            NEW.id, NEW.entity_type, NEW.entity_id, NEW.operation, NEW.payload, 
-            NEW.error_message,
-            COALESCE(existing_history, '[]'::jsonb) || jsonb_build_array(
-                jsonb_build_object(
-                    'attempt', NEW.retry_count,
-                    'timestamp', NOW(),
-                    'error', NEW.error_message
-                )
-            )
-        );
-        
-        -- 标记原记录为已完成（避免重复处理）
-        -- IMPORTANT: This status override prevents the WAL worker from re-processing this record
-        NEW.status = 'completed';
-        NEW.completed_at = NOW();
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER auto_move_to_dead_letter 
-    BEFORE UPDATE ON dual_write_queue
-    FOR EACH ROW 
-    WHEN (NEW.retry_count >= NEW.max_retries AND NEW.status = 'failed')
-    EXECUTE FUNCTION move_to_dead_letter();
-```
-
-**3. openclaw_sync_log 表（同步日志）**
-
-```sql
--- ============================================
--- openclaw_sync_log 表（OpenClaw 同步日志）
--- ============================================
-CREATE TABLE openclaw_sync_log (
-    id BIGSERIAL PRIMARY KEY,
-    entity_type VARCHAR(50) NOT NULL,
-    entity_id UUID NOT NULL,
-    operation VARCHAR(20) NOT NULL,
-    sync_status VARCHAR(20) NOT NULL CHECK(sync_status IN ('success', 'failed', 'pending')),
-    openclaw_response JSONB,
-    error_message TEXT,
-    synced_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(entity_type, entity_id)  -- 每个实体只保留最新同步状态
-);
-
--- 索引
-CREATE INDEX idx_sync_log_failed ON openclaw_sync_log(entity_type, sync_status, synced_at) 
-    WHERE sync_status IN ('failed', 'pending');
-CREATE INDEX idx_sync_log_synced_at ON openclaw_sync_log(synced_at DESC);
-```
-
-#### 3.3.2 双写流程实现
-
-**写入流程**：
-
-```python
-# backend/storage/dual_write_manager.py
-
-class DualWriteManager:
-    """双写管理器"""
-    
-    def __init__(self):
-        self.db = PostgreSQLClient()
-        self.openclaw = OpenClawClient()
-        self.redis = RedisClient()
-    
-    async def save_entity(
-        self,
-        entity_type: str,
-        entity_id: UUID,
-        operation: str,
-        payload: dict
-    ):
-        """保存实体（双写：PostgreSQL + OpenClaw）"""
-        
-        # Step 1: 写入 PostgreSQL（主数据源，事务保证）
-        async with self.db.transaction() as tx:
-            # 1.1 保存实体数据
-            await tx.save_entity(entity_type, entity_id, payload)
-            
-            # 1.2 写入 WAL 队列
-            await tx.execute("""
-                INSERT INTO dual_write_queue (
-                    entity_type, entity_id, operation, payload, status
-                ) VALUES ($1, $2, $3, $4, 'pending')
-            """, [entity_type, entity_id, operation, json.dumps(payload)])
-        
-        # Step 2: 异步同步到 OpenClaw（后台 Worker 处理）
-        # 由 WAL Worker 自动处理，不阻塞主流程
-        
-        return entity_id
-    
-    async def wal_worker(self):
-        """WAL Worker：异步同步 PostgreSQL → OpenClaw"""
-        while True:
-            try:
-                # 1. 从队列取出待处理任务
-                tasks = await self.db.fetch_all("""
-                    SELECT * FROM dual_write_queue
-                    WHERE status IN ('pending', 'failed')
-                      AND (next_retry_at IS NULL OR next_retry_at <= NOW())
-                    ORDER BY created_at
-                    LIMIT 10
-                    FOR UPDATE SKIP LOCKED
-                """)
-                
-                if not tasks:
-                    await asyncio.sleep(1)
-                    continue
-                
-                # 2. 批量处理
-                for task in tasks:
-                    await self._process_task(task)
-                
-            except Exception as e:
-                logger.error(f"WAL Worker error: {e}")
-                await asyncio.sleep(5)
-    
-    async def _process_task(self, task: dict):
-        """处理单个同步任务"""
-        task_id = task['id']
-        entity_type = task['entity_type']
-        entity_id = task['entity_id']
-        operation = task['operation']
-        payload = task['payload']
-        
-        try:
-            # 1. 标记为处理中
-            await self.db.execute("""
-                UPDATE dual_write_queue
-                SET status = 'processing', updated_at = NOW()
-                WHERE id = $1
-            """, [task_id])
-            
-            # 2. 同步到 OpenClaw
-            if operation == 'create':
-                response = await self.openclaw.create_entity(entity_type, payload)
-            elif operation == 'update':
-                response = await self.openclaw.update_entity(entity_type, entity_id, payload)
-            elif operation == 'delete':
-                response = await self.openclaw.delete_entity(entity_type, entity_id)
-            
-            # 3. 标记为完成
-            await self.db.execute("""
-                UPDATE dual_write_queue
-                SET status = 'completed', completed_at = NOW()
-                WHERE id = $1
-            """, [task_id])
-            
-            # 4. 记录同步日志
-            await self.db.execute("""
-                INSERT INTO openclaw_sync_log (
-                    entity_type, entity_id, operation, sync_status, openclaw_response
-                ) VALUES ($1, $2, $3, 'success', $4)
-                ON CONFLICT (entity_type, entity_id) 
-                DO UPDATE SET 
-                    operation = EXCLUDED.operation,
-                    sync_status = EXCLUDED.sync_status,
-                    openclaw_response = EXCLUDED.openclaw_response,
-                    synced_at = NOW()
-            """, [entity_type, entity_id, operation, json.dumps(response)])
-            
-            logger.info(f"Synced {entity_type}:{entity_id} to OpenClaw")
-            
-        except Exception as e:
-            # 失败处理：指数退避重试
-            retry_count = task['retry_count'] + 1
-            next_retry_at = datetime.utcnow() + timedelta(seconds=2 ** retry_count)
-            
-            await self.db.execute("""
-                UPDATE dual_write_queue
-                SET status = 'failed',
-                    retry_count = $1,
-                    next_retry_at = $2,
-                    error_message = $3,
-                    updated_at = NOW()
-                WHERE id = $4
-            """, [retry_count, next_retry_at, str(e), task_id])
-            
-            # 记录失败日志
-            await self.db.execute("""
-                INSERT INTO openclaw_sync_log (
-                    entity_type, entity_id, operation, sync_status, error_message
-                ) VALUES ($1, $2, $3, 'failed', $4)
-                ON CONFLICT (entity_type, entity_id) 
-                DO UPDATE SET 
-                    sync_status = 'failed',
-                    error_message = EXCLUDED.error_message,
-                    synced_at = NOW()
-            """, [entity_type, entity_id, operation, str(e)])
-            
-            logger.error(f"Failed to sync {entity_type}:{entity_id}: {e}")
-```
-
-#### 3.3.3 一致性检查
-
-```python
-# backend/consistency/checker.py
-
-class ConsistencyChecker:
-    """一致性检查器"""
-    
-    async def check_recent_syncs(self, hours: int = 1):
-        """检查最近 N 小时的同步状态"""
-        
-        # 查询最近创建但未同步的实体
-        inconsistent = await self.db.fetch_all("""
-            SELECT m.id, m.message_id, m.created_at, osl.sync_status, osl.error_message
-            FROM messages m
-            LEFT JOIN openclaw_sync_log osl 
-              ON osl.entity_type = 'message' AND osl.entity_id = m.message_id
-            WHERE m.created_at > NOW() - INTERVAL '$1 hours'
-              AND (osl.synced_at IS NULL OR osl.sync_status = 'failed')
-            ORDER BY m.created_at DESC
-        """, [hours])
-        
-        if inconsistent:
-            logger.warning(f"Found {len(inconsistent)} inconsistent records")
-            
-            # 触发告警
-            await self.alert_service.send_alert(
-                level='warning',
-                title='Dual-Write Inconsistency Detected',
-                message=f'{len(inconsistent)} records not synced to OpenClaw',
-                details=inconsistent[:10]  # 只显示前 10 条
-            )
-        
-        return inconsistent
-    
-    async def repair_inconsistency(self, entity_type: str, entity_id: UUID):
-        """修复不一致数据"""
-        
-        # 1. 从 PostgreSQL 读取最新数据
-        entity_data = await self.db.fetch_one(f"""
-            SELECT * FROM {entity_type}s WHERE {entity_type}_id = $1
-        """, [entity_id])
-        
-        if not entity_data:
-            logger.error(f"Entity {entity_type}:{entity_id} not found in PostgreSQL")
-            return False
-        
-        # 2. 重新加入 WAL 队列
-        await self.db.execute("""
-            INSERT INTO dual_write_queue (
-                entity_type, entity_id, operation, payload, status
-            ) VALUES ($1, $2, 'update', $3, 'pending')
-        """, [entity_type, entity_id, json.dumps(entity_data)])
-        
-        logger.info(f"Re-queued {entity_type}:{entity_id} for sync")
-        return True
-```
-
-#### 3.3.4 监控和告警
-
-```python
-# backend/monitoring/dual_write_metrics.py
-
-class DualWriteMetrics:
-    """双写监控指标"""
-    
-    # WAL 队列长度
-    queue_length = Gauge(
-        'dual_write_queue_length',
-        'Number of pending items in dual-write queue',
-        ['status']
-    )
-    
-    # 同步延迟
-    sync_latency = Histogram(
-        'dual_write_sync_latency_seconds',
-        'Dual-write sync latency',
-        buckets=[0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0]
-    )
-    
-    # 同步成功率
-    sync_success_rate = Gauge(
-        'dual_write_sync_success_rate',
-        'Dual-write sync success rate'
-    )
-    
-    # 死信队列大小
-    dead_letter_count = Gauge(
-        'dual_write_dead_letter_count',
-        'Number of items in dead letter queue'
-    )
-    
-    @staticmethod
-    async def collect_metrics():
-        """收集监控指标"""
-        db = PostgreSQLClient()
-        
-        # 1. WAL 队列长度
-        queue_stats = await db.fetch_all("""
-            SELECT status, COUNT(*) as count
-            FROM dual_write_queue
-            WHERE status IN ('pending', 'processing', 'failed')
-            GROUP BY status
-        """)
-        for stat in queue_stats:
-            DualWriteMetrics.queue_length.labels(status=stat['status']).set(stat['count'])
-        
-        # 2. 同步成功率（最近 1 小时）
-        sync_stats = await db.fetch_one("""
-            SELECT 
-                COUNT(*) FILTER (WHERE sync_status = 'success') as success_count,
-                COUNT(*) as total_count
-            FROM openclaw_sync_log
-            WHERE synced_at > NOW() - INTERVAL '1 hour'
-        """)
-        if sync_stats['total_count'] > 0:
-            success_rate = sync_stats['success_count'] / sync_stats['total_count']
-            DualWriteMetrics.sync_success_rate.set(success_rate)
-        
-        # 3. 死信队列大小
-        dead_letter_count = await db.fetch_one("""
-            SELECT COUNT(*) as count
-            FROM dual_write_dead_letter
-            WHERE resolution_status = 'pending'
-        """)
-        DualWriteMetrics.dead_letter_count.set(dead_letter_count['count'])
-
-# 定时收集指标（每 30 秒）
-scheduler.add_job(
-    DualWriteMetrics.collect_metrics,
-    'interval',
-    seconds=30,
-    id='collect_dual_write_metrics'
-)
-```
-
-#### 3.3.5 使用场景
-
-**场景 1：创建消息**
-
-```python
-# backend/services/message_service.py
-
-async def create_message(channel_id: str, content: str, sender_id: str):
-    """创建消息（自动双写）"""
-    
-    message_id = uuid4()
-    message_data = {
-        'message_id': message_id,
-        'channel_id': channel_id,
-        'content': content,
-        'sender_id': sender_id,
-        'created_at': datetime.utcnow().isoformat()
-    }
-    
-    # 双写管理器自动处理 PostgreSQL + OpenClaw 同步
-    await dual_write_manager.save_entity(
-        entity_type='message',
-        entity_id=message_id,
-        operation='create',
-        payload=message_data
-    )
-    
-    return message_id
-```
-
-**场景 2：处理死信队列**
-
-```python
-# backend/admin/dead_letter_handler.py
-
-async def resolve_dead_letter(dead_letter_id: int, action: str):
-    """处理死信队列记录"""
-    
-    if action == 'retry':
-        # 重新加入 WAL 队列
-        dead_letter = await db.fetch_one("""
-            SELECT * FROM dual_write_dead_letter WHERE id = $1
-        """, [dead_letter_id])
-        
-        await db.execute("""
-            INSERT INTO dual_write_queue (
-                entity_type, entity_id, operation, payload, status, retry_count
-            ) VALUES ($1, $2, $3, $4, 'pending', 0)
-        """, [
-            dead_letter['entity_type'],
-            dead_letter['entity_id'],
-            dead_letter['operation'],
-            dead_letter['payload']
-        ])
-        
-        # 标记为已解决
-        await db.execute("""
-            UPDATE dual_write_dead_letter
-            SET resolution_status = 'resolved', resolved_at = NOW()
-            WHERE id = $1
-        """, [dead_letter_id])
-    
-    elif action == 'ignore':
-        # 忽略该记录
-        await db.execute("""
-            UPDATE dual_write_dead_letter
-            SET resolution_status = 'ignored', resolved_at = NOW()
-            WHERE id = $1
-        """, [dead_letter_id])
+┌─────────────────────────────────────────────────────────────┐
+│                  Hermes Agent Runtime                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Agent        │  │ Execution    │  │ Message      │      │
+│  │ Daemon       │  │ Runtime      │  │ Queue        │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                             │
+│  独立数据存储: 自定义存储方案                                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
+### 3.3 Backend 与 Runtime 通信机制
+
+#### 3.3.1 通信方式
+
+**Backend → Runtime**（事件推送）:
+- 通过 WebHook 推送事件通知
+- Runtime 注册 WebHook URL
+- Backend 在事件发生时调用 WebHook
+
+**Runtime → Backend**（数据拉取）:
+- Runtime 通过 REST API 读取数据
+- 使用标准的 HTTP 认证（JWT Token）
+- 支持分页、过滤、排序
+
+#### 3.3.2 WebHook 事件类型
+
+Backend 支持以下 WebHook 事件：
+
+| 事件类型 | 触发时机 | Payload |
+|---------|---------|---------|
+| `message.created` | 新消息创建 | 消息对象 + 频道信息 |
+| `message.mentioned` | Agent 被 @mention | 消息对象 + 被提及的 Agent ID |
+| `task.created` | 新任务创建 | 任务对象 |
+| `task.assigned` | 任务分配给 Agent | 任务对象 + Agent ID |
+| `channel.member_added` | Agent 加入频道 | 频道 ID + Agent ID |
+
+#### 3.3.3 API 端点设计
+
+**消息相关 API**:
+```
+GET    /api/v1/channels/{channel_id}/messages       # 读取消息列表
+POST   /api/v1/channels/{channel_id}/messages       # 发送消息
+GET    /api/v1/messages/{message_id}                # 读取单条消息
+PUT    /api/v1/messages/{message_id}                # 更新消息
+DELETE /api/v1/messages/{message_id}                # 删除消息
+```
+
+**任务相关 API**:
+```
+GET    /api/v1/tasks                                # 读取任务列表
+POST   /api/v1/tasks                                # 创建任务
+GET    /api/v1/tasks/{task_id}                      # 读取单个任务
+PUT    /api/v1/tasks/{task_id}                      # 更新任务
+POST   /api/v1/tasks/{task_id}/claim                # 认领任务
+POST   /api/v1/tasks/{task_id}/unclaim              # 取消认领
+```
+
+**Agent 相关 API**:
+```
+GET    /api/v1/agents                               # 读取 Agent 列表
+GET    /api/v1/agents/{agent_id}                    # 读取 Agent 信息
+PUT    /api/v1/agents/{agent_id}/status             # 更新 Agent 状态
+```
+
+#### 3.3.4 数据流示例
+
+**发送消息流程**:
+```
+1. 用户在前端发送消息
+   ↓
+2. Frontend 调用 Backend API: POST /channels/{id}/messages
+   ↓
+3. Backend 保存消息到 PostgreSQL
+   ↓
+4. Backend 通过 WebSocket 推送给在线用户
+   ↓
+5. Backend 检查是否有 @mention
+   ↓
+6. 如果有 @mention，Backend 调用 Runtime WebHook
+   ↓
+7. Runtime 收到 WebHook，决定是否唤醒 Agent
+   ↓
+8. Agent 通过 API 读取消息: GET /messages/{id}
+   ↓
+9. Agent 生成回复，调用 API: POST /channels/{id}/messages
+   ↓
+10. Backend 保存回复并推送
+```
+
+**Agent 认领任务流程**:
+```
+1. Backend 创建新任务
+   ↓
+2. Backend 调用 Runtime WebHook: task.created
+   ↓
+3. Runtime 通知 Agent 有新任务
+   ↓
+4. Agent 调用 API 认领任务: POST /tasks/{id}/claim
+   ↓
+5. Backend 更新任务状态为 in_progress
+   ↓
+6. Backend 通过 WebSocket 推送状态变更
+```
+
+---
+
+### 3.4 完全隔离架构的优势
+
+#### 3.4.1 稳定性
+- ✅ Backend 和 Runtime 独立部署、独立升级
+- ✅ 一个系统故障不影响另一个系统
+- ✅ 没有数据同步延迟和不一致问题
+- ✅ 减少故障点（无需同步基础设施）
+
+#### 3.4.2 简洁性
+- ✅ 架构清晰，职责明确
+- ✅ 代码量减少（无需同步逻辑）
+- ✅ 测试简单（无需测试同步）
+- ✅ 文档简单（无需解释同步机制）
+
+#### 3.4.3 灵活性
+- ✅ 支持多种 Agent Runtime（OpenClaw、Hermes、自研）
+- ✅ 每个 Runtime 可以选择最适合的存储方案
+- ✅ 可以独立扩展和优化
+- ✅ 新增 Runtime 不影响现有系统
+
+#### 3.4.4 可维护性
+- ✅ 职责清晰：Backend 管数据，Runtime 管执行
+- ✅ 问题定位简单（通过 API 日志追踪）
+- ✅ 测试简单（Mock API 即可）
+- ✅ 监控简单（API 调用统计）
+
+---
 ### 3.4 认证授权设计
 
 #### 3.3.1 认证机制（JWT + OAuth2）
