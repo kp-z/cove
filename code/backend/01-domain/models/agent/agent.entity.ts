@@ -7,10 +7,6 @@
  * - agentId, name 不能为空
  * - status 只能是 active | idle | disabled | error
  * - 已激活的 agent 不能再激活
- *
- * 注意：
- * - framework (claude_code/openclaw/custom) 已移至 Infrastructure 层的 AgentAdapterConfig
- * - agentType (session/daemon/scheduled) 已移至 Runtime 层的 AgentRuntime
  */
 
 export type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
