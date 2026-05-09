@@ -24,7 +24,8 @@ export interface ConversationParticipant {
 
 export interface ConversationContext {
   readonly taskId?: string;
-  readonly workflowId?: okrId?: string;
+  readonly workflowId?: string;
+  readonly okrId?: string;
   readonly customContext?: Record<string, unknown>;
 }
 

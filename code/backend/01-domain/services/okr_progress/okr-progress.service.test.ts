@@ -20,9 +20,11 @@ describe('OKRProgressCalculator', () => {
     ];
 
     const progress = calculator.calculate(okr, tasks);
-    expect(progress.overall).toBe(25); // 2/10 features + 0/80 coverage
+    expect(progress.overall).toBe(11); // (20% + 1%) / 2 = 10.5% ≈ 11%
     expect(progress.keyResults['kr-1'].completed).toBe(2);
     expect(progress.keyResults['kr-1'].percentage).toBe(20);
+    expect(progress.keyResults['kr-2'].completed).toBe(1);
+    expect(progress.keyResults['kr-2'].percentage).toBe(1);
   });
 
   it('should handle OKR with no tasks', () => {
