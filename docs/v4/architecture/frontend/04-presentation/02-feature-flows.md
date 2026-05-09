@@ -266,7 +266,7 @@ ws.onmessage = (event) => {
 │ Backend: AgentRuntimeService.exportAgentState()         │
 │ 1. 检查 Agent 是否正在运行                                │
 │ 2. 如果运行中，暂停 Agent（force=true）                   │
-│ 3. 从 OpenClaw Gateway 导出运行时状态                     │
+│ 3. 从 Agent Runtime Gateway 导出运行时状态                     │
 │ 4. 从 PostgreSQL 读取持久化数据                          │
 │ 5. 组装 AgentStateExport 对象                           │
 │ 6. 保存导出记录到数据库                                   │

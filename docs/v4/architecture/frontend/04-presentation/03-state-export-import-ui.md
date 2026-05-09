@@ -143,7 +143,7 @@ const exportState = useMutation({
 {
   "export_id": "exp_abc123",
   "agent_id": "agt_xyz789",
-  "framework": "openclaw",
+  "framework": "runtime",
   "exported_at": "2026-05-07T10:30:00Z",
   "metadata": {
     "agent_name": "MyAgent",
