@@ -102,7 +102,7 @@ Backend 层负责业务逻辑实现、数据持久化、API 服务。采用**完
                               ↕ REST API (完全隔离)
 
 ┌─────────────────────────────────────────────────────────────┐
-│                  OpenClaw Agent Runtime                      │
+│                  Agent Runtime A (示例)                      │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │ Agent        │  │ Execution    │  │ Message      │      │
 │  │ Daemon       │  │ Runtime      │  │ Queue        │      │
@@ -114,7 +114,7 @@ Backend 层负责业务逻辑实现、数据持久化、API 服务。采用**完
                               ↕ REST API (完全隔离)
 
 ┌─────────────────────────────────────────────────────────────┐
-│                  Hermes Agent Runtime                        │
+│                  Agent Runtime B (示例)                      │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │ Agent        │  │ Execution    │  │ Message      │      │
 │  │ Daemon       │  │ Runtime      │  │ Queue        │      │
@@ -237,7 +237,7 @@ PUT    /api/v1/agents/{agent_id}/status             # 更新 Agent 状态
 - ✅ 文档简单（无需解释同步机制）
 
 #### 3.4.3 灵活性
-- ✅ 支持多种 Agent Runtime（OpenClaw、Hermes、自研）
+- ✅ 支持多种 Agent Runtime（可插拔设计）
 - ✅ 每个 Runtime 可以选择最适合的存储方案
 - ✅ 可以独立扩展和优化
 - ✅ 新增 Runtime 不影响现有系统
