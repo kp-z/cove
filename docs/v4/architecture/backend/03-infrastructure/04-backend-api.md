@@ -1705,7 +1705,7 @@ class AgentRuntimeService:
     ) -> AgentStateExport:
         """导出 Agent 状态（config/memory/executions/skills）
         
-        用于 Agent 迁移、备份或框架切换（如从 claude_code 迁移到 openclaw）。
+        用于 Agent 迁移、备份或框架切换（如从 claude_code 迁移到 runtime）。
         force=True 时即使 Agent 正在运行也强制导出（会短暂暂停执行）。
         """
         agent = await self.agent_service.get_agent(agent_id)
@@ -1721,7 +1721,7 @@ class AgentRuntimeService:
             await self.agent_daemon_adapter.pause_agent(daemon.daemon_id)
         
         try:
-            # 从 OpenClaw Gateway 导出运行时状态
+            # 从 Runtime Gateway 导出运行时状态
             runtime_state = await self.agent_daemon_adapter.export_runtime_state(
                 daemon.daemon_id
             )
@@ -1822,7 +1822,7 @@ class AgentRuntimeService:
 
 ### 3.3 AgentDaemon 适配层
 
-**职责**: 连接业务层与 OpenClaw Runtime，提供统一的 Agent 管理接口
+**职责**: 连接业务层与 Agent Runtime，提供统一的 Agent 管理接口
 
 ```python
 # backend/adapters/agent_daemon_adapter.py
@@ -1830,8 +1830,8 @@ class AgentRuntimeService:
 class AgentDaemonAdapter:
     """AgentDaemon 适配器"""
     
-    def __init__(self, openclaw_client: OpenClawClient):
-        self.openclaw = openclaw_client
+    def __init__(self, runtime_client: RuntimeClient):
+        self.runtime = runtime_client
     
     async def start_agent(
         self,
@@ -1839,11 +1839,11 @@ class AgentDaemonAdapter:
         config: AgentConfig
     ) -> AgentDaemon:
         """启动 Agent"""
-        # 将 AgentEntity 配置转换为 OpenClaw 格式
-        openclaw_config = self._convert_to_openclaw_config(config)
+        # 将 AgentEntity 配置转换为 Runtime 格式
+        runtime_config = self._convert_to_runtime_config(config)
         
-        # 通过 OpenClaw 启动 Agent
-        session = await self.openclaw.create_session(openclaw_config)
+        # 通过 Runtime 启动 Agent
+        session = await self.runtime.create_session(runtime_config)
         
         # 创建 AgentDaemon 实例
         daemon = AgentDaemon(
@@ -1851,7 +1851,7 @@ class AgentDaemonAdapter:
             agent_id=agent_id,
             pid=session.pid,
             status="running",
-            openclaw_session_id=session.session_id
+            runtime_session_id=session.session_id
         )
         
         # 保存到数据库
@@ -1867,9 +1867,9 @@ class AgentDaemonAdapter:
         """向 Agent 发送消息"""
         daemon = await self._get_agent_daemon(agent_id)
         
-        # 通过 OpenClaw 发送消息
-        result = await self.openclaw.send_message(
-            session_id=daemon.openclaw_session_id,
+        # 通过 Runtime 发送消息
+        result = await self.runtime.send_message(
+            session_id=daemon.runtime_session_id,
             content=message.content,
             metadata={
                 "message_id": message.message_id,
@@ -1880,8 +1880,8 @@ class AgentDaemonAdapter:
         
         return result
     
-    def _convert_to_openclaw_config(self, config: AgentConfig) -> dict:
-        """将 AgentEntity 配置转换为 OpenClaw 格式"""
+    def _convert_to_runtime_config(self, config: AgentConfig) -> dict:
+        """将 AgentEntity 配置转换为 Runtime 格式"""
         return {
             "agent_id": config.agent_id,
             "model": config.model.model_name,
@@ -1896,8 +1896,8 @@ class AgentDaemonAdapter:
 
 #### 3.3.9 State Export/Import API（状态导出导入服务）
 
-**对应需求**: P1-2 - OpenClaw 集成需要完整的 State Export/Import API  
-**职责**: 提供 Agent 状态的导出和导入功能，支持 OpenClaw Runtime 的状态持久化和恢复
+**对应需求**: P1-2 - Runtime 集成需要完整的 State Export/Import API  
+**职责**: 提供 Agent 状态的导出和导入功能，支持 Agent Runtime 的状态持久化和恢复
 
 ```python
 # backend/services/state_service.py
@@ -1947,12 +1947,12 @@ class StateExportImportService:
                         with open(filepath, 'r') as f:
                             state["notes"][filename] = f.read()
         
-        # 4. 导出 OpenClaw Runtime 状态
-        if daemon and daemon.openclaw_session_id:
-            openclaw_state = await self.openclaw_client.export_session_state(
-                session_id=daemon.openclaw_session_id
+        # 4. 导出 Agent Runtime 状态
+        if daemon and daemon.runtime_session_id:
+            runtime_state = await self.runtime_client.export_session_state(
+                session_id=daemon.runtime_session_id
             )
-            state["openclaw_runtime"] = openclaw_state
+            state["runtime_runtime"] = runtime_state
         
         return AgentStateExport(**state)
     
@@ -1997,15 +1997,15 @@ class StateExportImportService:
                 exec_data["execution_id"] = generate_uuid()  # 生成新 ID
                 await self.db.executions.insert_one(exec_data)
         
-        # 4. 恢复 OpenClaw Runtime 状态
-        if state_data.openclaw_runtime:
+        # 4. 恢复 Agent Runtime 状态
+        if state_data.runtime_runtime:
             # 启动 Agent
             daemon = await self.agent_runtime_service.start_agent(agent_id)
             
-            # 导入 OpenClaw 状态
-            await self.openclaw_client.import_session_state(
-                session_id=daemon.openclaw_session_id,
-                state=state_data.openclaw_runtime
+            # 导入 Runtime 状态
+            await self.runtime_client.import_session_state(
+                session_id=daemon.runtime_session_id,
+                state=state_data.runtime_runtime
             )
         
         return agent_id
@@ -2091,18 +2091,18 @@ State Export/Import 涉及的数据库表：
 - `agents` 表：Agent 基础配置
 - `agent_daemons` 表：Runtime 状态
 - `executions` 表：执行历史
-- `openclaw_sync_log` 表：OpenClaw 同步日志（用于验证状态一致性）
+- `runtime_sync_log` 表：Runtime 同步日志（用于验证状态一致性）
 
-**与 OpenClaw 集成**：
+**与 Runtime 集成**：
 
 ```python
-# backend/clients/openclaw_client.py
+# backend/clients/runtime_client.py
 
-class OpenClawClient:
-    """OpenClaw Gateway 客户端"""
+class RuntimeClient:
+    """Runtime Gateway 客户端"""
     
     async def export_session_state(self, session_id: str) -> dict:
-        """导出 OpenClaw Session 状态"""
+        """导出 Runtime Session 状态"""
         response = await self.http_client.get(
             f"{self.gateway_url}/sessions/{session_id}/state"
         )
@@ -2113,7 +2113,7 @@ class OpenClawClient:
         session_id: str,
         state: dict
     ):
-        """导入 OpenClaw Session 状态"""
+        """导入 Runtime Session 状态"""
         await self.http_client.post(
             f"{self.gateway_url}/sessions/{session_id}/state",
             json=state
@@ -2558,7 +2558,7 @@ CREATE TABLE agents (
     agent_id UUID UNIQUE NOT NULL,
     name VARCHAR(255) UNIQUE NOT NULL,
     display_name VARCHAR(255),
-    framework VARCHAR(50) NOT NULL CHECK(framework IN ('claude_code', 'openclaw', 'custom')),
+    framework VARCHAR(50) NOT NULL CHECK(framework IN ('claude_code', 'runtime', 'custom')),
     agent_type VARCHAR(50) NOT NULL,
     model VARCHAR(100),
     status VARCHAR(50) NOT NULL CHECK(status IN ('active', 'idle', 'sleeping', 'terminated', 'crashed')),
@@ -4046,7 +4046,7 @@ migrations/
 │   ├── 001_initial_schema.py
 │   ├── 002_add_agent_executions.py
 │   ├── 003_add_message_partitions.py
-│   └── 004_add_openclaw_fields.py
+│   └── 004_add_runtime_fields.py
 ├── env.py
 └── script.py.mako
 ```
@@ -4327,7 +4327,7 @@ class MigrationRollback:
   - 001_initial_schema.py
   - 002_add_agent_executions.py
   - 003_add_message_partitions.py
-  - 004_add_openclaw_fields.py
+  - 004_add_runtime_fields.py
 ```
 
 **脚本模板**
@@ -4386,9 +4386,9 @@ def downgrade():
 **依赖管理**
 
 ```python
-# migrations/versions/004_add_openclaw_fields.py
+# migrations/versions/004_add_runtime_fields.py
 
-"""Add OpenClaw integration fields
+"""Add Runtime integration fields
 
 Revision ID: 004
 Revises: 003
@@ -4400,8 +4400,8 @@ Depends on: 002  # 依赖 agent_executions 表
 depends_on = '002'
 
 def upgrade():
-    # 添加 OpenClaw 相关字段到 agents 表
-    op.add_column('agents', sa.Column('openclaw_enabled', sa.Boolean(), default=False))
+    # 添加 Runtime 相关字段到 agents 表
+    op.add_column('agents', sa.Column('runtime_enabled', sa.Boolean(), default=False))
     op.add_column('agents', sa.Column('gateway_url', sa.String(255), nullable=True))
 ```
 
@@ -4442,21 +4442,21 @@ def test_downgrade_002():
 
 #### 3.8.5 迁移脚本数据库依赖说明
 
-本节说明 OpenClaw 迁移脚本如何与 Dual-Write Infrastructure 的三张核心表交互，以及各脚本的数据库依赖关系。
+本节说明 Runtime 迁移脚本如何与 Dual-Write Infrastructure 的三张核心表交互，以及各脚本的数据库依赖关系。
 
 ##### 依赖表概览
 
 | 迁移脚本 | 依赖表 | 操作类型 | 说明 |
 |----------|--------|----------|------|
-| `migrate_agent.py` | `openclaw_sync_log` | INSERT / UPDATE | 记录单个 Agent 迁移状态 |
-| `migrate_agent.py` | `dual_write_queue` | INSERT | 触发异步同步到 OpenClaw |
-| `bulk_migrate.py` | `openclaw_sync_log` | SELECT / INSERT / UPDATE | 批量查询未迁移 Agent，更新迁移进度 |
+| `migrate_agent.py` | `runtime_sync_log` | INSERT / UPDATE | 记录单个 Agent 迁移状态 |
+| `migrate_agent.py` | `dual_write_queue` | INSERT | 触发异步同步到 Runtime |
+| `bulk_migrate.py` | `runtime_sync_log` | SELECT / INSERT / UPDATE | 批量查询未迁移 Agent，更新迁移进度 |
 | `bulk_migrate.py` | `dual_write_queue` | INSERT (batch) | 批量入队同步任务 |
 | `bulk_migrate.py` | `dual_write_dead_letter` | SELECT | 检查失败记录，决定是否跳过 |
 
 ##### migrate_agent.py — 单 Agent 迁移
 
-`migrate_agent.py` 负责将单个 Agent 从 OpenClaw Runtime 迁移到 Native Runtime（或反向迁移）。迁移完成后通过 `openclaw_sync_log` 追踪状态，并通过 `dual_write_queue` 触发后续同步。
+`migrate_agent.py` 负责将单个 Agent 从 Agent Runtime 迁移到 Native Runtime（或反向迁移）。迁移完成后通过 `runtime_sync_log` 追踪状态，并通过 `dual_write_queue` 触发后续同步。
 
 ```python
 # scripts/migrate_agent.py
@@ -4464,14 +4464,14 @@ def test_downgrade_002():
 单 Agent 迁移脚本
 
 数据库依赖：
-  - openclaw_sync_log: 记录迁移状态（INSERT + ON CONFLICT UPDATE）
+  - runtime_sync_log: 记录迁移状态（INSERT + ON CONFLICT UPDATE）
   - dual_write_queue:  触发异步同步任务（INSERT）
   - agents:            更新 runtime_type 路由字段（UPDATE）
 
 前置条件：
   - dual_write_queue 表已存在（schema-ddl.sql 已执行）
-  - openclaw_sync_log 表已存在
-  - OpenClaw Gateway 可达（export_agent_state 需要）
+  - runtime_sync_log 表已存在
+  - Runtime Gateway 可达（export_agent_state 需要）
 """
 
 import asyncio
@@ -4482,29 +4482,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def migrate_agent(agent_id: UUID, target: str, db, openclaw_gateway, native_runtime):
+async def migrate_agent(agent_id: UUID, target: str, db, runtime_gateway, native_runtime):
     """
     将单个 Agent 迁移到目标 Runtime。
 
     Args:
         agent_id:        要迁移的 Agent UUID
-        target:          目标 Runtime，'native' 或 'openclaw'
+        target:          目标 Runtime，'native' 或 'runtime'
         db:              PostgreSQL 异步连接
-        openclaw_gateway: OpenClaw Gateway 客户端
+        runtime_gateway: Runtime Gateway 客户端
         native_runtime:  Native Runtime 客户端
 
     数据库写入顺序（事务保证原子性）：
-        1. openclaw_sync_log  → 标记迁移开始（pending）
+        1. runtime_sync_log  → 标记迁移开始（pending）
         2. 执行状态导出/导入
-        3. openclaw_sync_log  → 更新为 success / failed
+        3. runtime_sync_log  → 更新为 success / failed
         4. dual_write_queue   → 入队后续同步任务
         5. agents             → 更新 runtime_type 路由
     """
     logger.info(f"Starting migration: agent={agent_id}, target={target}")
 
-    # Step 1: 标记迁移开始，写入 openclaw_sync_log
+    # Step 1: 标记迁移开始，写入 runtime_sync_log
     await db.execute("""
-        INSERT INTO openclaw_sync_log (entity_type, entity_id, operation, sync_status, synced_at)
+        INSERT INTO runtime_sync_log (entity_type, entity_id, operation, sync_status, synced_at)
         VALUES ('agent', $1, 'migrate_start', 'pending', NOW())
         ON CONFLICT (entity_type, entity_id)
         DO UPDATE SET
@@ -4516,33 +4516,33 @@ async def migrate_agent(agent_id: UUID, target: str, db, openclaw_gateway, nativ
     try:
         # Step 2: 导出当前状态
         if target == "native":
-            # 从 OpenClaw 导出
-            state = await openclaw_gateway.export_agent_state(agent_id)
+            # 从 Runtime 导出
+            state = await runtime_gateway.export_agent_state(agent_id)
             # 导入到 Native Runtime
             await native_runtime.import_agent_state(agent_id, state)
         else:
             # 从 Native Runtime 导出
             state = await native_runtime.export_agent_state(agent_id)
-            # 导入到 OpenClaw
-            await openclaw_gateway.import_agent_state(agent_id, state)
+            # 导入到 Runtime
+            await runtime_gateway.import_agent_state(agent_id, state)
 
-        # Step 3: 迁移成功，更新 openclaw_sync_log
+        # Step 3: 迁移成功，更新 runtime_sync_log
         await db.execute("""
-            INSERT INTO openclaw_sync_log (
+            INSERT INTO runtime_sync_log (
                 entity_type, entity_id, operation, sync_status,
-                openclaw_response, synced_at
+                runtime_response, synced_at
             ) VALUES ('agent', $1, 'migrated_to_' || $2, 'success', $3, NOW())
             ON CONFLICT (entity_type, entity_id)
             DO UPDATE SET
                 operation         = 'migrated_to_' || $2,
                 sync_status       = 'success',
-                openclaw_response = $3,
+                runtime_response = $3,
                 error_message     = NULL,
                 synced_at         = NOW()
         """, agent_id, target, {"migrated_at": datetime.utcnow().isoformat()})
 
         # Step 4: 写入 dual_write_queue，触发后续异步同步
-        # （WAL Worker 会将路由变更同步到 OpenClaw）
+        # （WAL Worker 会将路由变更同步到 Runtime）
         await db.execute("""
             INSERT INTO dual_write_queue (
                 entity_type, entity_id, operation, payload, status
@@ -4563,9 +4563,9 @@ async def migrate_agent(agent_id: UUID, target: str, db, openclaw_gateway, nativ
         logger.info(f"Migration complete: agent={agent_id} → {target}")
 
     except Exception as e:
-        # 迁移失败：更新 openclaw_sync_log 记录错误
+        # 迁移失败：更新 runtime_sync_log 记录错误
         await db.execute("""
-            INSERT INTO openclaw_sync_log (
+            INSERT INTO runtime_sync_log (
                 entity_type, entity_id, operation, sync_status, error_message, synced_at
             ) VALUES ('agent', $1, 'migrate_failed', 'failed', $2, NOW())
             ON CONFLICT (entity_type, entity_id)
@@ -4581,7 +4581,7 @@ async def migrate_agent(agent_id: UUID, target: str, db, openclaw_gateway, nativ
 
 ##### bulk_migrate.py — 批量 Agent 迁移
 
-`bulk_migrate.py` 批量迁移多个 Agent，通过 `openclaw_sync_log` 查询未迁移记录，跳过死信队列中的失败项，并将同步任务批量写入 `dual_write_queue`。
+`bulk_migrate.py` 批量迁移多个 Agent，通过 `runtime_sync_log` 查询未迁移记录，跳过死信队列中的失败项，并将同步任务批量写入 `dual_write_queue`。
 
 ```python
 # scripts/bulk_migrate.py
@@ -4589,7 +4589,7 @@ async def migrate_agent(agent_id: UUID, target: str, db, openclaw_gateway, nativ
 批量 Agent 迁移脚本
 
 数据库依赖：
-  - openclaw_sync_log:    SELECT 查询未迁移 Agent；INSERT/UPDATE 更新批量进度
+  - runtime_sync_log:    SELECT 查询未迁移 Agent；INSERT/UPDATE 更新批量进度
   - dual_write_queue:     批量 INSERT 同步任务（每批次一次写入）
   - dual_write_dead_letter: SELECT 检查失败记录，跳过已进入死信队列的 Agent
   - agents:               SELECT 获取待迁移列表；UPDATE 更新 runtime_type
@@ -4610,10 +4610,10 @@ logger = logging.getLogger(__name__)
 class BulkMigrator:
     """批量 Agent 迁移器"""
 
-    def __init__(self, db, openclaw_gateway, native_runtime,
+    def __init__(self, db, runtime_gateway, native_runtime,
                  batch_size: int = 50, dry_run: bool = False):
         self.db = db
-        self.openclaw_gateway = openclaw_gateway
+        self.runtime_gateway = runtime_gateway
         self.native_runtime = native_runtime
         self.batch_size = batch_size
         self.dry_run = dry_run
@@ -4625,14 +4625,14 @@ class BulkMigrator:
 
         逻辑：
           1. 从 agents 表获取 runtime_type != target 的 Agent
-          2. 排除 openclaw_sync_log 中已成功迁移的
+          2. 排除 runtime_sync_log 中已成功迁移的
           3. 排除 dual_write_dead_letter 中有未解决失败记录的（避免反复失败）
         """
         rows = await self.db.fetch_all("""
             SELECT a.agent_id
             FROM agents a
             -- 排除已成功迁移
-            LEFT JOIN openclaw_sync_log osl
+            LEFT JOIN runtime_sync_log osl
                 ON osl.entity_type = 'agent'
                AND osl.entity_id   = a.agent_id
                AND osl.sync_status = 'success'
@@ -4657,7 +4657,7 @@ class BulkMigrator:
 
         写入顺序：
           1. 逐个执行状态导出/导入
-          2. 批量 INSERT openclaw_sync_log（减少往返次数）
+          2. 批量 INSERT runtime_sync_log（减少往返次数）
           3. 批量 INSERT dual_write_queue（一次事务）
           4. 批量 UPDATE agents.runtime_type
         """
@@ -4668,11 +4668,11 @@ class BulkMigrator:
             try:
                 if not self.dry_run:
                     if target == "native":
-                        state = await self.openclaw_gateway.export_agent_state(agent_id)
+                        state = await self.runtime_gateway.export_agent_state(agent_id)
                         await self.native_runtime.import_agent_state(agent_id, state)
                     else:
                         state = await self.native_runtime.export_agent_state(agent_id)
-                        await self.openclaw_gateway.import_agent_state(agent_id, state)
+                        await self.runtime_gateway.import_agent_state(agent_id, state)
                 else:
                     logger.info(f"[DRY RUN] Would migrate agent {agent_id} → {target}")
 
@@ -4687,11 +4687,11 @@ class BulkMigrator:
         if self.dry_run:
             return
 
-        # 批量更新 openclaw_sync_log（成功）
+        # 批量更新 runtime_sync_log（成功）
         if success_ids:
             for agent_id in success_ids:
                 await self.db.execute("""
-                    INSERT INTO openclaw_sync_log (
+                    INSERT INTO runtime_sync_log (
                         entity_type, entity_id, operation, sync_status, synced_at
                     ) VALUES ('agent', $1, 'migrated_to_' || $2, 'success', NOW())
                     ON CONFLICT (entity_type, entity_id)
@@ -4719,10 +4719,10 @@ class BulkMigrator:
                 WHERE agent_id = ANY($2::uuid[])
             """, target, success_ids)
 
-        # 批量更新 openclaw_sync_log（失败）
+        # 批量更新 runtime_sync_log（失败）
         for agent_id, error_msg in failed_ids:
             await self.db.execute("""
-                INSERT INTO openclaw_sync_log (
+                INSERT INTO runtime_sync_log (
                     entity_type, entity_id, operation, sync_status, error_message, synced_at
                 ) VALUES ('agent', $1, 'migrate_failed', 'failed', $2, NOW())
                 ON CONFLICT (entity_type, entity_id)
@@ -4766,16 +4766,16 @@ class BulkMigrator:
 scripts/migrate_agent.py
     │
     ├── READ   agents                  (查询 Agent 信息)
-    ├── WRITE  openclaw_sync_log       (记录迁移状态: pending → success/failed)
+    ├── WRITE  runtime_sync_log       (记录迁移状态: pending → success/failed)
     ├── WRITE  dual_write_queue        (触发后续 WAL 同步)
     └── WRITE  agents.runtime_type     (更新路由字段)
 
 scripts/bulk_migrate.py
     │
     ├── READ   agents                  (获取待迁移列表)
-    ├── READ   openclaw_sync_log       (排除已成功迁移的 Agent)
+    ├── READ   runtime_sync_log       (排除已成功迁移的 Agent)
     ├── READ   dual_write_dead_letter  (排除有未解决失败记录的 Agent)
-    ├── WRITE  openclaw_sync_log       (批量更新迁移状态)
+    ├── WRITE  runtime_sync_log       (批量更新迁移状态)
     ├── WRITE  dual_write_queue        (批量入队同步任务)
     └── WRITE  agents.runtime_type     (批量更新路由字段)
 ```
@@ -4791,7 +4791,7 @@ SELECT
     osl.operation,
     COUNT(*) AS agent_count,
     MAX(osl.synced_at) AS last_updated
-FROM openclaw_sync_log osl
+FROM runtime_sync_log osl
 WHERE osl.entity_type = 'agent'
 GROUP BY osl.sync_status, osl.operation
 ORDER BY last_updated DESC;
