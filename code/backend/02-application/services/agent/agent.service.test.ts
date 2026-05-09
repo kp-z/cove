@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AgentService } from './agent.service';
 import { AgentRepository } from '../../../03-infrastructure/database/repositories/agent.repository';
 
 describe('AgentService', () => {
   let agentService: AgentService;
-  let mockRepository: jest.Mocked<AgentRepository>;
+  let mockRepository: any;
 
   beforeEach(() => {
     mockRepository = {
-      findById: jest.fn(),
-      findByStatus: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
+      findById: vi.fn(),
+      findByStatus: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     } as any;
     agentService = new AgentService(mockRepository);
   });

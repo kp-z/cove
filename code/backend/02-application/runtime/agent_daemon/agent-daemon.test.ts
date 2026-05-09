@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AgentDaemon } from './agent-daemon';
 import { AgentService } from '../../services/agent/agent.service';
 
 describe('AgentDaemon', () => {
   let agentDaemon: AgentDaemon;
-  let mockAgentService: jest.Mocked<AgentService>;
+  let mockAgentService: any;
 
   beforeEach(() => {
     mockAgentService = {
-      findById: jest.fn(),
-      updateStatus: jest.fn(),
-      updateHeartbeat: jest.fn(),
+      findById: vi.fn(),
+      updateStatus: vi.fn(),
+      updateHeartbeat: vi.fn(),
     } as any;
     agentDaemon = new AgentDaemon(mockAgentService);
   });

@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectService } from './project.service';
 import { ProjectRepository } from '../../../03-infrastructure/database/repositories/project.repository';
 
 describe('ProjectService', () => {
   let projectService: ProjectService;
-  let mockRepository: jest.Mocked<ProjectRepository>;
+  let mockRepository: any;
 
   beforeEach(() => {
     mockRepository = {
-      findById: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     } as any;
     projectService = new ProjectService(mockRepository);
   });

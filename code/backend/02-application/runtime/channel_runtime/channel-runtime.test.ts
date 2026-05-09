@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChannelRuntime } from './channel-runtime';
 import { ChannelService } from '../../services/channel/channel.service';
 import { MessageService } from '../../services/message/message.service';
 
 describe('ChannelRuntime', () => {
   let channelRuntime: ChannelRuntime;
-  let mockChannelService: jest.Mocked<ChannelService>;
-  let mockMessageService: jest.Mocked<MessageService>;
+  let mockChannelService: any;
+  let mockMessageService: any;
 
   beforeEach(() => {
     mockChannelService = {
-      findById: jest.fn(),
-      updateActivity: jest.fn(),
+      findById: vi.fn(),
+      updateActivity: vi.fn(),
     } as any;
     mockMessageService = {
-      create: jest.fn(),
-      findByChannel: jest.fn(),
+      create: vi.fn(),
+      findByChannel: vi.fn(),
     } as any;
     channelRuntime = new ChannelRuntime(mockChannelService, mockMessageService);
   });
