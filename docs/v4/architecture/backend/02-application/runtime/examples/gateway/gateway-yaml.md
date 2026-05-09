@@ -1,8 +1,8 @@
-# OpenClaw Gateway 配置 (gateway.yaml)
+# Agent Runtime Gateway 配置 (gateway.yaml)
 
-**文件路径**: `runtime/openclaw_gateway/gateway.yaml`
+**文件路径**: `runtime/runtime_gateway/gateway.yaml`
 
-**说明**: OpenClaw Gateway 配置文件，定义网关的监听地址、路由规则、认证配置、限流策略。Gateway 是 Runtime 层与外部系统的桥梁。
+**说明**: Agent Runtime Gateway 配置文件，定义网关的监听地址、路由规则、认证配置、限流策略。Gateway 是 Runtime 层与外部系统的桥梁。
 
 ---
 

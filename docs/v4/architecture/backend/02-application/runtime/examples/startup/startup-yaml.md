@@ -33,7 +33,7 @@
 
 ### Skills 加载配置
 - `startup.skills.enabled`: 是否启用 Skills 加载
-- `startup.skills.skills_dir`: Skills 目录路径（默认 `~/.openclaw/skills`）
+- `startup.skills.skills_dir`: Skills 目录路径（默认 `~/.runtime/skills`）
 - `startup.skills.fail_fast`: 遇到错误是否立即失败（false: 跳过无效 Skills; true: 立即失败）
 - `startup.skills.validate_dependencies`: 是否验证依赖完整性（环境变量、npm/Python 包）
 - `startup.skills.check_circular_deps`: 是否检测循环依赖
@@ -50,7 +50,7 @@
 
 ## Skills 加载流程
 
-1. **扫描 Skills 目录**：扫描 `~/.openclaw/skills/` 目录
+1. **扫描 Skills 目录**：扫描 `~/.runtime/skills/` 目录
 2. **解析配置**：解析 `skill.yaml` 或 `SKILL.md`（frontmatter）
 3. **验证依赖**：
    - 环境变量检查

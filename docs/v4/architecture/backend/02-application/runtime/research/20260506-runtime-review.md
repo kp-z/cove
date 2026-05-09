@@ -184,7 +184,7 @@ runtime:
 startup:
   skills:
     enabled: true
-    skills_dir: "~/.openclaw/skills"
+    skills_dir: "~/.runtime/skills"
     fail_fast: false
     validate_dependencies: true
     check_circular_deps: true
