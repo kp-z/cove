@@ -33,7 +33,6 @@ describe('WorkflowEntity', () => {
         enabled: true,
       },
     ],
-    executions: [],
     createdAt: new Date('2026-04-26T00:00:00Z'),
     updatedAt: new Date('2026-05-02T10:00:00Z'),
     createdBy: {
@@ -156,39 +155,6 @@ describe('WorkflowEntity', () => {
       const workflow = WorkflowEntity.create(validProps);
       const updated = workflow.complete();
       expect(updated.status).toBe('completed');
-    });
-  });
-
-  describe('executions', () => {
-    it('should add execution', () => {
-      const workflow = WorkflowEntity.create(validProps);
-      const execution = {
-        executionId: 'exec-001',
-        startedAt: new Date(),
-        status: 'running' as const,
-      };
-      const updated = workflow.addExecution(execution);
-      expect(updated.executions.length).toBe(1);
-    });
-
-    it('should get latest execution', () => {
-      const workflow = WorkflowEntity.create({
-        ...validProps,
-        executions: [
-          {
-            executionId: 'exec-001',
-            startedAt: new Date('2026-05-01T09:00:00Z'),
-            status: 'completed' as const,
-          },
-          {
-            executionId: 'exec-002',
-            startedAt: new Date('2026-05-02T09:00:00Z'),
-            status: 'running' as const,
-          },
-        ],
-      });
-      const latest = workflow.getLatestExecution();
-      expect(latest?.executionId).toBe('exec-002');
     });
   });
 

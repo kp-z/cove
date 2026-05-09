@@ -10,6 +10,9 @@
  * - Step ID 在 Workflow 内必须唯一
  * - status 只能是 draft | active | paused | completed | archived
  * - Entity 是不可变的（更新返回新实例）
+ *
+ * 注意：
+ * - executions (执行历史) 已移至 Runtime 层，通过 ExecutionRepository 查询
  */
 
 export type WorkflowStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
@@ -42,14 +45,6 @@ export interface WorkflowTrigger {
   readonly schedule?: string;
 }
 
-export interface WorkflowExecution {
-  readonly executionId: string;
-  readonly startedAt: Date;
-  readonly completedAt?: Date;
-  readonly status: 'running' | 'completed' | 'failed' | 'cancelled';
-  readonly durationMinutes?: number;
-}
-
 export interface WorkflowEntityProps {
   readonly workflowId: string;
   readonly name: string;
@@ -59,7 +54,6 @@ export interface WorkflowEntityProps {
   readonly status: WorkflowStatus;
   readonly steps: readonly (readonly WorkflowStep[])[]; // Nested array: stages -> parallel steps
   readonly triggers: readonly WorkflowTrigger[];
-  readonly executions: readonly WorkflowExecution[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly createdBy: {
@@ -98,13 +92,6 @@ export interface WorkflowEntityJSON {
     readonly event_type?: string;
     readonly kr_id?: string;
     readonly schedule?: string;
-  }[];
-  readonly executions: readonly {
-    readonly execution_id: string;
-    readonly started_at: string;
-    readonly completed_at?: string;
-    readonly status: 'running' | 'completed' | 'failed' | 'cancelled';
-    readonly duration_minutes?: number;
   }[];
   readonly created_at: string;
   readonly updated_at: string;
@@ -156,13 +143,6 @@ export class WorkflowEntity {
         eventType: t.event_type,
         krId: t.kr_id,
         schedule: t.schedule,
-      })),
-      executions: json.executions.map(e => ({
-        executionId: e.execution_id,
-        startedAt: new Date(e.started_at),
-        completedAt: e.completed_at ? new Date(e.completed_at) : undefined,
-        status: e.status,
-        durationMinutes: e.duration_minutes,
       })),
       createdAt: new Date(json.created_at),
       updatedAt: new Date(json.updated_at),
@@ -226,7 +206,6 @@ export class WorkflowEntity {
   get status(): WorkflowStatus { return this.props.status; }
   get steps(): readonly (readonly WorkflowStep[])[] { return this.props.steps; }
   get triggers(): readonly WorkflowTrigger[] { return this.props.triggers; }
-  get executions(): readonly WorkflowExecution[] { return this.props.executions; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
   get createdBy(): WorkflowEntityProps['createdBy'] { return this.props.createdBy; }
@@ -290,21 +269,6 @@ export class WorkflowEntity {
     return this.props.triggers.some(t => t.triggerType === 'manual' && t.enabled);
   }
 
-  // --- Execution operations ---
-
-  getLatestExecution(): WorkflowExecution | undefined {
-    if (this.props.executions.length === 0) return undefined;
-    return this.props.executions[this.props.executions.length - 1];
-  }
-
-  getRunningExecutions(): readonly WorkflowExecution[] {
-    return this.props.executions.filter(e => e.status === 'running');
-  }
-
-  hasRunningExecution(): boolean {
-    return this.getRunningExecutions().length > 0;
-  }
-
   // --- Immutable updates ---
 
   updateStatus(status: WorkflowStatus): WorkflowEntity {
@@ -356,24 +320,6 @@ export class WorkflowEntity {
     return WorkflowEntity.create({
       ...this.props,
       description,
-      updatedAt: new Date(),
-    });
-  }
-
-  addExecution(execution: WorkflowExecution): WorkflowEntity {
-    return WorkflowEntity.create({
-      ...this.props,
-      executions: [...this.props.executions, execution],
-      updatedAt: new Date(),
-    });
-  }
-
-  updateExecution(executionId: string, updates: Partial<Omit<WorkflowExecution, 'executionId'>>): WorkflowEntity {
-    return WorkflowEntity.create({
-      ...this.props,
-      executions: this.props.executions.map(e =>
-        e.executionId === executionId ? { ...e, ...updates } : e
-      ),
       updatedAt: new Date(),
     });
   }
@@ -450,13 +396,6 @@ export class WorkflowEntity {
         event_type: t.eventType,
         kr_id: t.krId,
         schedule: t.schedule,
-      })),
-      executions: this.props.executions.map(e => ({
-        execution_id: e.executionId,
-        started_at: e.startedAt.toISOString(),
-        completed_at: e.completedAt?.toISOString(),
-        status: e.status,
-        duration_minutes: e.durationMinutes,
       })),
       created_at: this.props.createdAt.toISOString(),
       updated_at: this.props.updatedAt.toISOString(),

@@ -5,9 +5,10 @@ describe('AgentEntity', () => {
   const validProps = {
     agentId: 'agent-001',
     name: 'Alice',
-    framework: 'claude_code' as const,
-    agentType: 'session' as const,
+    displayName: 'Alice Agent',
+    description: 'Senior architect agent',
     status: 'active' as const,
+    capabilities: ['code-review', 'architecture'],
     tags: ['architect', 'senior'],
     createdBy: 'user-001',
     createdAt: new Date('2026-04-26T00:00:00Z'),
@@ -19,9 +20,10 @@ describe('AgentEntity', () => {
 
       expect(agent.agentId).toBe('agent-001');
       expect(agent.name).toBe('Alice');
-      expect(agent.framework).toBe('claude_code');
-      expect(agent.agentType).toBe('session');
+      expect(agent.displayName).toBe('Alice Agent');
+      expect(agent.description).toBe('Senior architect agent');
       expect(agent.status).toBe('active');
+      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
       expect(agent.tags).toEqual(['architect', 'senior']);
     });
 
@@ -37,24 +39,26 @@ describe('AgentEntity', () => {
       }).toThrow('Agent name cannot be empty');
     });
 
-    it('should throw error for invalid framework', () => {
-      expect(() => {
-        AgentEntity.create({ ...validProps, framework: 'unknown' as any });
-      }).toThrow('Invalid framework');
-    });
-
     it('should throw error for invalid status', () => {
       expect(() => {
         AgentEntity.create({ ...validProps, status: 'running' as any });
       }).toThrow('Invalid agent status');
     });
 
-    it('should enforce invariant: active agent must have framework', () => {
-      // This is implicit since framework is required and validated,
-      // but let's verify active + valid framework works
-      const agent = AgentEntity.create(validProps);
-      expect(agent.status).toBe('active');
-      expect(agent.framework).toBe('claude_code');
+    it('should create agent with optional fields omitted', () => {
+      const minimalProps = {
+        agentId: 'agent-002',
+        name: 'Bob',
+        displayName: 'Bob Agent',
+        status: 'idle' as const,
+        createdBy: 'user-001',
+        createdAt: new Date(),
+      };
+      const agent = AgentEntity.create(minimalProps);
+
+      expect(agent.description).toBeUndefined();
+      expect(agent.capabilities).toEqual([]);
+      expect(agent.tags).toEqual([]);
     });
   });
 
@@ -97,6 +101,43 @@ describe('AgentEntity', () => {
       expect(updated).not.toBe(agent);
     });
 
+    it('should return new instance when updating displayName', () => {
+      const agent = AgentEntity.create(validProps);
+      const updated = agent.updateDisplayName('Bob Agent');
+
+      expect(updated.displayName).toBe('Bob Agent');
+      expect(agent.displayName).toBe('Alice Agent');
+    });
+
+    it('should return new instance when updating description', () => {
+      const agent = AgentEntity.create(validProps);
+      const updated = agent.updateDescription('Updated description');
+
+      expect(updated.description).toBe('Updated description');
+      expect(agent.description).toBe('Senior architect agent');
+    });
+
+    it('should return new instance when adding capability', () => {
+      const agent = AgentEntity.create(validProps);
+      const updated = agent.addCapability('testing');
+
+      expect(updated.capabilities).toEqual(['code-review', 'architecture', 'testing']);
+      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+    });
+
+    it('should not add duplicate capability', () => {
+      const agent = AgentEntity.create(validProps);
+      expect(() => agent.addCapability('code-review')).toThrow('Capability already exists');
+    });
+
+    it('should return new instance when removing capability', () => {
+      const agent = AgentEntity.create(validProps);
+      const updated = agent.removeCapability('code-review');
+
+      expect(updated.capabilities).toEqual(['architecture']);
+      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+    });
+
     it('should return new instance when adding tag', () => {
       const agent = AgentEntity.create(validProps);
       const updated = agent.addTag('backend');
@@ -108,6 +149,14 @@ describe('AgentEntity', () => {
     it('should not add duplicate tag', () => {
       const agent = AgentEntity.create(validProps);
       expect(() => agent.addTag('architect')).toThrow('Tag already exists');
+    });
+
+    it('should return new instance when removing tag', () => {
+      const agent = AgentEntity.create(validProps);
+      const updated = agent.removeTag('architect');
+
+      expect(updated.tags).toEqual(['senior']);
+      expect(agent.tags).toEqual(['architect', 'senior']);
     });
   });
 
@@ -134,9 +183,10 @@ describe('AgentEntity', () => {
 
       expect(json.agent_id).toBe('agent-001');
       expect(json.name).toBe('Alice');
-      expect(json.framework).toBe('claude_code');
-      expect(json.agent_type).toBe('session');
+      expect(json.display_name).toBe('Alice Agent');
+      expect(json.description).toBe('Senior architect agent');
       expect(json.status).toBe('active');
+      expect(json.capabilities).toEqual(['code-review', 'architecture']);
       expect(json.tags).toEqual(['architect', 'senior']);
     });
 
@@ -144,9 +194,10 @@ describe('AgentEntity', () => {
       const json = {
         agent_id: 'agent-001',
         name: 'Alice',
-        framework: 'claude_code' as const,
-        agent_type: 'session' as const,
+        display_name: 'Alice Agent',
+        description: 'Senior architect agent',
         status: 'active' as const,
+        capabilities: ['code-review', 'architecture'],
         tags: ['architect'],
         created_by: 'user-001',
         created_at: '2026-04-26T00:00:00.000Z',
@@ -155,6 +206,9 @@ describe('AgentEntity', () => {
 
       expect(agent.agentId).toBe('agent-001');
       expect(agent.name).toBe('Alice');
+      expect(agent.displayName).toBe('Alice Agent');
+      expect(agent.description).toBe('Senior architect agent');
+      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
     });
   });
 });

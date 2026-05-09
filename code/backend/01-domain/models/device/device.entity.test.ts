@@ -5,21 +5,12 @@ describe('DeviceEntity', () => {
   const validProps = {
     deviceId: 'device-001',
     userId: 'user-001',
-    deviceType: 'web' as const,
-    platform: 'macos' as const,
     deviceName: 'MacBook Pro',
-    deviceModel: 'MacBookPro18,1',
-    osVersion: 'macOS 14.0',
-    appVersion: '1.0.0',
-    userAgent: 'Mozilla/5.0...',
-    ipAddress: '192.168.1.100',
     status: 'active' as const,
-    lastActiveAt: new Date('2026-05-07T01:00:00Z'),
     registeredAt: new Date('2026-01-01T00:00:00Z'),
     meta: {
       tags: ['primary'],
       trusted: true,
-      location: 'San Francisco',
     },
   };
 
@@ -27,8 +18,9 @@ describe('DeviceEntity', () => {
     it('should create a valid device entity', () => {
       const device = DeviceEntity.create(validProps);
       expect(device.deviceId).toBe('device-001');
-      expect(device.deviceType).toBe('web');
+      expect(device.deviceName).toBe('MacBook Pro');
       expect(device.status).toBe('active');
+      expect(device.isTrusted()).toBe(true);
     });
 
     it('should throw error if deviceId is empty', () => {
@@ -42,6 +34,20 @@ describe('DeviceEntity', () => {
         DeviceEntity.create({ ...validProps, userId: '' })
       ).toThrow('User ID cannot be empty');
     });
+
+    it('should throw error if deviceName is empty', () => {
+      expect(() =>
+        DeviceEntity.create({ ...validProps, deviceName: '' })
+      ).toThrow('Device name cannot be empty');
+    });
+
+    it('should create device with minimal meta', () => {
+      const device = DeviceEntity.create({
+        ...validProps,
+        meta: {},
+      });
+      expect(device.isTrusted()).toBe(false);
+    });
   });
 
   describe('status checks', () => {
@@ -51,16 +57,6 @@ describe('DeviceEntity', () => {
       expect(device.isInactive()).toBe(false);
       expect(device.isRevoked()).toBe(false);
       expect(device.isTrusted()).toBe(true);
-    });
-  });
-
-  describe('type checks', () => {
-    it('should correctly identify device type', () => {
-      const device = DeviceEntity.create(validProps);
-      expect(device.isWeb()).toBe(true);
-      expect(device.isMobile()).toBe(false);
-      expect(device.isDesktop()).toBe(false);
-      expect(device.isCLI()).toBe(false);
     });
   });
 
@@ -86,6 +82,22 @@ describe('DeviceEntity', () => {
       expect(updated.status).toBe('revoked');
       expect(updated.revokedAt).toBeDefined();
     });
+
+    it('should not activate revoked device', () => {
+      const device = DeviceEntity.create({
+        ...validProps,
+        status: 'revoked',
+      });
+      expect(() => device.activate()).toThrow('Revoked devices cannot be activated');
+    });
+
+    it('should not deactivate revoked device', () => {
+      const device = DeviceEntity.create({
+        ...validProps,
+        status: 'revoked',
+      });
+      expect(() => device.deactivate()).toThrow('Revoked devices cannot be deactivated');
+    });
   });
 
   describe('trust management', () => {
@@ -105,12 +117,44 @@ describe('DeviceEntity', () => {
     });
   });
 
+  describe('tag management', () => {
+    it('should add tag', () => {
+      const device = DeviceEntity.create(validProps);
+      const updated = device.addTag('work');
+      expect(updated.meta.tags).toEqual(['primary', 'work']);
+    });
+
+    it('should not add duplicate tag', () => {
+      const device = DeviceEntity.create(validProps);
+      expect(() => device.addTag('primary')).toThrow('Tag already exists');
+    });
+
+    it('should remove tag', () => {
+      const device = DeviceEntity.create(validProps);
+      const updated = device.removeTag('primary');
+      expect(updated.meta.tags).toEqual([]);
+    });
+  });
+
+  describe('immutability', () => {
+    it('should return new instance when updating device name', () => {
+      const device = DeviceEntity.create(validProps);
+      const updated = device.updateDeviceName('New Device');
+      expect(updated.deviceName).toBe('New Device');
+      expect(device.deviceName).toBe('MacBook Pro');
+      expect(updated).not.toBe(device);
+    });
+  });
+
   describe('serialization', () => {
     it('should serialize to JSON', () => {
       const device = DeviceEntity.create(validProps);
       const json = device.toJSON();
       expect(json.device_id).toBe('device-001');
-      expect(json.device_type).toBe('web');
+      expect(json.user_id).toBe('user-001');
+      expect(json.device_name).toBe('MacBook Pro');
+      expect(json.status).toBe('active');
+      expect(json.meta.trusted).toBe(true);
     });
 
     it('should deserialize from JSON', () => {
@@ -118,6 +162,19 @@ describe('DeviceEntity', () => {
       const json = device.toJSON();
       const deserialized = DeviceEntity.fromJSON(json);
       expect(deserialized.deviceId).toBe(device.deviceId);
+      expect(deserialized.deviceName).toBe(device.deviceName);
+      expect(deserialized.status).toBe(device.status);
+    });
+
+    it('should handle revoked device serialization', () => {
+      const device = DeviceEntity.create(validProps).revoke();
+      const json = device.toJSON();
+      expect(json.status).toBe('revoked');
+      expect(json.revoked_at).toBeDefined();
+
+      const deserialized = DeviceEntity.fromJSON(json);
+      expect(deserialized.isRevoked()).toBe(true);
+      expect(deserialized.revokedAt).toBeDefined();
     });
   });
 });
