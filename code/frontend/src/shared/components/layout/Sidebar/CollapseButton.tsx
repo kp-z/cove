@@ -12,7 +12,7 @@ export function CollapseButton({ collapsed, onClick }: CollapseButtonProps) {
       onClick={onClick}
       title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       className={`
-        flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
+        flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 leading-5
         text-gray-400 hover:bg-white/5 hover:text-white hover:scale-105 relative overflow-hidden
       `}
       whileHover={{ scale: 1.05 }}

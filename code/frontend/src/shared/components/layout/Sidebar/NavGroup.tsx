@@ -17,7 +17,7 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
         onClick={onToggle}
         title={collapsed ? item.name : undefined}
         className={`
-          w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
+          w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors leading-5
           ${
             menuState === 'active'
               ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
@@ -36,7 +36,7 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
       </button>
 
       <AnimatePresence>
-        {isExpanded && (
+        {isExpanded && !collapsed && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -50,7 +50,7 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
                 to={subItem.path}
                 title={collapsed ? subItem.name : undefined}
                 className={({ isActive }) => `
-                  flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors
+                  flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors leading-[18px]
                   ${
                     isActive
                       ? 'bg-blue-600/30 text-blue-400 border border-blue-500/50'

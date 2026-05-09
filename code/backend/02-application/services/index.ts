@@ -6,3 +6,7 @@
 
 export * from './agent/agent.service';
 export * from './project/project.service';
+export * from './channel/channel.service';
+export * from './task/task.service';
+export * from './message/message.service';
+export * from './workflow/workflow.service';

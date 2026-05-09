@@ -81,7 +81,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             to="/settings"
             title={collapsed ? "Settings" : undefined}
             className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
+              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 leading-5
               ${
                 isActive
                   ? "bg-blue-600/20 text-blue-400 shadow-lg shadow-blue-500/10"

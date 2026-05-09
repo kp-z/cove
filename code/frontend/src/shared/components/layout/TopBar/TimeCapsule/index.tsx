@@ -6,8 +6,7 @@ import { headerCapsuleBaseClass } from '../TokenPill';
 function formatClock(d: Date): string {
   const hh = d.getHours().toString().padStart(2, '0');
   const mm = d.getMinutes().toString().padStart(2, '0');
-  const ss = d.getSeconds().toString().padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
+  return `${hh}:${mm}`;
 }
 
 function formatFull(d: Date, lang: string): string {
@@ -18,7 +17,6 @@ function formatFull(d: Date, lang: string): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   });
 }
 
@@ -31,8 +29,18 @@ export const TimeCapsule = React.memo(({ lang = 'zh' }: TimeCapsuleProps) => {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(id);
+    const tick = () => setNow(new Date());
+    const msUntilNextMinute = 60000 - (Date.now() % 60000);
+    const timeoutId = window.setTimeout(() => {
+      tick();
+      const intervalId = window.setInterval(tick, 60000);
+      cleanup.intervalId = intervalId;
+    }, msUntilNextMinute);
+    const cleanup: { intervalId: number | null } = { intervalId: null };
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (cleanup.intervalId !== null) window.clearInterval(cleanup.intervalId);
+    };
   }, []);
 
   return (
