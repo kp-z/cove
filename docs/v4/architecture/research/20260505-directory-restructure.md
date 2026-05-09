@@ -90,7 +90,7 @@ docs/v4/architecture/
 │   │   └── ... (4个空子目录)
 │   ├── feishu/
 │   │   └── ... (4个空子目录)
-│   └── openclaw/
+│   └── runtime/
 │       └── ... (4个空子目录)
 │
 ├── index/                             # ✅ AI查询索引
