@@ -7,10 +7,11 @@ interface NavGroupProps {
   collapsed: boolean;
   isExpanded: boolean;
   onToggle: () => void;
+  onToggleSidebar?: () => void;
   menuState: 'active' | 'partial' | 'inactive';
 }
 
-export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: NavGroupProps) {
+export function NavGroup({ item, collapsed, isExpanded, onToggle, onToggleSidebar, menuState }: NavGroupProps) {
   return (
     <div>
       <button
@@ -18,6 +19,7 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
         title={collapsed ? item.name : undefined}
         className={`
           w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors leading-5
+          ${collapsed ? 'justify-center' : ''}
           ${
             menuState === 'active'
               ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
@@ -36,13 +38,13 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
       </button>
 
       <AnimatePresence>
-        {isExpanded && !collapsed && (
+        {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden mt-1 bg-white/[0.03] rounded-xl py-1.5 flex flex-col gap-1"
+            className="overflow-hidden mt-1 bg-white/[0.03] rounded-xl py-1.5 flex flex-col gap-2"
           >
             {item.subItems?.map((subItem) => (
               <NavLink
@@ -50,17 +52,18 @@ export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: N
                 to={subItem.path}
                 title={collapsed ? subItem.name : undefined}
                 className={({ isActive }) => `
-                  flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors leading-[18px]
+                  flex items-center gap-3 px-4 py-3 rounded-xl transition-colors leading-5
+                  ${collapsed ? 'justify-center' : ''}
                   ${
                     isActive
-                      ? 'bg-blue-600/30 text-blue-400 border border-blue-500/50'
-                      : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }
                 `}
               >
-                <subItem.icon size={18} className="shrink-0" />
+                <subItem.icon size={20} className="shrink-0" />
                 {!collapsed && (
-                  <span className="font-medium text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                  <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                     {subItem.name}
                   </span>
                 )}

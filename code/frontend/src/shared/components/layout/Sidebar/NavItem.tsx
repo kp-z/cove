@@ -13,6 +13,7 @@ export function NavItem({ item, collapsed }: NavItemProps) {
       end={item.path === '/'}
       className={({ isActive }) => `
         flex items-center gap-3 px-4 py-3 rounded-xl transition-colors leading-5
+        ${collapsed ? 'justify-center' : ''}
         ${
           isActive
             ? 'bg-blue-600/30 text-blue-300 border border-blue-500/50'

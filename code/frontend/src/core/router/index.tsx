@@ -5,7 +5,7 @@ import { MainLayout } from '@/shared/components/layout/MainLayout';
 import { lazy } from 'react';
 
 const DashboardPage = lazy(() => import('@/features/dashboard/components/DashboardPage'));
-const ChatPage = lazy(() => import('@/features/chat/components/ChatPage'));
+const ChannelPage = lazy(() => import('@/features/channel/components/ChannelPage'));
 const AgentPage = lazy(() => import('@/features/agent/components/AgentPage'));
 const OKRPage = lazy(() => import('@/features/okr/components/OKRPage'));
 const WorkflowPage = lazy(() => import('@/features/workflow/components/WorkflowPage'));
@@ -23,8 +23,8 @@ export const router = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
-        path: 'chat',
-        element: <ChatPage />,
+        path: 'channel',
+        element: <ChannelPage />,
       },
       {
         path: 'agents',

@@ -3,7 +3,7 @@ import {
   Users,
   GitBranch,
   Target,
-  MessageSquare,
+  MessagesSquare,
   FolderOpen,
   BookOpen,
   Terminal,
@@ -68,9 +68,9 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    name: 'Chat',
-    path: '/chat',
-    icon: MessageSquare,
+    name: 'Channels',
+    path: '/channel',
+    icon: MessagesSquare,
   },
   {
     name: 'Projects',

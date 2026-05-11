@@ -47,7 +47,7 @@ export function TopBar() {
   };
 
   return (
-    <header className="relative z-30 hidden md:flex h-12 items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl overflow-visible">
+    <header className="relative z-30 hidden md:flex shrink-0 min-h-12 h-12 box-border items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl overflow-visible">
       <div className="flex items-center gap-4 flex-1">
         {/* Navigation buttons */}
         <div className="hidden sm:flex items-center gap-1">

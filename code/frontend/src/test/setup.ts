@@ -1,4 +1,10 @@
 import '@testing-library/jest-dom';
+import { server } from '@/mocks/server';
+
+// MSW Setup
+beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {

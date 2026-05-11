@@ -57,10 +57,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         transition={{ duration: 0.3 }}
         className="relative z-10 flex flex-col h-full"
       >
-        <div className="h-12 shrink-0 flex items-center px-4 border-b border-blue-500/20">
+        <div className="h-12 min-h-12 shrink-0 box-border flex items-center px-4 border-b border-blue-500/20">
           <Logo collapsed={collapsed} />
         </div>
-        <Navigation collapsed={collapsed} />
+        <Navigation collapsed={collapsed} onToggleSidebar={onToggle} />
 
         {/* Bottom section: Settings + Collapse button */}
         <motion.div

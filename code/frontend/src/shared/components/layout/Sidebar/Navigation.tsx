@@ -6,9 +6,10 @@ import { NavGroup } from './NavGroup';
 
 interface NavigationProps {
   collapsed: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export function Navigation({ collapsed }: NavigationProps) {
+export function Navigation({ collapsed, onToggleSidebar }: NavigationProps) {
   const location = useLocation();
   const { expandedMenus, toggleMenu } = useNavigation();
 
@@ -36,6 +37,7 @@ export function Navigation({ collapsed }: NavigationProps) {
               collapsed={collapsed}
               isExpanded={isExpanded}
               onToggle={() => toggleMenu(item.id!)}
+              onToggleSidebar={onToggleSidebar}
               menuState={menuState}
             />
           );
