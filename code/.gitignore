@@ -52,5 +52,15 @@ Thumbs.db
 .cove/cache/
 .cove/database/backups/
 
+# Screenshots / temp images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+
+# MCP config
+.mcp.json
+
 # Temporary test directories
 migration_test/
