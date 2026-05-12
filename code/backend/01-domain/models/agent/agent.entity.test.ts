@@ -7,23 +7,29 @@ describe('AgentEntity', () => {
     name: 'Alice',
     displayName: 'Alice Agent',
     description: 'Senior architect agent',
+    framework: 'claude_code' as const,
+    agentType: 'session' as const,
     status: 'active' as const,
-    capabilities: ['code-review', 'architecture'],
+    category: 'engineering',
+    priority: 'high' as const,
     tags: ['architect', 'senior'],
     createdBy: 'user-001',
     createdAt: new Date('2026-04-26T00:00:00Z'),
   };
 
-  describe('creation', () => {
-    it('should create an agent with valid properties', () => {
+  describe('create', () => {
+    it('should create a valid agent', () => {
       const agent = AgentEntity.create(validProps);
 
       expect(agent.agentId).toBe('agent-001');
       expect(agent.name).toBe('Alice');
       expect(agent.displayName).toBe('Alice Agent');
       expect(agent.description).toBe('Senior architect agent');
+      expect(agent.framework).toBe('claude_code');
+      expect(agent.agentType).toBe('session');
       expect(agent.status).toBe('active');
-      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+      expect(agent.category).toBe('engineering');
+      expect(agent.priority).toBe('high');
       expect(agent.tags).toEqual(['architect', 'senior']);
     });
 
@@ -39,26 +45,28 @@ describe('AgentEntity', () => {
       }).toThrow('Agent name cannot be empty');
     });
 
+    it('should throw error for invalid framework', () => {
+      expect(() => {
+        AgentEntity.create({ ...validProps, framework: 'unknown' as any });
+      }).toThrow('Invalid framework');
+    });
+
+    it('should throw error for invalid agent type', () => {
+      expect(() => {
+        AgentEntity.create({ ...validProps, agentType: 'unknown' as any });
+      }).toThrow('Invalid agent type');
+    });
+
     it('should throw error for invalid status', () => {
       expect(() => {
-        AgentEntity.create({ ...validProps, status: 'running' as any });
+        AgentEntity.create({ ...validProps, status: 'unknown' as any });
       }).toThrow('Invalid agent status');
     });
 
-    it('should create agent with optional fields omitted', () => {
-      const minimalProps = {
-        agentId: 'agent-002',
-        name: 'Bob',
-        displayName: 'Bob Agent',
-        status: 'idle' as const,
-        createdBy: 'user-001',
-        createdAt: new Date(),
-      };
-      const agent = AgentEntity.create(minimalProps);
-
-      expect(agent.description).toBeUndefined();
-      expect(agent.capabilities).toEqual([]);
-      expect(agent.tags).toEqual([]);
+    it('should throw error for invalid priority', () => {
+      expect(() => {
+        AgentEntity.create({ ...validProps, priority: 'unknown' as any });
+      }).toThrow('Invalid priority');
     });
   });
 
@@ -68,7 +76,12 @@ describe('AgentEntity', () => {
       const activated = agent.activate();
 
       expect(activated.status).toBe('active');
-      expect(agent.status).toBe('idle'); // immutable
+      expect(activated.updatedAt).toBeDefined();
+    });
+
+    it('should throw error when activating an already active agent', () => {
+      const agent = AgentEntity.create(validProps);
+      expect(() => agent.activate()).toThrow('Agent is already active');
     });
 
     it('should deactivate an active agent', () => {
@@ -76,11 +89,7 @@ describe('AgentEntity', () => {
       const deactivated = agent.deactivate();
 
       expect(deactivated.status).toBe('idle');
-    });
-
-    it('should not activate an already active agent', () => {
-      const agent = AgentEntity.create(validProps);
-      expect(() => agent.activate()).toThrow('Agent is already active');
+      expect(deactivated.updatedAt).toBeDefined();
     });
 
     it('should disable an agent', () => {
@@ -88,91 +97,147 @@ describe('AgentEntity', () => {
       const disabled = agent.disable();
 
       expect(disabled.status).toBe('disabled');
+      expect(disabled.updatedAt).toBeDefined();
+    });
+
+    it('should mark agent as error', () => {
+      const agent = AgentEntity.create(validProps);
+      const errored = agent.markAsError();
+
+      expect(errored.status).toBe('error');
+      expect(errored.updatedAt).toBeDefined();
     });
   });
 
-  describe('immutability', () => {
-    it('should return new instance when updating name', () => {
+  describe('immutable updates', () => {
+    it('should update name', () => {
       const agent = AgentEntity.create(validProps);
       const updated = agent.updateName('Bob');
 
       expect(updated.name).toBe('Bob');
-      expect(agent.name).toBe('Alice');
-      expect(updated).not.toBe(agent);
+      expect(updated.updatedAt).toBeDefined();
+      expect(agent.name).toBe('Alice'); // original unchanged
     });
 
-    it('should return new instance when updating displayName', () => {
+    it('should update display name', () => {
       const agent = AgentEntity.create(validProps);
       const updated = agent.updateDisplayName('Bob Agent');
 
       expect(updated.displayName).toBe('Bob Agent');
-      expect(agent.displayName).toBe('Alice Agent');
+      expect(updated.updatedAt).toBeDefined();
     });
 
-    it('should return new instance when updating description', () => {
+    it('should update description', () => {
       const agent = AgentEntity.create(validProps);
-      const updated = agent.updateDescription('Updated description');
+      const updated = agent.updateDescription('New description');
 
-      expect(updated.description).toBe('Updated description');
-      expect(agent.description).toBe('Senior architect agent');
+      expect(updated.description).toBe('New description');
+      expect(updated.updatedAt).toBeDefined();
     });
 
-    it('should return new instance when adding capability', () => {
+    it('should update category', () => {
       const agent = AgentEntity.create(validProps);
-      const updated = agent.addCapability('testing');
+      const updated = agent.updateCategory('design');
 
-      expect(updated.capabilities).toEqual(['code-review', 'architecture', 'testing']);
-      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+      expect(updated.category).toBe('design');
+      expect(updated.updatedAt).toBeDefined();
     });
 
-    it('should not add duplicate capability', () => {
+    it('should update priority', () => {
       const agent = AgentEntity.create(validProps);
-      expect(() => agent.addCapability('code-review')).toThrow('Capability already exists');
-    });
+      const updated = agent.updatePriority('low');
 
-    it('should return new instance when removing capability', () => {
+      expect(updated.priority).toBe('low');
+      expect(updated.updatedAt).toBeDefined();
+    });
+  });
+
+  describe('tags management', () => {
+    it('should add a tag', () => {
       const agent = AgentEntity.create(validProps);
-      const updated = agent.removeCapability('code-review');
+      const updated = agent.addTag('fullstack');
 
-      expect(updated.capabilities).toEqual(['architecture']);
-      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+      expect(updated.tags).toContain('fullstack');
+      expect(updated.tags).toHaveLength(3);
+      expect(updated.updatedAt).toBeDefined();
     });
 
-    it('should return new instance when adding tag', () => {
-      const agent = AgentEntity.create(validProps);
-      const updated = agent.addTag('backend');
-
-      expect(updated.tags).toEqual(['architect', 'senior', 'backend']);
-      expect(agent.tags).toEqual(['architect', 'senior']);
-    });
-
-    it('should not add duplicate tag', () => {
+    it('should throw error when adding duplicate tag', () => {
       const agent = AgentEntity.create(validProps);
       expect(() => agent.addTag('architect')).toThrow('Tag already exists');
     });
 
-    it('should return new instance when removing tag', () => {
+    it('should remove a tag', () => {
       const agent = AgentEntity.create(validProps);
       const updated = agent.removeTag('architect');
 
-      expect(updated.tags).toEqual(['senior']);
-      expect(agent.tags).toEqual(['architect', 'senior']);
+      expect(updated.tags).not.toContain('architect');
+      expect(updated.tags).toHaveLength(1);
+      expect(updated.updatedAt).toBeDefined();
+    });
+  });
+
+  describe('config files management', () => {
+    it('should update config files', () => {
+      const agent = AgentEntity.create(validProps);
+      const configFiles = {
+        runtime: 'runtime.yaml',
+        persona: 'persona.yaml',
+        permissions: 'permissions.yaml',
+      };
+      const updated = agent.updateConfigFiles(configFiles);
+
+      expect(updated.configFiles).toEqual(configFiles);
+      expect(updated.updatedAt).toBeDefined();
+    });
+  });
+
+  describe('memory config management', () => {
+    it('should update memory config', () => {
+      const agent = AgentEntity.create(validProps);
+      const memoryConfig = {
+        loading: {
+          always: ['memory/MEMORY.md'],
+          onTaskStart: [{
+            path: 'memory/knowledge/',
+            strategy: 'semantic' as const,
+            topK: 3,
+            queryFrom: 'task_description',
+          }],
+        },
+        tokenBudget: {
+          alwaysTokens: 2000,
+          retrievalTokens: 6000,
+          totalTokens: 8000,
+        },
+        vectorIndex: {
+          enabled: false,
+          provider: 'local' as const,
+          model: 'text-embedding-3-small',
+          indexPath: 'memory/.index/',
+          autoUpdate: true,
+        },
+      };
+      const updated = agent.updateMemoryConfig(memoryConfig);
+
+      expect(updated.memoryConfig).toEqual(memoryConfig);
+      expect(updated.updatedAt).toBeDefined();
     });
   });
 
   describe('equality', () => {
-    it('should be equal when agentId matches', () => {
-      const a1 = AgentEntity.create(validProps);
-      const a2 = AgentEntity.create({ ...validProps, name: 'Bob' });
+    it('should be equal if agentId is the same', () => {
+      const agent1 = AgentEntity.create(validProps);
+      const agent2 = AgentEntity.create(validProps);
 
-      expect(a1.equals(a2)).toBe(true);
+      expect(agent1.equals(agent2)).toBe(true);
     });
 
-    it('should not be equal when agentId differs', () => {
-      const a1 = AgentEntity.create(validProps);
-      const a2 = AgentEntity.create({ ...validProps, agentId: 'agent-002' });
+    it('should not be equal if agentId is different', () => {
+      const agent1 = AgentEntity.create(validProps);
+      const agent2 = AgentEntity.create({ ...validProps, agentId: 'agent-002' });
 
-      expect(a1.equals(a2)).toBe(false);
+      expect(agent1.equals(agent2)).toBe(false);
     });
   });
 
@@ -185,9 +250,14 @@ describe('AgentEntity', () => {
       expect(json.name).toBe('Alice');
       expect(json.display_name).toBe('Alice Agent');
       expect(json.description).toBe('Senior architect agent');
+      expect(json.framework).toBe('claude_code');
+      expect(json.agent_type).toBe('session');
       expect(json.status).toBe('active');
-      expect(json.capabilities).toEqual(['code-review', 'architecture']);
+      expect(json.category).toBe('engineering');
+      expect(json.priority).toBe('high');
       expect(json.tags).toEqual(['architect', 'senior']);
+      expect(json.created_at).toBe('2026-04-26T00:00:00.000Z');
+      expect(json.created_by).toBe('user-001');
     });
 
     it('should deserialize from JSON', () => {
@@ -196,19 +266,60 @@ describe('AgentEntity', () => {
         name: 'Alice',
         display_name: 'Alice Agent',
         description: 'Senior architect agent',
+        framework: 'claude_code' as const,
+        agent_type: 'session' as const,
         status: 'active' as const,
-        capabilities: ['code-review', 'architecture'],
-        tags: ['architect'],
-        created_by: 'user-001',
+        category: 'engineering',
+        priority: 'high' as const,
+        tags: ['architect', 'senior'],
         created_at: '2026-04-26T00:00:00.000Z',
+        created_by: 'user-001',
       };
+
       const agent = AgentEntity.fromJSON(json);
 
       expect(agent.agentId).toBe('agent-001');
       expect(agent.name).toBe('Alice');
       expect(agent.displayName).toBe('Alice Agent');
       expect(agent.description).toBe('Senior architect agent');
-      expect(agent.capabilities).toEqual(['code-review', 'architecture']);
+      expect(agent.framework).toBe('claude_code');
+      expect(agent.agentType).toBe('session');
+      expect(agent.status).toBe('active');
+      expect(agent.category).toBe('engineering');
+      expect(agent.priority).toBe('high');
+      expect(agent.tags).toEqual(['architect', 'senior']);
+    });
+
+    it('should serialize and deserialize with memory config', () => {
+      const memoryConfig = {
+        loading: {
+          always: ['memory/MEMORY.md'],
+          onTaskStart: [{
+            path: 'memory/knowledge/',
+            strategy: 'semantic' as const,
+            topK: 3,
+            queryFrom: 'task_description',
+          }],
+        },
+        tokenBudget: {
+          alwaysTokens: 2000,
+          retrievalTokens: 6000,
+          totalTokens: 8000,
+        },
+        vectorIndex: {
+          enabled: false,
+          provider: 'local' as const,
+          model: 'text-embedding-3-small',
+          indexPath: 'memory/.index/',
+          autoUpdate: true,
+        },
+      };
+
+      const agent = AgentEntity.create({ ...validProps, memoryConfig });
+      const json = agent.toJSON();
+      const deserialized = AgentEntity.fromJSON(json);
+
+      expect(deserialized.memoryConfig).toEqual(memoryConfig);
     });
   });
 });

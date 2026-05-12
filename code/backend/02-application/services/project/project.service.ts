@@ -14,9 +14,9 @@
  * - ILogger: 日志记录
  */
 
-import { ProjectEntity, ProjectStatus } from '../../01-domain/models/project/project.entity';
-import { AgentEntity } from '../../01-domain/models/agent/agent.entity';
-import { ChannelEntity } from '../../01-domain/models/channel/channel.entity';
+import { ProjectEntity, ProjectStatus } from '../../../01-domain/models/project/project.entity';
+import { AgentEntity } from '../../../01-domain/models/agent/agent.entity';
+import { ChannelEntity } from '../../../01-domain/models/channel/channel.entity';
 import {
   IProjectRepository,
   IAgentRepository,
@@ -83,6 +83,7 @@ export class ProjectService {
       name: dto.name,
       description: dto.description,
       ownerId: dto.ownerId,
+      visibility: 'private', // Default to private
       status: 'active',
       agentIds: [],
       channelIds: [],

@@ -8,6 +8,7 @@ export * from './agent.repository.interface';
 export * from './project.repository.interface';
 export * from './channel.repository.interface';
 export * from './message.repository.interface';
+export * from './member.repository.interface';
 export * from './task.repository.interface';
 export * from './okr.repository.interface';
 export * from './workflow.repository.interface';

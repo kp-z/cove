@@ -15,10 +15,12 @@
  */
 
 export type ChannelType = 'public' | 'private' | 'dm' | 'thread';
+export type ChannelStatus = 'active' | 'archived';
 export type MemberRole = 'owner' | 'admin' | 'member';
 export type MemberType = 'human' | 'agent';
 
 const VALID_CHANNEL_TYPES: readonly ChannelType[] = ['public', 'private', 'dm', 'thread'];
+const VALID_CHANNEL_STATUSES: readonly ChannelStatus[] = ['active', 'archived'];
 const VALID_MEMBER_ROLES: readonly MemberRole[] = ['owner', 'admin', 'member'];
 
 export interface ChannelMember {
@@ -59,6 +61,7 @@ export interface ChannelEntityProps {
   readonly description?: string;
   readonly icon?: string;
   readonly type: ChannelType;
+  readonly status: ChannelStatus;
   readonly parentChannelId?: string;
   readonly projectId: string;
   readonly members: readonly ChannelMember[];
@@ -87,6 +90,7 @@ export interface ChannelEntityJSON {
   readonly description?: string;
   readonly icon?: string;
   readonly type: ChannelType;
+  readonly status: ChannelStatus;
   readonly parent_channel_id?: string;
   readonly project_id: string;
   readonly members: readonly {
@@ -148,6 +152,7 @@ export class ChannelEntity {
       description: json.description,
       icon: json.icon,
       type: json.type,
+      status: json.status,
       parentChannelId: json.parent_channel_id,
       projectId: json.project_id,
       members: json.members.map(m => ({
@@ -200,6 +205,9 @@ export class ChannelEntity {
     if (!VALID_CHANNEL_TYPES.includes(this.props.type)) {
       throw new Error(`Invalid channel type: ${this.props.type}. Must be one of: ${VALID_CHANNEL_TYPES.join(', ')}`);
     }
+    if (!VALID_CHANNEL_STATUSES.includes(this.props.status)) {
+      throw new Error(`Invalid channel status: ${this.props.status}. Must be one of: ${VALID_CHANNEL_STATUSES.join(', ')}`);
+    }
     if (!this.props.projectId || this.props.projectId.trim() === '') {
       throw new Error('Project ID cannot be empty');
     }
@@ -230,6 +238,7 @@ export class ChannelEntity {
   get description(): string | undefined { return this.props.description; }
   get icon(): string | undefined { return this.props.icon; }
   get type(): ChannelType { return this.props.type; }
+  get status(): ChannelStatus { return this.props.status; }
   get parentChannelId(): string | undefined { return this.props.parentChannelId; }
   get projectId(): string { return this.props.projectId; }
   get members(): readonly ChannelMember[] { return this.props.members; }
@@ -239,6 +248,12 @@ export class ChannelEntity {
   get communicationRules(): CommunicationRules { return this.props.communicationRules; }
   get workspace(): ChannelWorkspace { return this.props.workspace; }
   get meta(): ChannelEntityProps['meta'] { return this.props.meta; }
+
+  // --- Convenience getters ---
+
+  get memberIds(): readonly string[] {
+    return this.props.members.map(m => m.memberId);
+  }
 
   // --- Type checks ---
 
@@ -463,6 +478,34 @@ export class ChannelEntity {
     });
   }
 
+  archive(): ChannelEntity {
+    if (this.props.status === 'archived') {
+      throw new Error('Channel is already archived');
+    }
+    return ChannelEntity.create({
+      ...this.props,
+      status: 'archived',
+      meta: {
+        ...this.props.meta,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  activate(): ChannelEntity {
+    if (this.props.status === 'active') {
+      throw new Error('Channel is already active');
+    }
+    return ChannelEntity.create({
+      ...this.props,
+      status: 'active',
+      meta: {
+        ...this.props.meta,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: ChannelEntity): boolean {
@@ -479,6 +522,7 @@ export class ChannelEntity {
       description: this.props.description,
       icon: this.props.icon,
       type: this.props.type,
+      status: this.props.status,
       parent_channel_id: this.props.parentChannelId,
       project_id: this.props.projectId,
       members: this.props.members.map(m => ({

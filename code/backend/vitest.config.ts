@@ -39,6 +39,7 @@ export default defineConfig({
       '@application': path.resolve(__dirname, './02-application'),
       '@infrastructure': path.resolve(__dirname, './03-infrastructure'),
       '@shared': path.resolve(__dirname, './shared')
-    }
+    },
+    extensions: ['.ts', '.js', '.json']
   }
 });
