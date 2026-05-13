@@ -216,9 +216,8 @@ function createTestAgent(overrides: Partial<any> = {}): AgentEntity {
     name: 'test-agent',
     displayName: 'Test Agent',
     description: 'A test agent',
-    framework: 'claude_code' as const,
-    agentType: 'session' as const,
     status: 'idle' as const,
+    category: 'engineering' as const,
     capabilities: ['coding', 'testing'],
     tags: ['backend'],
     createdBy: 'user-123',
@@ -437,96 +436,8 @@ describe('AgentService', () => {
     });
   });
 
-  describe('startAgent', () => {
-    it('should start an idle agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
-      await service.startAgent('agent-123');
-
-      const updated = await agentRepository.findById('agent-123');
-      expect(updated?.status).toBe('active');
-      expect(agentRuntime.isRunning('agent-123')).toBe(true);
-    });
-
-    it('should publish agent.started event', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
-      await service.startAgent('agent-123');
-
-      const events = eventBus.getEventsByType('agent.started');
-      expect(events).toHaveLength(1);
-    });
-
-    it('should not start an already active agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'active',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
-      await service.startAgent('agent-123');
-
-      const warnLogs = logger.logs.filter((l) => l.level === 'warn');
-      expect(warnLogs.some((l) => l.message.includes('already active'))).toBe(true);
-    });
-  });
-
-  describe('stopAgent', () => {
-    it('should stop an active agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'active',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
-      await service.stopAgent('agent-123');
-
-      const updated = await agentRepository.findById('agent-123');
-      expect(updated?.status).toBe('idle');
-      expect(agentRuntime.isRunning('agent-123')).toBe(false);
-    });
-
-    it('should publish agent.stopped event', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'active',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
-      await service.stopAgent('agent-123');
-
-      const events = eventBus.getEventsByType('agent.stopped');
-      expect(events).toHaveLength(1);
-    });
-  });
+  // startAgent and stopAgent tests moved to agent-runtime.service — those methods
+  // are now in AgentRuntimeService, not AgentService.
 
   describe('assignTask', () => {
     it('should assign task to idle agent', async () => {

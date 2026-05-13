@@ -14,126 +14,14 @@
  * - Entity 是不可变的（更新返回新实例）
  */
 
-export type ChannelType = 'public' | 'private' | 'dm' | 'thread';
-export type ChannelStatus = 'active' | 'archived';
-export type MemberRole = 'owner' | 'admin' | 'member';
-export type MemberType = 'human' | 'agent';
+import {
+  ChannelType, ChannelStatus, MemberRole, MemberType,
+  VALID_CHANNEL_TYPES, VALID_CHANNEL_STATUSES, VALID_MEMBER_ROLES,
+  ChannelMember, ConversationRef, CommunicationRules, ChannelWorkspace,
+  ChannelEntityProps, ChannelEntityJSON,
+} from './channel.types';
 
-const VALID_CHANNEL_TYPES: readonly ChannelType[] = ['public', 'private', 'dm', 'thread'];
-const VALID_CHANNEL_STATUSES: readonly ChannelStatus[] = ['active', 'archived'];
-const VALID_MEMBER_ROLES: readonly MemberRole[] = ['owner', 'admin', 'member'];
-
-export interface ChannelMember {
-  readonly memberId: string;
-  readonly memberType: MemberType;
-  readonly role: MemberRole;
-  readonly joinedAt: Date;
-}
-
-export interface ConversationRef {
-  readonly conversationId: string;
-  readonly agentId: string;
-  readonly status: 'active' | 'archived';
-  readonly messageCount: number;
-}
-
-export interface CommunicationRules {
-  readonly allowMentions: boolean;
-  readonly allowThreads: boolean;
-  readonly allowAttachments: boolean;
-  readonly maxMessageLength: number;
-  readonly rateLimit?: {
-    readonly messagesPerMinute: number;
-    readonly enabled: boolean;
-  };
-}
-
-export interface ChannelWorkspace {
-  readonly root: string;
-  readonly sharedFiles: string;
-  readonly attachments: string;
-}
-
-export interface ChannelEntityProps {
-  readonly channelId: string;
-  readonly name: string;
-  readonly displayName: string;
-  readonly description?: string;
-  readonly icon?: string;
-  readonly type: ChannelType;
-  readonly status: ChannelStatus;
-  readonly parentChannelId?: string;
-  readonly projectId: string;
-  readonly members: readonly ChannelMember[];
-  readonly agentPool: readonly string[];
-  readonly taskPool: readonly string[];
-  readonly conversationPool: readonly ConversationRef[];
-  readonly communicationRules: CommunicationRules;
-  readonly workspace: ChannelWorkspace;
-  readonly meta: {
-    readonly tags?: readonly string[];
-    readonly category?: string;
-    readonly messageCount: number;
-    readonly createdAt: Date;
-    readonly updatedAt: Date;
-    readonly createdBy: {
-      readonly id: string;
-      readonly type: MemberType;
-    };
-  };
-}
-
-export interface ChannelEntityJSON {
-  readonly channel_id: string;
-  readonly name: string;
-  readonly display_name: string;
-  readonly description?: string;
-  readonly icon?: string;
-  readonly type: ChannelType;
-  readonly status: ChannelStatus;
-  readonly parent_channel_id?: string;
-  readonly project_id: string;
-  readonly members: readonly {
-    readonly member_id: string;
-    readonly member_type: MemberType;
-    readonly role: MemberRole;
-    readonly joined_at: string;
-  }[];
-  readonly agent_pool: readonly string[];
-  readonly task_pool: readonly string[];
-  readonly conversation_pool: readonly {
-    readonly conversation_id: string;
-    readonly agent_id: string;
-    readonly status: 'active' | 'archived';
-    readonly message_count: number;
-  }[];
-  readonly communication_rules: {
-    readonly allow_mentions: boolean;
-    readonly allow_threads: boolean;
-    readonly allow_attachments: boolean;
-    readonly max_message_length: number;
-    readonly rate_limit?: {
-      readonly messages_per_minute: number;
-      readonly enabled: boolean;
-    };
-  };
-  readonly workspace: {
-    readonly root: string;
-    readonly shared_files: string;
-    readonly attachments: string;
-  };
-  readonly meta: {
-    readonly tags?: readonly string[];
-    readonly category?: string;
-    readonly message_count: number;
-    readonly created_at: string;
-    readonly updated_at: string;
-    readonly created_by: {
-      readonly id: string;
-      readonly type: MemberType;
-    };
-  };
-}
+export * from './channel.types';
 
 export class ChannelEntity {
   private constructor(private readonly props: ChannelEntityProps) {
@@ -174,6 +62,7 @@ export class ChannelEntity {
         allowThreads: json.communication_rules.allow_threads,
         allowAttachments: json.communication_rules.allow_attachments,
         maxMessageLength: json.communication_rules.max_message_length,
+        maxMembers: json.communication_rules.max_members,
         rateLimit: json.communication_rules.rate_limit ? {
           messagesPerMinute: json.communication_rules.rate_limit.messages_per_minute,
           enabled: json.communication_rules.rate_limit.enabled,
@@ -208,9 +97,6 @@ export class ChannelEntity {
     if (!VALID_CHANNEL_STATUSES.includes(this.props.status)) {
       throw new Error(`Invalid channel status: ${this.props.status}. Must be one of: ${VALID_CHANNEL_STATUSES.join(', ')}`);
     }
-    if (!this.props.projectId || this.props.projectId.trim() === '') {
-      throw new Error('Project ID cannot be empty');
-    }
 
     // Validate members
     for (const member of this.props.members) {
@@ -222,11 +108,6 @@ export class ChannelEntity {
     // DM channels must have exactly 2 members
     if (this.props.type === 'dm' && this.props.members.length !== 2) {
       throw new Error('DM channels must have exactly 2 members');
-    }
-
-    // Thread channels must have a parent
-    if (this.props.type === 'thread' && !this.props.parentChannelId) {
-      throw new Error('Thread channels must have a parent channel');
     }
   }
 
@@ -240,7 +121,7 @@ export class ChannelEntity {
   get type(): ChannelType { return this.props.type; }
   get status(): ChannelStatus { return this.props.status; }
   get parentChannelId(): string | undefined { return this.props.parentChannelId; }
-  get projectId(): string { return this.props.projectId; }
+  get projectId(): string | undefined { return this.props.projectId; }
   get members(): readonly ChannelMember[] { return this.props.members; }
   get agentPool(): readonly string[] { return this.props.agentPool; }
   get taskPool(): readonly string[] { return this.props.taskPool; }
@@ -260,7 +141,6 @@ export class ChannelEntity {
   isPublic(): boolean { return this.props.type === 'public'; }
   isPrivate(): boolean { return this.props.type === 'private'; }
   isDM(): boolean { return this.props.type === 'dm'; }
-  isThread(): boolean { return this.props.type === 'thread'; }
 
   // --- Member operations ---
 
@@ -316,6 +196,10 @@ export class ChannelEntity {
   addMember(member: ChannelMember): ChannelEntity {
     if (this.hasMember(member.memberId)) {
       throw new Error(`Member ${member.memberId} already exists in channel`);
+    }
+    const maxMembers = this.props.communicationRules.maxMembers ?? 1000;
+    if (this.props.members.length >= maxMembers) {
+      throw new Error(`Channel has reached maximum member limit of ${maxMembers}`);
     }
     return ChannelEntity.create({
       ...this.props,
@@ -506,6 +390,24 @@ export class ChannelEntity {
     });
   }
 
+  // --- Permission checks ---
+
+  canSendMessage(senderId: string, recentMessageCount?: number): { allowed: boolean; reason?: string } {
+    if (this.props.status !== 'active') {
+      return { allowed: false, reason: 'Channel is not active' };
+    }
+    if (!this.hasMember(senderId)) {
+      return { allowed: false, reason: 'Sender is not a member of this channel' };
+    }
+    const rateLimit = this.props.communicationRules.rateLimit;
+    if (rateLimit?.enabled && recentMessageCount !== undefined) {
+      if (recentMessageCount >= rateLimit.messagesPerMinute) {
+        return { allowed: false, reason: 'Rate limit exceeded' };
+      }
+    }
+    return { allowed: true };
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: ChannelEntity): boolean {
@@ -544,6 +446,7 @@ export class ChannelEntity {
         allow_threads: this.props.communicationRules.allowThreads,
         allow_attachments: this.props.communicationRules.allowAttachments,
         max_message_length: this.props.communicationRules.maxMessageLength,
+        max_members: this.props.communicationRules.maxMembers,
         rate_limit: this.props.communicationRules.rateLimit ? {
           messages_per_minute: this.props.communicationRules.rateLimit.messagesPerMinute,
           enabled: this.props.communicationRules.rateLimit.enabled,

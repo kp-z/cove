@@ -8,6 +8,7 @@ describe('ChannelEntity', () => {
     displayName: '通用讨论',
     description: '团队通用讨论频道',
     type: 'public' as const,
+    status: 'active' as const,
     projectId: 'proj-001',
     members: [
       {
@@ -80,16 +81,6 @@ describe('ChannelEntity', () => {
         })
       ).toThrow('DM channels must have exactly 2 members');
     });
-
-    it('should throw error if thread channel has no parent', () => {
-      expect(() =>
-        ChannelEntity.create({
-          ...validProps,
-          type: 'thread',
-          parentChannelId: undefined,
-        })
-      ).toThrow('Thread channels must have a parent channel');
-    });
   });
 
   describe('type checks', () => {
@@ -98,7 +89,6 @@ describe('ChannelEntity', () => {
       expect(channel.isPublic()).toBe(true);
       expect(channel.isPrivate()).toBe(false);
       expect(channel.isDM()).toBe(false);
-      expect(channel.isThread()).toBe(false);
     });
   });
 

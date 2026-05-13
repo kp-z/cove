@@ -14,3 +14,4 @@ export * from './okr.repository.interface';
 export * from './workflow.repository.interface';
 export * from './execution.repository.interface';
 export * from './user.repository.interface';
+export * from './thread.repository.interface';

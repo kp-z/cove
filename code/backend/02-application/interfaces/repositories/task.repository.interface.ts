@@ -22,6 +22,13 @@ export interface ITaskRepository {
   findByChannel(channelId: string): Promise<TaskEntity[]>;
 
   /**
+   * 获取频道内下一个 Task 编号
+   * @param channelId - Channel ID
+   * @returns 下一个可用的 task number
+   */
+  getNextTaskNumber(channelId: string): Promise<number>;
+
+  /**
    * 根据项目查找 Tasks
    * @param projectId - Project ID
    * @returns Task 实体数组

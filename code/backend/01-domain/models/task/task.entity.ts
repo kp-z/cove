@@ -34,6 +34,8 @@ export interface TaskEntityProps {
   readonly channelId: string;
   readonly projectId: string;
   readonly krId?: string;
+  readonly taskNumber?: number;
+  readonly sourceMessageId?: string;
   readonly assignee?: AssigneeRef;
   readonly dependsOn?: readonly string[];
   readonly createdBy: ActorRef;
@@ -50,6 +52,8 @@ export interface TaskEntityJSON {
   readonly channel_id: string;
   readonly project_id: string;
   readonly kr_id?: string;
+  readonly task_number?: number;
+  readonly source_message_id?: string;
   readonly assignee?: AssigneeRefJSON;
   readonly depends_on: readonly string[];
   readonly created_by: ActorRefProps;
@@ -76,6 +80,8 @@ export class TaskEntity {
       channelId: json.channel_id,
       projectId: json.project_id,
       krId: json.kr_id,
+      taskNumber: json.task_number,
+      sourceMessageId: json.source_message_id,
       assignee: json.assignee ? AssigneeRef.fromJSON(json.assignee) : undefined,
       dependsOn: json.depends_on,
       createdBy: ActorRef.create(json.created_by),
@@ -112,6 +118,8 @@ export class TaskEntity {
   get channelId(): string { return this.props.channelId; }
   get projectId(): string { return this.props.projectId; }
   get krId(): string | undefined { return this.props.krId; }
+  get taskNumber(): number | undefined { return this.props.taskNumber; }
+  get sourceMessageId(): string | undefined { return this.props.sourceMessageId; }
   get assignee(): AssigneeRef | undefined { return this.props.assignee; }
   get dependsOn(): readonly string[] { return this.props.dependsOn ?? []; }
   get createdBy(): ActorRef { return this.props.createdBy; }
@@ -165,6 +173,13 @@ export class TaskEntity {
     return assigned.start();
   }
 
+  unclaim(userId: string): TaskEntity {
+    if (!this.props.assignee || this.props.assignee.id !== userId) {
+      throw new Error(`User ${userId} is not the assignee of this task`);
+    }
+    return TaskEntity.create({ ...this.props, assignee: undefined, status: 'todo' });
+  }
+
   // --- Dependencies ---
 
   addDependency(taskId: string): TaskEntity {
@@ -206,6 +221,8 @@ export class TaskEntity {
       channel_id: this.props.channelId,
       project_id: this.props.projectId,
       kr_id: this.props.krId,
+      task_number: this.props.taskNumber,
+      source_message_id: this.props.sourceMessageId,
       assignee: this.props.assignee?.toJSON(),
       depends_on: [...this.dependsOn],
       created_by: this.props.createdBy.toJSON(),

@@ -1,0 +1,218 @@
+// Cove Backend - Prisma Schema
+// 混合持久化架构：数据库存储索引和元数据，文件存储实际内容
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../.cove/database/cove.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+// ============================================
+// 用户和项目
+// ============================================
+
+model User {
+  id            String   @id
+  username      String   @unique
+  email         String   @unique
+  displayName   String
+  role          String
+  status        String
+  profilePath   String   // 指向 .cove/storage/users/{id}.json
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  ownedProjects Project[] @relation("ProjectOwner")
+  members       Member[]
+
+  @@index([username])
+  @@index([email])
+  @@index([role])
+}
+
+model Project {
+  id          String   @id
+  name        String
+  description String?
+  status      String
+  ownerId     String
+  metadataPath String  // 指向 .cove/storage/projects/{id}.json
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  owner       User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+  channels    Channel[]
+  tasks       Task[]
+  agents      Agent[]
+  workflows   Workflow[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ============================================
+// 频道和成员
+// ============================================
+
+model Channel {
+  id            String   @id
+  name          String
+  displayName   String
+  type          String   // public | private | dm
+  status        String   // active | archived
+  projectId     String?
+  parentChannelId String?
+  metadataPath  String   // 指向 .cove/storage/channels/{id}.json
+  messageCount  Int      @default(0)
+  memberCount   Int      @default(0)
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  project       Project?  @relation(fields: [projectId], references: [id])
+  parentChannel Channel?  @relation("ChannelThread", fields: [parentChannelId], references: [id])
+  threads       Channel[] @relation("ChannelThread")
+  members       Member[]
+  messages      Message[]
+
+  @@index([projectId])
+  @@index([type])
+  @@index([status])
+  @@index([parentChannelId])
+}
+
+model Member {
+  id          String   @id
+  userId      String
+  channelId   String
+  role        String   // owner | admin | member
+  status      String   // active | left | banned
+  joinedAt    DateTime
+  leftAt      DateTime?
+
+  user        User     @relation(fields: [userId], references: [id])
+  channel     Channel  @relation(fields: [channelId], references: [id])
+
+  @@unique([userId, channelId])
+  @@index([userId])
+  @@index([channelId])
+  @@index([status])
+}
+
+// ============================================
+// 消息
+// ============================================
+
+model Message {
+  id            String   @id
+  shortId       String   @unique  // M001, M002...
+  channelId     String
+  senderId      String
+  senderType    String   // human | agent | system
+  threadId      String?
+  isThreadRoot  Boolean  @default(false)
+  contentPath   String   // 指向 .cove/storage/messages/{id}.json
+  contentType   String   // text | markdown | code | image | file
+  status        String   // draft | sending | sent | failed | deleted
+  isEdited      Boolean  @default(false)
+  reactionCount Int      @default(0)
+  replyCount    Int      @default(0)
+  createdAt     DateTime
+  updatedAt     DateTime
+  deletedAt     DateTime?
+
+  channel       Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  thread        Message? @relation("MessageThread", fields: [threadId], references: [id])
+  replies       Message[] @relation("MessageThread")
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@index([threadId])
+  @@index([status])
+  @@index([shortId])
+}
+
+// ============================================
+// 任务和工作流
+// ============================================
+
+model Task {
+  id          String   @id
+  title       String
+  description String?
+  status      String   // todo | in_progress | blocked | done
+  priority    String   // P0 | P1 | P2 | P3
+  projectId   String
+  channelId   String?
+  assigneeId  String?
+  detailsPath String   // 指向 .cove/storage/tasks/{id}.json
+  createdAt   DateTime
+  updatedAt   DateTime
+  dueDate     DateTime?
+
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+}
+
+model Workflow {
+  id          String   @id
+  name        String
+  type        String   // sequential | parallel | dag
+  status      String   // draft | active | paused | completed
+  projectId   String
+  definitionPath String // 指向 .cove/storage/workflows/{id}.json
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+}
+
+// ============================================
+// Agent
+// ============================================
+
+model Agent {
+  id          String   @id
+  name        String
+  type        String   // assistant | executor | monitor
+  status      String   // idle | running | paused | stopped
+  projectId   String
+  configPath  String   // 指向 .cove/storage/agents/{id}.json
+  workspacePath String // 指向 .cove/storage/agents/{id}/
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+  @@index([type])
+}
+
+// ============================================
+// 附件
+// ============================================
+
+model Attachment {
+  id          String   @id
+  messageId   String?
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  filePath    String   // 指向 .cove/storage/attachments/{id}.{ext}
+  uploadedBy  String
+  createdAt   DateTime
+
+  @@index([messageId])
+  @@index([uploadedBy])
+}

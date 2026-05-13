@@ -26,6 +26,9 @@ import {
   DomainEvent,
 } from '../interfaces';
 
+import { ProjectCompositionService, AddAgentToProjectDTO, RemoveAgentFromProjectDTO, AddChannelToProjectDTO, RemoveChannelFromProjectDTO } from './project-composition.service';
+export { AddAgentToProjectDTO, RemoveAgentFromProjectDTO, AddChannelToProjectDTO, RemoveChannelFromProjectDTO } from './project-composition.service';
+
 export interface CreateProjectDTO {
   readonly name: string;
   readonly description?: string;
@@ -39,38 +42,19 @@ export interface UpdateProjectDTO {
   readonly tags?: readonly string[];
 }
 
-export interface AddAgentToProjectDTO {
-  readonly projectId: string;
-  readonly agentId: string;
-}
-
-export interface RemoveAgentFromProjectDTO {
-  readonly projectId: string;
-  readonly agentId: string;
-}
-
-export interface AddChannelToProjectDTO {
-  readonly projectId: string;
-  readonly channelId: string;
-}
-
-export interface RemoveChannelFromProjectDTO {
-  readonly projectId: string;
-  readonly channelId: string;
-}
 
 export class ProjectService {
+  private readonly compositionService: ProjectCompositionService;
+
   constructor(
     private readonly projectRepository: IProjectRepository,
     private readonly agentRepository: IAgentRepository,
     private readonly channelRepository: IChannelRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger
-  ) {}
-
-  /**
-   * 创建新 Project
-   */
+  ) {
+    this.compositionService = new ProjectCompositionService(projectRepository, agentRepository, channelRepository, eventBus, logger);
+  }
   async createProject(dto: CreateProjectDTO): Promise<ProjectEntity> {
     this.logger.info('Creating new project', { name: dto.name });
 
@@ -201,175 +185,16 @@ export class ProjectService {
 
   /**
    * 添加 Agent 到 Project
-   */
-  async addAgentToProject(dto: AddAgentToProjectDTO): Promise<ProjectEntity> {
-    this.logger.info('Adding agent to project', dto);
 
-    // 获取 Project
-    const project = await this.getProjectById(dto.projectId);
+  // --- Delegation to ProjectCompositionService ---
 
-    // 验证 Agent 存在
-    const agent = await this.agentRepository.findById(dto.agentId);
-    if (!agent) {
-      throw new AgentNotFoundError(dto.agentId);
-    }
+  async addAgentToProject(dto: AddAgentToProjectDTO): Promise<ProjectEntity> { return this.compositionService.addAgentToProject(dto); }
+  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO): Promise<ProjectEntity> { return this.compositionService.removeAgentFromProject(dto); }
+  async addChannelToProject(dto: AddChannelToProjectDTO): Promise<ProjectEntity> { return this.compositionService.addChannelToProject(dto); }
+  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO): Promise<ProjectEntity> { return this.compositionService.removeChannelFromProject(dto); }
+  async getProjectAgents(projectId: string): Promise<AgentEntity[]> { return this.compositionService.getProjectAgents(projectId); }
+  async getProjectChannels(projectId: string): Promise<ChannelEntity[]> { return this.compositionService.getProjectChannels(projectId); }
 
-    // 检查 Agent 是否已在 Project 中
-    if (project.agentIds.includes(dto.agentId)) {
-      this.logger.warn('Agent already in project', dto);
-      return project;
-    }
-
-    // 添加 Agent（Domain 层业务规则）
-    const updatedProject = project.addAgent(dto.agentId);
-
-    // 保存更新
-    await this.projectRepository.update(updatedProject);
-
-    // 发布事件
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'project.agent_added',
-      aggregateId: dto.projectId,
-      aggregateType: 'Project',
-      occurredAt: new Date(),
-      payload: {
-        projectId: dto.projectId,
-        agentId: dto.agentId,
-      },
-    });
-
-    this.logger.info('Agent added to project successfully', dto);
-
-    return updatedProject;
-  }
-
-  /**
-   * 从 Project 移除 Agent
-   */
-  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO): Promise<ProjectEntity> {
-    this.logger.info('Removing agent from project', dto);
-
-    // 获取 Project
-    const project = await this.getProjectById(dto.projectId);
-
-    // 检查 Agent 是否在 Project 中
-    if (!project.agentIds.includes(dto.agentId)) {
-      this.logger.warn('Agent not in project', dto);
-      return project;
-    }
-
-    // 移除 Agent（Domain 层业务规则）
-    const updatedProject = project.removeAgent(dto.agentId);
-
-    // 保存更新
-    await this.projectRepository.update(updatedProject);
-
-    // 发布事件
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'project.agent_removed',
-      aggregateId: dto.projectId,
-      aggregateType: 'Project',
-      occurredAt: new Date(),
-      payload: {
-        projectId: dto.projectId,
-        agentId: dto.agentId,
-      },
-    });
-
-    this.logger.info('Agent removed from project successfully', dto);
-
-    return updatedProject;
-  }
-
-  /**
-   * 添加 Channel 到 Project
-   */
-  async addChannelToProject(dto: AddChannelToProjectDTO): Promise<ProjectEntity> {
-    this.logger.info('Adding channel to project', dto);
-
-    // 获取 Project
-    const project = await this.getProjectById(dto.projectId);
-
-    // 验证 Channel 存在
-    const channel = await this.channelRepository.findById(dto.channelId);
-    if (!channel) {
-      throw new ChannelNotFoundError(dto.channelId);
-    }
-
-    // 检查 Channel 是否已在 Project 中
-    if (project.channelIds.includes(dto.channelId)) {
-      this.logger.warn('Channel already in project', dto);
-      return project;
-    }
-
-    // 添加 Channel（Domain 层业务规则）
-    const updatedProject = project.addChannel(dto.channelId);
-
-    // 保存更新
-    await this.projectRepository.update(updatedProject);
-
-    // 发布事件
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'project.channel_added',
-      aggregateId: dto.projectId,
-      aggregateType: 'Project',
-      occurredAt: new Date(),
-      payload: {
-        projectId: dto.projectId,
-        channelId: dto.channelId,
-      },
-    });
-
-    this.logger.info('Channel added to project successfully', dto);
-
-    return updatedProject;
-  }
-
-  /**
-   * 从 Project 移除 Channel
-   */
-  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO): Promise<ProjectEntity> {
-    this.logger.info('Removing channel from project', dto);
-
-    // 获取 Project
-    const project = await this.getProjectById(dto.projectId);
-
-    // 检查 Channel 是否在 Project 中
-    if (!project.channelIds.includes(dto.channelId)) {
-      this.logger.warn('Channel not in project', dto);
-      return project;
-    }
-
-    // 移除 Channel（Domain 层业务规则）
-    const updatedProject = project.removeChannel(dto.channelId);
-
-    // 保存更新
-    await this.projectRepository.update(updatedProject);
-
-    // 发布事件
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'project.channel_removed',
-      aggregateId: dto.projectId,
-      aggregateType: 'Project',
-      occurredAt: new Date(),
-      payload: {
-        projectId: dto.projectId,
-        channelId: dto.channelId,
-      },
-    });
-
-    this.logger.info('Channel removed from project successfully', dto);
-
-    return updatedProject;
-  }
-
-  /**
-   * 归档 Project
-   */
   async archiveProject(projectId: string): Promise<ProjectEntity> {
     this.logger.info('Archiving project', { projectId });
 
