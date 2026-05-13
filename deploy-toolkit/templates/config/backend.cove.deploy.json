@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "type": "backend",
+  "runtime": {
+    "type": "node",
+    "version": "20"
+  },
+  "build": {
+    "command": "npm run build",
+    "outputDir": "dist"
+  },
+  "start": {
+    "command": "node dist/main.js",
+    "port": 3000,
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "health": {
+    "endpoint": "/health",
+    "timeout": 30,
+    "interval": 5
+  },
+  "dependencies": {
+    "postgres": {
+      "version": "16",
+      "required": true
+    },
+    "redis": {
+      "version": "7",
+      "required": true
+    }
+  },
+  "resources": {
+    "memory": "512M",
+    "cpu": "1"
+  }
+}

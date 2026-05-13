@@ -1,0 +1,340 @@
+# agents/cove-assistant/config/tools.yaml
+# Cove 助手工具权限配置文件
+#
+# 说明：
+# 工具（Tools）是 Agent 可以调用的具体功能接口。
+# 每个工具定义了特定的操作能力和访问权限。
+# 工具权限控制 Agent 可以执行哪些系统操作。
+#
+# 字段说明：
+# - tool_id: 工具唯一标识符
+# - name: 工具名称
+# - description: 工具描述
+# - category: 工具分类（file | network | system | database | api）
+# - enabled: 是否启用该工具
+# - permission_level: 权限级别（read | write | execute | admin）
+# - rate_limit: 速率限制配置
+# - allowed_operations: 允许的操作列表
+# - forbidden_operations: 禁止的操作列表
+
+# 工具列表
+tools:
+  # === 文件操作工具 ===
+
+  # 工具 1: 文件读取工具
+  # 用途：读取文件内容
+  # 权限：只读
+  # 限制：不能读取敏感文件（.env, secrets/）
+  - tool_id: "file-read"
+    name: "文件读取"
+    description: "读取文件内容，支持文本文件和配置文件"
+    category: "file"
+    enabled: true
+    permission_level: "read"
+    rate_limit:
+      # 每分钟最大调用次数
+      calls_per_minute: 100
+      # 突发调用限制
+      burst_limit: 20
+    allowed_operations:
+      - "read_text"       # 读取文本文件
+      - "read_config"     # 读取配置文件
+      - "list_directory"  # 列出目录内容
+    forbidden_operations:
+      - "read_secrets"    # 禁止读取密钥文件
+      - "read_env"        # 禁止读取环境变量文件
+    # 允许访问的路径模式
+    allowed_paths:
+      - "docs/**/*"
+      - ".cove/**/*"
+      - "*.md"
+      - "*.yaml"
+      - "*.json"
+    # 禁止访问的路径模式
+    forbidden_paths:
+      - ".env"
+      - ".env.*"
+      - "secrets/**/*"
+      - "*.key"
+      - "*.pem"
+
+  # 工具 2: 文件写入工具
+  # 用途：创建和修改文件
+  # 权限：写入
+  # 限制：只能写入特定目录
+  - tool_id: "file-write"
+    name: "文件写入"
+    description: "创建和修改文件，支持文档和配置文件"
+    category: "file"
+    enabled: true
+    permission_level: "write"
+    rate_limit:
+      calls_per_minute: 50
+      burst_limit: 10
+    allowed_operations:
+      - "create_file"     # 创建新文件
+      - "update_file"     # 更新现有文件
+      - "append_file"     # 追加内容到文件
+    forbidden_operations:
+      - "delete_file"     # 禁止删除文件
+      - "overwrite_system_file"  # 禁止覆盖系统文件
+    allowed_paths:
+      - "docs/**/*"
+      - ".cove/agents/**/*"
+      - "logs/**/*"
+    forbidden_paths:
+      - "system/**/*"
+      - "/etc/**/*"
+      - "*.exe"
+      - "*.dll"
+
+  # === 网络操作工具 ===
+
+  # 工具 3: HTTP 请求工具
+  # 用途：发送 HTTP 请求到外部服务
+  # 权限：网络访问
+  # 限制：只能访问白名单域名
+  - tool_id: "http-request"
+    name: "HTTP 请求"
+    description: "发送 HTTP 请求到外部服务和 API"
+    category: "network"
+    enabled: true
+    permission_level: "execute"
+    rate_limit:
+      calls_per_minute: 60
+      burst_limit: 15
+    allowed_operations:
+      - "get"             # GET 请求
+      - "post"            # POST 请求
+      - "put"             # PUT 请求
+      - "patch"           # PATCH 请求
+    forbidden_operations:
+      - "delete"          # 禁止 DELETE 请求（需要更高权限）
+    # 允许访问的域名
+    allowed_domains:
+      - "api.anthropic.com"
+      - "*.cove.ai"
+      - "docs.cove.ai"
+    # 允许的端口
+    allowed_ports:
+      - 80
+      - 443
+      - 8080
+
+  # === 系统操作工具 ===
+
+  # 工具 4: 命令执行工具
+  # 用途：执行系统命令
+  # 权限：执行
+  # 限制：只能执行白名单命令
+  - tool_id: "command-execution"
+    name: "命令执行"
+    description: "执行系统命令，用于查询和操作"
+    category: "system"
+    enabled: true
+    permission_level: "execute"
+    rate_limit:
+      calls_per_minute: 30
+      burst_limit: 5
+    allowed_operations:
+      - "execute_safe_command"  # 执行安全命令
+      - "query_status"          # 查询状态
+    forbidden_operations:
+      - "execute_privileged"    # 禁止执行特权命令
+      - "modify_system"         # 禁止修改系统
+    # 允许执行的命令
+    allowed_commands:
+      - "git"
+      - "ls"
+      - "cat"
+      - "grep"
+      - "find"
+    # 禁止执行的命令
+    forbidden_commands:
+      - "rm -rf"
+      - "sudo"
+      - "chmod 777"
+      - "dd"
+      - "mkfs"
+
+  # === 数据库操作工具 ===
+
+  # 工具 5: 数据库查询工具
+  # 用途：查询数据库
+  # 权限：读取
+  # 限制：只能执行 SELECT 查询
+  - tool_id: "database-query"
+    name: "数据库查询"
+    description: "查询数据库，获取数据和统计信息"
+    category: "database"
+    enabled: true
+    permission_level: "read"
+    rate_limit:
+      calls_per_minute: 100
+      burst_limit: 20
+    allowed_operations:
+      - "select"          # SELECT 查询
+      - "count"           # COUNT 统计
+      - "aggregate"       # 聚合查询
+    forbidden_operations:
+      - "insert"          # 禁止插入
+      - "update"          # 禁止更新
+      - "delete"          # 禁止删除
+      - "drop"            # 禁止删除表
+      - "truncate"        # 禁止清空表
+    # 允许访问的表
+    allowed_tables:
+      - "users"
+      - "projects"
+      - "agents"
+      - "tasks"
+      - "messages"
+      - "channels"
+    # 查询超时时间（秒）
+    query_timeout: 30
+    # 最大返回行数
+    max_rows: 1000
+
+  # 工具 6: 数据库写入工具
+  # 用途：写入数据库
+  # 权限：写入
+  # 限制：只能写入特定表
+  - tool_id: "database-write"
+    name: "数据库写入"
+    description: "写入数据库，创建和更新记录"
+    category: "database"
+    enabled: true
+    permission_level: "write"
+    rate_limit:
+      calls_per_minute: 50
+      burst_limit: 10
+    allowed_operations:
+      - "insert"          # 插入记录
+      - "update"          # 更新记录
+    forbidden_operations:
+      - "delete"          # 禁止删除（需要更高权限）
+      - "drop"            # 禁止删除表
+      - "truncate"        # 禁止清空表
+      - "alter"           # 禁止修改表结构
+    # 允许写入的表
+    allowed_tables:
+      - "projects"
+      - "agents"
+      - "tasks"
+      - "messages"
+    # 写入超时时间（秒）
+    write_timeout: 10
+
+  # === API 操作工具 ===
+
+  # 工具 7: Cove Platform API 工具
+  # 用途：调用 Cove 平台 API
+  # 权限：API 访问
+  # 限制：只能访问授权的端点
+  - tool_id: "cove-api"
+    name: "Cove Platform API"
+    description: "调用 Cove 平台 API，管理项目、Agent 和任务"
+    category: "api"
+    enabled: true
+    permission_level: "write"
+    rate_limit:
+      calls_per_minute: 120
+      burst_limit: 30
+    allowed_operations:
+      - "get"             # 获取资源
+      - "create"          # 创建资源
+      - "update"          # 更新资源
+      - "list"            # 列出资源
+    forbidden_operations:
+      - "delete"          # 禁止删除（需要更高权限）
+      - "admin"           # 禁止管理员操作
+    # 允许访问的 API 端点
+    allowed_endpoints:
+      - "/api/v1/users/*"
+      - "/api/v1/projects/*"
+      - "/api/v1/agents/*"
+      - "/api/v1/tasks/*"
+      - "/api/v1/messages/*"
+      - "/api/v1/channels/*"
+      - "/api/v1/reports/*"
+    # API 认证配置
+    authentication:
+      type: "bearer_token"
+      token_env: "COVE_API_KEY"
+
+  # 工具 8: 通知服务工具
+  # 用途：发送通知和消息
+  # 权限：通知
+  # 限制：速率限制防止滥用
+  - tool_id: "notification"
+    name: "通知服务"
+    description: "发送通知和消息给用户"
+    category: "api"
+    enabled: true
+    permission_level: "write"
+    rate_limit:
+      calls_per_minute: 30
+      burst_limit: 10
+    allowed_operations:
+      - "send_notification"   # 发送通知
+      - "send_message"        # 发送消息
+      - "broadcast"           # 广播消息
+    forbidden_operations:
+      - "spam"                # 禁止垃圾消息
+    # 通知类型
+    notification_types:
+      - "info"
+      - "warning"
+      - "success"
+      - "error"
+    # 通知渠道
+    channels:
+      - "in-app"
+      - "email"
+      - "webhook"
+
+  # 工具 9: 分析服务工具
+  # 用途：收集和分析数据
+  # 权限：分析
+  # 限制：只能读取分析数据
+  - tool_id: "analytics"
+    name: "分析服务"
+    description: "收集和分析平台使用数据"
+    category: "api"
+    enabled: true
+    permission_level: "read"
+    rate_limit:
+      calls_per_minute: 60
+      burst_limit: 15
+    allowed_operations:
+      - "query_metrics"       # 查询指标
+      - "generate_report"     # 生成报告
+      - "analyze_trends"      # 分析趋势
+    forbidden_operations:
+      - "modify_data"         # 禁止修改数据
+      - "delete_data"         # 禁止删除数据
+    # 分析维度
+    dimensions:
+      - "usage"
+      - "performance"
+      - "user-behavior"
+      - "resource-utilization"
+
+# 工具配置元数据
+metadata:
+  # 配置文件版本
+  version: "1.0.0"
+  # 最后更新时间
+  last_updated: "2026-05-10T01:00:00Z"
+  # 配置文件维护者
+  maintainer: "@kp-user"
+  # 工具总数
+  total_tools: 9
+  # 启用的工具数
+  enabled_tools: 9
+  # 权限级别说明
+  permission_levels:
+    read: "只读权限，可以查询和读取数据"
+    write: "写入权限，可以创建和修改数据"
+    execute: "执行权限，可以执行命令和操作"
+    admin: "管理员权限，可以执行所有操作"

@@ -24,13 +24,13 @@ describe('AgentRunCapsule', () => {
   it('should have correct aria-label when no running agents', () => {
     render(<AgentRunCapsule runningCount={0} />);
     const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Agent 执行与历史');
+    expect(button).toHaveAttribute('aria-label', 'Agent execution & history');
   });
 
   it('should have correct aria-label when has running agents', () => {
     render(<AgentRunCapsule runningCount={3} />);
     const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Agent 执行，3 项进行中');
+    expect(button).toHaveAttribute('aria-label', 'Agent execution, 3 in progress');
   });
 
   it('should open popover when clicked', () => {
@@ -38,7 +38,7 @@ describe('AgentRunCapsule', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('快捷 Agent（开发中）')).toBeInTheDocument();
+    expect(screen.getByText('Quick Agents (in development)')).toBeInTheDocument();
   });
 
   it('should show empty state in popover', () => {
@@ -46,8 +46,8 @@ describe('AgentRunCapsule', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('历史')).toBeInTheDocument();
-    expect(screen.getByText('暂无记录')).toBeInTheDocument();
+    expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByText('No records')).toBeInTheDocument();
   });
 
   it('should apply correct styles when has running agents', () => {

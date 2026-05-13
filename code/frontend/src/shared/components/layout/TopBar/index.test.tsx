@@ -43,7 +43,7 @@ describe('TopBar', () => {
 
     fireEvent.click(searchButton);
 
-    const searchInput = screen.getByPlaceholderText('搜索...');
+    const searchInput = screen.getByPlaceholderText('Search...');
     expect(searchInput).toBeInTheDocument();
   });
 
@@ -53,12 +53,12 @@ describe('TopBar', () => {
     const searchButton = buttons[2];
 
     fireEvent.click(searchButton);
-    const searchInput = screen.getByPlaceholderText('搜索...');
+    const searchInput = screen.getByPlaceholderText('Search...');
 
     fireEvent.keyDown(searchInput, { key: 'Escape' });
 
     setTimeout(() => {
-      expect(screen.queryByPlaceholderText('搜索...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search...')).not.toBeInTheDocument();
     }, 300);
   });
 

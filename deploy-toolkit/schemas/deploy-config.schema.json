@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cove Deploy Configuration",
+  "description": "Configuration file for Cove deployment protocol v1.0",
+  "type": "object",
+  "required": ["version", "type", "runtime", "build"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0"],
+      "description": "Protocol version"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["backend", "frontend"],
+      "description": "Project type"
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["type", "version"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["node", "python", "go"],
+          "description": "Runtime type"
+        },
+        "version": {
+          "type": "string",
+          "description": "Runtime version (e.g., '20', '3.11', '1.21')"
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "required": ["command", "outputDir"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Build command (e.g., 'pnpm build')"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Build output directory (e.g., 'dist')"
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables for build",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "start": {
+      "type": "object",
+      "description": "Backend start configuration (required for backend type)",
+      "required": ["command", "port"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Start command (e.g., 'node dist/main.js')"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Port to listen on"
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables for runtime",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "description": "Health check configuration (required for backend type)",
+      "required": ["endpoint"],
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Health check endpoint path (e.g., '/health')"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30,
+          "description": "Startup timeout in seconds"
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 5,
+          "description": "Health check interval in seconds"
+        }
+      }
+    },
+    "serve": {
+      "type": "object",
+      "description": "Frontend serve configuration (required for frontend type)",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["static", "ssr"],
+          "description": "Serve type"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 80,
+          "description": "Port to serve on"
+        },
+        "spa": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable SPA routing (all routes fallback to index.html)"
+        },
+        "headers": {
+          "type": "object",
+          "description": "Custom HTTP headers",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "External service dependencies",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Service version"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this dependency is required"
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource limits",
+      "properties": {
+        "memory": {
+          "type": "string",
+          "pattern": "^[0-9]+(M|G)$",
+          "description": "Memory limit (e.g., '512M', '2G')"
+        },
+        "cpu": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$",
+          "description": "CPU limit (e.g., '1', '0.5')"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "backend"
+          }
+        }
+      },
+      "then": {
+        "required": ["start", "health"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "frontend"
+          }
+        }
+      },
+      "then": {
+        "required": ["serve"]
+      }
+    }
+  ]
+}

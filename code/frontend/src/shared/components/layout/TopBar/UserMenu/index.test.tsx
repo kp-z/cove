@@ -40,7 +40,7 @@ describe('UserMenu', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('登录')).toBeInTheDocument();
+    expect(screen.getByText('Log in')).toBeInTheDocument();
   });
 
   it('should navigate to login page when login button clicked', () => {
@@ -59,7 +59,7 @@ describe('UserMenu', () => {
       </BrowserRouter>
     );
 
-    const loginButton = screen.getByText('登录');
+    const loginButton = screen.getByText('Log in');
     fireEvent.click(loginButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/login');
@@ -141,7 +141,7 @@ describe('UserMenu', () => {
     const avatarButton = screen.getByRole('button');
     fireEvent.click(avatarButton);
 
-    const logoutButton = screen.getByText('退出登录');
+    const logoutButton = screen.getByText('Log out');
     fireEvent.click(logoutButton);
 
     expect(mockLogout).toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('UserMenu', () => {
     const avatarButton = screen.getByRole('button');
     fireEvent.click(avatarButton);
 
-    const settingsButton = screen.getByText('账号设置');
+    const settingsButton = screen.getByText('Account Settings');
     fireEvent.click(settingsButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/settings?tab=profile');

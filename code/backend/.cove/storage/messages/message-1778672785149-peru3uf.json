@@ -1,0 +1,16 @@
+{
+  "content": "这条消息应该持久化",
+  "senderName": "kp",
+  "channelName": "persistent-test",
+  "contentFormat": "plain",
+  "attachments": [],
+  "mentions": [],
+  "references": [],
+  "reactions": [],
+  "editHistory": [],
+  "meta": {
+    "client": "server",
+    "isPinned": false,
+    "isImportant": false
+  }
+}

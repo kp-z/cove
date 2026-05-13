@@ -1,11 +1,10 @@
 import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { useTranslation } from 'react-i18next';
 
-/** 顶栏胶囊：背景与边框（无内边距，用户区折叠态可贴边仅头像） */
 export const headerCapsuleBaseClass =
-  'flex items-center bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] rounded-full transition-colors duration-150';
+  'flex items-center bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] rounded-full transition-colors duration-150 will-change-transform';
 
-/** Token 用量条完整样式（固定高度与顶栏内胶囊一致，与用户菜单展开态横向 padding 对齐） */
 export const headerCapsuleClass = `${headerCapsuleBaseClass} h-8 gap-2 px-3`;
 
 export interface TokenUsageData {
@@ -57,10 +56,10 @@ function formatTime(iso?: string): string {
 }
 
 export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
+  const { t } = useTranslation('layout');
   const pct = data?.percentage ?? 0;
   const isWarn = pct > 80;
   const hasData = !!data && data.total > 0;
-  /** 顶栏与网关气泡一致：优先展示配置的 gateway_model */
   const rawModel = data?.gateway_model ?? data?.model;
   const displayModelStr = rawModel ? formatModelName(rawModel) : null;
 
@@ -85,19 +84,19 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
   const tooltipBody = hasData ? (
     <>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] text-white/40 uppercase tracking-wider">模型</span>
+        <span className="text-[11px] text-white/40 uppercase tracking-wider">{t('tokenPill.model')}</span>
         <span className="text-[12px] text-white/90 font-medium">
           {displayModelStr ?? formatModelName(data?.model)}
         </span>
       </div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] text-white/40">已使用</span>
+        <span className="text-[11px] text-white/40">{t('tokenPill.used')}</span>
         <span className="text-[12px] text-white font-medium tabular-nums">
           {formatTokens(data.used)}
         </span>
       </div>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] text-white/40">剩余</span>
+        <span className="text-[11px] text-white/40">{t('tokenPill.remaining')}</span>
         <span className={`text-[12px] font-medium tabular-nums ${isWarn ? 'text-amber-400' : 'text-blue-400'}`}>
           {formatTokens(data.remaining)}
         </span>
@@ -118,13 +117,13 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
       </div>
       {data.last_updated && (
         <div className="text-[10px] text-white/20 text-right mt-1">
-          更新于 {formatTime(data.last_updated)}
+          {t('tokenPill.updatedAt', { time: formatTime(data.last_updated) })}
         </div>
       )}
     </>
   ) : (
     <div className="text-[12px] text-white/30 text-center py-2">
-      暂无 Token 数据
+      {t('tokenPill.noData')}
     </div>
   );
 
@@ -132,7 +131,8 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
     <Tooltip.Provider delayDuration={200}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <div className={`${headerCapsuleClass} cursor-default select-none`}>
+          <div className={`${headerCapsuleClass} group relative cursor-default select-none`}>
+            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
             <span className="text-[12px] font-medium text-white/80 leading-none">
               {displayModelStr ?? '-- / --'}

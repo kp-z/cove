@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TokenPill, type TokenUsageData } from './TokenPill';
@@ -7,16 +8,22 @@ import { TimeCapsule } from './TimeCapsule';
 import { AgentRunCapsule } from './AgentRunCapsule';
 import { NotificationBubble, type Notification } from './NotificationBubble';
 import { UserMenu } from './UserMenu';
+import { DockCapsuleItem } from './DockCapsuleItem';
+import { AnimatedBorder } from './AnimatedBorder';
+import { useDockMagnification } from '@/shared/hooks/useDockMagnification';
 
 export function TopBar() {
   const navigate = useNavigate();
+  const { t } = useTranslation('layout');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock data - 未来替换为真实数据
   const [tokenUsage] = useState<TokenUsageData | undefined>(undefined);
   const [isTokenLoading] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const { mouseX, containerRef, handleMouseMove, handleMouseLeave } =
+    useDockMagnification();
 
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
@@ -47,25 +54,38 @@ export function TopBar() {
   };
 
   return (
-    <header className="relative z-30 hidden md:flex shrink-0 min-h-12 h-12 box-border items-center justify-between px-6 border-b border-white/5 bg-white/[0.02] backdrop-blur-xl overflow-visible">
-      <div className="flex items-center gap-4 flex-1">
+    <motion.header
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+      className="relative z-30 hidden md:flex shrink-0 min-h-12 h-12 box-border items-center justify-between px-6 bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-visible"
+    >
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
+
+      <div className="relative flex items-center gap-4 flex-1">
         {/* Navigation buttons */}
-        <div className="hidden sm:flex items-center gap-1">
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+          className="hidden sm:flex items-center gap-1"
+        >
           <button
             onClick={() => navigate(-1)}
             className="p-1.5 rounded-lg transition-colors duration-200 hover:bg-white/5 text-gray-400 hover:text-white"
-            title="后退"
+            title={t('topBar.back')}
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={() => navigate(1)}
             className="p-1.5 rounded-lg transition-colors duration-200 hover:bg-white/5 text-gray-400 hover:text-white"
-            title="前进"
+            title={t('topBar.forward')}
           >
             <ChevronRight size={20} />
           </button>
-        </div>
+        </motion.div>
 
         {/* Search box */}
         <div className="relative hidden sm:flex items-center">
@@ -96,7 +116,7 @@ export function TopBar() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   type="text"
-                  placeholder="搜索..."
+                  placeholder={t('topBar.searchPlaceholder')}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
                       setIsSearchOpen(false);
@@ -110,26 +130,38 @@ export function TopBar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 overflow-visible">
-        {/* Agent Run Capsule */}
-        <AgentRunCapsule runningCount={0} />
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="relative flex items-center gap-4 overflow-visible"
+      >
+        <DockCapsuleItem mouseX={mouseX} index={0}>
+          <AgentRunCapsule runningCount={0} />
+        </DockCapsuleItem>
 
-        {/* Notification Bubble */}
-        <NotificationBubble
-          notifications={notifications}
-          onDismiss={handleDismissNotification}
-          onClearAll={handleClearAllNotifications}
-        />
+        <DockCapsuleItem mouseX={mouseX} index={1}>
+          <NotificationBubble
+            notifications={notifications}
+            onDismiss={handleDismissNotification}
+            onClearAll={handleClearAllNotifications}
+          />
+        </DockCapsuleItem>
 
-        {/* Time Capsule */}
-        <TimeCapsule lang="zh" />
+        <DockCapsuleItem mouseX={mouseX} index={2}>
+          <TimeCapsule lang="en" />
+        </DockCapsuleItem>
 
-        {/* Token Pill */}
-        <TokenPill data={tokenUsage} isLoading={isTokenLoading} />
+        <DockCapsuleItem mouseX={mouseX} index={3}>
+          <TokenPill data={tokenUsage} isLoading={isTokenLoading} />
+        </DockCapsuleItem>
 
-        {/* User Menu */}
-        <UserMenu />
+        <DockCapsuleItem mouseX={mouseX} index={4}>
+          <UserMenu />
+        </DockCapsuleItem>
       </div>
-    </header>
+
+      <AnimatedBorder />
+    </motion.header>
   );
 }

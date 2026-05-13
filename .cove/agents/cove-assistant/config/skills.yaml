@@ -1,0 +1,220 @@
+# agents/cove-assistant/config/skills.yaml
+# Cove 助手技能列表配置文件
+#
+# 说明：
+# 技能（Skills）是 Agent 可以执行的特定能力或功能模块。
+# 每个技能定义了一组相关的操作和知识领域。
+# 技能可以是内置的（built-in）或自定义的（custom）。
+#
+# 字段说明：
+# - skill_id: 技能唯一标识符
+# - name: 技能名称（用于显示和引用）
+# - description: 技能描述（说明技能的用途和功能）
+# - type: 技能类型（built-in | custom）
+# - enabled: 是否启用该技能
+# - version: 技能版本号
+# - parameters: 技能参数配置
+# - dependencies: 技能依赖的其他技能或服务
+
+# 技能列表
+skills:
+  # 技能 1: 用户引导技能
+  # 用途：帮助新用户快速上手 Cove 平台
+  # 包含：欢迎消息、平台介绍、功能演示、常见问题解答
+  - skill_id: "onboarding"
+    name: "用户引导"
+    description: "帮助新用户快速上手 Cove 平台，提供交互式引导和教程"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 引导流程配置
+      welcome_message: "欢迎使用 Cove 平台！我是您的智能助手，随时为您提供帮助。"
+      # 是否自动触发引导流程
+      auto_trigger: true
+      # 引导步骤列表
+      steps:
+        - "平台功能介绍"
+        - "创建第一个项目"
+        - "添加 Agent"
+        - "开始协作"
+      # 完成引导后的操作
+      completion_action: "send_congratulations"
+    dependencies: []
+
+  # 技能 2: 项目管理技能
+  # 用途：协助用户创建、配置和管理项目
+  # 包含：项目创建、Agent 配置、工作流设置、状态监控
+  - skill_id: "project-management"
+    name: "项目管理"
+    description: "协助用户创建、配置和管理项目，包括 Agent 和工作流设置"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 支持的项目操作
+      supported_operations:
+        - "create"      # 创建项目
+        - "configure"   # 配置项目
+        - "monitor"     # 监控项目
+        - "report"      # 生成报告
+      # 默认项目模板
+      default_template: "standard"
+      # 是否自动配置推荐的 Agent
+      auto_configure_agents: true
+    dependencies:
+      - "agent-configuration"
+
+  # 技能 3: Agent 配置技能
+  # 用途：帮助用户创建和配置 Agent
+  # 包含：Agent 创建、权限设置、触发器配置、测试验证
+  - skill_id: "agent-configuration"
+    name: "Agent 配置"
+    description: "帮助用户创建和配置 Agent，包括权限、触发器和插件设置"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 支持的 Agent 框架
+      supported_frameworks:
+        - "claude_code"
+        - "openclaw"
+        - "custom"
+      # 支持的 Agent 类型
+      supported_types:
+        - "session"
+        - "daemon"
+        - "scheduled"
+      # 预设 Agent 模板
+      templates:
+        - "code-reviewer"
+        - "project-manager"
+        - "tech-support"
+    dependencies: []
+
+  # 技能 4: 问题诊断技能
+  # 用途：诊断和解决系统、Agent 和项目问题
+  # 包含：错误分析、日志查看、状态检查、解决方案推荐
+  - skill_id: "troubleshooting"
+    name: "问题诊断"
+    description: "诊断和解决系统、Agent 和项目问题，提供解决方案"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 诊断级别
+      diagnostic_level: "comprehensive"  # basic | standard | comprehensive
+      # 是否自动收集日志
+      auto_collect_logs: true
+      # 是否提供解决方案建议
+      suggest_solutions: true
+      # 常见问题知识库路径
+      knowledge_base: "memory/knowledge/troubleshooting.md"
+    dependencies:
+      - "log-analysis"
+
+  # 技能 5: 日志分析技能
+  # 用途：分析系统和 Agent 日志，识别问题模式
+  # 包含：日志解析、模式识别、异常检测、趋势分析
+  - skill_id: "log-analysis"
+    name: "日志分析"
+    description: "分析系统和 Agent 日志，识别问题模式和异常"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 日志来源
+      log_sources:
+        - "system"
+        - "agents"
+        - "applications"
+      # 分析时间范围（小时）
+      time_range_hours: 24
+      # 是否启用模式识别
+      pattern_recognition: true
+      # 异常检测阈值
+      anomaly_threshold: 0.8
+    dependencies: []
+
+  # 技能 6: 报告生成技能
+  # 用途：生成各类报告和统计数据
+  # 包含：项目报告、Agent 性能报告、用户活跃度报告、系统健康报告
+  - skill_id: "report-generation"
+    name: "报告生成"
+    description: "生成各类报告和统计数据，包括项目、Agent 和系统报告"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 支持的报告类型
+      report_types:
+        - "project-status"      # 项目状态报告
+        - "agent-performance"   # Agent 性能报告
+        - "user-activity"       # 用户活跃度报告
+        - "system-health"       # 系统健康报告
+      # 报告格式
+      output_formats:
+        - "markdown"
+        - "json"
+        - "pdf"
+      # 默认报告格式
+      default_format: "markdown"
+      # 是否包含图表
+      include_charts: true
+    dependencies:
+      - "data-analysis"
+
+  # 技能 7: 数据分析技能
+  # 用途：分析平台使用数据，提供洞察和建议
+  # 包含：使用模式分析、性能分析、趋势预测、优化建议
+  - skill_id: "data-analysis"
+    name: "数据分析"
+    description: "分析平台使用数据，提供洞察和优化建议"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 分析维度
+      analysis_dimensions:
+        - "usage-patterns"      # 使用模式
+        - "performance"         # 性能指标
+        - "user-behavior"       # 用户行为
+        - "resource-utilization" # 资源利用率
+      # 数据采样周期（天）
+      sampling_period_days: 7
+      # 是否启用预测分析
+      predictive_analysis: true
+    dependencies: []
+
+  # 技能 8: 知识库搜索技能
+  # 用途：搜索和检索知识库内容
+  # 包含：语义搜索、关键词搜索、相关性排序、上下文提取
+  - skill_id: "knowledge-search"
+    name: "知识库搜索"
+    description: "搜索和检索知识库内容，提供相关文档和答案"
+    type: "built-in"
+    enabled: true
+    version: "1.0.0"
+    parameters:
+      # 搜索策略
+      search_strategy: "hybrid"  # semantic | keyword | hybrid
+      # 返回结果数量
+      max_results: 5
+      # 相关性阈值
+      relevance_threshold: 0.7
+      # 知识库路径
+      knowledge_base_path: "memory/knowledge/"
+    dependencies: []
+
+# 技能配置元数据
+metadata:
+  # 配置文件版本
+  version: "1.0.0"
+  # 最后更新时间
+  last_updated: "2026-05-10T01:00:00Z"
+  # 配置文件维护者
+  maintainer: "@kp-user"
+  # 技能总数
+  total_skills: 8
+  # 启用的技能数
+  enabled_skills: 8

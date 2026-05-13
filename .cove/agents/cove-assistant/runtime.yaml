@@ -1,0 +1,56 @@
+# agents/cove-assistant/runtime.yaml
+# Cove 助手运行时配置文件
+
+# 模型配置（Model）
+model:
+  provider: "anthropic"                  # 提供商: anthropic | openai | custom
+  model_name: "claude-sonnet-4.0"        # 模型名称（使用 Sonnet 4.0 平衡性能和成本）
+  temperature: 0.7                       # 温度参数（保持友好和创造性）
+  max_tokens: 8192                       # 最大 token 数
+  top_p: 0.9                            # Top-p 采样
+  thinking_budget: 5000                  # 思考预算（Extended Thinking）
+
+# API 配置
+api:
+  base_url: "https://api.anthropic.com/v1"               # API 基础 URL
+  api_key: "${ANTHROPIC_API_KEY}"                        # API Key（环境变量）
+  timeout_seconds: 120                                   # 请求超时（秒）
+  headers:                                               # 自定义请求头
+    "anthropic-version": "2023-06-01"
+  inherit_default: true                                  # 继承默认配置
+
+# 上下文配置（Context）
+context:
+  max_context_window: 200000             # 最大上下文窗口
+  context_retention: "auto"              # 上下文保留策略: auto | manual | none
+  compression_threshold: 0.8             # 压缩阈值（80% 时触发）
+  compression_strategy: "structured"     # 压缩策略: structured | summary | hybrid
+
+# 重试配置（Retry）
+retry:
+  max_retries: 3                         # 最大重试次数
+  backoff_strategy: "exponential"        # 退避策略: none | linear | exponential
+  initial_delay_ms: 1000                 # 初始延迟（毫秒）
+  max_delay_ms: 30000                    # 最大延迟（毫秒）
+  retry_on_errors:                       # 重试的错误类型
+    - "rate_limit_error"
+    - "timeout_error"
+    - "server_error"
+
+# 速率限制（Rate Limit）
+rate_limit:
+  requests_per_minute: 60                # 每分钟最大请求数
+  tokens_per_minute: 200000              # 每分钟最大 token 数
+  concurrent_requests: 5                 # 最大并发请求数
+
+# 缓存配置（Cache）
+cache:
+  enabled: true                          # 启用缓存
+  cache_type: "prompt_caching"           # 缓存类型: prompt_caching | response_caching
+  ttl_seconds: 3600                      # 缓存过期时间（秒）
+
+# 响应配置（Response）
+response:
+  stream: true                           # 启用流式响应
+  max_response_time_seconds: 60          # 最大响应时间
+  format: "markdown"                     # 响应格式: markdown | plain | json

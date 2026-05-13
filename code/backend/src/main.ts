@@ -3,7 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { config } from 'dotenv';
 import { apiReference } from '@scalar/express-api-reference';
-import { openApiSpec } from './openapi.js';
+import { openApiSpec } from './openapi';
 
 config();
 
@@ -22,25 +22,25 @@ import {
   WebSocketEventPublisher,
   WebSocketServer,
   MockAgentRuntime,
-} from '../03-infrastructure/index.js';
+} from './infrastructure/index';
 
-import { FileSystemAgentRepository } from '../03-infrastructure/repositories/filesystem-agent.repository.js';
-import { HybridChannelRepository } from '../03-infrastructure/repositories/hybrid-channel.repository.js';
-import { HybridMessageRepository } from '../03-infrastructure/repositories/hybrid-message.repository.js';
-import { CovePathResolver } from '../03-infrastructure/storage/cove-path-resolver.js';
-import { StorageService } from '../03-infrastructure/storage/storage.service.js';
-import { getPrismaClient } from '../03-infrastructure/database/prisma-client.js';
+import { FileSystemAgentRepository } from './infrastructure/repositories/filesystem-agent.repository';
+import { HybridChannelRepository } from './infrastructure/repositories/hybrid-channel.repository';
+import { HybridMessageRepository } from './infrastructure/repositories/hybrid-message.repository';
+import { CovePathResolver } from './infrastructure/storage/cove-path-resolver';
+import { StorageService } from './infrastructure/storage/storage.service';
+import { getPrismaClient } from './infrastructure/database/prisma-client';
 
 // Application Layer Services
-import { MessageService } from '../02-application/services/message/message.service.js';
-import { ChannelService } from '../02-application/services/channel/channel.service.js';
-import { AgentService } from '../02-application/services/agent/agent.service.js';
-import { AgentRuntimeService } from '../02-application/services/agent/agent-runtime.service.js';
-import { ThreadService } from '../02-application/services/thread/thread.service.js';
-import { TaskService } from '../02-application/services/task/task.service.js';
+import { MessageService } from './application/services/message/message.service';
+import { ChannelService } from './application/services/channel/channel.service';
+import { AgentService } from './application/services/agent/agent.service';
+import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
+import { ThreadService } from './application/services/thread/thread.service';
+import { TaskService } from './application/services/task/task.service';
 
 // Interfaces
-import { ILogger, LogContext } from '../02-application/interfaces/index.js';
+import { ILogger, LogContext } from './application/interfaces/index';
 
 class ConsoleLogger implements ILogger {
   private level: string = 'info';

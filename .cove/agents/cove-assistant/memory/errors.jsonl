@@ -1,0 +1,1 @@
+{"timestamp":"2026-05-10T01:00:00Z","error_id":"err-000","error_type":"SystemInfo","tool_name":"System","error_message":"Cove 助手初始化完成","severity":"info","context":{"agent_id":"cove-assistant","version":"1.0.0","status":"active"},"resolved":true,"resolution":"系统正常启动","resolved_at":"2026-05-10T01:00:00Z"}

@@ -1,0 +1,29 @@
+{
+  "loading": "Loading...",
+  "error": {
+    "loadFailed": "Failed to load: {{message}}",
+    "notFound": "{{resource}} not found"
+  },
+  "actions": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "saved": "Saved",
+    "send": "Send",
+    "close": "Close",
+    "search": "Search...",
+    "login": "Log in",
+    "logout": "Log out"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "confirm": {
+    "title": "Confirm Delete",
+    "cannotUndo": "This action cannot be undone."
+  }
+}

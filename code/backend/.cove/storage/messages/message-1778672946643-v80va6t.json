@@ -1,0 +1,16 @@
+{
+  "content": "这条消息应该在重启后还在",
+  "senderName": "kp",
+  "channelName": "persist-test",
+  "contentFormat": "plain",
+  "attachments": [],
+  "mentions": [],
+  "references": [],
+  "reactions": [],
+  "editHistory": [],
+  "meta": {
+    "client": "server",
+    "isPinned": false,
+    "isImportant": false
+  }
+}

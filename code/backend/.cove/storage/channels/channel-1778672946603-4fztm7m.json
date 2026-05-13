@@ -1,0 +1,38 @@
+{
+  "members": [
+    {
+      "memberId": "kp",
+      "memberType": "human",
+      "role": "owner",
+      "joinedAt": "2026-05-13T11:49:06.603Z"
+    },
+    {
+      "memberId": "agent-1778603285337-bluacy2",
+      "memberType": "agent",
+      "role": "member",
+      "joinedAt": "2026-05-13T11:56:04.575Z"
+    }
+  ],
+  "agentPool": [
+    "agent-1778603285337-bluacy2"
+  ],
+  "taskPool": [],
+  "conversationPool": [],
+  "communicationRules": {
+    "allowMentions": true,
+    "allowThreads": true,
+    "allowAttachments": true,
+    "maxMessageLength": 10000
+  },
+  "workspace": {
+    "root": "/workspace/channel-1778672946603-4fztm7m",
+    "sharedFiles": "/workspace/channel-1778672946603-4fztm7m/shared",
+    "attachments": "/workspace/channel-1778672946603-4fztm7m/attachments"
+  },
+  "meta": {
+    "createdBy": {
+      "id": "kp",
+      "type": "human"
+    }
+  }
+}

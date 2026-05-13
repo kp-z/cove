@@ -1,33 +1,20 @@
-/**
- * AgentRunCapsule - 顶栏 Agent 执行状态胶囊
- *
- * 注意：这是一个简化版本，用于 Cove 项目的 TopBar 集成
- * 完整功能需要后端 API 支持（agents, executions, projects）
- */
 import React, { useState } from 'react';
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot, Loader2, MessagesSquare } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { useTranslation } from 'react-i18next';
 import { headerCapsuleBaseClass } from '../TokenPill';
+import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
 
 interface AgentRunCapsuleProps {
-  // 预留接口，未来可以传入真实数据
   runningCount?: number;
 }
 
-/**
- * 简化版 AgentRunCapsule
- *
- * TODO: 完整实现需要以下依赖
- * - ExecutionContext (运行中的执行列表)
- * - GlobalAgentChatContext (打开全局对话面板)
- * - NotificationContext (通知系统)
- * - API: agentsApi, executionsApi, projectsApi
- * - 全局快捷 Agent 管理 (localStorage)
- */
 export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsuleProps) => {
+  const { t } = useTranslation('layout');
   const [open, setOpen] = useState(false);
   const hasRunning = runningCount > 0;
+  const { openChannel } = useChannelPanelStore();
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -39,13 +26,14 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
                 type="button"
                 aria-expanded={open}
                 aria-label={
-                  hasRunning ? `Agent 执行，${runningCount} 项进行中` : 'Agent 执行与历史'
+                  hasRunning ? t('agentRun.ariaRunning', { count: runningCount }) : t('agentRun.ariaIdle')
                 }
-                title={hasRunning ? `进行中 ${runningCount} 项 — 点击查看` : '执行与历史'}
-                className={`${headerCapsuleBaseClass} relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                title={hasRunning ? t('agentRun.titleRunning', { count: runningCount }) : t('agentRun.titleIdle')}
+                className={`${headerCapsuleBaseClass} group relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
                   hasRunning ? 'border-blue-400/30 bg-blue-500/12 hover:bg-blue-500/18' : ''
                 } ${open ? 'ring-1 ring-white/20 bg-white/[0.08]' : ''}`}
               >
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 {hasRunning ? (
                   <div className="flex items-center gap-1.5 relative z-10">
                     <Loader2 size={12} className="text-blue-300 shrink-0 animate-spin" />
@@ -66,7 +54,7 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
               sideOffset={8}
               className="bg-[#111114] border border-white/[0.10] rounded-xl px-3 py-2 text-xs text-white/90 z-50"
             >
-              {hasRunning ? `进行中 ${runningCount} 项` : 'Agent 执行与历史'}
+              {hasRunning ? t('agentRun.tooltipRunning', { count: runningCount }) : t('agentRun.tooltipIdle')}
               <Tooltip.Arrow className="fill-white/10" />
             </Tooltip.Content>
           </Tooltip.Portal>
@@ -83,7 +71,7 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
         >
           <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2 min-w-0">
             <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto">
-              <span className="text-[10px] text-white/35 shrink-0">快捷 Agent（开发中）</span>
+              <span className="text-[10px] text-white/35 shrink-0">{t('agentRun.quickAgents')}</span>
             </div>
           </div>
 
@@ -91,10 +79,28 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
             <section>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] font-semibold text-white/75 uppercase tracking-wide">
-                  历史
+                  Channel
                 </p>
               </div>
-              <p className="text-[11px] text-white/45 py-2">暂无记录</p>
+              <button
+                onClick={() => {
+                  openChannel('channel-1');
+                  setOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <MessagesSquare size={14} />
+                <span>{t('agentRun.openGeneral')}</span>
+              </button>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-white/75 uppercase tracking-wide">
+                  {t('agentRun.history')}
+                </p>
+              </div>
+              <p className="text-[11px] text-white/45 py-2">{t('agentRun.noRecords')}</p>
             </section>
           </div>
 

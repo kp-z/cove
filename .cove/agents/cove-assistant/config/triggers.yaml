@@ -1,0 +1,395 @@
+# agents/cove-assistant/config/triggers.yaml
+# Cove 助手触发器配置文件
+#
+# 说明：
+# 触发器（Triggers）定义了 Agent 何时以及如何被激活。
+# 每个触发器指定了触发条件、触发动作和触发优先级。
+# 触发器可以基于事件、时间、条件或手动触发。
+#
+# 字段说明：
+# - trigger_id: 触发器唯一标识符
+# - name: 触发器名称
+# - description: 触发器描述
+# - type: 触发器类型（event | schedule | condition | manual）
+# - enabled: 是否启用该触发器
+# - priority: 触发优先级（1-10，数字越大优先级越高）
+# - conditions: 触发条件配置
+# - actions: 触发后执行的动作
+# - throttle: 节流配置（防止频繁触发）
+
+# 触发器列表
+triggers:
+  # === 事件触发器 ===
+
+  # 触发器 1: 新用户注册触发器
+  # 用途：当新用户注册时自动触发欢迎流程
+  # 类型：事件触发
+  # 优先级：高（9）
+  - trigger_id: "new-user-registration"
+    name: "新用户注册"
+    description: "当新用户注册时，自动发送欢迎消息并启动引导流程"
+    type: "event"
+    enabled: true
+    priority: 9
+    # 触发条件
+    conditions:
+      # 监听的事件类型
+      event_type: "user.registered"
+      # 事件来源
+      event_source: "auth-service"
+      # 额外条件（可选）
+      filters:
+        # 只对首次注册的用户触发
+        is_first_time: true
+    # 触发后执行的动作
+    actions:
+      # 动作 1: 发送欢迎消息
+      - action_type: "send_message"
+        target: "user"
+        message_template: "welcome-new-user"
+        # 消息参数
+        parameters:
+          user_name: "${event.user.name}"
+          platform_name: "Cove"
+      # 动作 2: 启动引导流程
+      - action_type: "start_skill"
+        skill_id: "onboarding"
+        parameters:
+          user_id: "${event.user.id}"
+          auto_start: true
+    # 节流配置（防止重复触发）
+    throttle:
+      # 节流策略：per_user | global | none
+      strategy: "per_user"
+      # 节流时间窗口（秒）
+      window_seconds: 3600
+      # 时间窗口内最大触发次数
+      max_triggers: 1
+
+  # 触发器 2: 项目创建触发器
+  # 用途：当用户创建新项目时提供配置建议
+  # 类型：事件触发
+  # 优先级：中高（7）
+  - trigger_id: "project-created"
+    name: "项目创建"
+    description: "当用户创建新项目时，提供配置建议和最佳实践"
+    type: "event"
+    enabled: true
+    priority: 7
+    conditions:
+      event_type: "project.created"
+      event_source: "project-service"
+    actions:
+      # 发送项目配置建议
+      - action_type: "send_message"
+        target: "user"
+        message_template: "project-setup-tips"
+        parameters:
+          project_id: "${event.project.id}"
+          project_name: "${event.project.name}"
+      # 启动项目管理技能
+      - action_type: "start_skill"
+        skill_id: "project-management"
+        parameters:
+          project_id: "${event.project.id}"
+          mode: "setup"
+    throttle:
+      strategy: "per_user"
+      window_seconds: 60
+      max_triggers: 10
+
+  # 触发器 3: Agent 配置错误触发器
+  # 用途：当 Agent 配置出现错误时提供帮助
+  # 类型：事件触发
+  # 优先级：高（8）
+  - trigger_id: "agent-configuration-error"
+    name: "Agent 配置错误"
+    description: "当 Agent 配置出现错误时，自动诊断并提供解决方案"
+    type: "event"
+    enabled: true
+    priority: 8
+    conditions:
+      event_type: "agent.configuration.error"
+      event_source: "agent-service"
+      filters:
+        # 只对配置错误触发，不包括运行时错误
+        error_category: "configuration"
+    actions:
+      # 启动问题诊断技能
+      - action_type: "start_skill"
+        skill_id: "troubleshooting"
+        parameters:
+          agent_id: "${event.agent.id}"
+          error_type: "${event.error.type}"
+          error_message: "${event.error.message}"
+      # 发送诊断结果
+      - action_type: "send_message"
+        target: "user"
+        message_template: "agent-error-diagnosis"
+        parameters:
+          agent_name: "${event.agent.name}"
+          error_summary: "${diagnosis.summary}"
+          solution_steps: "${diagnosis.solution}"
+    throttle:
+      strategy: "per_user"
+      window_seconds: 300
+      max_triggers: 5
+
+  # 触发器 4: 系统错误触发器
+  # 用途：当系统出现错误时记录并通知
+  # 类型：事件触发
+  # 优先级：最高（10）
+  - trigger_id: "system-error"
+    name: "系统错误"
+    description: "当系统出现错误时，记录错误并通知相关人员"
+    type: "event"
+    enabled: true
+    priority: 10
+    conditions:
+      event_type: "system.error"
+      event_source: "*"  # 监听所有来源
+      filters:
+        # 只对严重错误触发
+        severity: ["critical", "high"]
+    actions:
+      # 记录错误到日志
+      - action_type: "log_error"
+        log_level: "error"
+        log_file: "memory/errors.jsonl"
+      # 通知管理员
+      - action_type: "send_notification"
+        target: "admin"
+        notification_type: "error"
+        message: "系统错误：${event.error.message}"
+    throttle:
+      strategy: "global"
+      window_seconds: 60
+      max_triggers: 10
+
+  # === 定时触发器 ===
+
+  # 触发器 5: 每日报告触发器
+  # 用途：每天生成平台使用报告
+  # 类型：定时触发
+  # 优先级：中（5）
+  - trigger_id: "daily-report"
+    name: "每日报告"
+    description: "每天生成平台使用报告，发送给管理员"
+    type: "schedule"
+    enabled: true
+    priority: 5
+    # 定时配置
+    conditions:
+      # Cron 表达式：每天早上 9:00
+      cron: "0 9 * * *"
+      # 时区
+      timezone: "Asia/Shanghai"
+    actions:
+      # 生成报告
+      - action_type: "start_skill"
+        skill_id: "report-generation"
+        parameters:
+          report_type: "daily-summary"
+          time_range: "last_24_hours"
+      # 发送报告
+      - action_type: "send_message"
+        target: "admin"
+        message_template: "daily-report"
+        parameters:
+          report_date: "${current_date}"
+    # 定时触发器不需要节流配置
+    throttle:
+      strategy: "none"
+
+  # 触发器 6: 每周分析触发器
+  # 用途：每周生成深度分析报告
+  # 类型：定时触发
+  # 优先级：中（5）
+  - trigger_id: "weekly-analysis"
+    name: "每周分析"
+    description: "每周生成深度分析报告，包括趋势和建议"
+    type: "schedule"
+    enabled: true
+    priority: 5
+    conditions:
+      # Cron 表达式：每周一早上 10:00
+      cron: "0 10 * * 1"
+      timezone: "Asia/Shanghai"
+    actions:
+      # 生成分析报告
+      - action_type: "start_skill"
+        skill_id: "data-analysis"
+        parameters:
+          analysis_type: "weekly-trends"
+          time_range: "last_7_days"
+      # 发送报告
+      - action_type: "send_message"
+        target: "admin"
+        message_template: "weekly-analysis"
+    throttle:
+      strategy: "none"
+
+  # === 条件触发器 ===
+
+  # 触发器 7: 高负载预警触发器
+  # 用途：当系统负载过高时发出预警
+  # 类型：条件触发
+  # 优先级：高（8）
+  - trigger_id: "high-load-alert"
+    name: "高负载预警"
+    description: "当系统负载超过阈值时，发出预警并提供优化建议"
+    type: "condition"
+    enabled: true
+    priority: 8
+    # 条件配置
+    conditions:
+      # 监控指标
+      metric: "system.load"
+      # 条件运算符：gt | gte | lt | lte | eq | ne
+      operator: "gt"
+      # 阈值
+      threshold: 0.8
+      # 持续时间（秒）- 条件持续满足多久后触发
+      duration_seconds: 300
+    actions:
+      # 发送预警通知
+      - action_type: "send_notification"
+        target: "admin"
+        notification_type: "warning"
+        message: "系统负载过高：${metric.value}"
+      # 生成优化建议
+      - action_type: "start_skill"
+        skill_id: "data-analysis"
+        parameters:
+          analysis_type: "performance-optimization"
+    throttle:
+      strategy: "global"
+      window_seconds: 1800
+      max_triggers: 3
+
+  # 触发器 8: 错误率异常触发器
+  # 用途：当错误率异常升高时触发诊断
+  # 类型：条件触发
+  # 优先级：高（8）
+  - trigger_id: "error-rate-anomaly"
+    name: "错误率异常"
+    description: "当错误率异常升高时，自动诊断并通知"
+    type: "condition"
+    enabled: true
+    priority: 8
+    conditions:
+      metric: "system.error_rate"
+      operator: "gt"
+      threshold: 0.05  # 5% 错误率
+      duration_seconds: 600
+    actions:
+      # 启动日志分析
+      - action_type: "start_skill"
+        skill_id: "log-analysis"
+        parameters:
+          time_range: "last_1_hour"
+          focus: "errors"
+      # 发送诊断报告
+      - action_type: "send_notification"
+        target: "admin"
+        notification_type: "error"
+        message: "错误率异常：${metric.value}"
+    throttle:
+      strategy: "global"
+      window_seconds: 1800
+      max_triggers: 3
+
+  # === 手动触发器 ===
+
+  # 触发器 9: 手动帮助请求触发器
+  # 用途：用户手动请求帮助时触发
+  # 类型：手动触发
+  # 优先级：最高（10）
+  - trigger_id: "manual-help-request"
+    name: "手动帮助请求"
+    description: "用户通过命令或按钮手动请求帮助"
+    type: "manual"
+    enabled: true
+    priority: 10
+    # 手动触发器的条件是触发方式
+    conditions:
+      # 触发方式：command | button | api
+      trigger_methods:
+        - "command"   # 通过命令触发（如 /help）
+        - "button"    # 通过界面按钮触发
+        - "mention"   # 通过 @mention 触发
+    actions:
+      # 发送帮助消息
+      - action_type: "send_message"
+        target: "user"
+        message_template: "help-menu"
+      # 启动知识库搜索（如果用户提供了问题）
+      - action_type: "start_skill"
+        skill_id: "knowledge-search"
+        parameters:
+          query: "${user.query}"
+        # 条件执行：只有当用户提供了查询时才执行
+        condition: "${user.query != null}"
+    # 手动触发器通常不需要节流
+    throttle:
+      strategy: "none"
+
+  # 触发器 10: 手动报告生成触发器
+  # 用途：管理员手动请求生成报告
+  # 类型：手动触发
+  # 优先级：高（8）
+  - trigger_id: "manual-report-generation"
+    name: "手动报告生成"
+    description: "管理员手动请求生成自定义报告"
+    type: "manual"
+    enabled: true
+    priority: 8
+    conditions:
+      trigger_methods:
+        - "command"   # 通过命令触发（如 /report）
+        - "api"       # 通过 API 触发
+      # 权限要求
+      required_permissions:
+        - "admin"
+        - "report_viewer"
+    actions:
+      # 生成报告
+      - action_type: "start_skill"
+        skill_id: "report-generation"
+        parameters:
+          report_type: "${request.report_type}"
+          time_range: "${request.time_range}"
+          format: "${request.format}"
+      # 发送报告
+      - action_type: "send_message"
+        target: "requester"
+        message_template: "custom-report"
+    throttle:
+      strategy: "per_user"
+      window_seconds: 60
+      max_triggers: 10
+
+# 触发器配置元数据
+metadata:
+  # 配置文件版本
+  version: "1.0.0"
+  # 最后更新时间
+  last_updated: "2026-05-10T01:00:00Z"
+  # 配置文件维护者
+  maintainer: "@kp-user"
+  # 触发器总数
+  total_triggers: 10
+  # 启用的触发器数
+  enabled_triggers: 10
+  # 触发器类型统计
+  trigger_types:
+    event: 4      # 事件触发器
+    schedule: 2   # 定时触发器
+    condition: 2  # 条件触发器
+    manual: 2     # 手动触发器
+  # 优先级说明
+  priority_levels:
+    "10": "最高优先级 - 立即处理"
+    "8-9": "高优先级 - 优先处理"
+    "5-7": "中等优先级 - 正常处理"
+    "1-4": "低优先级 - 延迟处理"

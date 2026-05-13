@@ -1,12 +1,11 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '@/shared/components/layout/MainLayout';
-
-// 懒加载页面组件
 import { lazy } from 'react';
 
 const DashboardPage = lazy(() => import('@/features/dashboard/components/DashboardPage'));
 const ChannelPage = lazy(() => import('@/features/channel/components/ChannelPage'));
 const AgentPage = lazy(() => import('@/features/agent/components/AgentPage'));
+const AgentEditPage = lazy(() => import('@/features/agent/components/AgentEditPage'));
 const OKRPage = lazy(() => import('@/features/okr/components/OKRPage'));
 const WorkflowPage = lazy(() => import('@/features/workflow/components/WorkflowPage'));
 const ProjectPage = lazy(() => import('@/features/project/components/ProjectPage'));
@@ -29,6 +28,10 @@ export const router = createBrowserRouter([
       {
         path: 'agents',
         element: <AgentPage />,
+      },
+      {
+        path: 'agents/:id/edit',
+        element: <AgentEditPage />,
       },
       {
         path: 'terminal',

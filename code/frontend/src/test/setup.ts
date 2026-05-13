@@ -1,3 +1,4 @@
+import '@/core/i18n';
 import '@testing-library/jest-dom';
 import { server } from '@/mocks/server';
 

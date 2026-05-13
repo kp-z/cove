@@ -1,0 +1,17 @@
+{
+  "panel": {
+    "newThread": "New Thread"
+  },
+  "composer": {
+    "placeholder": "Type a message...",
+    "sendHint": "Press {{modifier}}+Enter to send"
+  },
+  "messageList": {
+    "emptyTitle": "No messages",
+    "emptyDescription": "Send the first message to start a conversation"
+  },
+  "tabs": {
+    "close": "Close",
+    "newThread": "New Thread"
+  }
+}

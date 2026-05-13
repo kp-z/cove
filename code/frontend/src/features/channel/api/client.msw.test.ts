@@ -1,9 +1,3 @@
-/**
- * Channel API Client - MSW 集成测试
- *
- * 演示如何使用 MSW 进行 API 测试
- */
-
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AgentChannelApiClient } from './client';
 import { resetMsw, mockEndpointError } from '@/test/msw-utils';
@@ -16,7 +10,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
   });
 
   describe('sendMessage', () => {
-    it('应该使用 MSW 成功发送消息', async () => {
+    it('should successfully send a message via MSW', async () => {
       const result = await client.sendMessage({
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -29,7 +23,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
       expect(result.channelId).toBe('channel-1');
     });
 
-    it('应该在频道不存在时返回 404 错误', async () => {
+    it('should return 404 error when channel does not exist', async () => {
       await expect(
         client.sendMessage({
           channelId: 'non-existent',
@@ -40,7 +34,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
       ).rejects.toThrow('Channel with id "non-existent" not found');
     });
 
-    it('应该在内容为空时返回验证错误', async () => {
+    it('should return validation error when content is empty', async () => {
       await expect(
         client.sendMessage({
           channelId: 'channel-1',
@@ -53,7 +47,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
   });
 
   describe('getMessages', () => {
-    it('应该获取频道消息列表', async () => {
+    it('should fetch channel message list', async () => {
       const result = await client.getMessages('channel-1');
 
       expect(result).toBeDefined();
@@ -62,7 +56,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
       expect(result.total).toBeGreaterThan(0);
     });
 
-    it('应该支持分页参数', async () => {
+    it('should support pagination params', async () => {
       const result = await client.getMessages('channel-1', {
         limit: 2,
         offset: 0,
@@ -73,7 +67,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
   });
 
   describe('getChannel', () => {
-    it('应该获取频道详情', async () => {
+    it('should fetch channel details', async () => {
       const result = await client.getChannel('channel-1');
 
       expect(result).toBeDefined();
@@ -81,15 +75,15 @@ describe('AgentChannelApiClient - MSW Integration', () => {
       expect(result.name).toBe('General');
     });
 
-    it('应该在频道不存在时返回 404', async () => {
+    it('should return 404 when channel does not exist', async () => {
       await expect(
         client.getChannel('non-existent')
       ).rejects.toThrow('Channel with id "non-existent" not found');
     });
   });
 
-  describe('错误场景模拟', () => {
-    it('应该能够模拟服务器错误', async () => {
+  describe('error scenario simulation', () => {
+    it('should simulate server error', async () => {
       mockEndpointError('get', '/api/channels/channel-1', 'serverError');
 
       await expect(
@@ -97,7 +91,7 @@ describe('AgentChannelApiClient - MSW Integration', () => {
       ).rejects.toThrow('Internal server error');
     });
 
-    it('应该能够模拟未授权错误', async () => {
+    it('should simulate unauthorized error', async () => {
       mockEndpointError('post', '/api/channels/channel-1/messages', 'unauthorized');
 
       await expect(

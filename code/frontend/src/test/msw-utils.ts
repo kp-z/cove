@@ -1,7 +1,3 @@
-/**
- * MSW 测试工具
- */
-
 import { http } from 'msw';
 import { server } from '@/mocks/server';
 import { db } from '@/mocks/utils/database';

@@ -1,0 +1,13 @@
+base_path: .cove/storage
+max_file_size: 104857600
+allowed_extensions:
+  - .json
+  - .pdf
+  - .png
+  - .jpg
+  - .jpeg
+  - .gif
+  - .txt
+  - .md
+  - .doc
+  - .docx

@@ -32,18 +32,15 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@domain/*": ["01-domain/*"],
-      "@application/*": ["02-application/*"],
-      "@infrastructure/*": ["03-infrastructure/*"]
+      "@domain/*": ["src/domain/*"],
+      "@application/*": ["src/application/*"],
+      "@infrastructure/*": ["src/infrastructure/*"]
     },
 
     /* Completeness */
     "skipLibCheck": true
   },
   "include": [
-    "01-domain/**/*",
-    "02-application/**/*",
-    "03-infrastructure/**/*",
     "src/**/*"
   ],
   "exclude": [

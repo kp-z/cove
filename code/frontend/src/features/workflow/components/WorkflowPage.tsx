@@ -1,22 +1,27 @@
-export default function WorkflowPage() {
-  return (
-    <div className="h-full flex flex-col">
-      {/* 头部 */}
-      <header className="h-16 border-b border-dark-border flex items-center px-6">
-        <h2 className="text-lg font-semibold">工作流编排</h2>
-      </header>
+import { useTranslation } from 'react-i18next';
+import { Card, CardContent } from '@/shared/components/ui/card';
+import { PageShell } from '@/shared/components/layout/PageShell';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+import { PageContent } from '@/shared/components/layout/PageContent';
 
-      {/* 内容区 */}
-      <div className="flex-1 overflow-auto p-6">
+export default function WorkflowPage() {
+  const { t } = useTranslation('dashboard');
+  return (
+    <PageShell>
+      <PageHeader title={t('workflowPage.title')} />
+
+      <PageContent>
         <div className="max-w-4xl mx-auto">
-          <div className="card">
-            <h3 className="text-xl font-semibold mb-4">🔄 工作流编排</h3>
-            <p className="text-dark-text-secondary">
-              这里将实现可视化工作流设计、节点配置和执行监控功能。
-            </p>
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold mb-4">{'🔄 ' + t('workflowPage.heading')}</h3>
+              <p className="text-muted-foreground">
+                {t('workflowPage.description')}
+              </p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-    </div>
+      </PageContent>
+    </PageShell>
   );
 }

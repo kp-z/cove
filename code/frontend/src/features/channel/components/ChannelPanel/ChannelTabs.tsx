@@ -1,62 +1,20 @@
-/**
- * ChannelTabs 组件
- *
- * Channel Tab 固定 + Thread Tabs 可滚动的标签栏
- * 完全对齐 claude_manager 的 AgentSessionTabs 样式
- *
- * 功能：
- * - Channel Tab 固定在左侧
- * - Thread Tabs 可滚动
- * - 支持新建 Thread
- * - 支持关闭 Thread
- * - 支持右键菜单（重命名、置顶、关闭）
- */
-
-import React, { useState, useRef, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, Hash, Lock, Plus, X, Loader2 } from 'lucide-react';
 import type { Channel, Thread } from './types';
 
-// ============================================================================
-// Props 定义
-// ============================================================================
-
 interface ChannelTabsProps {
-  /** 当前 Channel */
   channel: Channel;
-
-  /** Thread 列表 */
   threads: Thread[];
-
-  /** 当前激活的 Thread ID（null 表示 Channel 级别） */
   activeThreadId: string | null;
-
-  /** 切换 Thread 回调 */
   onThreadChange: (threadId: string | null) => void;
-
-  /** 新建 Thread 回调 */
   onNewThread: () => void;
-
-  /** 关闭 Thread 回调 */
   onCloseThread: (threadId: string) => void;
-
-  /** 重命名 Thread 回调 */
   onRenameThread?: (threadId: string, newTitle: string) => void;
-
-  /** 置顶 Thread 回调 */
   onPinThread?: (threadId: string) => void;
-
-  /** 自定义样式类名 */
   className?: string;
 }
 
-// ============================================================================
-// 子组件
-// ============================================================================
-
-/**
- * Channel Tab（固定）
- * 对齐 claude_manager 的 AgentSessionTabs 样式
- */
 function ChannelTab({
   channel,
   isActive,
@@ -66,7 +24,6 @@ function ChannelTab({
   isActive: boolean;
   onClick: () => void;
 }) {
-  // 根据 channel 类型选择图标
   const getChannelIcon = () => {
     switch (channel.type) {
       case 'public':
@@ -95,9 +52,9 @@ function ChannelTab({
       <span className="flex items-center gap-1 truncate whitespace-nowrap font-medium text-[11px] leading-tight min-w-0">
         <Icon className="w-3 h-3 shrink-0 opacity-80" aria-label="Channel" />
         <span className="truncate">{channel.name}</span>
-        {channel.unreadCount > 0 && (
+        {channel.unread_count > 0 && (
           <span className="ml-0.5 px-1 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">
-            {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+            {channel.unread_count > 99 ? '99+' : channel.unread_count}
           </span>
         )}
       </span>
@@ -105,10 +62,6 @@ function ChannelTab({
   );
 }
 
-/**
- * Thread Tab
- * 对齐 claude_manager 的 AgentSessionTabs 样式
- */
 function ThreadTab({
   thread,
   isActive,
@@ -120,7 +73,8 @@ function ThreadTab({
   onClick: () => void;
   onClose: () => void;
 }) {
-  const isPinned = thread.isPinned || false;
+  const { t } = useTranslation('channel');
+  const isPinned = thread.is_pinned || false;
 
   return (
     <div className="relative group flex-shrink-0 flex items-stretch rounded-t">
@@ -140,15 +94,14 @@ function ThreadTab({
         <span className="flex items-center gap-1 truncate whitespace-nowrap font-medium text-[11px] leading-tight min-w-0">
           <MessageSquare className="w-3 h-3 shrink-0 opacity-80" aria-label="Thread" />
           <span className="truncate">{thread.title}</span>
-          {thread.unreadCount > 0 && (
+          {thread.unread_count > 0 && (
             <span className="ml-0.5 px-1 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">
-              {thread.unreadCount > 9 ? '9+' : thread.unreadCount}
+              {thread.unread_count > 9 ? '9+' : thread.unread_count}
             </span>
           )}
         </span>
       </button>
 
-      {/* 关闭按钮 */}
       <button
         type="button"
         onClick={(e) => {
@@ -156,7 +109,7 @@ function ThreadTab({
           onClose();
         }}
         className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
-        title="关闭"
+        title={t('tabs.close')}
       >
         <X className="w-3 h-3" />
       </button>
@@ -164,11 +117,9 @@ function ThreadTab({
   );
 }
 
-/**
- * 新建 Thread 按钮
- * 对齐 claude_manager 的样式
- */
 function NewThreadButton({ onClick, creating }: { onClick: () => void; creating?: boolean }) {
+  const { t } = useTranslation('channel');
+
   return (
     <button
       type="button"
@@ -179,7 +130,7 @@ function NewThreadButton({ onClick, creating }: { onClick: () => void; creating?
           ? 'text-gray-600 cursor-not-allowed'
           : 'text-gray-400 hover:text-white hover:bg-white/5'
       }`}
-      title="新建 Thread"
+      title={t('tabs.newThread')}
     >
       {creating ? (
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -190,10 +141,6 @@ function NewThreadButton({ onClick, creating }: { onClick: () => void; creating?
   );
 }
 
-// ============================================================================
-// 主组件
-// ============================================================================
-
 export function ChannelTabs({
   channel,
   threads,
@@ -201,27 +148,10 @@ export function ChannelTabs({
   onThreadChange,
   onNewThread,
   onCloseThread,
-  onRenameThread,
-  onPinThread,
   className = '',
 }: ChannelTabsProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showLeftScroll, setShowLeftScroll] = useState(false);
-  const [showRightScroll, setShowRightScroll] = useState(false);
-
-  // --------------------------------------------------------------------------
-  // 滚动控制
-  // --------------------------------------------------------------------------
-
-  /**
-   * 检查是否需要显示滚动按钮
-   */
   const checkScroll = () => {
-    if (!scrollContainerRef.current) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-    setShowLeftScroll(scrollLeft > 0);
-    setShowRightScroll(scrollLeft + clientWidth < scrollWidth - 1);
+    // Scroll checking logic (currently unused but kept for future implementation)
   };
 
   useEffect(() => {
@@ -230,57 +160,33 @@ export function ChannelTabs({
     return () => window.removeEventListener('resize', checkScroll);
   }, [threads]);
 
-  /**
-   * 滚动到指定方向
-   */
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollContainerRef.current) return;
-
-    const scrollAmount = 200;
-    const newScrollLeft = scrollContainerRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
-
-    scrollContainerRef.current.scrollTo({
-      left: newScrollLeft,
-      behavior: 'smooth',
-    });
-  };
-
-  // --------------------------------------------------------------------------
-  // 渲染
-  // --------------------------------------------------------------------------
-
-  // 排序 Threads：置顶的在前，然后按最后活动时间排序
   const sortedThreads = [...threads].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
   });
 
   return (
     <div className={`relative border-b border-white/10 ${className}`}>
       <div className="flex items-stretch gap-2 px-2 py-1">
-        {/* 新建 Thread 按钮 */}
         <div className="shrink-0 flex items-center gap-1">
           <NewThreadButton onClick={onNewThread} />
         </div>
 
-        {/* Channel Tab + Thread Tabs（可滚动） */}
         <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          {/* Channel Tab（固定） */}
           <ChannelTab
             channel={channel}
             isActive={activeThreadId === null}
             onClick={() => onThreadChange(null)}
           />
 
-          {/* Thread Tabs */}
           {sortedThreads.map((thread) => (
             <ThreadTab
-              key={thread.threadId}
+              key={thread.thread_id}
               thread={thread}
-              isActive={activeThreadId === thread.threadId}
-              onClick={() => onThreadChange(thread.threadId)}
-              onClose={() => onCloseThread(thread.threadId)}
+              isActive={activeThreadId === thread.thread_id}
+              onClick={() => onThreadChange(thread.thread_id)}
+              onClose={() => onCloseThread(thread.thread_id)}
             />
           ))}
         </div>

@@ -1,0 +1,220 @@
+# agents/cove-assistant/config/plugins.yaml
+# Cove 助手插件集成配置文件
+#
+# 说明：
+# 插件（Plugins）是扩展 Agent 功能的外部服务集成。
+# 每个插件提供特定的功能接口和服务能力。
+# 插件通过 API 或 SDK 与 Agent 集成。
+#
+# 字段说明：
+# - plugin_id: 插件唯一标识符
+# - name: 插件名称
+# - description: 插件描述
+# - provider: 插件提供商
+# - enabled: 是否启用该插件
+# - version: 插件版本
+# - configuration: 插件配置参数
+# - authentication: 认证配置
+# - endpoints: API 端点配置
+# - features: 插件功能列表
+
+# 插件列表
+plugins:
+  # 插件 1: Cove Platform API 插件
+  # 用途：访问 Cove 平台核心功能
+  # 提供商：Cove Platform
+  # 功能：项目管理、Agent 管理、任务管理、消息管理
+  - plugin_id: "cove-platform-api"
+    name: "Cove Platform API"
+    description: "访问 Cove 平台核心 API，管理项目、Agent、任务和消息"
+    provider: "Cove Platform"
+    enabled: true
+    version: "1.0.0"
+    # 插件配置
+    configuration:
+      # API 基础 URL（从环境变量读取）
+      base_url: "${COVE_API_ENDPOINT}"
+      # API 版本
+      api_version: "v1"
+      # 请求超时时间（秒）
+      timeout: 30
+      # 是否启用重试
+      retry_enabled: true
+      # 最大重试次数
+      max_retries: 3
+    # 认证配置
+    authentication:
+      # 认证类型：bearer_token | api_key | oauth2
+      type: "bearer_token"
+      # Token 环境变量名
+      token_env: "COVE_API_KEY"
+      # Token 刷新策略
+      refresh_strategy: "auto"
+    # API 端点配置
+    endpoints:
+      # 用户管理端点
+      users: "/api/v1/users"
+      # 项目管理端点
+      projects: "/api/v1/projects"
+      # Agent 管理端点
+      agents: "/api/v1/agents"
+      # 任务管理端点
+      tasks: "/api/v1/tasks"
+      # 消息管理端点
+      messages: "/api/v1/messages"
+      # 频道管理端点
+      channels: "/api/v1/channels"
+      # 报告生成端点
+      reports: "/api/v1/reports"
+    # 插件功能列表
+    features:
+      - name: "项目管理"
+        operations: ["create", "read", "update", "list"]
+      - name: "Agent 管理"
+        operations: ["create", "read", "update", "list", "configure"]
+      - name: "任务管理"
+        operations: ["create", "read", "update", "list", "assign"]
+      - name: "消息管理"
+        operations: ["send", "read", "list"]
+
+  # 插件 2: 通知服务插件
+  # 用途：发送各类通知和消息
+  # 提供商：Cove Notification Service
+  # 功能：应用内通知、邮件通知、Webhook 通知
+  - plugin_id: "notification-service"
+    name: "通知服务"
+    description: "发送系统通知、邮件和 Webhook 消息"
+    provider: "Cove Notification Service"
+    enabled: true
+    version: "1.0.0"
+    configuration:
+      # 通知服务 URL（从环境变量读取）
+      service_url: "${NOTIFICATION_SERVICE_URL}"
+      # 默认通知渠道
+      default_channel: "in-app"
+      # 是否启用批量发送
+      batch_enabled: true
+      # 批量大小
+      batch_size: 50
+    authentication:
+      type: "api_key"
+      key_env: "NOTIFICATION_API_KEY"
+    # 支持的通知渠道
+    channels:
+      # 应用内通知
+      - name: "in-app"
+        enabled: true
+        priority: "high"
+      # 邮件通知
+      - name: "email"
+        enabled: true
+        priority: "medium"
+        # 邮件配置
+        config:
+          from: "noreply@cove.ai"
+          reply_to: "support@cove.ai"
+      # Webhook 通知
+      - name: "webhook"
+        enabled: true
+        priority: "low"
+    features:
+      - name: "即时通知"
+        description: "发送即时通知给用户"
+      - name: "批量通知"
+        description: "批量发送通知"
+      - name: "通知模板"
+        description: "使用预定义模板"
+
+  # 插件 3: 分析服务插件
+  # 用途：收集和分析平台使用数据
+  # 提供商：Cove Analytics Service
+  # 功能：数据收集、指标分析、报告生成、趋势预测
+  - plugin_id: "analytics-service"
+    name: "分析服务"
+    description: "收集和分析平台使用数据，生成洞察报告"
+    provider: "Cove Analytics Service"
+    enabled: true
+    version: "1.0.0"
+    configuration:
+      # 分析服务 URL（从环境变量读取）
+      service_url: "${ANALYTICS_SERVICE_URL}"
+      # 数据采样率（0.0-1.0）
+      sampling_rate: 1.0
+      # 数据保留期（天）
+      retention_days: 90
+      # 是否启用实时分析
+      realtime_enabled: true
+    authentication:
+      type: "api_key"
+      key_env: "ANALYTICS_API_KEY"
+    # 分析维度配置
+    dimensions:
+      # 使用模式分析
+      - name: "usage-patterns"
+        enabled: true
+        metrics: ["active_users", "session_duration", "feature_usage"]
+      # 性能分析
+      - name: "performance"
+        enabled: true
+        metrics: ["response_time", "throughput", "error_rate"]
+      # 用户行为分析
+      - name: "user-behavior"
+        enabled: true
+        metrics: ["user_journey", "conversion_rate", "retention"]
+      # 资源利用率分析
+      - name: "resource-utilization"
+        enabled: true
+        metrics: ["cpu_usage", "memory_usage", "api_calls"]
+    features:
+      - name: "实时监控"
+        description: "实时监控平台指标"
+      - name: "趋势分析"
+        description: "分析历史趋势"
+      - name: "预测分析"
+        description: "预测未来趋势"
+      - name: "自定义报告"
+        description: "生成自定义报告"
+
+  # 插件 4: GitHub 集成插件（可选，暂未启用）
+  # 用途：集成 GitHub 服务
+  # 提供商：GitHub
+  # 功能：仓库管理、PR 审查、Issue 跟踪
+  - plugin_id: "github-integration"
+    name: "GitHub 集成"
+    description: "集成 GitHub 服务，管理仓库、PR 和 Issue"
+    provider: "GitHub"
+    enabled: false  # 暂未启用，需要时可以启用
+    version: "1.0.0"
+    configuration:
+      # GitHub API URL
+      api_url: "https://api.github.com"
+      # 默认仓库（可选）
+      default_repo: null
+    authentication:
+      type: "oauth2"
+      token_env: "GITHUB_TOKEN"
+    features:
+      - name: "仓库管理"
+        operations: ["read", "list"]
+      - name: "PR 审查"
+        operations: ["read", "comment", "approve"]
+      - name: "Issue 管理"
+        operations: ["read", "create", "update", "comment"]
+
+# 插件配置元数据
+metadata:
+  # 配置文件版本
+  version: "1.0.0"
+  # 最后更新时间
+  last_updated: "2026-05-10T01:00:00Z"
+  # 配置文件维护者
+  maintainer: "@kp-user"
+  # 插件总数
+  total_plugins: 4
+  # 启用的插件数
+  enabled_plugins: 3
+  # 插件加载顺序（按优先级）
+  load_order:
+    - "cove-platform-api"
+    - "notification-service"
+    - "analytics-service"

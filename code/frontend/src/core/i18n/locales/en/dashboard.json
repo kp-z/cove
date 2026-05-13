@@ -1,0 +1,31 @@
+{
+  "subtitle": "AI Agent Collaboration Platform",
+  "welcome": {
+    "description": "AI Agent Collaboration Platform — Unified agent management and orchestration"
+  },
+  "cards": {
+    "startChat": "Start a conversation with an AI Agent",
+    "manageAgents": "Create and manage AI Agents",
+    "createWorkflow": "Design workflow orchestration"
+  },
+  "projectPage": {
+    "title": "Projects",
+    "heading": "Project Management",
+    "description": "Project creation, member management, resource configuration, and monitoring will be implemented here."
+  },
+  "okrPage": {
+    "title": "OKRs",
+    "heading": "OKR Management",
+    "description": "OKR setting, progress tracking, and goal alignment will be implemented here."
+  },
+  "workflowPage": {
+    "title": "Workflows",
+    "heading": "Workflow Orchestration",
+    "description": "Visual workflow design, node configuration, and execution monitoring will be implemented here."
+  },
+  "taskPage": {
+    "title": "Tasks",
+    "heading": "Task Management",
+    "description": "Task board, assignment, progress tracking, and collaboration will be implemented here."
+  }
+}

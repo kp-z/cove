@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { useTranslation } from 'react-i18next';
 import { headerCapsuleBaseClass } from '../TokenPill';
 
 export interface Notification {
@@ -75,6 +76,7 @@ const typeStyleMap: Record<
 
 export const NotificationBubble = React.memo(
   ({ notifications, onDismiss, onClearAll }: NotificationBubbleProps) => {
+    const { t } = useTranslation('layout');
     const [isExpanded, setIsExpanded] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -85,7 +87,6 @@ export const NotificationBubble = React.memo(
     );
     const unreadCount = notifications.length;
 
-    // 点击外部关闭
     useEffect(() => {
       if (!isExpanded) return;
       const onDoc = (e: MouseEvent) => {
@@ -110,15 +111,16 @@ export const NotificationBubble = React.memo(
                 aria-expanded={isExpanded}
                 aria-label={
                   unreadCount > 0
-                    ? `通知中心，未读 ${unreadCount > 99 ? '99+' : unreadCount} 条`
-                    : '通知中心'
+                    ? t('notification.ariaWithUnread', { count: unreadCount > 99 ? '99+' : unreadCount })
+                    : t('notification.ariaDefault')
                 }
-                className={`${headerCapsuleBaseClass} relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                className={`${headerCapsuleBaseClass} group relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
                   activeNotifications.length > 0
                     ? 'border-violet-400/35 bg-violet-500/15 hover:bg-violet-500/25'
                     : ''
                 } ${isExpanded ? 'ring-1 ring-white/20 bg-white/[0.08]' : ''}`}
               >
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 {activeNotifications.length > 0 ? (
                   <Loader2
                     size={14}
@@ -144,13 +146,13 @@ export const NotificationBubble = React.memo(
                 sideOffset={8}
                 className="z-[10050] bg-[#111114] border border-white/[0.10] rounded-xl px-3 py-2 text-xs text-white/90 max-w-[240px]"
               >
-                <p className="font-medium text-white">通知中心</p>
+                <p className="font-medium text-white">{t('notification.center')}</p>
                 <p className="text-[11px] text-white/60 mt-1">
                   {unreadCount > 0
-                    ? `未读 ${unreadCount > 99 ? '99+' : unreadCount} 条`
+                    ? t('notification.unreadCount', { count: unreadCount > 99 ? '99+' : unreadCount })
                     : activeNotifications.length > 0
-                      ? '有进行中的任务'
-                      : '暂无未读'}
+                      ? t('notification.tasksInProgress')
+                      : t('notification.noUnread')}
                 </p>
                 <Tooltip.Arrow className="fill-white/10" />
               </Tooltip.Content>
@@ -176,9 +178,9 @@ export const NotificationBubble = React.memo(
                     <Sparkles size={15} className="text-violet-200" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">通知中心</h3>
+                    <h3 className="text-sm font-semibold text-white">{t('notification.center')}</h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      {unreadCount > 0 ? `${unreadCount} 条未读消息` : '暂无新消息'}
+                      {unreadCount > 0 ? t('notification.unreadMessages', { count: unreadCount }) : t('notification.noNewMessages')}
                     </p>
                   </div>
                 </div>
@@ -198,13 +200,13 @@ export const NotificationBubble = React.memo(
                   {notifications.length === 0 && (
                     <div className="text-center py-10 text-slate-400">
                       <Bell size={28} className="mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">暂无通知</p>
+                      <p className="text-sm">{t('notification.empty')}</p>
                     </div>
                   )}
                   {notifications.map((notification) => {
                     const style = typeStyleMap[notification.type] ?? typeStyleMap.info;
                     const safeTypeLabel =
-                      notification.type === 'loading' ? '进行中' : notification.type || 'info';
+                      notification.type === 'loading' ? t('notification.inProgress') : notification.type || 'info';
                     const safeTimestamp =
                       notification.timestamp instanceof Date
                         ? notification.timestamp
@@ -241,7 +243,7 @@ export const NotificationBubble = React.memo(
 
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] text-slate-500">
-                                {safeTimestamp.toLocaleTimeString('zh-CN', {
+                                {safeTimestamp.toLocaleTimeString('en-US', {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
@@ -272,7 +274,7 @@ export const NotificationBubble = React.memo(
                     onClick={onClearAll}
                     className="w-full py-2.5 rounded-lg bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-white/10 text-xs font-medium text-slate-300 transition-all"
                   >
-                    清空所有通知
+                    {t('notification.clearAll')}
                   </motion.button>
                 </div>
               )}

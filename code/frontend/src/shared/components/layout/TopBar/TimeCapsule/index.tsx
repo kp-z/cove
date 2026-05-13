@@ -24,7 +24,6 @@ interface TimeCapsuleProps {
   lang?: string;
 }
 
-/** 顶栏实时时间胶囊（与 TokenPill 视觉一致） */
 export const TimeCapsule = React.memo(({ lang = 'zh' }: TimeCapsuleProps) => {
   const [now, setNow] = useState(() => new Date());
 
@@ -48,9 +47,10 @@ export const TimeCapsule = React.memo(({ lang = 'zh' }: TimeCapsuleProps) => {
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div
-            className={`${headerCapsuleBaseClass} h-8 gap-2 px-3 cursor-default select-none`}
+            className={`${headerCapsuleBaseClass} group relative h-8 gap-2 px-3 cursor-default select-none`}
             aria-label={formatFull(now, lang)}
           >
+            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             <Clock size={14} className="text-white/50 shrink-0" />
             <span className="text-[12px] font-medium text-white/80 tabular-nums leading-none">
               {formatClock(now)}

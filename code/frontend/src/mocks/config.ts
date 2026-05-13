@@ -1,7 +1,3 @@
-/**
- * MSW 全局配置
- */
-
 export interface MswConfig {
   enabled: boolean;
   delay: {

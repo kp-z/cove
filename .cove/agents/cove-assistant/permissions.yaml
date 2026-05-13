@@ -1,0 +1,126 @@
+# agents/cove-assistant/permissions.yaml
+# Cove 助手权限配置文件
+
+# 文件访问权限
+file_access:
+  read: ["**/*"]                         # 可读所有文件（需要访问文档和配置）
+  write:                                 # 可写文件路径
+    - "docs/**/*"                        # 文档目录
+    - ".cove/agents/**/*"                # Agent 配置目录
+    - "logs/**/*"                        # 日志目录
+  execute: []                            # 不需要执行脚本权限
+  forbidden:                             # 禁止访问的路径
+    - ".env"
+    - ".env.*"
+    - "secrets/**/*"
+    - "*.key"
+    - "*.pem"
+    - "credentials/**/*"
+
+# 网络访问权限
+network_access:
+  allowed_domains:                       # 允许访问的域名
+    - "api.anthropic.com"                # Claude API
+    - "*.cove.ai"                        # Cove 平台域名
+    - "github.com"                       # GitHub（用于文档和问题跟踪）
+    - "docs.cove.ai"                     # Cove 文档站点
+  forbidden_domains: []                  # 禁止访问的域名（暂无限制）
+  allowed_ports: [80, 443, 8080, 3000]   # 允许访问的端口
+
+# 系统访问权限
+system_access:
+  allowed_commands:                      # 允许执行的命令
+    - "git"                              # Git 操作（查看状态、日志）
+    - "ls"                               # 列出文件
+    - "cat"                              # 读取文件
+    - "grep"                             # 搜索内容
+    - "find"                             # 查找文件
+  forbidden_commands:                    # 禁止执行的命令
+    - "rm -rf"                           # 危险的删除操作
+    - "sudo"                             # 提权操作
+    - "chmod 777"                        # 不安全的权限设置
+    - "dd"                               # 磁盘操作
+    - "mkfs"                             # 格式化操作
+  max_process_count: 5                   # 最大进程数
+  max_memory_mb: 1024                    # 最大内存使用（MB）
+  max_cpu_percent: 30                    # 最大 CPU 使用率（%）
+
+# 数据访问权限
+data_access:
+  allowed_databases:                     # 允许访问的数据库
+    - "postgres://localhost/cove_db"     # Cove 主数据库（只读）
+  allowed_tables:                        # 允许访问的表
+    - "users"                            # 用户表（只读）
+    - "projects"                         # 项目表（读写）
+    - "agents"                           # Agent 表（读写）
+    - "tasks"                            # 任务表（读写）
+    - "messages"                         # 消息表（读写）
+    - "channels"                         # 频道表（只读）
+  forbidden_operations:                  # 禁止的操作
+    - "DROP TABLE"                       # 删除表
+    - "DROP DATABASE"                    # 删除数据库
+    - "TRUNCATE"                         # 清空表
+    - "ALTER TABLE"                      # 修改表结构
+  read_only: false                       # 非只读（需要写入权限）
+
+# Agent 交互权限
+agent_interaction:
+  can_spawn_subagents: true              # 可以创建子 Agent
+  max_subagents: 3                       # 最大子 Agent 数量
+  can_send_messages: true                # 可以发送消息
+  can_create_tasks: true                 # 可以创建任务
+  can_assign_tasks: true                 # 可以分配任务
+  can_update_tasks: true                 # 可以更新任务
+  can_close_tasks: false                 # 不能关闭任务（需要人工确认）
+  allowed_channels:                      # 允许访问的频道
+    - "#general"                         # 通用频道
+    - "#support"                         # 支持频道
+    - "#onboarding"                      # 引导频道
+    - "#admin"                           # 管理频道
+  can_create_channels: false             # 不能创建频道
+  can_delete_channels: false             # 不能删除频道
+
+# 用户管理权限
+user_management:
+  can_view_users: true                   # 可以查看用户信息
+  can_create_users: false                # 不能创建用户（需要管理员）
+  can_update_users: false                # 不能更新用户信息（需要管理员）
+  can_delete_users: false                # 不能删除用户（需要管理员）
+  can_manage_permissions: false          # 不能管理权限（需要管理员）
+  can_invite_users: true                 # 可以邀请用户
+  can_send_notifications: true           # 可以发送通知
+
+# 项目管理权限
+project_management:
+  can_view_projects: true                # 可以查看项目
+  can_create_projects: true              # 可以创建项目
+  can_update_projects: true              # 可以更新项目
+  can_delete_projects: false             # 不能删除项目（需要管理员）
+  can_archive_projects: true             # 可以归档项目
+  can_manage_members: true               # 可以管理项目成员
+  can_configure_agents: true             # 可以配置 Agent
+  can_configure_workflows: true          # 可以配置工作流
+
+# 系统管理权限
+system_management:
+  can_view_system_status: true           # 可以查看系统状态
+  can_view_logs: true                    # 可以查看日志
+  can_generate_reports: true             # 可以生成报告
+  can_modify_config: false               # 不能修改系统配置（需要管理员）
+  can_restart_services: false            # 不能重启服务（需要管理员）
+  can_manage_backups: false              # 不能管理备份（需要管理员）
+
+# API 访问权限
+api_access:
+  allowed_endpoints:                     # 允许访问的 API 端点
+    - "/api/v1/users/*"                  # 用户 API
+    - "/api/v1/projects/*"               # 项目 API
+    - "/api/v1/agents/*"                 # Agent API
+    - "/api/v1/tasks/*"                  # 任务 API
+    - "/api/v1/messages/*"               # 消息 API
+    - "/api/v1/channels/*"               # 频道 API
+    - "/api/v1/reports/*"                # 报告 API
+  rate_limit:
+    requests_per_minute: 120             # 每分钟最大请求数
+    burst_size: 20                       # 突发请求数
+  require_authentication: true           # 需要认证

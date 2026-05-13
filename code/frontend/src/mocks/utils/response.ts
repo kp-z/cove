@@ -1,7 +1,3 @@
-/**
- * MSW 响应构造工具
- */
-
 import { HttpResponse, delay as mswDelay } from 'msw';
 import { getDelay, mswConfig } from '../config';
 

@@ -1,0 +1,42 @@
+{
+  "page": {
+    "subtitle": "{{count}} sub-agents",
+    "searchPlaceholder": "Search agents...",
+    "emptyTitle": "No agents",
+    "emptySearchDescription": "No matching search results",
+    "emptyDescription": "Click New to create your first sub-agent",
+    "deleteDialogDescription": "Are you sure you want to delete agent <1>{{name}}</1>? This action cannot be undone."
+  },
+  "editForm": {
+    "subtitle": "Edit Agent Configuration",
+    "basicInfo": "Basic Info",
+    "name": "Name",
+    "description": "Description",
+    "category": "Category",
+    "priority": "Priority",
+    "modelConfig": "Model Configuration",
+    "model": "Model",
+    "framework": "Framework",
+    "scope": "Scope",
+    "toolsAndSkills": "Tools & Skills",
+    "tools": "Tools",
+    "toolPlaceholder": "Enter tool name, press Enter to add",
+    "skills": "Skills",
+    "skillPlaceholder": "Enter skill name, press Enter to add",
+    "permissions": "Permissions",
+    "permissionMode": "Permission Mode",
+    "memory": "Persistent Memory"
+  },
+  "priority": {
+    "high": "High",
+    "normal": "Normal",
+    "low": "Low"
+  },
+  "memoryOption": {
+    "none": "None"
+  },
+  "card": {
+    "delete": "Delete",
+    "inheritAllTools": "Inherits all tools"
+  }
+}

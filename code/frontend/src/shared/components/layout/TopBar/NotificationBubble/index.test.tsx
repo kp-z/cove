@@ -7,22 +7,22 @@ describe('NotificationBubble', () => {
     {
       id: '1',
       type: 'success',
-      title: '成功',
-      message: '操作成功完成',
+      title: 'Success',
+      message: 'Operation completed successfully',
       timestamp: new Date('2026-05-09T10:30:00'),
     },
     {
       id: '2',
       type: 'error',
-      title: '错误',
-      message: '操作失败',
+      title: 'Error',
+      message: 'Operation failed',
       timestamp: new Date('2026-05-09T10:31:00'),
     },
     {
       id: '3',
       type: 'loading',
-      title: '加载中',
-      message: '正在处理...',
+      title: 'Loading',
+      message: 'Processing...',
       timestamp: new Date('2026-05-09T10:32:00'),
     },
   ];
@@ -56,8 +56,8 @@ describe('NotificationBubble', () => {
     const manyNotifications = Array.from({ length: 150 }, (_, i) => ({
       id: `${i}`,
       type: 'info' as const,
-      title: `通知 ${i}`,
-      message: `消息 ${i}`,
+      title: `Notification ${i}`,
+      message: `Message ${i}`,
       timestamp: new Date(),
     }));
 
@@ -77,8 +77,8 @@ describe('NotificationBubble', () => {
       {
         id: '1',
         type: 'loading',
-        title: '加载中',
-        message: '正在处理...',
+        title: 'Loading',
+        message: 'Processing...',
         timestamp: new Date(),
       },
     ];
@@ -107,8 +107,8 @@ describe('NotificationBubble', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('通知中心')).toBeInTheDocument();
-    expect(screen.getByText('3 条未读消息')).toBeInTheDocument();
+    expect(screen.getByText('Notification Center')).toBeInTheDocument();
+    expect(screen.getByText('3 unread messages')).toBeInTheDocument();
   });
 
   it('should display all notifications in panel', () => {
@@ -123,12 +123,12 @@ describe('NotificationBubble', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('成功')).toBeInTheDocument();
-    expect(screen.getByText('操作成功完成')).toBeInTheDocument();
-    expect(screen.getByText('错误')).toBeInTheDocument();
-    expect(screen.getByText('操作失败')).toBeInTheDocument();
-    expect(screen.getByText('加载中')).toBeInTheDocument();
-    expect(screen.getByText('正在处理...')).toBeInTheDocument();
+    expect(screen.getByText('Success')).toBeInTheDocument();
+    expect(screen.getByText('Operation completed successfully')).toBeInTheDocument();
+    expect(screen.getByText('Error')).toBeInTheDocument();
+    expect(screen.getByText('Operation failed')).toBeInTheDocument();
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+    expect(screen.getByText('Processing...')).toBeInTheDocument();
   });
 
   it('should call onDismiss when dismiss button clicked', () => {
@@ -145,7 +145,7 @@ describe('NotificationBubble', () => {
     fireEvent.click(button);
 
     // Hover over notification to show dismiss button
-    const notification = screen.getByText('成功').closest('.group');
+    const notification = screen.getByText('Success').closest('.group');
     if (notification) {
       fireEvent.mouseEnter(notification);
 
@@ -175,7 +175,7 @@ describe('NotificationBubble', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    const clearAllButton = screen.getByText('清空所有通知');
+    const clearAllButton = screen.getByText('Clear all notifications');
     fireEvent.click(clearAllButton);
 
     expect(mockClearAll).toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe('NotificationBubble', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('暂无通知')).toBeInTheDocument();
+    expect(screen.getByText('No notifications')).toBeInTheDocument();
   });
 
   it('should close panel when close button clicked', () => {
@@ -208,7 +208,7 @@ describe('NotificationBubble', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(screen.getByText('通知中心')).toBeInTheDocument();
+    expect(screen.getByText('Notification Center')).toBeInTheDocument();
 
     // Find close button (X icon in header)
     const closeButtons = screen.getAllByRole('button');
@@ -219,9 +219,9 @@ describe('NotificationBubble', () => {
     if (closeButton) {
       fireEvent.click(closeButton);
 
-      // Panel should be closed (通知中心 header should not be visible)
+      // Panel should be closed
       setTimeout(() => {
-        expect(screen.queryByText('3 条未读消息')).not.toBeInTheDocument();
+        expect(screen.queryByText('3 unread messages')).not.toBeInTheDocument();
       }, 500);
     }
   });

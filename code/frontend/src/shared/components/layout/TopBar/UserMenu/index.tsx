@@ -1,10 +1,8 @@
-/**
- * UserMenu — 右上角用户信息 + 下拉菜单（默认仅头像，悬停展开姓名与角色）
- */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/core/auth/authStore';
 import { headerCapsuleBaseClass } from '../TokenPill';
 
@@ -49,6 +47,7 @@ function UserAvatar({ user, className = '', showRing = false }: UserAvatarProps)
 }
 
 export const UserMenu = React.memo(() => {
+  const { t } = useTranslation('layout');
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -57,18 +56,19 @@ export const UserMenu = React.memo(() => {
       <button
         type="button"
         onClick={() => navigate('/login')}
-        className={`${headerCapsuleBaseClass} h-8 cursor-pointer outline-none items-center justify-center gap-0 p-0 text-[12px] font-medium text-white/80 hover:text-white sm:justify-start sm:gap-2 sm:px-3`}
+        className={`${headerCapsuleBaseClass} group relative h-8 cursor-pointer outline-none items-center justify-center gap-0 p-0 text-[12px] font-medium text-white/80 hover:text-white sm:justify-start sm:gap-2 sm:px-3`}
       >
+        <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
           <User size={14} />
         </div>
-        <span className="hidden sm:inline">登录</span>
+        <span className="hidden sm:inline">{t('userMenu.login')}</span>
       </button>
     );
   }
 
   const displayName = user.username;
-  const role = 'user'; // Cove 的 User 类型暂时没有 role 字段，默认为 user
+  const role = 'user';
   const roleDisplayLabel = ROLE_LABEL[role] ?? role;
   const badgeClass = ROLE_BADGE[role] ?? ROLE_BADGE.guest;
 
@@ -83,8 +83,9 @@ export const UserMenu = React.memo(() => {
         <button
           type="button"
           title={displayName}
-          className={`group ${headerCapsuleBaseClass} h-8 cursor-pointer outline-none items-center p-0 gap-0 transition-all duration-200 ease-out sm:group-hover:gap-2 sm:group-hover:pl-3.5 sm:group-hover:pr-2.5`}
+          className={`group ${headerCapsuleBaseClass} relative h-8 cursor-pointer outline-none items-center p-0 gap-0 transition-all duration-200 ease-out sm:group-hover:gap-2 sm:group-hover:pl-3.5 sm:group-hover:pr-2.5`}
         >
+          <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
           <div className="pointer-events-none hidden max-w-0 min-w-0 flex-row items-center gap-1.5 justify-start overflow-hidden pl-0 opacity-0 transition-all duration-200 ease-out sm:flex sm:group-hover:max-w-[220px] sm:group-hover:pl-1 sm:group-hover:opacity-100">
             <div className="min-w-0 flex-1">
               <p className="truncate text-left text-[11px] font-semibold leading-none text-white">
@@ -117,7 +118,7 @@ export const UserMenu = React.memo(() => {
             className="flex items-center gap-2 px-3 py-2 text-sm text-white/90 rounded-lg cursor-pointer outline-none hover:bg-white/[0.08] focus:bg-white/[0.08]"
           >
             <Settings className="w-4 h-4" />
-            账号设置
+            {t('userMenu.accountSettings')}
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
@@ -125,7 +126,7 @@ export const UserMenu = React.memo(() => {
             className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 rounded-lg cursor-pointer outline-none hover:bg-white/[0.08] focus:bg-white/[0.08] focus:text-red-300"
           >
             <LogOut className="w-4 h-4" />
-            退出登录
+            {t('userMenu.logout')}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

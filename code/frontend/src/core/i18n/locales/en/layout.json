@@ -1,0 +1,52 @@
+{
+  "topBar": {
+    "back": "Back",
+    "forward": "Forward",
+    "searchPlaceholder": "Search..."
+  },
+  "notification": {
+    "center": "Notification Center",
+    "ariaWithUnread": "Notification Center, {{count}} unread",
+    "ariaDefault": "Notification Center",
+    "unreadCount": "{{count}} unread",
+    "unreadMessages": "{{count}} unread messages",
+    "tasksInProgress": "Tasks in progress",
+    "noUnread": "No unread",
+    "noNewMessages": "No new messages",
+    "empty": "No notifications",
+    "clearAll": "Clear all notifications",
+    "inProgress": "In Progress"
+  },
+  "tokenPill": {
+    "model": "Model",
+    "used": "Used",
+    "remaining": "Remaining",
+    "updatedAt": "Updated at {{time}}",
+    "noData": "No token data"
+  },
+  "agentRun": {
+    "ariaRunning": "Agent execution, {{count}} in progress",
+    "ariaIdle": "Agent execution & history",
+    "titleRunning": "{{count}} in progress — click to view",
+    "titleIdle": "Execution & History",
+    "tooltipRunning": "{{count}} in progress",
+    "tooltipIdle": "Agent execution & history",
+    "quickAgents": "Quick Agents (in development)",
+    "openGeneral": "Open General Channel",
+    "history": "History",
+    "noRecords": "No records"
+  },
+  "userMenu": {
+    "login": "Log in",
+    "accountSettings": "Account Settings",
+    "logout": "Log out"
+  },
+  "channelPanel": {
+    "floatingMode": "Floating mode",
+    "dockedMode": "Docked mode",
+    "close": "Close"
+  },
+  "pageError": {
+    "back": "Back"
+  }
+}
