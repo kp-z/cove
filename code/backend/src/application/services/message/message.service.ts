@@ -268,7 +268,7 @@ export class MessageService {
     const message = await this.getMessageById(dto.messageId);
 
     // 移除反应（Domain 层业务规则）
-    const updatedMessage = message.removeReaction(dto.userId, dto.emoji);
+    const updatedMessage = message.removeReaction(dto.emoji, dto.userId);
 
     // 保存更新
     await this.messageRepository.update(updatedMessage);
