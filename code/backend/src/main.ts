@@ -90,9 +90,9 @@ function initializeDependencies() {
 
   // Database + Storage
   const prisma = getPrismaClient();
-  // Project root: from backend/src/ to project root (../../)
-  // In production (dist/), it's from backend/dist/ to project root (../../)
-  const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../');
+  // Project root: from backend/src/ to project root (../../../)
+  // backend/src/ -> backend/ -> code/ -> cove/
+  const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../../');
   const storageService = new StorageService(projectRoot);
 
   // Repositories

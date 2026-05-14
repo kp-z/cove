@@ -58,3 +58,18 @@ pip-delete-this-directory.txt
 # OS
 Thumbs.db
 .DS_Store
+
+# Cove Data Directory
+/.cove/database/*.db
+/.cove/database/*.db-shm
+/.cove/database/*.db-wal
+/.cove/storage/
+/.cove/cache/
+/.cove/logs/
+/.cove/temp/
+
+# Keep directory structure
+!/.cove/storage/.gitkeep
+!/.cove/cache/.gitkeep
+!/.cove/logs/.gitkeep
+!/.cove/temp/.gitkeep

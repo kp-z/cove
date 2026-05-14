@@ -29,3 +29,25 @@ migration_test
 *.njsproj
 *.sln
 *.sw?
+
+# TypeScript build info
+*.tsbuildinfo
+.tmp/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright-mcp/
+
+# Vitest
+.vitest/
+
+# OS
+Thumbs.db
+
