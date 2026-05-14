@@ -4,7 +4,7 @@ import { ChannelTabs } from './ChannelTabs';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import type { Channel, Thread, Message, ChannelPanelProps } from './types';
-import type { MessageEntity } from '../../api/client';
+import type { MessageEntity } from '../../types';
 import { useChannel } from '../../hooks/useChannel';
 import { useMessages } from '../../hooks/useMessages';
 import { useSendMessage } from '../../hooks/useSendMessage';

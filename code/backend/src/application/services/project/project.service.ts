@@ -26,10 +26,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 
-import { ProjectCompositionService, AddAgentToProjectDTO, RemoveAgentFromProjectDTO, AddChannelToProjectDTO, RemoveChannelFromProjectDTO } from './project-composition.service';
-export { AddAgentToProjectDTO, RemoveAgentFromProjectDTO, AddChannelToProjectDTO, RemoveChannelFromProjectDTO } from './project-composition.service';
-import { ChannelNotFoundError } from '../channel/channel.errors';
-import { AgentNotFoundError } from '../agent/agent.errors';
+import { ProjectCompositionService } from './project-composition.service';
 
 export interface CreateProjectDTO {
   readonly name: string;

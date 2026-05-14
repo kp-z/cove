@@ -42,6 +42,7 @@
     "@anthropic-ai/sdk": "^0.95.2",
     "@prisma/client": "^6.1.0",
     "@scalar/express-api-reference": "^0.9.14",
+    "@trpc/server": "^11.17.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/ws": "^8.18.1",
@@ -54,6 +55,6 @@
     "openai": "^6.37.0",
     "ws": "^8.20.0",
     "yaml": "^2.9.0",
-    "zod": "^3.22.4"
+    "zod": "^3.25.76"
   }
 }

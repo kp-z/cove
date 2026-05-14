@@ -1,6 +1,6 @@
 import { channelFixtures, messageFixtures, agentFixtures } from '../fixtures';
 import { fullAgentFixtures } from '../fixtures/agent.fixtures';
-import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/api/client';
+import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/types';
 import type { Agent } from '@/features/agent/types/agent.types';
 
 interface DatabaseState {

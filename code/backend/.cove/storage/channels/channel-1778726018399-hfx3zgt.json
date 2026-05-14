@@ -1,0 +1,23 @@
+{
+  "members": [],
+  "agentPool": [],
+  "taskPool": [],
+  "conversationPool": [],
+  "communicationRules": {
+    "allowMentions": true,
+    "allowThreads": true,
+    "allowAttachments": true,
+    "maxMessageLength": 10000
+  },
+  "workspace": {
+    "root": "/workspace/channel-1778726018399-hfx3zgt",
+    "sharedFiles": "/workspace/channel-1778726018399-hfx3zgt/shared",
+    "attachments": "/workspace/channel-1778726018399-hfx3zgt/attachments"
+  },
+  "meta": {
+    "createdBy": {
+      "id": "user-1778726018253-bhrf37a",
+      "type": "human"
+    }
+  }
+}

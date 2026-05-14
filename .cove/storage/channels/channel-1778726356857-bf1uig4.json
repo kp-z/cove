@@ -1,0 +1,23 @@
+{
+  "members": [],
+  "agentPool": [],
+  "taskPool": [],
+  "conversationPool": [],
+  "communicationRules": {
+    "allowMentions": true,
+    "allowThreads": true,
+    "allowAttachments": true,
+    "maxMessageLength": 10000
+  },
+  "workspace": {
+    "root": "/workspace/channel-1778726356857-bf1uig4",
+    "sharedFiles": "/workspace/channel-1778726356857-bf1uig4/shared",
+    "attachments": "/workspace/channel-1778726356857-bf1uig4/attachments"
+  },
+  "meta": {
+    "createdBy": {
+      "id": "user-1778726356834-h9fy0ok",
+      "type": "human"
+    }
+  }
+}

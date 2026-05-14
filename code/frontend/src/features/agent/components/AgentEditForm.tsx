@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
-import { useUpdateAgent } from '../hooks/useAgents';
+import { useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
 import type {
   Agent, AgentFramework, AgentCategory, AgentPriority, AgentScope, AgentPermissionMode,
 } from '../types/agent.types';

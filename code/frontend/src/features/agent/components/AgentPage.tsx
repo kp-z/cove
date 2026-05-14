@@ -12,7 +12,7 @@ import { PageContent } from '@/shared/components/layout/PageContent';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
-import { useAgents, useDeleteAgent } from '../hooks/useAgents';
+import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { AgentCard } from './AgentCard';
 import type { Agent, AgentScope } from '../types/agent.types';
 

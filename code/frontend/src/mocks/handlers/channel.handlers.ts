@@ -6,7 +6,7 @@ import { http } from 'msw';
 import { db } from '../utils/database';
 import { createSuccessResponse, ErrorResponses } from '../utils/response';
 import { createMessage } from '../fixtures/channel.fixtures';
-import type { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, ReactionDTO } from '@/features/channel/api/client';
+import type { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, ReactionDTO } from '@/features/channel/types';
 
 const BASE_URL = '/api';
 

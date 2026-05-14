@@ -1,0 +1,22 @@
+{
+  "content": "你好！我是 Cove Assistant，一个 AI 助手。\n\n以下是关于我的简要介绍：\n\n- **功能**：我可以回答问题、提供信息、协助写作、分析问题、编写代码等\n- **语言**：我支持多种语言交流，包括中文和英文\n- **目标**：为你提供准确、有用的帮助\n\n有什么我可以帮你的吗？",
+  "senderName": "Cove Assistant",
+  "channelName": "persist-test",
+  "contentFormat": "markdown",
+  "attachments": [],
+  "mentions": [],
+  "references": [
+    {
+      "refType": "url",
+      "refId": "message-1778674222015-uch58xe",
+      "refTitle": "Reply to message"
+    }
+  ],
+  "reactions": [],
+  "editHistory": [],
+  "meta": {
+    "client": "agent-runtime",
+    "isPinned": false,
+    "isImportant": false
+  }
+}

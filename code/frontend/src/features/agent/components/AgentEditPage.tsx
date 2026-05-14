@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAgent } from '../hooks/useAgents';
+import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { AgentEditForm } from './AgentEditForm';

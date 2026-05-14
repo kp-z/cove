@@ -1,0 +1,23 @@
+{
+  "members": [],
+  "agentPool": [],
+  "taskPool": [],
+  "conversationPool": [],
+  "communicationRules": {
+    "allowMentions": true,
+    "allowThreads": true,
+    "allowAttachments": true,
+    "maxMessageLength": 10000
+  },
+  "workspace": {
+    "root": "/workspace/channel-1778726356754-rlrzdj3",
+    "sharedFiles": "/workspace/channel-1778726356754-rlrzdj3/shared",
+    "attachments": "/workspace/channel-1778726356754-rlrzdj3/attachments"
+  },
+  "meta": {
+    "createdBy": {
+      "id": "user-1778726356731-dvbmial",
+      "type": "human"
+    }
+  }
+}

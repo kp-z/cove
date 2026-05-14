@@ -1,4 +1,4 @@
-import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/api/client';
+import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/types';
 
 export const agentFixtures: AgentEntity[] = [
   {

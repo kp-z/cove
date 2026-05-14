@@ -2,8 +2,13 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { config } from 'dotenv';
-import { apiReference } from '@scalar/express-api-reference';
-import { openApiSpec } from './openapi';
+import * as trpcExpress from '@trpc/server/adapters/express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 config();
 
@@ -12,11 +17,6 @@ import {
   InMemoryThreadRepository,
   InMemoryTaskRepository,
   InMemoryEventBus,
-  MessagesController,
-  ChannelsController,
-  ThreadsController,
-  TasksController,
-  AgentsController,
   ConnectionManager,
   SubscriptionManager,
   WebSocketEventPublisher,
@@ -27,6 +27,9 @@ import {
 import { FileSystemAgentRepository } from './infrastructure/repositories/filesystem-agent.repository';
 import { HybridChannelRepository } from './infrastructure/repositories/hybrid-channel.repository';
 import { HybridMessageRepository } from './infrastructure/repositories/hybrid-message.repository';
+import { HybridUserRepository } from './infrastructure/repositories/hybrid-user.repository';
+import { HybridProjectRepository } from './infrastructure/repositories/hybrid-project.repository';
+import { HybridWorkflowRepository } from './infrastructure/repositories/hybrid-workflow.repository';
 import { CovePathResolver } from './infrastructure/storage/cove-path-resolver';
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
@@ -38,9 +41,16 @@ import { AgentService } from './application/services/agent/agent.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { ThreadService } from './application/services/thread/thread.service';
 import { TaskService } from './application/services/task/task.service';
+import { UserService } from './application/services/user/user.service';
+import { ProjectService } from './application/services/project/project.service';
+import { WorkflowService } from './application/services/workflow/workflow.service';
 
 // Interfaces
 import { ILogger, LogContext } from './application/interfaces/index';
+
+// tRPC
+import { createAppRouter } from './infrastructure/trpc/routers';
+import { createContext } from './infrastructure/trpc/context';
 
 class ConsoleLogger implements ILogger {
   private level: string = 'info';
@@ -80,7 +90,9 @@ function initializeDependencies() {
 
   // Database + Storage
   const prisma = getPrismaClient();
-  const projectRoot = process.cwd();
+  // Project root: from backend/src/ to project root (../../)
+  // In production (dist/), it's from backend/dist/ to project root (../../)
+  const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../');
   const storageService = new StorageService(projectRoot);
 
   // Repositories
@@ -90,6 +102,9 @@ function initializeDependencies() {
   const agentRepository = new FileSystemAgentRepository(agentBasePath);
   const threadRepository = new InMemoryThreadRepository();
   const taskRepository = new InMemoryTaskRepository();
+  const userRepository = new HybridUserRepository(prisma, storageService, logger);
+  const projectRepository = new HybridProjectRepository(prisma, storageService, logger);
+  const workflowRepository = new HybridWorkflowRepository(prisma, storageService, logger);
 
   // EventBus
   const eventBus = new InMemoryEventBus();
@@ -154,12 +169,26 @@ function initializeDependencies() {
     logger
   );
 
-  // Controllers
-  const messagesController = new MessagesController(messageService);
-  const channelsController = new ChannelsController(channelService);
-  const threadsController = new ThreadsController(threadService);
-  const tasksController = new TasksController(taskService);
-  const agentsController = new AgentsController(agentService, agentRuntimeService);
+  const userService = new UserService(
+    userRepository,
+    eventBus,
+    logger
+  );
+
+  const projectService = new ProjectService(
+    projectRepository,
+    agentRepository,
+    channelRepository,
+    eventBus,
+    logger
+  );
+
+  const workflowService = new WorkflowService(
+    workflowRepository,
+    taskRepository,
+    eventBus,
+    logger
+  );
 
   // Wire up: message.sent → agent auto-response (fire-and-forget)
   eventBus.subscribe('message.sent', (event) => {
@@ -176,21 +205,30 @@ function initializeDependencies() {
     connectionManager,
     subscriptionManager,
     eventBus,
-    messagesController,
-    channelsController,
-    threadsController,
-    tasksController,
-    agentsController,
+    // Services for tRPC
+    agentService,
+    agentRuntimeService,
+    channelService,
+    messageService,
+    taskService,
+    threadService,
+    userService,
+    projectService,
+    workflowService,
   };
 }
 
 function configureExpress(deps: {
-  messagesController: MessagesController;
-  channelsController: ChannelsController;
-  threadsController: ThreadsController;
-  tasksController: TasksController;
-  agentsController: AgentsController;
   logger: ILogger;
+  agentService: AgentService;
+  agentRuntimeService: AgentRuntimeService;
+  channelService: ChannelService;
+  messageService: MessageService;
+  taskService: TaskService;
+  threadService: ThreadService;
+  userService: UserService;
+  projectService: ProjectService;
+  workflowService: WorkflowService;
 }) {
   const app = express();
 
@@ -209,57 +247,25 @@ function configureExpress(deps: {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
   });
 
-  // --- Message routes ---
-  app.post('/api/channels/:channelId/messages', (req, res) => deps.messagesController.sendMessage(req as any, res as any));
-  app.get('/api/channels/:channelId/messages', (req, res) => deps.messagesController.getMessages(req as any, res as any));
-  app.get('/api/messages/:messageId', (req, res) => deps.messagesController.getMessage(req as any, res as any));
-  app.put('/api/messages/:messageId', (req, res) => deps.messagesController.updateMessage(req as any, res as any));
-  app.delete('/api/messages/:messageId', (req, res) => deps.messagesController.deleteMessage(req as any, res as any));
-  app.post('/api/messages/:messageId/reactions', (req, res) => deps.messagesController.addReaction(req as any, res as any));
-  app.delete('/api/messages/:messageId/reactions', (req, res) => deps.messagesController.removeReaction(req as any, res as any));
-
-  // --- Thread routes ---
-  app.post('/api/messages/:messageId/thread/messages', (req, res) => deps.threadsController.replyInThread(req as any, res as any));
-  app.get('/api/messages/:messageId/thread/messages', (req, res) => deps.threadsController.getThreadMessages(req as any, res as any));
-  app.get('/api/messages/:messageId/thread', (req, res) => deps.threadsController.getThreadMetadata(req as any, res as any));
-  app.get('/api/channels/:channelId/threads', (req, res) => deps.threadsController.listChannelThreads(req as any, res as any));
-
-  // --- Channel routes ---
-  app.post('/api/channels', (req, res) => deps.channelsController.createChannel(req as any, res as any));
-  app.get('/api/channels', (req, res) => deps.channelsController.getChannels(req as any, res as any));
-  app.get('/api/channels/:channelId', (req, res) => deps.channelsController.getChannelById(req as any, res as any));
-  app.put('/api/channels/:channelId', (req, res) => deps.channelsController.updateChannel(req as any, res as any));
-  app.delete('/api/channels/:channelId', (req, res) => deps.channelsController.deleteChannel(req as any, res as any));
-  app.post('/api/channels/:channelId/members', (req, res) => deps.channelsController.addMember(req as any, res as any));
-  app.delete('/api/channels/:channelId/members/:memberId', (req, res) => deps.channelsController.removeMember(req as any, res as any));
-
-  // --- Task routes ---
-  app.post('/api/messages/:messageId/convert-to-task', (req, res) => deps.tasksController.convertMessageToTask(req as any, res as any));
-  app.get('/api/channels/:channelId/tasks', (req, res) => deps.tasksController.getChannelTasks(req as any, res as any));
-  app.post('/api/tasks/:taskId/claim', (req, res) => deps.tasksController.claimTask(req as any, res as any));
-  app.post('/api/tasks/:taskId/unclaim', (req, res) => deps.tasksController.unclaimTask(req as any, res as any));
-  app.put('/api/tasks/:taskId/status', (req, res) => deps.tasksController.updateTaskStatus(req as any, res as any));
-
-  // --- Agent routes ---
-  app.post('/api/agents', (req, res) => deps.agentsController.createAgent(req as any, res as any));
-  app.get('/api/agents', (req, res) => deps.agentsController.getAllAgents(req as any, res as any));
-  app.get('/api/agents/:agentId', (req, res) => deps.agentsController.getAgent(req as any, res as any));
-  app.put('/api/agents/:agentId/runtime', (req, res) => deps.agentsController.updateRuntime(req as any, res as any));
-  app.put('/api/agents/:agentId/persona', (req, res) => deps.agentsController.updatePersona(req as any, res as any));
-  app.put('/api/agents/:agentId/skills', (req, res) => deps.agentsController.updateSkills(req as any, res as any));
-  app.put('/api/agents/:agentId/tools', (req, res) => deps.agentsController.updateTools(req as any, res as any));
-  app.put('/api/agents/:agentId/triggers', (req, res) => deps.agentsController.updateTriggers(req as any, res as any));
-  app.post('/api/agents/:agentId/start', (req, res) => deps.agentsController.startAgent(req as any, res as any));
-  app.post('/api/agents/:agentId/stop', (req, res) => deps.agentsController.stopAgent(req as any, res as any));
-  app.get('/api/agents/:agentId/status', (req, res) => deps.agentsController.getStatus(req as any, res as any));
-  app.delete('/api/agents/:agentId', (req, res) => deps.agentsController.deleteAgent(req as any, res as any));
-
-  // OpenAPI Spec + Scalar API Reference
-  app.get('/openapi.json', (_req: Request, res: Response) => {
-    res.json(openApiSpec);
+  // tRPC HTTP Handler
+  const appRouter = createAppRouter({
+    agentService: deps.agentService,
+    agentRuntimeService: deps.agentRuntimeService,
+    channelService: deps.channelService,
+    messageService: deps.messageService,
+    taskService: deps.taskService,
+    threadService: deps.threadService,
+    userService: deps.userService,
+    projectService: deps.projectService,
+    workflowService: deps.workflowService,
   });
-
-  app.use('/docs', apiReference({ url: '/openapi.json', theme: 'saturn' }));
+  app.use(
+    '/trpc',
+    trpcExpress.createExpressMiddleware({
+      router: appRouter,
+      createContext: createContext({ logger: deps.logger }),
+    })
+  );
 
   // 404 handler
   app.use((req: Request, res: Response) => {

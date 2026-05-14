@@ -1,0 +1,7 @@
+project_name: Cove Backend
+version: 1.0.0
+created_at: '2026-05-11T17:41:21.117Z'
+storage:
+  type: hybrid
+  database: sqlite
+  file_system: local

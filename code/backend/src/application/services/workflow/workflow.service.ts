@@ -41,8 +41,7 @@ export interface UpdateWorkflowDTO {
 }
 
 
-import { WorkflowTriggerService, AddTriggerDTO, UpdateTriggerDTO, EnableTriggerDTO, DisableTriggerDTO } from './workflow-trigger.service';
-export { AddTriggerDTO, UpdateTriggerDTO, EnableTriggerDTO, DisableTriggerDTO } from './workflow-trigger.service';
+import { WorkflowTriggerService } from './workflow-trigger.service';
 
 export class WorkflowService {
   private readonly triggerService: WorkflowTriggerService;
@@ -341,15 +340,6 @@ export class WorkflowService {
 
     return archivedWorkflow;
   }
-
-  // --- Delegation to WorkflowTriggerService ---
-
-  async addTrigger(dto: AddTriggerDTO): Promise<WorkflowEntity> { return this.triggerService.addTrigger(dto); }
-  async updateTrigger(dto: UpdateTriggerDTO): Promise<WorkflowEntity> { return this.triggerService.updateTrigger(dto); }
-  async enableTrigger(dto: EnableTriggerDTO): Promise<WorkflowEntity> { return this.triggerService.enableTrigger(dto); }
-  async disableTrigger(dto: DisableTriggerDTO): Promise<WorkflowEntity> { return this.triggerService.disableTrigger(dto); }
-  async getWorkflowTriggers(workflowId: string): Promise<readonly WorkflowTrigger[]> { return this.triggerService.getWorkflowTriggers(workflowId); }
-  async getEnabledTriggers(workflowId: string): Promise<readonly WorkflowTrigger[]> { return this.triggerService.getEnabledTriggers(workflowId); }
 
   async deleteWorkflow(workflowId: string): Promise<void> {
     this.logger.info('Deleting workflow', { workflowId });

@@ -3,7 +3,7 @@
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../.cove/database/cove.db"
+  url      = "file:../../../.cove/database/cove.db"
 }
 
 generator client {
