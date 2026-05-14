@@ -6,7 +6,10 @@ import {
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { GlassCard } from '@/shared/components/ui/GlassCard';
 import { getAgentAvatarUrl, getAgentInitials } from '../utils/avatar';
-import type { Agent, AgentScope, AgentStatus } from '../types/agent.types';
+import type { Agent } from '@/lib/trpc-types';
+
+type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
+type AgentCategory = 'engineering' | 'operations' | 'design' | 'qa' | 'research' | 'platform' | 'collaboration' | 'custom';
 
 interface AgentCardProps {
   agent: Agent;
@@ -15,55 +18,41 @@ interface AgentCardProps {
   onDelete?: (agent: Agent) => void;
 }
 
-const scopeColors: Record<AgentScope, string> = {
-  builtin: 'text-blue-400 bg-blue-500/20 border-blue-500/30',
-  user: 'text-green-400 bg-green-500/20 border-green-500/30',
-  project: 'text-purple-400 bg-purple-500/20 border-purple-500/30',
-  plugin: 'text-orange-400 bg-orange-500/20 border-orange-500/30',
+const categoryColors: Record<AgentCategory, string> = {
+  engineering: 'text-blue-400 bg-blue-500/20 border-blue-500/30',
+  operations: 'text-green-400 bg-green-500/20 border-green-500/30',
+  design: 'text-purple-400 bg-purple-500/20 border-purple-500/30',
+  qa: 'text-orange-400 bg-orange-500/20 border-orange-500/30',
+  research: 'text-pink-400 bg-pink-500/20 border-pink-500/30',
+  platform: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30',
+  collaboration: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30',
+  custom: 'text-gray-400 bg-gray-500/20 border-gray-500/30',
 };
 
-const scopeLabels: Record<AgentScope, string> = {
-  builtin: 'Built-in',
-  user: 'User',
-  project: 'Project',
-  plugin: 'Plugin',
-};
-
-const modelColors: Record<string, string> = {
-  'claude-3-opus': 'text-purple-400 bg-purple-500/10',
-  'claude-3-sonnet': 'text-blue-400 bg-blue-500/10',
-  'claude-3-haiku': 'text-green-400 bg-green-500/10',
+const categoryLabels: Record<AgentCategory, string> = {
+  engineering: 'Engineering',
+  operations: 'Operations',
+  design: 'Design',
+  qa: 'QA',
+  research: 'Research',
+  platform: 'Platform',
+  collaboration: 'Collaboration',
+  custom: 'Custom',
 };
 
 const statusConfig: Record<AgentStatus, { dotColor: string; textColor: string; label: string }> = {
   idle: { dotColor: 'bg-gray-400', textColor: 'text-gray-400', label: 'Idle' },
-  running: { dotColor: 'bg-green-400', textColor: 'text-green-400', label: 'Run' },
-  paused: { dotColor: 'bg-yellow-400', textColor: 'text-yellow-400', label: 'Pause' },
-  stopped: { dotColor: 'bg-red-400', textColor: 'text-red-400', label: 'Stop' },
+  active: { dotColor: 'bg-green-400', textColor: 'text-green-400', label: 'Active' },
+  disabled: { dotColor: 'bg-yellow-400', textColor: 'text-yellow-400', label: 'Disabled' },
   error: { dotColor: 'bg-red-500', textColor: 'text-red-500', label: 'Error' },
 };
-
-const permissionLabels: Record<string, { label: string; color: string }> = {
-  default: { label: 'default', color: 'text-gray-400' },
-  acceptEdits: { label: 'accept', color: 'text-blue-400' },
-  bypassPermissions: { label: 'bypass', color: 'text-red-400' },
-  plan: { label: 'plan', color: 'text-purple-400' },
-};
-
-function getModelShort(model: string): string {
-  if (model.includes('opus')) return 'Opus';
-  if (model.includes('sonnet')) return 'Sonnet';
-  if (model.includes('haiku')) return 'Haiku';
-  return model;
-}
 
 export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProps) {
   const { t } = useTranslation('agent');
   const [avatarError, setAvatarError] = useState(false);
   const avatarUrl = getAgentAvatarUrl(agent.agent_id, agent.name);
   const initials = getAgentInitials(agent.name);
-  const status = statusConfig[agent.status];
-  const permission = permissionLabels[agent.permission_mode] ?? permissionLabels.default;
+  const status = statusConfig[agent.status as AgentStatus] || statusConfig.idle;
 
   return (
     <GlassCard className="flex flex-col h-full p-5">
@@ -84,9 +73,9 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold truncate">{agent.name}</h3>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${scopeColors[agent.scope]}`}>
-              {scopeLabels[agent.scope]}
+            <h3 className="text-base font-bold truncate">{agent.display_name || agent.name}</h3>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${categoryColors[agent.category as AgentCategory]}`}>
+              {categoryLabels[agent.category as AgentCategory]}
             </span>
           </div>
         </div>
@@ -121,13 +110,7 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
       </p>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        <div className="p-2 bg-white/5 rounded-xl text-center">
-          <div className="text-[10px] text-gray-500 mb-0.5">Model</div>
-          <div className={`text-xs font-semibold ${modelColors[agent.model] ? modelColors[agent.model].split(' ')[0] : 'text-gray-400'}`}>
-            {getModelShort(agent.model)}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <div className="p-2 bg-white/5 rounded-xl text-center">
           <div className="text-[10px] text-gray-500 mb-0.5">Status</div>
           <div className={`flex items-center justify-center gap-1 ${status.textColor}`}>
@@ -136,60 +119,37 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
           </div>
         </div>
         <div className="p-2 bg-white/5 rounded-xl text-center">
-          <div className="text-[10px] text-gray-500 mb-0.5">Call</div>
-          <div className="text-xs font-semibold text-blue-400">{agent.call_count}</div>
-        </div>
-        <div className="p-2 bg-white/5 rounded-xl text-center">
-          <div className="text-[10px] text-gray-500 mb-0.5">Health</div>
-          <div className="mt-1">
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all"
-                style={{ width: `${agent.health_score}%` }}
-              />
-            </div>
+          <div className="text-[10px] text-gray-500 mb-0.5">Category</div>
+          <div className="text-xs font-semibold text-gray-400">
+            {categoryLabels[agent.category as AgentCategory]}
           </div>
         </div>
       </div>
 
-      {/* Tool Badges */}
+      {/* Capabilities & Tags */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {agent.tools.length > 0 ? (
+        {agent.capabilities && agent.capabilities.length > 0 ? (
           <>
-            {agent.tools.slice(0, 2).map(tool => (
-              <span key={tool} className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                {tool}
+            {agent.capabilities.slice(0, 3).map((cap: string) => (
+              <span key={cap} className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                {cap}
               </span>
             ))}
-            {agent.tools.length > 2 && (
+            {agent.capabilities.length > 3 && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400">
-                +{agent.tools.length - 2}
+                +{agent.capabilities.length - 3}
               </span>
             )}
           </>
         ) : (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-500">
-            {t('card.inheritAllTools')}
+            No capabilities
           </span>
         )}
-        {agent.skills.length > 0 && (
+        {agent.tags && agent.tags.length > 0 && (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center gap-1">
             <Zap size={10} />
-            {agent.skills.length}
-          </span>
-        )}
-      </div>
-
-      {/* Extra Info */}
-      <div className="flex items-center gap-4 mb-4 text-xs">
-        <span className={`flex items-center gap-1 ${permission.color}`}>
-          <Shield size={12} />
-          {permission.label}
-        </span>
-        {agent.memory && (
-          <span className="flex items-center gap-1 text-yellow-400">
-            <Activity size={12} />
-            {agent.memory}
+            {agent.tags.length}
           </span>
         )}
       </div>

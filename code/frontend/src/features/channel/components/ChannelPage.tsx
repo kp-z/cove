@@ -1,6 +1,6 @@
 import { Hash, Users, Lock, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useChannels } from '../hooks/useChannels';
+import { useChannels } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../stores/channelStore';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AgentService } from './agent.service';
+import { AgentResponseService } from './agent-response.service';
 import { AgentRepository } from '../../../infrastructure/database/repositories/agent.repository';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
@@ -106,7 +107,7 @@ describe('AgentService', () => {
   let mockTaskRepository: any;
   let mockMessageRepository: any;
   let mockChannelRepository: any;
-  let mockAgentRuntime: any;
+  let mockAgentResponseService: any;
   let mockEventBus: any;
   let mockLogger: any;
 
@@ -132,10 +133,6 @@ describe('AgentService', () => {
       findById: vi.fn(),
     } as any;
 
-    mockAgentRuntime = {
-      executeTask: vi.fn(),
-    } as any;
-
     mockEventBus = {
       publish: vi.fn(),
       publishBatch: vi.fn(),
@@ -150,14 +147,20 @@ describe('AgentService', () => {
       error: vi.fn(),
       warn: vi.fn(),
       debug: vi.fn(),
+      child: vi.fn().mockReturnThis(),
+      setLevel: vi.fn(),
+    } as any;
+
+    mockAgentResponseService = {
+      handleIncomingMessage: vi.fn(),
+      shouldAgentRespond: vi.fn(),
+      generateAgentResponse: vi.fn(),
     } as any;
 
     agentService = new AgentService(
       mockAgentRepository,
       mockTaskRepository,
-      mockMessageRepository,
-      mockChannelRepository,
-      mockAgentRuntime,
+      mockAgentResponseService,
       mockEventBus,
       mockLogger
     );
@@ -207,251 +210,7 @@ describe('AgentService', () => {
     expect(mockAgentRepository.update).toHaveBeenCalled();
   });
 
-  describe('handleIncomingMessage', () => {
-    it('should handle message when channel has agents', async () => {
-      const message = MessageEntity.create({
-        messageId: 'msg-123',
-        msgShortId: 'msg123',
-        senderId: 'user-1',
-        senderType: 'human',
-        senderName: 'Test User',
-        channelId: 'channel-1',
-        channelName: 'test-channel',
-        threadId: null,
-        isThreadRoot: false,
-        content: 'Hello @agent',
-        contentType: 'text',
-        contentFormat: 'markdown',
-        attachments: [],
-        mentions: [{ mentionType: 'agent', mentionId: 'agent-1', mentionName: 'TestAgent' }],
-        references: [],
-        status: 'sent',
-        isEdited: false,
-        editHistory: [],
-        reactions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      const channel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'test-channel',
-        displayName: 'Test Channel',
-        description: 'Test channel',
-        type: 'public',
-        status: 'active' as const,
-        projectId: 'project-1',
-        agentPool: ['agent-1'],
-        members: [],
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { isArchived: false },
-      });
-
-      const agent = createTestAgent({
-        agentId: 'agent-1',
-        name: 'test-agent',
-        displayName: 'TestAgent',
-        description: 'Test agent',
-        type: 'assistant',
-        status: 'active',
-        capabilities: ['chat'],
-        config: {},
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: {},
-      });
-
-      mockChannelRepository.findById.mockResolvedValue(channel);
-      mockAgentRepository.findById.mockResolvedValue(agent);
-      mockMessageRepository.save.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
-
-      await agentService.handleIncomingMessage(message);
-
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
-      expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-1');
-      expect(mockMessageRepository.save).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalled();
-    });
-
-    it('should skip when channel not found', async () => {
-      const message = MessageEntity.create({
-        messageId: 'msg-123',
-        msgShortId: 'msg123',
-        senderId: 'user-1',
-        senderType: 'human',
-        senderName: 'Test User',
-        channelId: 'channel-1',
-        channelName: 'test-channel',
-        threadId: null,
-        isThreadRoot: false,
-        content: 'Hello',
-        contentType: 'text',
-        contentFormat: 'markdown',
-        attachments: [],
-        mentions: [],
-        references: [],
-        status: 'sent',
-        isEdited: false,
-        editHistory: [],
-        reactions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      mockChannelRepository.findById.mockResolvedValue(null);
-
-      await agentService.handleIncomingMessage(message);
-
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
-      expect(mockAgentRepository.findById).not.toHaveBeenCalled();
-    });
-
-    it('should skip when channel has no agents', async () => {
-      const message = MessageEntity.create({
-        messageId: 'msg-123',
-        msgShortId: 'msg123',
-        senderId: 'user-1',
-        senderType: 'human',
-        senderName: 'Test User',
-        channelId: 'channel-1',
-        channelName: 'test-channel',
-        threadId: null,
-        isThreadRoot: false,
-        content: 'Hello',
-        contentType: 'text',
-        contentFormat: 'markdown',
-        attachments: [],
-        mentions: [],
-        references: [],
-        status: 'sent',
-        isEdited: false,
-        editHistory: [],
-        reactions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      const channel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'test-channel',
-        displayName: 'Test Channel',
-        description: 'Test channel',
-        type: 'public',
-        status: 'active' as const,
-        projectId: 'project-1',
-        agentPool: [],
-        members: [],
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { isArchived: false },
-      });
-
-      mockChannelRepository.findById.mockResolvedValue(channel);
-
-      await agentService.handleIncomingMessage(message);
-
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
-      expect(mockAgentRepository.findById).not.toHaveBeenCalled();
-    });
-
-    it('should continue processing other agents when one fails', async () => {
-      const message = MessageEntity.create({
-        messageId: 'msg-123',
-        msgShortId: 'msg123',
-        senderId: 'user-1',
-        senderType: 'human',
-        senderName: 'Test User',
-        channelId: 'channel-1',
-        channelName: 'test-channel',
-        threadId: null,
-        isThreadRoot: false,
-        content: 'Hello @agent1 @agent2',
-        contentType: 'text',
-        contentFormat: 'markdown',
-        attachments: [],
-        mentions: [
-          { mentionType: 'agent', mentionId: 'agent-1', mentionName: 'Agent1' },
-          { mentionType: 'agent', mentionId: 'agent-2', mentionName: 'Agent2' },
-        ],
-        references: [],
-        status: 'sent',
-        isEdited: false,
-        editHistory: [],
-        reactions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      const channel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'test-channel',
-        displayName: 'Test Channel',
-        description: 'Test channel',
-        type: 'public',
-        status: 'active' as const,
-        projectId: 'project-1',
-        agentPool: ['agent-1', 'agent-2'],
-        members: [],
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { isArchived: false },
-      });
-
-      const agent1 = createTestAgent({
-        agentId: 'agent-1',
-        name: 'agent1',
-        displayName: 'Agent1',
-        description: 'Agent 1',
-        type: 'assistant',
-        status: 'active',
-        capabilities: ['chat'],
-        config: {},
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: {},
-      });
-
-      const agent2 = createTestAgent({
-        agentId: 'agent-2',
-        name: 'agent2',
-        displayName: 'Agent2',
-        description: 'Agent 2',
-        type: 'assistant',
-        status: 'active',
-        capabilities: ['chat'],
-        config: {},
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: {},
-      });
-
-      mockChannelRepository.findById.mockResolvedValue(channel);
-      mockAgentRepository.findById
-        .mockResolvedValueOnce(agent1)
-        .mockResolvedValueOnce(agent2);
-      mockMessageRepository.save
-        .mockRejectedValueOnce(new Error('Save failed'))
-        .mockResolvedValueOnce(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
-
-      await agentService.handleIncomingMessage(message);
-
-      expect(mockAgentRepository.findById).toHaveBeenCalledTimes(2);
-      expect(mockMessageRepository.save).toHaveBeenCalledTimes(2);
-    });
-  });
+  // handleIncomingMessage tests moved to agent-response.service.test.ts
 
   describe('shouldAgentRespond', () => {
     let agent: AgentEntity;
@@ -523,8 +282,11 @@ describe('AgentService', () => {
         status: 'disabled', // Use valid status instead of 'busy'
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(false);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(false);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return false when message is from the agent itself', async () => {
@@ -534,8 +296,11 @@ describe('AgentService', () => {
         senderType: 'agent',
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(false);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(false);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return false when message status is not sent', async () => {
@@ -544,8 +309,11 @@ describe('AgentService', () => {
         status: 'draft', // Use valid status instead of 'pending'
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(false);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(false);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return true when agent is mentioned', async () => {
@@ -554,8 +322,11 @@ describe('AgentService', () => {
         mentions: [{ mentionType: 'agent', mentionId: 'agent-1', mentionName: 'TestAgent' }],
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(true);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(true);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return true in DM channel with agent', async () => {
@@ -570,13 +341,19 @@ describe('AgentService', () => {
         ],
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(true);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(true);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return false in public channel without mention', async () => {
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(false);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(false);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should return true when agent status is idle and mentioned', async () => {
@@ -591,8 +368,11 @@ describe('AgentService', () => {
         mentions: [{ mentionType: 'agent', mentionId: 'agent-1', mentionName: 'TestAgent' }],
       });
 
+      mockAgentResponseService.shouldAgentRespond.mockResolvedValue(true);
+
       const result = await agentService.shouldAgentRespond(agent, message, channel);
       expect(result).toBe(true);
+      expect(mockAgentResponseService.shouldAgentRespond).toHaveBeenCalledWith(agent, message, channel);
     });
   });
 
@@ -660,98 +440,25 @@ describe('AgentService', () => {
     });
 
     it('should generate mock response', async () => {
+      mockAgentResponseService.generateAgentResponse.mockResolvedValue('Mock response from TestAgent');
+
       const response = await agentService.generateAgentResponse(agent, message, channel);
 
       expect(response).toBeDefined();
       expect(typeof response).toBe('string');
       expect(response.length).toBeGreaterThan(0);
+      expect(mockAgentResponseService.generateAgentResponse).toHaveBeenCalledWith(agent, message, channel);
     });
 
     it('should include agent display name in response', async () => {
+      mockAgentResponseService.generateAgentResponse.mockResolvedValue('Response from TestAgent');
+
       const response = await agentService.generateAgentResponse(agent, message, channel);
 
       expect(response).toContain('TestAgent');
+      expect(mockAgentResponseService.generateAgentResponse).toHaveBeenCalledWith(agent, message, channel);
     });
   });
 
-  describe('EventBus integration', () => {
-    it('should publish event when message is sent', async () => {
-      const message = MessageEntity.create({
-        messageId: 'msg-123',
-        msgShortId: 'msg123',
-        senderId: 'user-1',
-        senderType: 'human',
-        senderName: 'Test User',
-        channelId: 'channel-1',
-        channelName: 'test-channel',
-        threadId: null,
-        isThreadRoot: false,
-        content: 'Hello @agent',
-        contentType: 'text',
-        contentFormat: 'markdown',
-        attachments: [],
-        mentions: [{ mentionType: 'agent', mentionId: 'agent-1', mentionName: 'TestAgent' }],
-        references: [],
-        status: 'sent',
-        isEdited: false,
-        editHistory: [],
-        reactions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      const channel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'test-channel',
-        displayName: 'Test Channel',
-        description: 'Test channel',
-        type: 'public',
-        status: 'active' as const,
-        projectId: 'project-1',
-        agentPool: ['agent-1'],
-        members: [],
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { isArchived: false },
-      });
-
-      const agent = createTestAgent({
-        agentId: 'agent-1',
-        name: 'test-agent',
-        displayName: 'TestAgent',
-        description: 'Test agent',
-        type: 'assistant',
-        status: 'active',
-        capabilities: ['chat'],
-        config: {},
-        createdBy: 'user-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: {},
-      });
-
-      mockChannelRepository.findById.mockResolvedValue(channel);
-      mockAgentRepository.findById.mockResolvedValue(agent);
-      mockMessageRepository.save.mockResolvedValue(undefined);
-      mockEventBus.publish.mockResolvedValue(undefined);
-
-      await agentService.handleIncomingMessage(message);
-
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.sent',
-          aggregateType: 'Message',
-        })
-      );
-
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'agent.response_generated',
-          aggregateType: 'Agent',
-        })
-      );
-    });
-  });
+  // EventBus integration tests moved to agent-response.service.test.ts
 });

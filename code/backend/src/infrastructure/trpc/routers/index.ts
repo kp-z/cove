@@ -7,6 +7,7 @@ import { threadRouter } from './thread.router';
 import { userRouter } from './user.router';
 import { workflowRouter } from './workflow.router';
 import { projectRouter } from './project.router';
+import { createSubscriptionRouter } from './subscription.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import type { ChannelService } from '../../../application/services/channel/channel.service';
@@ -16,6 +17,7 @@ import type { ThreadService } from '../../../application/services/thread/thread.
 import type { UserService } from '../../../application/services/user/user.service';
 import type { WorkflowService } from '../../../application/services/workflow/workflow.service';
 import type { ProjectService } from '../../../application/services/project/project.service';
+import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 
 export interface RouterDependencies {
   agentService: AgentService;
@@ -27,6 +29,7 @@ export interface RouterDependencies {
   userService: UserService;
   workflowService: WorkflowService;
   projectService: ProjectService;
+  eventBus: IEventBus;
 }
 
 export function createAppRouter(deps: RouterDependencies) {
@@ -64,6 +67,11 @@ export function createAppRouter(deps: RouterDependencies) {
 
     // Project router
     project: projectRouter(deps.projectService),
+
+    // Subscription router
+    subscription: createSubscriptionRouter({
+      eventBus: deps.eventBus,
+    }),
   });
 }
 

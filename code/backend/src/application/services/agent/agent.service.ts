@@ -26,15 +26,12 @@ import { AssigneeRef } from '../../../domain/models/value-objects';
 import {
   IAgentRepository,
   ITaskRepository,
-  IMessageRepository,
-  IChannelRepository,
-  IAgentRuntime,
   IEventBus,
   ILogger,
   DomainEvent,
   IAgentConfigStore,
 } from '../../interfaces';
-import { AgentNotFoundError, AgentNotAvailableError, AgentInUseError, AgentResponseGenerationError } from './agent.errors';
+import { AgentNotFoundError, AgentNotAvailableError, AgentInUseError } from './agent.errors';
 import { TaskNotFoundError, TaskNotAssignableError } from '../task/task.errors';
 
 export interface CreateAgentDTO {
@@ -61,22 +58,14 @@ export interface AgentAssignTaskDTO {
 }
 
 export class AgentService {
-  private readonly agentResponseService: AgentResponseService;
-
   constructor(
     private readonly agentRepository: IAgentRepository,
     private readonly taskRepository: ITaskRepository,
-    private readonly messageRepository: IMessageRepository,
-    private readonly channelRepository: IChannelRepository,
-    private readonly agentRuntime: IAgentRuntime,
+    private readonly agentResponseService: AgentResponseService,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
     private readonly configStore?: IAgentConfigStore
-  ) {
-    this.agentResponseService = new AgentResponseService(
-      agentRepository, messageRepository, channelRepository, eventBus, logger, configStore
-    );
-  }
+  ) {}
 
   /**
    * 创建新 Agent

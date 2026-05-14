@@ -72,7 +72,7 @@ export class ChannelMessagingService {
     return this.messageRepository.findByChannel(channelId, limit);
   }
 
-  async getThreadMessages(threadId: string, limit?: number): Promise<MessageEntity[]> {
+  async getThreadMessages(threadId: string, _limit?: number): Promise<MessageEntity[]> {
     return this.messageRepository.findByThread(threadId);
   }
 

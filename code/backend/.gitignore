@@ -1,1 +1,30 @@
 .env
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Test artifacts
+coverage/
+test-results.log
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*_REPORT.md
+
+# Cache
+.playwright-mcp/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

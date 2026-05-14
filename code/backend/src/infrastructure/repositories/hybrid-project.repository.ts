@@ -6,12 +6,9 @@
  * - 文件系统：存储完整的 Project 实体 JSON
  */
 
-import { PrismaClient } from '@prisma/client';
 import { HybridRepository } from './hybrid-repository.base';
-import { StorageService } from '../storage/storage.service';
 import { ProjectEntity, ProjectStatus } from '../../domain/models/project/project.entity';
 import { IProjectRepository } from '../../application/interfaces/repositories/project.repository.interface';
-import { ILogger } from '../../application/interfaces/logger.interface';
 
 interface ProjectDbRecord {
   id: string;

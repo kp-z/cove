@@ -11,7 +11,7 @@
  */
 
 import {
-  ExecutionStatus, ExecutionOutcome, FileChangeType,
+  ExecutionStatus,
   VALID_EXECUTION_STATUSES, VALID_EXECUTION_OUTCOMES,
   ExecutionSummary, FileChange, TokenUsage, ExecutionCost,
   ToolCallStat, SkillInvocation, ExecutionError,

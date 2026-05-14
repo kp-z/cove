@@ -1,4 +1,4 @@
-import type { Agent } from '@/features/agent/types/agent.types';
+import type { Agent } from '@/lib/trpc-types';
 
 export const fullAgentFixtures: Agent[] = [
   {

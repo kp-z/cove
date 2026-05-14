@@ -1,5 +1,5 @@
 import { WorkflowEntity, WorkflowTrigger } from '../../../domain/models/workflow/workflow.entity';
-import { IWorkflowRepository, IEventBus, ILogger, DomainEvent } from '../../interfaces';
+import { IWorkflowRepository, IEventBus, ILogger } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.service';
 
 export interface AddTriggerDTO {

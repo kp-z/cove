@@ -2,18 +2,15 @@ import { TaskEntity, TaskStatus, TaskPriority } from '../../../domain/models/tas
 import { ActorRef } from '../../../domain/models/value-objects';
 import {
   ITaskRepository,
-  IAgentRepository,
   IMessageRepository,
   IEventBus,
-  IEventPublisher,
   ILogger,
   DomainEvent,
 } from '../../interfaces';
 import { TaskStatusService } from './task-status.service';
 import { TaskAssignmentService } from './task-assignment.service';
 import type { AssignTaskDTO, ClaimTaskDTO, AddDependencyDTO, RemoveDependencyDTO } from './task-assignment.service';
-import { TaskNotFoundError, TaskNotAssignableError, TaskNotDeletableError } from './task.errors';
-import { AgentNotFoundError } from '../agent/agent.errors';
+import { TaskNotFoundError, TaskNotDeletableError } from './task.errors';
 import { MessageNotFoundError } from '../message/message.errors';
 
 export { TaskNotFoundError } from './task.errors';
@@ -39,20 +36,14 @@ export interface UpdateTaskDTO {
 export type { AssignTaskDTO, ClaimTaskDTO, AddDependencyDTO, RemoveDependencyDTO };
 
 export class TaskService {
-  private readonly taskStatusService: TaskStatusService;
-  private readonly taskAssignmentService: TaskAssignmentService;
-
   constructor(
     private readonly taskRepository: ITaskRepository,
-    private readonly agentRepository: IAgentRepository,
+    private readonly taskStatusService: TaskStatusService,
+    private readonly taskAssignmentService: TaskAssignmentService,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
-    private readonly messageRepository?: IMessageRepository,
-    private readonly eventPublisher?: IEventPublisher
-  ) {
-    this.taskStatusService = new TaskStatusService(taskRepository, eventBus, logger, eventPublisher);
-    this.taskAssignmentService = new TaskAssignmentService(taskRepository, agentRepository, eventBus, logger, eventPublisher);
-  }
+    private readonly messageRepository?: IMessageRepository
+  ) {}
 
   async createTask(dto: CreateTaskDTO): Promise<TaskEntity> {
     this.logger.info('Creating new task', { title: dto.title });
@@ -196,9 +187,6 @@ export class TaskService {
       occurredAt: new Date(),
       payload: { taskId: task.taskId, title, channelId: message.channelId, sourceMessageId: messageId, taskNumber, createdBy },
     });
-    await this.publishWsEvent('task_created', message.channelId, {
-      taskId: task.taskId, title, taskNumber, sourceMessageId: messageId,
-    });
 
     return task;
   }
@@ -236,15 +224,6 @@ export class TaskService {
       this.logger.error('Failed to publish event', error as Error, {
         eventType: event.eventType, aggregateId: event.aggregateId,
       });
-    }
-  }
-
-  private async publishWsEvent(eventType: string, channelId: string, payload: Record<string, unknown>): Promise<void> {
-    if (!this.eventPublisher) return;
-    try {
-      await this.eventPublisher.publish(eventType, channelId, payload);
-    } catch (error) {
-      this.logger.error('Failed to publish WS event', error as Error, { eventType, channelId });
     }
   }
 }

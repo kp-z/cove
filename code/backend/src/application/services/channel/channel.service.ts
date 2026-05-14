@@ -23,12 +23,11 @@ import {
   ILogger,
   DomainEvent,
   IChannelQueryService,
-  IEventPublisher,
 } from '../../interfaces';
 
 
 import { ChannelMessagingService, ChannelSendMessageDTO } from './channel-messaging.service';
-import { ChannelNotFoundError, ChannelNotActiveError, ChannelNotArchivedError, MemberNotInChannelError } from './channel.errors';
+import { ChannelNotFoundError, ChannelNotArchivedError } from './channel.errors';
 
 export interface CreateChannelDTO {
   readonly name: string;
@@ -57,17 +56,13 @@ export interface RemoveMemberDTO {
 
 
 export class ChannelService implements IChannelQueryService {
-  private readonly messagingService: ChannelMessagingService;
-
   constructor(
     private readonly channelRepository: IChannelRepository,
     private readonly messageRepository: IMessageRepository,
+    private readonly messagingService: ChannelMessagingService,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger,
-    private readonly eventPublisher?: IEventPublisher
-  ) {
-    this.messagingService = new ChannelMessagingService(channelRepository, messageRepository, eventBus, logger);
-  }
+    private readonly logger: ILogger
+  ) {}
   async createChannel(dto: CreateChannelDTO): Promise<ChannelEntity> {
     this.logger.info('Creating new channel', { name: dto.name, type: dto.type });
 
@@ -320,11 +315,6 @@ export class ChannelService implements IChannelQueryService {
 
     this.logger.info('Member added to channel successfully', { ...dto });
 
-    await this.publishWsEvent('channel_member_joined', dto.channelId, {
-      channelId: dto.channelId,
-      memberId: dto.memberId,
-    });
-
     return updatedChannel;
   }
 
@@ -363,11 +353,6 @@ export class ChannelService implements IChannelQueryService {
     });
 
     this.logger.info('Member removed from channel successfully', { ...dto });
-
-    await this.publishWsEvent('channel_member_left', dto.channelId, {
-      channelId: dto.channelId,
-      memberId: dto.memberId,
-    });
 
     return updatedChannel;
   }
@@ -476,10 +461,6 @@ export class ChannelService implements IChannelQueryService {
     return `channel-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  private generateMessageId(): string {
-    return `message-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
   private generateEventId(): string {
     return `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
@@ -492,15 +473,6 @@ export class ChannelService implements IChannelQueryService {
         eventType: event.eventType,
         aggregateId: event.aggregateId,
       });
-    }
-  }
-
-  private async publishWsEvent(eventType: string, channelId: string, payload: Record<string, unknown>): Promise<void> {
-    if (!this.eventPublisher) return;
-    try {
-      await this.eventPublisher.publish(eventType, channelId, payload);
-    } catch (error) {
-      this.logger.error('Failed to publish WS event', error as Error, { eventType, channelId });
     }
   }
 }

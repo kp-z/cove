@@ -358,12 +358,6 @@ export class ProjectCompositionService {
     return channels;
   }
 
-  private async findProject(projectId: string): Promise<ProjectEntity> {
-    const project = await this.projectRepository.findById(projectId);
-    if (!project) throw new ProjectNotFoundError(projectId);
-    return project;
-  }
-
   private generateEventId(): string {
     return `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }

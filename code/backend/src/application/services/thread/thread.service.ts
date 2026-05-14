@@ -18,18 +18,14 @@ import { MessageEntity, SenderType } from '../../../domain/models/message/messag
 import {
   IThreadRepository,
   IMessageRepository,
-  IEventBus,
   ILogger,
-  IEventPublisher,
 } from '../../interfaces';
 
 export class ThreadService {
   constructor(
     private readonly threadRepository: IThreadRepository,
     private readonly messageRepository: IMessageRepository,
-    private readonly eventBus: IEventBus,
-    private readonly logger: ILogger,
-    private readonly eventPublisher?: IEventPublisher,
+    private readonly logger: ILogger
   ) {}
 
   async getOrCreateThread(rootMessageId: string): Promise<ThreadEntity> {
@@ -114,20 +110,12 @@ export class ThreadService {
     const updatedThread = thread.addReply().addParticipant(senderId);
     await this.threadRepository.update(updatedThread);
 
-    await this.publishWsEvent('new_message', thread.channelId, {
-      messageId,
-      channelId: thread.channelId,
-      senderId,
-      content,
-      threadId: rootMessageId,
-    });
-
     this.logger.info('Thread reply sent', { threadId: rootMessageId, messageId });
 
     return message;
   }
 
-  async listThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<MessageEntity[]> {
+  async listThreadMessages(threadId: string, _cursor?: string, _limit?: number): Promise<MessageEntity[]> {
     return this.messageRepository.findByThread(threadId);
   }
 
@@ -139,15 +127,6 @@ export class ThreadService {
 
   private generateMessageId(): string {
     return `message-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private async publishWsEvent(eventType: string, channelId: string, payload: Record<string, unknown>): Promise<void> {
-    if (!this.eventPublisher) return;
-    try {
-      await this.eventPublisher.publish(eventType, channelId, payload);
-    } catch (error) {
-      this.logger.error('Failed to publish WS event', error as Error, { eventType, channelId });
-    }
   }
 }
 

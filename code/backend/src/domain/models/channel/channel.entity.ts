@@ -15,7 +15,7 @@
  */
 
 import {
-  ChannelType, ChannelStatus, MemberRole, MemberType,
+  ChannelType, ChannelStatus, MemberRole,
   VALID_CHANNEL_TYPES, VALID_CHANNEL_STATUSES, VALID_MEMBER_ROLES,
   ChannelMember, ConversationRef, CommunicationRules, ChannelWorkspace,
   ChannelEntityProps, ChannelEntityJSON,

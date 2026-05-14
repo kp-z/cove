@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChannelService, ChannelNotFoundError, ChannelNotActiveError, ChannelNotArchivedError, MemberNotInChannelError } from './channel.service';
+import { ChannelMessagingService } from './channel-messaging.service';
 import { ChannelEntity, ChannelEntityProps } from '../../../domain/models/channel/channel.entity';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import {
@@ -60,6 +61,7 @@ describe('ChannelService', () => {
   let channelService: ChannelService;
   let mockChannelRepository: IChannelRepository;
   let mockMessageRepository: IMessageRepository;
+  let mockMessagingService: ChannelMessagingService;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
 
@@ -110,9 +112,18 @@ describe('ChannelService', () => {
       fatal: vi.fn(),
     };
 
+    // Create ChannelMessagingService instance
+    mockMessagingService = new ChannelMessagingService(
+      mockChannelRepository,
+      mockMessageRepository,
+      mockEventBus,
+      mockLogger
+    );
+
     channelService = new ChannelService(
       mockChannelRepository,
       mockMessageRepository,
+      mockMessagingService,
       mockEventBus,
       mockLogger
     );

@@ -6,7 +6,13 @@ import { http } from 'msw';
 import { db } from '../utils/database';
 import { createSuccessResponse, ErrorResponses } from '../utils/response';
 import { createMessage } from '../fixtures/channel.fixtures';
-import type { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, ReactionDTO } from '@/features/channel/types';
+import type { RouterInputs } from '@/lib/trpc-types';
+
+// Type aliases for handler DTOs
+type SendMessageDTO = RouterInputs['message']['send'];
+type UpdateMessageDTO = RouterInputs['message']['update'];
+type DeleteMessageDTO = { messageId: string; deleted_by: string };
+type ReactionDTO = RouterInputs['message']['addReaction'];
 
 const BASE_URL = '/api';
 

@@ -15,7 +15,7 @@
 
 
 import {
-  SenderType, MessageStatus, ContentType, ContentFormat, MentionType, ReferenceType,
+  SenderType, MessageStatus, ContentType, ContentFormat,
   VALID_SENDER_TYPES, VALID_MESSAGE_STATUSES, VALID_CONTENT_TYPES, VALID_CONTENT_FORMATS,
   MessageAttachment, MessageMention, MessageReference, MessageReaction, MessageEditHistory,
   MessageEntityProps, MessageEntityJSON,

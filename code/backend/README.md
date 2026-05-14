@@ -56,6 +56,8 @@ Features:
 - Error tracking with stack traces
 - Procedure execution from DevTools
 
+**Note**: tRPC v11 has built-in DevTools support. No additional client packages (like `trpc-client-devtools-link`) are needed.
+
 ## API Endpoints
 
 - **Health Check**: `GET /trpc/health.check`

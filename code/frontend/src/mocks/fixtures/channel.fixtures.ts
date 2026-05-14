@@ -1,4 +1,18 @@
-import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/types';
+import type { Message, Channel } from '@/lib/trpc-types';
+
+// Type aliases for mock fixtures
+type MessageEntity = Message;
+type ChannelEntity = Channel;
+type AgentEntity = {
+  agent_id: string;
+  name: string;
+  description?: string;
+  model: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export const agentFixtures: AgentEntity[] = [
   {

@@ -47,7 +47,6 @@ model Project {
   owner       User      @relation("ProjectOwner", fields: [ownerId], references: [id])
   channels    Channel[]
   tasks       Task[]
-  agents      Agent[]
   workflows   Workflow[]
 
   @@index([ownerId])
@@ -74,9 +73,10 @@ model Channel {
 
   project       Project?  @relation(fields: [projectId], references: [id])
   parentChannel Channel?  @relation("ChannelThread", fields: [parentChannelId], references: [id])
-  threads       Channel[] @relation("ChannelThread")
+  subChannels   Channel[] @relation("ChannelThread")
   members       Member[]
   messages      Message[]
+  messageThreads Thread[]
 
   @@index([projectId])
   @@index([type])
@@ -184,19 +184,15 @@ model Workflow {
 model Agent {
   id          String   @id
   name        String
-  type        String   // assistant | executor | monitor
-  status      String   // idle | running | paused | stopped
-  projectId   String
+  displayName String
+  status      String   // idle | running | paused | stopped | error
+  category    String   // assistant | executor | monitor | custom
   configPath  String   // 指向 .cove/storage/agents/{id}.json
-  workspacePath String // 指向 .cove/storage/agents/{id}/
   createdAt   DateTime
-  updatedAt   DateTime
 
-  project     Project  @relation(fields: [projectId], references: [id])
-
-  @@index([projectId])
   @@index([status])
-  @@index([type])
+  @@index([category])
+  @@index([name])
 }
 
 // ============================================
@@ -215,4 +211,25 @@ model Attachment {
 
   @@index([messageId])
   @@index([uploadedBy])
+}
+
+// ============================================
+// 线程
+// ============================================
+
+model Thread {
+  id            String   @id
+  channelId     String
+  rootMessageId String   @unique
+  participants  String   // JSON array of user IDs
+  replyCount    Int      @default(0)
+  detailsPath   String   // 指向 .cove/storage/threads/{id}.json
+  lastReplyAt   DateTime?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  channel       Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([rootMessageId])
 }

@@ -23,7 +23,6 @@ import {
   ILogger,
   DomainEvent,
   IChannelQueryService,
-  IEventPublisher,
 } from '../../interfaces';
 import {
   MessageNotFoundError,
@@ -70,8 +69,7 @@ export class MessageService {
     private readonly messageRepository: IMessageRepository,
     private readonly channelQueryService: IChannelQueryService,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger,
-    private readonly eventPublisher?: IEventPublisher
+    private readonly logger: ILogger
   ) {}
 
   /**
@@ -133,7 +131,7 @@ export class MessageService {
     // 发布事件
     await this.publishEvent({
       eventId: this.generateEventId(),
-      eventType: 'message.sent',
+      eventType: 'message.created',
       aggregateId: messageId,
       aggregateType: 'Message',
       occurredAt: new Date(),
@@ -148,13 +146,6 @@ export class MessageService {
     });
 
     this.logger.info('Message sent successfully', { messageId });
-
-    await this.publishWsEvent('new_message', dto.channelId, {
-      messageId,
-      channelId: dto.channelId,
-      senderId: dto.senderId,
-      content: dto.content,
-    });
 
     return message;
   }
@@ -189,7 +180,7 @@ export class MessageService {
   /**
    * 根据 Thread 获取 Messages
    */
-  async getMessagesByThread(threadId: string, limit?: number): Promise<MessageEntity[]> {
+  async getMessagesByThread(threadId: string, _limit?: number): Promise<MessageEntity[]> {
     return await this.messageRepository.findByThread(threadId);
   }
 
@@ -226,12 +217,6 @@ export class MessageService {
         messageId: dto.messageId,
         content: dto.content,
       },
-    });
-
-    await this.publishWsEvent('message_updated', message.channelId, {
-      messageId: dto.messageId,
-      action: 'edited',
-      content: dto.content,
     });
 
     this.logger.info('Message updated successfully', { messageId: dto.messageId });
@@ -342,11 +327,6 @@ export class MessageService {
 
     this.logger.info('Message deleted successfully', { messageId: dto.messageId });
 
-    await this.publishWsEvent('message_updated', message.channelId, {
-      messageId: dto.messageId,
-      action: 'deleted',
-    });
-
     return deletedMessage;
   }
 
@@ -435,15 +415,6 @@ export class MessageService {
         eventType: event.eventType,
         aggregateId: event.aggregateId,
       });
-    }
-  }
-
-  private async publishWsEvent(eventType: string, channelId: string, payload: Record<string, unknown>): Promise<void> {
-    if (!this.eventPublisher) return;
-    try {
-      await this.eventPublisher.publish(eventType, channelId, payload);
-    } catch (error) {
-      this.logger.error('Failed to publish WS event', error as Error, { eventType, channelId });
     }
   }
 }

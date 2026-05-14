@@ -7,24 +7,23 @@
  * - 实现 Application Layer 定义的接口
  * - 提供数据持久化（Repositories）
  * - 提供事件总线（EventBus）
- * - 提供 WebSocket 服务（WebSocketServer）
  * - 提供 Agent Runtime（MockAgentRuntime）
  */
 
 // Repositories
 export {
-  InMemoryMessageRepository,
-  InMemoryChannelRepository,
-  InMemoryAgentRepository,
-  InMemoryThreadRepository,
-  InMemoryTaskRepository,
+  HybridAgentRepository,
+  HybridChannelRepository,
+  HybridMessageRepository,
+  HybridTaskRepository,
+  HybridThreadRepository,
+  HybridUserRepository,
+  HybridProjectRepository,
+  HybridWorkflowRepository,
 } from './repositories';
 
 // Event Bus
 export { InMemoryEventBus } from './events';
-
-// WebSocket
-export { WebSocketServer, ConnectionManager, SubscriptionManager, WebSocketEventPublisher } from './websocket';
 
 // Agent Runtime
 export { MockAgentRuntime } from './agent-runtime';

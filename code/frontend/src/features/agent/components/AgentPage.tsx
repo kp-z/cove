@@ -14,9 +14,9 @@ import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { AgentCard } from './AgentCard';
-import type { Agent, AgentScope } from '../types/agent.types';
+import type { Agent } from '@/lib/trpc-types';
 
-type ScopeFilter = AgentScope | 'all';
+type ScopeFilter = 'all' | 'user' | 'project' | 'builtin' | 'plugin';
 
 const scopeFilterItems: { key: ScopeFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: '📋' },
@@ -40,14 +40,15 @@ export default function AgentPage() {
     if (!agents) return [];
     let result = agents;
 
-    if (selectedScope !== 'all') {
-      result = result.filter(a => a.scope === selectedScope);
-    }
+    // Note: backend doesn't have 'scope' field yet, filtering disabled
+    // if (selectedScope !== 'all') {
+    //   result = result.filter(a => a.scope === selectedScope);
+    // }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        a => a.name.toLowerCase().includes(query) || a.description.toLowerCase().includes(query),
+        a => a.name.toLowerCase().includes(query) || (a.description && a.description.toLowerCase().includes(query)),
       );
     }
 
@@ -57,9 +58,10 @@ export default function AgentPage() {
   const scopeCounts = useMemo(() => {
     if (!agents) return {} as Record<ScopeFilter, number>;
     const counts: Record<string, number> = { all: agents.length };
-    for (const agent of agents) {
-      counts[agent.scope] = (counts[agent.scope] ?? 0) + 1;
-    }
+    // Note: backend doesn't have 'scope' field yet, all agents counted as 'all'
+    // for (const agent of agents) {
+    //   counts[agent.scope] = (counts[agent.scope] ?? 0) + 1;
+    // }
     return counts as Record<ScopeFilter, number>;
   }, [agents]);
 

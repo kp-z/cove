@@ -9,6 +9,7 @@
  */
 
 import { AgentService, CreateAgentDTO, UpdateAgentDTO, AssignTaskDTO } from './agent.service';
+import { AgentResponseService } from './agent-response.service';
 import { AgentEntity, AgentStatus } from '../../../domain/models/agent/agent.entity';
 import { TaskEntity, TaskStatus } from '../../../domain/models/task/task.entity';
 import { AssigneeRef } from '../../../domain/models/value-objects';
@@ -202,6 +203,14 @@ class MockLogger implements ILogger {
     this.logs.push({ level: 'error', message, context: { ...context, error } });
   }
 
+  child(context: Record<string, any>): ILogger {
+    return this;
+  }
+
+  setLevel(level: string): void {
+    // No-op for mock
+  }
+
   // Test helpers
   clear(): void {
     this.logs = [];
@@ -251,27 +260,33 @@ describe('AgentService', () => {
   let service: AgentService;
   let agentRepository: MockAgentRepository;
   let taskRepository: MockTaskRepository;
-  let messageRepository: any; // Mock for IMessageRepository
-  let channelRepository: any; // Mock for IChannelRepository
-  let agentRuntime: MockAgentRuntime;
+  let agentResponseService: AgentResponseService;
+  let messageRepository: any;
+  let channelRepository: any;
   let eventBus: MockEventBus;
   let logger: MockLogger;
 
   beforeEach(() => {
     agentRepository = new MockAgentRepository();
     taskRepository = new MockTaskRepository();
-    messageRepository = {}; // Minimal mock - not used in these tests
-    channelRepository = {}; // Minimal mock - not used in these tests
-    agentRuntime = new MockAgentRuntime();
+    messageRepository = {}; // Minimal mock
+    channelRepository = {}; // Minimal mock
     eventBus = new MockEventBus();
     logger = new MockLogger();
+
+    // Create AgentResponseService with mocked dependencies
+    agentResponseService = new AgentResponseService(
+      agentRepository,
+      messageRepository,
+      channelRepository,
+      eventBus,
+      logger
+    );
 
     service = new AgentService(
       agentRepository,
       taskRepository,
-      messageRepository,
-      channelRepository,
-      agentRuntime,
+      agentResponseService,
       eventBus,
       logger
     );

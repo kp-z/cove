@@ -1,13 +1,10 @@
-import { TaskEntity, TaskStatus } from '../../../domain/models/task/task.entity';
-import { AgentEntity } from '../../../domain/models/agent/agent.entity';
+import { TaskEntity } from '../../../domain/models/task/task.entity';
 import { AssigneeRef } from '../../../domain/models/value-objects';
 import {
   ITaskRepository,
   IAgentRepository,
   IEventBus,
-  IEventPublisher,
   ILogger,
-  DomainEvent,
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
@@ -39,8 +36,7 @@ export class TaskAssignmentService {
     private readonly taskRepository: ITaskRepository,
     private readonly agentRepository: IAgentRepository,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger,
-    private readonly eventPublisher?: IEventPublisher
+    private readonly logger: ILogger
   ) {}
 
   async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> {
@@ -102,13 +98,6 @@ export class TaskAssignmentService {
       assigneeType: dto.assigneeType,
     });
 
-    await this.publishWsEvent('task_claimed', claimed.channelId, {
-      taskId: dto.taskId,
-      assigneeId: dto.assigneeId,
-      assigneeType: dto.assigneeType,
-      status: claimed.status,
-    });
-
     return claimed;
   }
 
@@ -119,9 +108,6 @@ export class TaskAssignmentService {
     await this.taskRepository.update(unclaimed);
 
     await this.publishEvent('task.unclaimed', taskId, { taskId, userId });
-    await this.publishWsEvent('task_updated', unclaimed.channelId, {
-      taskId, userId, status: unclaimed.status,
-    });
 
     return unclaimed;
   }
@@ -167,15 +153,6 @@ export class TaskAssignmentService {
       });
     } catch (error) {
       this.logger.error('Failed to publish event', error as Error, { eventType, aggregateId });
-    }
-  }
-
-  private async publishWsEvent(eventType: string, channelId: string, payload: Record<string, unknown>): Promise<void> {
-    if (!this.eventPublisher) return;
-    try {
-      await this.eventPublisher.publish(eventType, channelId, payload);
-    } catch (error) {
-      this.logger.error('Failed to publish WS event', error as Error, { eventType, channelId });
     }
   }
 }

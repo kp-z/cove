@@ -6,12 +6,9 @@
  * - 文件系统：存储完整的 User 实体 JSON
  */
 
-import { PrismaClient } from '@prisma/client';
 import { HybridRepository } from './hybrid-repository.base';
-import { StorageService } from '../storage/storage.service';
 import { UserEntity, UserRole } from '../../domain/models/user/user.entity';
 import { IUserRepository } from '../../application/interfaces/repositories/user.repository.interface';
-import { ILogger } from '../../application/interfaces/logger.interface';
 
 interface UserDbRecord {
   id: string;

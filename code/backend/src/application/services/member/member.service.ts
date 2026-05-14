@@ -8,7 +8,7 @@
  * - 成员统计更新
  */
 
-import { MemberEntity, MemberRole, MemberStatus } from '../../../domain/models/member/member.entity';
+import { MemberEntity, MemberRole } from '../../../domain/models/member/member.entity';
 import {
   IMemberRepository,
   IChannelRepository,

@@ -3,11 +3,60 @@ import { useTranslation } from 'react-i18next';
 import { ChannelTabs } from './ChannelTabs';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
-import type { Channel, Thread, Message, ChannelPanelProps } from './types';
-import type { MessageEntity } from '../../types';
-import { useChannel } from '../../hooks/useChannel';
-import { useMessages } from '../../hooks/useMessages';
-import { useSendMessage } from '../../hooks/useSendMessage';
+import type { Message as MessageEntity } from '@/lib/trpc-types';
+import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
+
+// UI-specific types
+type ChannelType = 'public' | 'private' | 'dm' | 'thread';
+
+interface Channel {
+  channel_id: string;
+  type: ChannelType;
+  name: string;
+  description?: string;
+  unread_count: number;
+  last_activity: Date;
+  is_pinned: boolean;
+  metadata?: {
+    project_id?: string;
+    workflow_id?: string;
+    okr_id?: string;
+    agent_id?: string;
+  };
+}
+
+interface Thread {
+  thread_id: string;
+  channel_id: string;
+  title: string;
+  is_pinned: boolean;
+  title_locked?: boolean;
+  last_activity: Date;
+  message_count: number;
+  unread_count: number;
+  status?: 'active' | 'archived';
+  execution_id?: number;
+}
+
+type MessageSender = 'user' | 'agent' | 'system';
+
+interface Message {
+  message_id: string;
+  thread_id: string;
+  sender: MessageSender;
+  sender_name: string;
+  sender_avatar?: string;
+  content: string;
+  timestamp: Date;
+  is_streaming?: boolean;
+}
+
+interface ChannelPanelProps {
+  channel_id: string;
+  thread_id?: string | null;
+  onClose?: () => void;
+  className?: string;
+}
 
 function messageEntityToMessage(entity: MessageEntity): Message {
   return {
@@ -30,7 +79,7 @@ export function ChannelPanel({
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreadId || null);
 
-  const { data: channelData, isLoading: channelLoading } = useChannel(channel_id);
+  const { data: channelData, isLoading: channelLoading } = useChannels();
   const { data: messageEntities, isLoading: messagesLoading } = useMessages(channel_id, activeThreadId);
   const sendMessage = useSendMessage();
 

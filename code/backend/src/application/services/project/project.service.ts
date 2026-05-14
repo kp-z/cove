@@ -26,8 +26,6 @@ import {
   DomainEvent,
 } from '../../interfaces';
 
-import { ProjectCompositionService } from './project-composition.service';
-
 export interface CreateProjectDTO {
   readonly name: string;
   readonly description?: string;
@@ -43,17 +41,13 @@ export interface UpdateProjectDTO {
 
 
 export class ProjectService {
-  private readonly compositionService: ProjectCompositionService;
-
   constructor(
     private readonly projectRepository: IProjectRepository,
     private readonly agentRepository: IAgentRepository,
     private readonly channelRepository: IChannelRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger
-  ) {
-    this.compositionService = new ProjectCompositionService(projectRepository, agentRepository, channelRepository, eventBus, logger);
-  }
+  ) {}
   async createProject(dto: CreateProjectDTO): Promise<ProjectEntity> {
     this.logger.info('Creating new project', { name: dto.name });
 

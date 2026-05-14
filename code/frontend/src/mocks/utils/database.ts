@@ -1,7 +1,20 @@
 import { channelFixtures, messageFixtures, agentFixtures } from '../fixtures';
 import { fullAgentFixtures } from '../fixtures/agent.fixtures';
-import type { MessageEntity, ChannelEntity, AgentEntity } from '@/features/channel/types';
-import type { Agent } from '@/features/agent/types/agent.types';
+import type { Message, Channel, Agent } from '@/lib/trpc-types';
+
+// Type aliases for mock database
+type MessageEntity = Message;
+type ChannelEntity = Channel;
+type AgentEntity = {
+  agent_id: string;
+  name: string;
+  description?: string;
+  model: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
 
 interface DatabaseState {
   messages: Map<string, MessageEntity>;

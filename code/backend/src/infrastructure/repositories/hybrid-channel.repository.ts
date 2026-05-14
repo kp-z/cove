@@ -1,9 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { HybridRepository } from './hybrid-repository.base';
-import { StorageService } from '../storage/storage.service';
 import { ChannelEntity } from '../../domain/models/channel/channel.entity';
 import { IChannelRepository } from '../../application/interfaces/repositories/channel.repository.interface';
-import { ILogger } from '../../application/interfaces/logger.interface';
 import type { ChannelType } from '../../domain/models/channel/channel.types';
 
 interface ChannelDbRecord {

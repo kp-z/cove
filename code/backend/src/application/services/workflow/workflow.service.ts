@@ -15,7 +15,6 @@
  */
 
 import { WorkflowEntity, WorkflowStatus, WorkflowStep, WorkflowTrigger } from '../../../domain/models/workflow/workflow.entity';
-import { TaskEntity } from '../../../domain/models/task/task.entity';
 import {
   IWorkflowRepository,
   ITaskRepository,
@@ -41,19 +40,13 @@ export interface UpdateWorkflowDTO {
 }
 
 
-import { WorkflowTriggerService } from './workflow-trigger.service';
-
 export class WorkflowService {
-  private readonly triggerService: WorkflowTriggerService;
-
   constructor(
     private readonly workflowRepository: IWorkflowRepository,
     private readonly taskRepository: ITaskRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger
-  ) {
-    this.triggerService = new WorkflowTriggerService(workflowRepository, eventBus, logger);
-  }
+  ) {}
 
   /**
    * 创建新 Workflow

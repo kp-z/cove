@@ -19,8 +19,6 @@ export interface MentionParseResult {
 }
 
 export class MessageMentionService {
-  private readonly mentionPattern = /@(\w+)/g;
-
   /**
    * 解析消息内容，提取所有 @mention
    */

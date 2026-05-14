@@ -9,13 +9,13 @@
  * 依赖：
  * - IAgentRepository: Agent 数据访问
  * - IRuntimeAdapter: 运行时适配器
- * - IEventPublisher: 事件发布（可选）
+ * - IEventBus: 事件发布
  * - ILogger: 日志记录
  */
 
 import {
   IAgentRepository,
-  IEventPublisher,
+  IEventBus,
   ILogger,
   IRuntimeAdapter,
 } from '../../interfaces';
@@ -25,7 +25,7 @@ export class AgentRuntimeService {
   constructor(
     private readonly agentRepository: IAgentRepository,
     private readonly runtimeAdapter: IRuntimeAdapter,
-    private readonly eventPublisher: IEventPublisher | undefined,
+    private readonly eventBus: IEventBus,
     private readonly logger: ILogger
   ) {}
 
@@ -46,12 +46,17 @@ export class AgentRuntimeService {
 
     await this.runtimeAdapter.startAgent(agentId, agent.runtimeConfig!);
 
-    if (this.eventPublisher) {
-      await this.eventPublisher.publish('agent_status_changed', '', {
+    await this.eventBus.publish({
+      eventId: this.generateEventId(),
+      eventType: 'agent_status_changed',
+      aggregateId: agentId,
+      aggregateType: 'Agent',
+      occurredAt: new Date(),
+      payload: {
         agentId,
         status: 'running',
-      });
-    }
+      },
+    });
 
     this.logger.info('Agent runtime started', { agentId });
   }
@@ -69,12 +74,17 @@ export class AgentRuntimeService {
 
     await this.runtimeAdapter.stopAgent(agentId);
 
-    if (this.eventPublisher) {
-      await this.eventPublisher.publish('agent_status_changed', '', {
+    await this.eventBus.publish({
+      eventId: this.generateEventId(),
+      eventType: 'agent_status_changed',
+      aggregateId: agentId,
+      aggregateType: 'Agent',
+      occurredAt: new Date(),
+      payload: {
         agentId,
         status: 'stopped',
-      });
-    }
+      },
+    });
 
     this.logger.info('Agent runtime stopped', { agentId });
   }
@@ -85,6 +95,10 @@ export class AgentRuntimeService {
   async getStatus(agentId: string): Promise<{ status: string }> {
     const status = await this.runtimeAdapter.getRuntimeStatus(agentId);
     return { status };
+  }
+
+  private generateEventId(): string {
+    return `evt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 }
 

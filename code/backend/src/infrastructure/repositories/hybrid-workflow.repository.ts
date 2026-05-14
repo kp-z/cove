@@ -6,12 +6,9 @@
  * - 文件系统：存储完整的 Workflow 实体 JSON
  */
 
-import { PrismaClient } from '@prisma/client';
 import { HybridRepository } from './hybrid-repository.base';
-import { StorageService } from '../storage/storage.service';
 import { WorkflowEntity, WorkflowStatus } from '../../domain/models/workflow/workflow.entity';
 import { IWorkflowRepository } from '../../application/interfaces/repositories/workflow.repository.interface';
-import { ILogger } from '../../application/interfaces/logger.interface';
 
 interface WorkflowDbRecord {
   id: string;
