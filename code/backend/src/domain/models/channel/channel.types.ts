@@ -39,6 +39,36 @@ export interface ChannelWorkspace {
   readonly attachments: string;
 }
 
+// 文件存储内容类型（用于 Repository 层）
+export interface ChannelContent {
+  description?: string;
+  icon?: string;
+  members: Array<{
+    memberId: string;
+    memberType: MemberType;
+    role: MemberRole;
+    joinedAt: string;
+  }>;
+  agentPool: string[];
+  taskPool: string[];
+  conversationPool: Array<{
+    conversationId: string;
+    agentId: string;
+    status: 'active' | 'archived';
+    messageCount: number;
+  }>;
+  communicationRules: CommunicationRules;
+  workspace: ChannelWorkspace;
+  meta: {
+    tags?: string[];
+    category?: string;
+    createdBy: {
+      id: string;
+      type: MemberType;
+    };
+  };
+}
+
 export interface ChannelEntityProps {
   readonly channelId: string;
   readonly name: string;

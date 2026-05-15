@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { IncomingMessage, ServerResponse } from 'http';
 import { messageRouter } from './message.router';
 import { MessageService } from '../../../application/services/message/message.service';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
@@ -7,6 +8,7 @@ import { TRPCError } from '@trpc/server';
 describe('messageRouter', () => {
   let mockMessageService: MessageService;
   let router: ReturnType<typeof messageRouter>;
+  let mockContext: any;
 
   beforeEach(() => {
     mockMessageService = {
@@ -19,6 +21,21 @@ describe('messageRouter', () => {
       removeReaction: vi.fn(),
       getMessagesByThread: vi.fn(),
     } as unknown as MessageService;
+
+    mockContext = {
+      logger: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+      },
+      req: {} as IncomingMessage,
+      res: {
+        setHeader: vi.fn(),
+        writeHead: vi.fn(),
+        end: vi.fn(),
+      } as unknown as ServerResponse,
+    };
 
     router = messageRouter(mockMessageService);
   });
@@ -51,7 +68,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.sendMessage).mockResolvedValue(message);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.send({
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -67,7 +84,7 @@ describe('messageRouter', () => {
       error.name = 'SendMessageDeniedError';
       vi.mocked(mockMessageService.sendMessage).mockRejectedValue(error);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
 
       await expect(
         caller.send({
@@ -83,7 +100,7 @@ describe('messageRouter', () => {
         new Error('Channel not found')
       );
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
 
       await expect(
         caller.send({
@@ -128,7 +145,7 @@ describe('messageRouter', () => {
         nextCursor: 'cursor-2',
       });
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.list({
         channelId: 'channel-1',
         limit: 20,
@@ -167,7 +184,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.getMessageById).mockResolvedValue(message);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.getById({ messageId: 'msg-1' });
 
       expect(result).toHaveProperty('message_id', 'msg-1');
@@ -178,7 +195,7 @@ describe('messageRouter', () => {
         new Error('Message not found')
       );
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
 
       await expect(
         caller.getById({ messageId: 'nonexistent' })
@@ -214,7 +231,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.updateMessage).mockResolvedValue(message);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.update({
         messageId: 'msg-1',
         content: 'Updated content',
@@ -230,7 +247,7 @@ describe('messageRouter', () => {
       error.name = 'UnauthorizedMessageEditError';
       vi.mocked(mockMessageService.updateMessage).mockRejectedValue(error);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
 
       await expect(
         caller.update({
@@ -246,7 +263,7 @@ describe('messageRouter', () => {
     it('should delete message successfully', async () => {
       vi.mocked(mockMessageService.deleteMessage).mockResolvedValue(undefined);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.delete({
         messageId: 'msg-1',
         deletedBy: 'user-1',
@@ -260,7 +277,7 @@ describe('messageRouter', () => {
       error.name = 'UnauthorizedMessageDeletionError';
       vi.mocked(mockMessageService.deleteMessage).mockRejectedValue(error);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
 
       await expect(
         caller.delete({
@@ -299,7 +316,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.addReaction).mockResolvedValue(message);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.addReaction({
         messageId: 'msg-1',
         userId: 'user-2',
@@ -339,7 +356,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.removeReaction).mockResolvedValue(message);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.removeReaction({
         messageId: 'msg-1',
         userId: 'user-2',
@@ -381,7 +398,7 @@ describe('messageRouter', () => {
 
       vi.mocked(mockMessageService.getMessagesByThread).mockResolvedValue(messages);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.getThreadMessages({
         messageId: 'msg-1',
       });
@@ -445,7 +462,7 @@ describe('messageRouter', () => {
       vi.mocked(mockMessageService.getMessageById).mockResolvedValue(threadRoot);
       vi.mocked(mockMessageService.sendMessage).mockResolvedValue(reply);
 
-      const caller = router.createCaller({});
+      const caller = router.createCaller(mockContext);
       const result = await caller.replyToThread({
         messageId: 'msg-1',
         senderId: 'user-2',

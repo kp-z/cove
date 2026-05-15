@@ -14,6 +14,8 @@
  * - ILogger: 日志记录
  */
 
+import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
+
 import { ProjectEntity, ProjectStatus } from '../../../domain/models/project/project.entity';
 import { AgentEntity } from '../../../domain/models/agent/agent.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
@@ -188,17 +190,8 @@ export class ProjectService {
   }
 
   /**
-   * 添加 Agent 到 Project
-
-  // --- Delegation to ProjectCompositionService ---
-
-  async addAgentToProject(dto: AddAgentToProjectDTO): Promise<ProjectEntity> { return this.compositionService.addAgentToProject(dto); }
-  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO): Promise<ProjectEntity> { return this.compositionService.removeAgentFromProject(dto); }
-  async addChannelToProject(dto: AddChannelToProjectDTO): Promise<ProjectEntity> { return this.compositionService.addChannelToProject(dto); }
-  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO): Promise<ProjectEntity> { return this.compositionService.removeChannelFromProject(dto); }
-  async getProjectAgents(projectId: string): Promise<AgentEntity[]> { return this.compositionService.getProjectAgents(projectId); }
-  async getProjectChannels(projectId: string): Promise<ChannelEntity[]> { return this.compositionService.getProjectChannels(projectId); }
-
+   * 归档 Project
+   */
   async archiveProject(projectId: string): Promise<ProjectEntity> {
     this.logger.info('Archiving project', { projectId });
 
@@ -345,16 +338,3 @@ export class ProjectService {
 
 // --- Application Layer Errors ---
 
-export class ProjectNotFoundError extends Error {
-  constructor(projectId: string) {
-    super(`Project not found: ${projectId}`);
-    this.name = 'ProjectNotFoundError';
-  }
-}
-
-export class ProjectNotArchivedError extends Error {
-  constructor(projectId: string) {
-    super(`Project must be archived before deletion: ${projectId}`);
-    this.name = 'ProjectNotArchivedError';
-  }
-}

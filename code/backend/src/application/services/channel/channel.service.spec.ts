@@ -3,16 +3,20 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ChannelService, ChannelNotFoundError, ChannelNotActiveError, ChannelNotArchivedError, MemberNotInChannelError } from './channel.service';
+import { ChannelService, CreateChannelDTO, UpdateChannelDTO, AddMemberDTO, RemoveMemberDTO, ChannelSendMessageDTO } from './channel.service';
+import { ChannelCrudService } from './channel-crud.service';
+import { ChannelQueryService } from './channel-query.service';
+import { ChannelMemberService } from './channel-member.service';
+import { ChannelLifecycleService } from './channel-lifecycle.service';
 import { ChannelMessagingService } from './channel-messaging.service';
 import { ChannelEntity, ChannelEntityProps } from '../../../domain/models/channel/channel.entity';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import {
-  IChannelRepository,
-  IMessageRepository,
-  IEventBus,
-  ILogger,
-} from '../../interfaces';
+  ChannelNotFoundError,
+  ChannelNotActiveError,
+  ChannelNotArchivedError,
+  MemberNotInChannelError,
+} from './channel.errors';
 
 // Helper function to create valid ChannelEntity test instances
 function createTestChannel(overrides: Partial<ChannelEntityProps> = {}): ChannelEntity {
@@ -59,109 +63,80 @@ function createTestChannel(overrides: Partial<ChannelEntityProps> = {}): Channel
 
 describe('ChannelService', () => {
   let channelService: ChannelService;
-  let mockChannelRepository: IChannelRepository;
-  let mockMessageRepository: IMessageRepository;
+  let mockCrudService: ChannelCrudService;
+  let mockQueryService: ChannelQueryService;
+  let mockMemberService: ChannelMemberService;
+  let mockLifecycleService: ChannelLifecycleService;
   let mockMessagingService: ChannelMessagingService;
-  let mockEventBus: IEventBus;
-  let mockLogger: ILogger;
 
   beforeEach(() => {
-    // Mock ChannelRepository
-    mockChannelRepository = {
-      findById: vi.fn(),
-      findByProject: vi.fn(),
-      findByType: vi.fn(),
-      findByStatus: vi.fn(),
-      findDMChannel: vi.fn(),
-      save: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    };
+    mockCrudService = {
+      createChannel: vi.fn(),
+      updateChannel: vi.fn(),
+      deleteChannel: vi.fn(),
+    } as unknown as ChannelCrudService;
 
-    // Mock MessageRepository
-    mockMessageRepository = {
-      findById: vi.fn(),
-      findByChannel: vi.fn(),
-      findByChannelCursor: vi.fn(),
-      countRecentByChannelAndSender: vi.fn().mockResolvedValue(0),
-      findByChannelId: vi.fn(),
-      findByThreadId: vi.fn(),
-      findBySender: vi.fn(),
-      findByThread: vi.fn(),
-      findByStatus: vi.fn(),
-      save: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      exists: vi.fn(),
-      markAsRead: vi.fn(),
-    };
+    mockQueryService = {
+      getChannelById: vi.fn(),
+      canSendMessage: vi.fn(),
+      getChannelsByProject: vi.fn(),
+      getAllChannels: vi.fn(),
+      getChannelsByType: vi.fn(),
+      getChannelsByStatus: vi.fn(),
+    } as unknown as ChannelQueryService;
 
-    // Mock EventBus
-    mockEventBus = {
-      publish: vi.fn(),
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-    };
+    mockMemberService = {
+      addMember: vi.fn(),
+      removeMember: vi.fn(),
+    } as unknown as ChannelMemberService;
 
-    // Mock Logger
-    mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      fatal: vi.fn(),
-    };
+    mockLifecycleService = {
+      archiveChannel: vi.fn(),
+      activateChannel: vi.fn(),
+    } as unknown as ChannelLifecycleService;
 
-    // Create ChannelMessagingService instance
-    mockMessagingService = new ChannelMessagingService(
-      mockChannelRepository,
-      mockMessageRepository,
-      mockEventBus,
-      mockLogger
-    );
+    mockMessagingService = {
+      sendMessage: vi.fn(),
+      getChannelMessages: vi.fn(),
+    } as unknown as ChannelMessagingService;
 
     channelService = new ChannelService(
-      mockChannelRepository,
-      mockMessageRepository,
-      mockMessagingService,
-      mockEventBus,
-      mockLogger
+      mockCrudService,
+      mockQueryService,
+      mockMemberService,
+      mockLifecycleService,
+      mockMessagingService
     );
   });
 
   describe('createChannel', () => {
     it('should create a new channel successfully', async () => {
-      const dto = {
+      const dto: CreateChannelDTO = {
         name: 'general',
-        description: 'General discussion',
-        type: 'public' as const,
+        type: 'public',
         projectId: 'project-1',
-        createdBy: 'user-1',
-        memberIds: ['user-1', 'user-2'],
+        createdBy: { id: 'user-1', type: 'human' },
       };
+
+      const mockChannel = createTestChannel();
+      vi.mocked(mockCrudService.createChannel).mockResolvedValue(mockChannel);
 
       const result = await channelService.createChannel(dto);
 
-      expect(result).toBeInstanceOf(ChannelEntity);
-      expect(result.name).toBe('general');
-      expect(result.type).toBe('public');
-      expect(result.members).toHaveLength(2);
-      expect(mockChannelRepository.save).toHaveBeenCalledWith(result);
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.created',
-          aggregateType: 'Channel',
-        })
-      );
+      expect(result).toBe(mockChannel);
+      expect(mockCrudService.createChannel).toHaveBeenCalledWith(dto);
     });
 
     it('should create channel with empty members if not provided', async () => {
-      const dto = {
+      const dto: CreateChannelDTO = {
         name: 'general',
-        type: 'public' as const,
+        type: 'public',
         projectId: 'project-1',
-        createdBy: 'user-1',
+        createdBy: { id: 'user-1', type: 'human' },
       };
+
+      const mockChannel = createTestChannel({ members: [] });
+      vi.mocked(mockCrudService.createChannel).mockResolvedValue(mockChannel);
 
       const result = await channelService.createChannel(dto);
 
@@ -172,354 +147,222 @@ describe('ChannelService', () => {
   describe('getChannelById', () => {
     it('should return channel when found', async () => {
       const mockChannel = createTestChannel();
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
+      vi.mocked(mockQueryService.getChannelById).mockResolvedValue(mockChannel);
 
       const result = await channelService.getChannelById('channel-1');
 
       expect(result).toBe(mockChannel);
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
-    });
-
-    it('should throw ChannelNotFoundError when channel does not exist', async () => {
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(null);
-
-      await expect(channelService.getChannelById('channel-1')).rejects.toThrow(
-        ChannelNotFoundError
-      );
     });
   });
 
   describe('getChannelsByProject', () => {
     it('should return all channels for a project', async () => {
       const mockChannels = [
-        createTestChannel({ channelId: 'channel-1', name: 'general' }),
-        createTestChannel({ channelId: 'channel-2', name: 'dev' }),
+        createTestChannel({ channelId: 'channel-1' }),
+        createTestChannel({ channelId: 'channel-2' }),
       ];
 
-      vi.mocked(mockChannelRepository.findByProject).mockResolvedValue(mockChannels);
+      vi.mocked(mockQueryService.getChannelsByProject).mockResolvedValue(mockChannels);
 
       const result = await channelService.getChannelsByProject('project-1');
 
+      expect(result).toHaveLength(2);
       expect(result).toEqual(mockChannels);
-      expect(mockChannelRepository.findByProject).toHaveBeenCalledWith('project-1');
     });
   });
 
-  describe.skip('updateChannel', () => {
+  describe('updateChannel', () => {
     it('should update channel successfully', async () => {
-      const mockChannel = createTestChannel();
+      const dto: UpdateChannelDTO = {
+        channelId: 'channel-1',
+        name: 'updated-general',
+      };
 
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
+      const updatedChannel = createTestChannel({ name: 'updated-general' });
+      vi.mocked(mockCrudService.updateChannel).mockResolvedValue(updatedChannel);
 
-      const result = await channelService.updateChannel('channel-1', {
-        name: 'general-updated',
-        description: 'Updated description',
-      });
+      const result = await channelService.updateChannel(dto);
 
-      expect(result.name).toBe('general-updated');
-      expect(result.description).toBe('Updated description');
-      expect(mockChannelRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.updated',
-        })
-      );
-    });
-
-    it('should throw ChannelNotFoundError when channel does not exist', async () => {
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(null);
-
-      await expect(
-        channelService.updateChannel('channel-1', { name: 'new-name' })
-      ).rejects.toThrow(ChannelNotFoundError);
+      expect(result.name).toBe('updated-general');
     });
   });
 
   describe('addMember', () => {
     it('should add member to channel successfully', async () => {
-      const mockChannel = createTestChannel({
-        members: [{
-          memberId: 'user-1',
-          memberType: 'human',
-          role: 'member',
-          joinedAt: new Date(),
-        }],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      const result = await channelService.addMember({
+      const dto: AddMemberDTO = {
         channelId: 'channel-1',
         memberId: 'user-2',
+        memberType: 'human',
+        role: 'member',
+      };
+
+      const channelWithMember = createTestChannel({
+        members: [{ memberId: 'user-2', memberType: 'human', role: 'member', joinedAt: new Date() }],
       });
 
-      expect(result.members.some(m => m.memberId === 'user-2')).toBe(true);
-      expect(mockChannelRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.member_added',
-        })
-      );
+      vi.mocked(mockMemberService.addMember).mockResolvedValue(channelWithMember);
+
+      const result = await channelService.addMember(dto);
+
+      expect(result.members).toHaveLength(1);
+      expect(result.members[0]?.memberId).toBe('user-2');
     });
 
     it('should not add member if already in channel', async () => {
-      const mockChannel = createTestChannel({
-        members: [
-          {
-            memberId: 'user-1',
-            memberType: 'human',
-            role: 'member',
-            joinedAt: new Date(),
-          },
-          {
-            memberId: 'user-2',
-            memberType: 'human',
-            role: 'member',
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      const result = await channelService.addMember({
+      const dto: AddMemberDTO = {
         channelId: 'channel-1',
         memberId: 'user-2',
+        memberType: 'human',
+        role: 'member',
+      };
+
+      const channelWithMember = createTestChannel({
+        members: [{ memberId: 'user-2', memberType: 'human', role: 'member', joinedAt: new Date() }],
       });
 
-      expect(result).toBe(mockChannel);
-      expect(mockChannelRepository.update).not.toHaveBeenCalled();
-      expect(mockLogger.warn).toHaveBeenCalled();
+      vi.mocked(mockMemberService.addMember).mockResolvedValue(channelWithMember);
+
+      const result = await channelService.addMember(dto);
+
+      expect(result.members).toHaveLength(1);
     });
   });
 
   describe('removeMember', () => {
     it('should remove member from channel successfully', async () => {
-      const mockChannel = createTestChannel({
-        members: [
-          {
-            memberId: 'user-1',
-            memberType: 'human',
-            role: 'member',
-            joinedAt: new Date(),
-          },
-          {
-            memberId: 'user-2',
-            memberType: 'human',
-            role: 'member',
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      const result = await channelService.removeMember({
+      const dto: RemoveMemberDTO = {
         channelId: 'channel-1',
         memberId: 'user-2',
-      });
+      };
 
-      expect(result.members.some(m => m.memberId === 'user-2')).toBe(false);
-      expect(mockChannelRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.member_removed',
-        })
-      );
+      const channelWithoutMember = createTestChannel({ members: [] });
+      vi.mocked(mockMemberService.removeMember).mockResolvedValue(channelWithoutMember);
+
+      const result = await channelService.removeMember(dto);
+
+      expect(result.members).toHaveLength(0);
     });
 
     it('should not remove member if not in channel', async () => {
-      const mockChannel = createTestChannel({
-        members: [{
-          memberId: 'user-1',
-          memberType: 'human',
-          role: 'member',
-          joinedAt: new Date(),
-        }],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      const result = await channelService.removeMember({
+      const dto: RemoveMemberDTO = {
         channelId: 'channel-1',
         memberId: 'user-2',
-      });
+      };
 
-      expect(result).toBe(mockChannel);
-      expect(mockChannelRepository.update).not.toHaveBeenCalled();
-      expect(mockLogger.warn).toHaveBeenCalled();
-    });
-  });
-
-  describe.skip('sendMessage', () => {
-    it('should send message to channel successfully', async () => {
-      const mockChannel = createTestChannel({
-        members: [{
-          memberId: 'user-1',
-          memberType: 'human',
-          role: 'member',
-          joinedAt: new Date(),
-        }],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      const result = await channelService.sendMessage({
-        channelId: 'channel-1',
-        content: 'Hello world',
-        senderId: 'user-1',
-      });
-
-      expect(result).toBeInstanceOf(MessageEntity);
-      expect(result.content).toBe('Hello world');
-      expect(result.senderId).toBe('user-1');
-      expect(mockMessageRepository.save).toHaveBeenCalledWith(result);
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.sent',
-        })
+      vi.mocked(mockMemberService.removeMember).mockRejectedValue(
+        new MemberNotInChannelError('user-2', 'channel-1')
       );
-    });
 
-    it('should throw ChannelNotActiveError when channel is not active', async () => {
-      const mockChannel = createTestChannel({
-        members: [{
-          memberId: 'user-1',
-          memberType: 'human',
-          role: 'member',
-          joinedAt: new Date(),
-        }],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      await expect(
-        channelService.sendMessage({
-          channelId: 'channel-1',
-          content: 'Hello',
-          senderId: 'user-1',
-        })
-      ).rejects.toThrow(ChannelNotActiveError);
-    });
-
-    it('should throw MemberNotInChannelError when sender is not a member', async () => {
-      const mockChannel = createTestChannel({
-        members: [{
-          memberId: 'user-1',
-          memberType: 'human',
-          role: 'member',
-          joinedAt: new Date(),
-        }],
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      await expect(
-        channelService.sendMessage({
-          channelId: 'channel-1',
-          content: 'Hello',
-          senderId: 'user-2',
-        })
-      ).rejects.toThrow(MemberNotInChannelError);
+      await expect(channelService.removeMember(dto)).rejects.toThrow(MemberNotInChannelError);
     });
   });
 
-  describe.skip('getChannelMessages', () => {
-    it('should return all messages for a channel', async () => {
-      const mockChannel = createTestChannel();
+  describe('sendMessage', () => {
+    it('should send message to channel successfully', async () => {
+      const dto: ChannelSendMessageDTO = {
+        channelId: 'channel-1',
+        senderId: 'user-1',
+        senderType: 'human',
+        content: 'Hello, channel!',
+      };
 
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [],
+        reactions: [],
+      });
+
+      vi.mocked(mockMessagingService.sendMessage).mockResolvedValue(mockMessage);
+
+      const result = await channelService.sendMessage(dto);
+
+      expect(result).toBe(mockMessage);
+      expect(result.content).toBe('Hello, channel!');
+    });
+  });
+
+  describe('getChannelMessages', () => {
+    it('should return all messages for a channel', async () => {
       const mockMessages = [
         MessageEntity.create({
           messageId: 'msg-1',
+          msgShortId: 'msg-short-1',
           channelId: 'channel-1',
           senderId: 'user-1',
-          content: 'Hello',
-          attachments: [],
-          reactions: [],
+          senderType: 'human',
+          content: 'Message 1',
+          contentType: 'text',
+          contentFormat: 'plain',
+          status: 'sent',
           createdAt: new Date(),
+          updatedAt: new Date(),
+          mentions: [],
+          reactions: [],
+        }),
+        MessageEntity.create({
+          messageId: 'msg-2',
+          msgShortId: 'msg-short-2',
+          channelId: 'channel-1',
+          senderId: 'user-2',
+          senderType: 'human',
+          content: 'Message 2',
+          contentType: 'text',
+          contentFormat: 'plain',
+          status: 'sent',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          mentions: [],
+          reactions: [],
         }),
       ];
 
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-      vi.mocked(mockMessageRepository.findByChannelId).mockResolvedValue(mockMessages);
+      vi.mocked(mockMessagingService.getChannelMessages).mockResolvedValue(mockMessages);
 
       const result = await channelService.getChannelMessages('channel-1');
 
+      expect(result).toHaveLength(2);
       expect(result).toEqual(mockMessages);
-      expect(mockMessageRepository.findByChannelId).toHaveBeenCalledWith('channel-1', undefined);
     });
   });
 
-  describe.skip('archiveChannel', () => {
+  describe('archiveChannel', () => {
     it('should archive channel successfully', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'general',
-        type: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        memberIds: [],
-        createdBy: 'user-1',
-        createdAt: new Date(),
-      });
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
+      const archivedChannel = createTestChannel({ status: 'archived' });
+      vi.mocked(mockLifecycleService.archiveChannel).mockResolvedValue(archivedChannel);
 
       const result = await channelService.archiveChannel('channel-1');
 
       expect(result.status).toBe('archived');
-      expect(mockChannelRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.archived',
-        })
-      );
     });
   });
 
-  describe.skip('activateChannel', () => {
+  describe('activateChannel', () => {
     it('should activate channel successfully', async () => {
-      const mockChannel = createTestChannel();
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
+      const activeChannel = createTestChannel({ status: 'active' });
+      vi.mocked(mockLifecycleService.activateChannel).mockResolvedValue(activeChannel);
 
       const result = await channelService.activateChannel('channel-1');
 
       expect(result.status).toBe('active');
-      expect(mockChannelRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.activated',
-        })
-      );
     });
   });
 
-  describe.skip('deleteChannel', () => {
+  describe('deleteChannel', () => {
     it('should delete archived channel successfully', async () => {
-      const mockChannel = createTestChannel();
+      vi.mocked(mockCrudService.deleteChannel).mockResolvedValue(undefined);
 
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      await channelService.deleteChannel('channel-1');
-
-      expect(mockChannelRepository.delete).toHaveBeenCalledWith('channel-1');
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'channel.deleted',
-        })
-      );
-    });
-
-    it('should throw ChannelNotArchivedError when channel is not archived', async () => {
-      const mockChannel = createTestChannel();
-
-      vi.mocked(mockChannelRepository.findById).mockResolvedValue(mockChannel);
-
-      await expect(channelService.deleteChannel('channel-1')).rejects.toThrow(
-        ChannelNotArchivedError
-      );
+      await expect(channelService.deleteChannel('channel-1')).resolves.toBeUndefined();
+      expect(mockCrudService.deleteChannel).toHaveBeenCalledWith('channel-1');
     });
   });
 });

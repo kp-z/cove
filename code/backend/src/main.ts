@@ -1,8 +1,6 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import { createServer } from 'http';
 import { config } from 'dotenv';
-import * as trpcExpress from '@trpc/server/adapters/express';
+import { createHTTPHandler } from '@trpc/server/adapters/standalone';
 import { applyWSSHandler } from '@trpc/server/adapters/ws';
 import { WebSocketServer as WSServer } from 'ws';
 import path from 'path';
@@ -33,9 +31,20 @@ import { getPrismaClient } from './infrastructure/database/prisma-client';
 
 // Application Layer Services
 import { MessageService } from './application/services/message/message.service';
+import { MessageCrudService } from './application/services/message/message-crud.service';
+import { MessageQueryService } from './application/services/message/message-query.service';
+import { MessageReactionService } from './application/services/message/message-reaction.service';
 import { ChannelService } from './application/services/channel/channel.service';
+import { ChannelCrudService } from './application/services/channel/channel-crud.service';
+import { ChannelQueryService } from './application/services/channel/channel-query.service';
+import { ChannelMemberService } from './application/services/channel/channel-member.service';
+import { ChannelLifecycleService } from './application/services/channel/channel-lifecycle.service';
 import { ChannelMessagingService } from './application/services/channel/channel-messaging.service';
 import { AgentService } from './application/services/agent/agent.service';
+import { AgentCrudService } from './application/services/agent/agent-crud.service';
+import { AgentQueryService } from './application/services/agent/agent-query.service';
+import { AgentConfigService } from './application/services/agent/agent-config.service';
+import { AgentTaskService } from './application/services/agent/agent-task.service';
 import { AgentResponseService } from './application/services/agent/agent-response.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { ThreadService } from './application/services/thread/thread.service';
@@ -45,6 +54,9 @@ import { TaskAssignmentService } from './application/services/task/task-assignme
 import { UserService } from './application/services/user/user.service';
 import { ProjectService } from './application/services/project/project.service';
 import { WorkflowService } from './application/services/workflow/workflow.service';
+import { WorkflowCrudService } from './application/services/workflow/workflow-crud.service';
+import { WorkflowQueryService } from './application/services/workflow/workflow-query.service';
+import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
 
 // Interfaces
 import { ILogger, LogContext, LogLevel } from './application/interfaces/index';
@@ -118,19 +130,61 @@ function initializeDependencies() {
     logger
   );
 
-  const channelService = new ChannelService(
+  // Channel sub-services
+  const channelCrudService = new ChannelCrudService(
     channelRepository,
+    eventBus,
+    logger
+  );
+
+  const channelQueryService = new ChannelQueryService(
+    channelRepository,
+    messageRepository
+  );
+
+  const channelMemberService = new ChannelMemberService(
+    channelRepository,
+    eventBus,
+    logger
+  );
+
+  const channelLifecycleService = new ChannelLifecycleService(
+    channelRepository,
+    eventBus,
+    logger
+  );
+
+  const channelService = new ChannelService(
+    channelCrudService,
+    channelQueryService,
+    channelMemberService,
+    channelLifecycleService,
+    channelMessagingService
+  );
+
+  // Message sub-services
+  const messageCrudService = new MessageCrudService(
     messageRepository,
-    channelMessagingService,
+    channelService,
+    eventBus,
+    logger
+  );
+
+  const messageQueryService = new MessageQueryService(
+    messageRepository,
+    channelService
+  );
+
+  const messageReactionService = new MessageReactionService(
+    messageRepository,
     eventBus,
     logger
   );
 
   const messageService = new MessageService(
-    messageRepository,
-    channelService,
-    eventBus,
-    logger
+    messageCrudService,
+    messageQueryService,
+    messageReactionService
   );
 
   const threadService = new ThreadService(
@@ -167,16 +221,40 @@ function initializeDependencies() {
     channelRepository,
     eventBus,
     logger,
-    agentRepository  // as IAgentConfigStore (same instance implements both)
+    agentRepository
+  );
+
+  // Agent sub-services
+  const agentCrudService = new AgentCrudService(
+    agentRepository,
+    eventBus,
+    logger
+  );
+
+  const agentQueryService = new AgentQueryService(
+    agentRepository,
+    agentRepository
+  );
+
+  const agentConfigService = new AgentConfigService(
+    agentRepository,
+    logger,
+    agentRepository
+  );
+
+  const agentTaskService = new AgentTaskService(
+    agentRepository,
+    taskRepository,
+    eventBus,
+    logger
   );
 
   const agentService = new AgentService(
-    agentRepository,
-    taskRepository,
-    agentResponseService,
-    eventBus,
-    logger,
-    agentRepository  // as IAgentConfigStore (same instance implements both)
+    agentCrudService,
+    agentQueryService,
+    agentConfigService,
+    agentTaskService,
+    agentResponseService
   );
 
   const agentRuntimeService = new AgentRuntimeService(
@@ -200,11 +278,28 @@ function initializeDependencies() {
     logger
   );
 
-  const workflowService = new WorkflowService(
+  // Workflow sub-services
+  const workflowCrudService = new WorkflowCrudService(
     workflowRepository,
     taskRepository,
     eventBus,
     logger
+  );
+
+  const workflowQueryService = new WorkflowQueryService(
+    workflowRepository
+  );
+
+  const workflowLifecycleService = new WorkflowLifecycleService(
+    workflowRepository,
+    eventBus,
+    logger
+  );
+
+  const workflowService = new WorkflowService(
+    workflowCrudService,
+    workflowQueryService,
+    workflowLifecycleService
   );
 
   // Wire up: message.sent → agent auto-response (fire-and-forget)
@@ -233,7 +328,7 @@ function initializeDependencies() {
   };
 }
 
-function configureExpress(deps: {
+function createStandaloneServer(deps: {
   logger: ILogger;
   eventBus: InMemoryEventBus;
   agentService: AgentService;
@@ -246,24 +341,7 @@ function configureExpress(deps: {
   projectService: ProjectService;
   workflowService: WorkflowService;
 }) {
-  const app = express();
-
-  // Middleware
-  app.use(cors({ origin: '*', credentials: true }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  app.use((req: Request, _res: Response, next: NextFunction) => {
-    deps.logger.info(`${req.method} ${req.path}`);
-    next();
-  });
-
-  // Health check
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
-  });
-
-  // tRPC HTTP Handler
+  // Create app router
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
@@ -276,26 +354,101 @@ function configureExpress(deps: {
     workflowService: deps.workflowService,
     eventBus: deps.eventBus,
   });
-  app.use(
-    '/trpc',
-    trpcExpress.createExpressMiddleware({
-      router: appRouter,
-      createContext: createContext({ logger: deps.logger }),
-    })
-  );
 
-  // 404 handler
-  app.use((req: Request, res: Response) => {
-    res.status(404).json({ error: 'Not Found', message: `Route ${req.method} ${req.path} not found` });
+  // Create tRPC HTTP handler
+  const trpcHandler = createHTTPHandler({
+    router: appRouter,
+    createContext: createContext({ logger: deps.logger }),
+    endpoint: '/trpc',
   });
 
-  // Error handler
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Unhandled error', err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  // Create HTTP server with custom request handler
+  const httpServer = createServer(async (req, res) => {
+    try {
+      // Log all requests
+      deps.logger.info(`${req.method} ${req.url}`);
+
+      // Handle API documentation endpoint
+      if (req.url?.startsWith('/docs') && req.method === 'GET') {
+        if (process.env.NODE_ENV === 'production') {
+          res.writeHead(404, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({
+            error: 'Not Found',
+            message: 'Documentation is only available in development mode',
+          }));
+          return;
+        }
+
+        const { renderTrpcPanel } = await import('trpc-ui');
+        const PORT = process.env.PORT || 3001;
+
+        res.writeHead(200, {
+          'Content-Type': 'text/html',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(
+          renderTrpcPanel(appRouter, {
+            url: `http://localhost:${PORT}/trpc`,
+          })
+        );
+        return;
+      }
+
+      // Handle health check endpoint
+      if (req.url === '/health' && req.method === 'GET') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+        }));
+        return;
+      }
+
+      // Handle tRPC requests
+      if (req.url?.startsWith('/trpc')) {
+        // Remove /trpc prefix for the handler
+        const originalUrl = req.url;
+        req.url = req.url.substring(5); // Remove '/trpc'
+        trpcHandler(req, res);
+        req.url = originalUrl; // Restore original URL
+        return;
+      }
+
+      // 404 handler for unknown routes
+      res.writeHead(404, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(JSON.stringify({
+        error: 'Not Found',
+        message: `Route ${req.method} ${req.url} not found`,
+      }));
+
+    } catch (error) {
+      // Global error handler
+      deps.logger.error('Unhandled server error', error as Error);
+
+      if (!res.headersSent) {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({
+          error: 'Internal Server Error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }));
+      }
+    }
   });
 
-  return { app, appRouter };
+  return { httpServer, appRouter };
 }
 
 async function startServer() {
@@ -304,18 +457,16 @@ async function startServer() {
   try {
     const deps = initializeDependencies();
 
-    const { app, appRouter } = configureExpress(deps);
+    const { httpServer, appRouter } = createStandaloneServer(deps);
 
-    const httpServer = createServer(app);
-
-    // 配置 tRPC WebSocket 处理器
+    // Configure tRPC WebSocket handler
     const wss = new WSServer({ server: httpServer });
 
     applyWSSHandler({
       wss,
       router: appRouter,
-      createContext: ({ req }) => {
-        // 从 WebSocket 连接中提取用户信息
+      createContext: ({ req, res }) => {
+        // Extract user info from WebSocket connection
         const url = new URL(req.url || '', `ws://localhost:${PORT}`);
         const userId = url.searchParams.get('userId') || url.searchParams.get('token');
         const userType = url.searchParams.get('userType') as 'human' | 'agent' | undefined;
@@ -326,6 +477,8 @@ async function startServer() {
           userId: userId || undefined,
           userType: userType || 'human',
           logger: deps.logger,
+          req,
+          res,
         };
       },
     });
@@ -335,12 +488,12 @@ async function startServer() {
     httpServer.listen(PORT, () => {
       deps.logger.info(`Cove Backend Server started on http://localhost:${PORT}`);
       deps.logger.info(`WebSocket: ws://localhost:${PORT}`);
-      deps.logger.info(`API Docs: http://localhost:${PORT}/docs`);
       deps.logger.info('');
       deps.logger.info('Endpoints:');
-      deps.logger.info('  tRPC HTTP: http://localhost:${PORT}/trpc');
-      deps.logger.info('  tRPC WebSocket: ws://localhost:${PORT}');
-      deps.logger.info('  Health: http://localhost:${PORT}/health');
+      deps.logger.info(`  tRPC HTTP: http://localhost:${PORT}/trpc`);
+      deps.logger.info(`  tRPC WebSocket: ws://localhost:${PORT}`);
+      deps.logger.info(`  Health: http://localhost:${PORT}/health`);
+      deps.logger.info(`  API Docs: http://localhost:${PORT}/docs`);
     });
 
     process.on('SIGTERM', () => {

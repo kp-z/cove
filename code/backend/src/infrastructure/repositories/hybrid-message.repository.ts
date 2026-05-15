@@ -10,7 +10,7 @@ import { HybridRepository } from './hybrid-repository.base';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import { IMessageRepository } from '../../application/interfaces/repositories/message.repository.interface';
-import { MessageEntity, MessageStatus } from '../../domain/models/message/message.entity';
+import { MessageEntity, MessageStatus, MessageContent } from '../../domain/models/message/message.entity';
 
 // 数据库记录类型
 interface MessageDbRecord {
@@ -30,24 +30,6 @@ interface MessageDbRecord {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
-}
-
-// 文件存储内容类型
-interface MessageContent {
-  content: string;
-  senderName: string;
-  channelName: string;
-  contentFormat: string;
-  attachments: any[];
-  mentions: any[];
-  references: any[];
-  reactions: any[];
-  editHistory: any[];
-  meta: {
-    client: string;
-    isPinned: boolean;
-    isImportant: boolean;
-  };
 }
 
 export class HybridMessageRepository
@@ -79,21 +61,21 @@ export class HybridMessageRepository
       messageId: dbRecord.id,
       msgShortId: dbRecord.shortId,
       senderId: dbRecord.senderId,
-      senderType: dbRecord.senderType as any,
+      senderType: dbRecord.senderType as 'human' | 'agent' | 'system',
       senderName: content.senderName,
       channelId: dbRecord.channelId,
       channelName: content.channelName,
       threadId: dbRecord.threadId || undefined,
       isThreadRoot: dbRecord.isThreadRoot,
       content: content.content,
-      contentType: dbRecord.contentType as any,
-      contentFormat: content.contentFormat as any,
+      contentType: dbRecord.contentType as 'text' | 'markdown' | 'code' | 'image' | 'file' | 'combination',
+      contentFormat: content.contentFormat as 'plain' | 'markdown' | 'html',
       attachments: content.attachments,
       mentions: content.mentions,
       references: content.references,
-      status: dbRecord.status as any,
+      status: dbRecord.status as MessageStatus,
       isEdited: dbRecord.isEdited,
-      editHistory: content.editHistory.map((h: any) => ({
+      editHistory: content.editHistory.map(h => ({
         ...h,
         editedAt: new Date(h.editedAt),
       })),
@@ -132,10 +114,30 @@ export class HybridMessageRepository
       senderName: entity.senderName,
       channelName: entity.channelName,
       contentFormat: entity.contentFormat,
-      attachments: entity.attachments as any[],
-      mentions: entity.mentions as any[],
-      references: entity.references as any[],
-      reactions: entity.reactions as any[],
+      attachments: entity.attachments.map(a => ({
+        attachmentId: a.attachmentId,
+        fileName: a.fileName,
+        fileType: a.fileType,
+        fileSize: a.fileSize,
+        fileUrl: a.fileUrl,
+        thumbnailUrl: a.thumbnailUrl,
+      })),
+      mentions: entity.mentions.map(m => ({
+        mentionType: m.mentionType,
+        mentionId: m.mentionId,
+        mentionName: m.mentionName,
+        mentionPosition: m.mentionPosition,
+      })),
+      references: entity.references.map(r => ({
+        refType: r.refType,
+        refId: r.refId,
+        refTitle: r.refTitle,
+      })),
+      reactions: entity.reactions.map(r => ({
+        emoji: r.emoji,
+        userIds: [...r.userIds],
+        count: r.count,
+      })),
       editHistory: entity.editHistory.map(h => ({
         editedAt: h.editedAt.toISOString(),
         previousContent: h.previousContent,

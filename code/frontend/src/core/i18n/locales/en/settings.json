@@ -1,0 +1,42 @@
+{
+  "general": {
+    "title": "General Settings",
+    "language": {
+      "label": "Language",
+      "description": "Select your preferred language"
+    },
+    "timezone": {
+      "label": "Time Zone",
+      "description": "Set your local time zone",
+      "auto": "Auto-detect"
+    },
+    "projectView": {
+      "label": "Default Project View",
+      "description": "Choose how projects are displayed",
+      "grid": "Grid",
+      "list": "List"
+    }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "theme": {
+      "label": "Theme Mode",
+      "description": "Choose between light and dark mode",
+      "dark": "Dark",
+      "light": "Light",
+      "auto": "Auto"
+    },
+    "accentColor": {
+      "label": "Accent Color",
+      "description": "Choose your preferred accent color"
+    },
+    "compactMode": {
+      "label": "Compact Mode",
+      "description": "Reduce spacing for a more compact layout"
+    },
+    "animations": {
+      "label": "Show Animations",
+      "description": "Enable or disable UI animations"
+    }
+  }
+}

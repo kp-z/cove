@@ -15,8 +15,8 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
 import { MessageService } from '../../../application/services/message/message.service';
+import { mapErrorToTRPC } from '../../../common/errors';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -72,22 +72,7 @@ export const messageRouter = (messageService: MessageService) =>
           const message = await messageService.sendMessage(input);
           return message.toJSON();
         } catch (error: any) {
-          if (error.name === 'SendMessageDeniedError') {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to send message',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -111,16 +96,7 @@ export const messageRouter = (messageService: MessageService) =>
             nextCursor: result.nextCursor,
           };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch messages',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -132,16 +108,7 @@ export const messageRouter = (messageService: MessageService) =>
           const message = await messageService.getMessageById(input.messageId);
           return message.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch message',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -153,22 +120,7 @@ export const messageRouter = (messageService: MessageService) =>
           const message = await messageService.updateMessage(input);
           return message.toJSON();
         } catch (error: any) {
-          if (error.name === 'UnauthorizedMessageEditError') {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update message',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -180,22 +132,7 @@ export const messageRouter = (messageService: MessageService) =>
           await messageService.deleteMessage(input);
           return { messageId: input.messageId, deleted: true };
         } catch (error: any) {
-          if (error.name === 'UnauthorizedMessageDeletionError') {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete message',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -207,16 +144,7 @@ export const messageRouter = (messageService: MessageService) =>
           const message = await messageService.addReaction(input);
           return message.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to add reaction',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -228,16 +156,7 @@ export const messageRouter = (messageService: MessageService) =>
           const message = await messageService.removeReaction(input);
           return message.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to remove reaction',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -259,16 +178,7 @@ export const messageRouter = (messageService: MessageService) =>
             total: messages.length,
           };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch thread messages',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -292,22 +202,7 @@ export const messageRouter = (messageService: MessageService) =>
 
           return message.toJSON();
         } catch (error: any) {
-          if (error.name === 'SendMessageDeniedError') {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to reply to thread',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

@@ -44,6 +44,48 @@ export interface MessageEditHistory {
   readonly editedBy: string;
 }
 
+// 文件存储内容类型（用于 Repository 层）
+export interface MessageContent {
+  content: string;
+  senderName: string;
+  channelName: string;
+  contentFormat: string;
+  attachments: Array<{
+    attachmentId: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    fileUrl: string;
+    thumbnailUrl?: string;
+  }>;
+  mentions: Array<{
+    mentionType: MentionType;
+    mentionId: string;
+    mentionName?: string;
+    mentionPosition?: number;
+  }>;
+  references: Array<{
+    refType: ReferenceType;
+    refId: string;
+    refTitle: string;
+  }>;
+  reactions: Array<{
+    emoji: string;
+    userIds: string[];
+    count: number;
+  }>;
+  editHistory: Array<{
+    editedAt: string;
+    previousContent: string;
+    editedBy: string;
+  }>;
+  meta: {
+    client: string;
+    isPinned: boolean;
+    isImportant: boolean;
+  };
+}
+
 export interface MessageEntityProps {
   readonly messageId: string;
   readonly msgShortId: string;

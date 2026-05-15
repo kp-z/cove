@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import coveLogo from '@/assets/cove-logo.svg';
+import { branding } from '@/core/config';
 import { AnimatedShinyText } from '@/shared/components/ui/animated-shiny-text';
 
 interface LogoProps {
@@ -17,7 +18,7 @@ export function Logo({ collapsed, onClick }: LogoProps) {
     >
       <img
         src={coveLogo}
-        alt="Cove"
+        alt={branding.logo.alt}
         className="w-7 h-7 object-contain flex-shrink-0"
       />
 
@@ -33,7 +34,7 @@ export function Logo({ collapsed, onClick }: LogoProps) {
             shimmerWidth={120}
             className="mx-0 max-w-none text-sm font-black tracking-wide uppercase italic leading-[0.85] text-white/90 whitespace-nowrap"
           >
-            COVE
+            {branding.app.name.toUpperCase()}
           </AnimatedShinyText>
           <motion.span
             initial={{ opacity: 0 }}
@@ -41,7 +42,7 @@ export function Logo({ collapsed, onClick }: LogoProps) {
             transition={{ delay: 0.1, duration: 0.3 }}
             className="text-[8px] font-black tracking-tight uppercase leading-tight text-blue-400/50 whitespace-nowrap"
           >
-            AI WORKS, YOU CHILL
+            {branding.app.slogan.toUpperCase()}
           </motion.span>
         </motion.div>
       )}

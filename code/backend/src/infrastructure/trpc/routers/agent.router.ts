@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { router, procedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
+import { mapErrorToTRPC } from '../../../common/errors';
 
 // Zod schemas for input validation
 const createAgentSchema = z.object({
@@ -48,32 +48,6 @@ interface AgentRouterDeps {
   agentRuntimeService: AgentRuntimeService;
 }
 
-// Error handler
-function handleServiceError(error: any): never {
-  if (error.name === 'AgentNotFoundError') {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: error.message,
-    });
-  }
-  if (error.name === 'AgentNotAvailableError' || error.name === 'AgentNotReadyError') {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: error.message,
-    });
-  }
-  if (error.name === 'AgentInUseError' || error.message?.includes('already')) {
-    throw new TRPCError({
-      code: 'CONFLICT',
-      message: error.message,
-    });
-  }
-  throw new TRPCError({
-    code: 'INTERNAL_SERVER_ERROR',
-    message: error.message || 'An unexpected error occurred',
-  });
-}
-
 export function createAgentRouter(deps: AgentRouterDeps) {
   return router({
     // List all agents
@@ -85,7 +59,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           total: agents.length,
         };
       } catch (error) {
-        handleServiceError(error);
+        throw mapErrorToTRPC(error);
       }
     }),
 
@@ -97,7 +71,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           const detail = await deps.agentService.getAgentDetail(input.agentId);
           return detail;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -117,7 +91,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           const agent = await deps.agentService.createAgent(dto);
           return agent.toJSON();
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -141,7 +115,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
               : result;
           return data;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -165,7 +139,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
               : result;
           return data;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -189,7 +163,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
               : result;
           return data;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -213,7 +187,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
               : result;
           return data;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -237,7 +211,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
               : result;
           return data;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -249,7 +223,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           await deps.agentRuntimeService.startAgent(input.agentId);
           return { message: 'Agent start initiated' };
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -261,7 +235,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           await deps.agentRuntimeService.stopAgent(input.agentId);
           return { message: 'Agent stop initiated' };
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -273,7 +247,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           const status = await deps.agentRuntimeService.getStatus(input.agentId);
           return status;
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -285,7 +259,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
           await deps.agentService.deleteAgent(input.agentId);
           return { message: 'Agent deleted successfully' };
         } catch (error) {
-          handleServiceError(error);
+          throw mapErrorToTRPC(error);
         }
       }),
   });

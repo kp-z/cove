@@ -11,8 +11,14 @@ const WorkflowPage = lazy(() => import('@/features/workflow/components/WorkflowP
 const ProjectPage = lazy(() => import('@/features/project/components/ProjectPage'));
 const TerminalPage = lazy(() => import('@/features/terminal/components/TerminalPage'));
 const HistoryPage = lazy(() => import('@/features/history/components/HistoryPage'));
+const LoginPage = lazy(() => import('@/features/auth/components/LoginPage'));
+const SettingsPage = lazy(() => import('@/features/settings/components/SettingsPage'));
 
 export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
   {
     path: '/',
     element: <MainLayout />,
@@ -23,6 +29,14 @@ export const router = createBrowserRouter([
       },
       {
         path: 'channel',
+        element: <ChannelPage />,
+      },
+      {
+        path: 'channel/:channelId',
+        element: <ChannelPage />,
+      },
+      {
+        path: 'channel/:channelId/:threadId',
         element: <ChannelPage />,
       },
       {
@@ -55,7 +69,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <div className="p-6">Settings Page (Coming Soon)</div>,
+        element: <SettingsPage />,
       },
     ],
   },

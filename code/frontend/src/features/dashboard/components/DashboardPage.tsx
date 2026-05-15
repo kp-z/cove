@@ -1,57 +1,75 @@
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent } from '@/shared/components/ui/card';
+import { useState } from 'react';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
+import { CardGridLayout } from '@/shared/components/layout/CardGridLayout';
+import { TimeRangeFilter, type TimeRange } from './TimeRangeFilter';
+import { SystemStatusCard } from './SystemStatusCard';
+import { TokenUsageOverviewCard } from './TokenUsageOverviewCard';
+import { TokenTrendCard } from './TokenTrendCard';
+import { AgentStatusCard } from './AgentStatusCard';
+import { ChannelActivityCard } from './ChannelActivityCard';
 
 export default function DashboardPage() {
-  const { t } = useTranslation('dashboard');
+  const [timeRange, setTimeRange] = useState<TimeRange>('today');
+
+  const cardGridConfig = {
+    rows: [
+      // 第一行 - 系统状态 + Token 概览 (不等宽 2列)
+      {
+        id: 'overview-row',
+        cols: 3,
+        items: [
+          {
+            id: 'system-status',
+            colSpan: { default: 1, md: 2, lg: 2 },
+            content: <SystemStatusCard />,
+            animation: { delay: 0.1 },
+          },
+          {
+            id: 'token-overview',
+            colSpan: { default: 1, md: 1, lg: 1 },
+            content: <TokenUsageOverviewCard timeRange={timeRange} />,
+            animation: { delay: 0.2 },
+          },
+        ],
+      },
+      // 第二行 - Token 趋势 + Channel 活动 + Agent 监控 (3列)
+      {
+        id: 'monitoring-row',
+        cols: 3,
+        items: [
+          {
+            id: 'token-trend',
+            content: <TokenTrendCard timeRange={timeRange} />,
+            animation: { delay: 0.3 },
+          },
+          {
+            id: 'channel-activity',
+            content: <ChannelActivityCard timeRange={timeRange} />,
+            animation: { delay: 0.4 },
+          },
+          {
+            id: 'agent-status',
+            content: <AgentStatusCard timeRange={timeRange} />,
+            animation: { delay: 0.5 },
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <PageShell>
-      <PageHeader title="Dashboard" subtitle={t('subtitle')} />
+      <PageHeader
+        title="Dashboard"
+        subtitle="系统监控和统计"
+        actions={<TimeRangeFilter value={timeRange} onChange={setTimeRange} />}
+      />
 
       <PageContent>
-        <div className="max-w-7xl mx-auto">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 border-blue-500/20 mb-6">
-            <CardContent className="p-8">
-              <h1 className="text-3xl font-bold mb-2">Welcome to Cove</h1>
-              <p className="text-muted-foreground text-lg">
-                {t('welcome.description')}
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="hover:border-blue-500/50 transition-colors cursor-pointer">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-2xl">💬</span>
-                </div>
-                <h3 className="font-semibold mb-2">Start Chat</h3>
-                <p className="text-sm text-muted-foreground">{t('cards.startChat')}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:border-blue-500/50 transition-colors cursor-pointer">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-2xl">🤖</span>
-                </div>
-                <h3 className="font-semibold mb-2">Manage Agents</h3>
-                <p className="text-sm text-muted-foreground">{t('cards.manageAgents')}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:border-blue-500/50 transition-colors cursor-pointer">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-2xl">🔄</span>
-                </div>
-                <h3 className="font-semibold mb-2">Create Workflow</h3>
-                <p className="text-sm text-muted-foreground">{t('cards.createWorkflow')}</p>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="max-w-7xl mx-auto pt-6">
+          <CardGridLayout {...cardGridConfig} />
         </div>
       </PageContent>
     </PageShell>

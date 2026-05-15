@@ -15,8 +15,8 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
 import { ChannelService } from '../../../application/services/channel/channel.service';
+import { mapErrorToTRPC } from '../../../common/errors';
 
 // Zod Schemas
 const createChannelSchema = z.object({
@@ -62,10 +62,7 @@ export const channelRouter = (channelService: ChannelService) =>
             total: channels.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch channels',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -77,16 +74,7 @@ export const channelRouter = (channelService: ChannelService) =>
           const channel = await channelService.getChannelById(input.channelId);
           return channel.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch channel',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -98,16 +86,7 @@ export const channelRouter = (channelService: ChannelService) =>
           const channel = await channelService.createChannel(input);
           return channel.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('already exists')) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to create channel',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -122,16 +101,7 @@ export const channelRouter = (channelService: ChannelService) =>
           const channel = await channelService.updateChannel(input.channelId, input.data);
           return channel.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update channel',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -143,16 +113,7 @@ export const channelRouter = (channelService: ChannelService) =>
           await channelService.deleteChannel(input.channelId);
           return { channelId: input.channelId, deleted: true };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete channel',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -175,16 +136,7 @@ export const channelRouter = (channelService: ChannelService) =>
             total: members.length,
           };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch members',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -196,22 +148,7 @@ export const channelRouter = (channelService: ChannelService) =>
           const channel = await channelService.addMember(input);
           return channel.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('already exists')) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to add member',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -223,16 +160,7 @@ export const channelRouter = (channelService: ChannelService) =>
           const channel = await channelService.removeMember(input);
           return channel.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to remove member',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -250,16 +178,7 @@ export const channelRouter = (channelService: ChannelService) =>
             total: agentPool.length,
           };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch agents',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

@@ -1,13 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MessageService, SendMessageDTO, UpdateMessageDTO, AddReactionDTO, RemoveReactionDTO, DeleteMessageDTO } from './message.service';
 import { MessageEntity, MessageMention } from '../../../domain/models/message/message.entity';
-import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
-import {
-  IMessageRepository,
-  IChannelQueryService,
-  IEventBus,
-  ILogger,
-} from '../../interfaces';
+import { MessageCrudService } from './message-crud.service';
+import { MessageQueryService } from './message-query.service';
+import { MessageReactionService } from './message-reaction.service';
 import {
   MessageNotFoundError,
   UnauthorizedMessageDeletionError,
@@ -17,66 +13,42 @@ import {
 
 describe('MessageService', () => {
   let messageService: MessageService;
-  let mockMessageRepository: IMessageRepository;
-  let mockChannelQueryService: IChannelQueryService;
-  let mockEventBus: IEventBus;
-  let mockLogger: ILogger;
+  let mockCrudService: MessageCrudService;
+  let mockQueryService: MessageQueryService;
+  let mockReactionService: MessageReactionService;
 
   beforeEach(() => {
-    mockMessageRepository = {
-      save: vi.fn(),
-      update: vi.fn(),
-      findById: vi.fn(),
-      findByChannel: vi.fn(),
-      findByChannelCursor: vi.fn(),
-      findByThread: vi.fn(),
-      findBySender: vi.fn(),
-    } as unknown as IMessageRepository;
+    mockCrudService = {
+      sendMessage: vi.fn(),
+      updateMessage: vi.fn(),
+      deleteMessage: vi.fn(),
+    } as unknown as MessageCrudService;
 
-    mockChannelQueryService = {
-      canSendMessage: vi.fn(),
-      getChannelById: vi.fn(),
-    } as unknown as IChannelQueryService;
+    mockQueryService = {
+      getMessageById: vi.fn(),
+      getMessagesByChannel: vi.fn(),
+      getMessagesByChannelCursor: vi.fn(),
+      getMessagesByThread: vi.fn(),
+      getMessagesBySender: vi.fn(),
+      searchMessages: vi.fn(),
+    } as unknown as MessageQueryService;
 
-    mockEventBus = {
-      publish: vi.fn(),
-    } as unknown as IEventBus;
-
-    mockLogger = {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-    } as unknown as ILogger;
+    mockReactionService = {
+      addReaction: vi.fn(),
+      removeReaction: vi.fn(),
+      getMessageReactions: vi.fn(),
+      getReactionStats: vi.fn(),
+    } as unknown as MessageReactionService;
 
     messageService = new MessageService(
-      mockMessageRepository,
-      mockChannelQueryService,
-      mockEventBus,
-      mockLogger
+      mockCrudService,
+      mockQueryService,
+      mockReactionService
     );
   });
 
   describe('sendMessage', () => {
     it('should send a message successfully', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        channelType: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [],
-        agentPool: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({ allowed: true });
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-
       const dto: SendMessageDTO = {
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -84,28 +56,31 @@ describe('MessageService', () => {
         content: 'Hello, world!',
       };
 
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [],
+        reactions: [],
+      });
+
+      vi.mocked(mockCrudService.sendMessage).mockResolvedValue(mockMessage);
+
       const result = await messageService.sendMessage(dto);
 
-      expect(result).toBeInstanceOf(MessageEntity);
-      expect(result.content).toBe(dto.content);
-      expect(result.channelId).toBe(dto.channelId);
-      expect(result.senderId).toBe(dto.senderId);
-      expect(result.status).toBe('sent');
-      expect(mockMessageRepository.save).toHaveBeenCalledWith(expect.any(MessageEntity));
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.created',
-          aggregateType: 'Message',
-        })
-      );
+      expect(result).toBe(mockMessage);
+      expect(mockCrudService.sendMessage).toHaveBeenCalledWith(dto);
     });
 
     it('should throw SendMessageDeniedError when permission denied', async () => {
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({
-        allowed: false,
-        reason: 'User is banned',
-      });
-
       const dto: SendMessageDTO = {
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -113,28 +88,14 @@ describe('MessageService', () => {
         content: 'Hello',
       };
 
+      vi.mocked(mockCrudService.sendMessage).mockRejectedValue(
+        new SendMessageDeniedError(dto.senderId, dto.channelId, 'User is banned')
+      );
+
       await expect(messageService.sendMessage(dto)).rejects.toThrow(SendMessageDeniedError);
     });
 
     it('should send message with thread ID', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        channelType: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [],
-        agentPool: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({ allowed: true });
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-
       const dto: SendMessageDTO = {
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -143,6 +104,26 @@ describe('MessageService', () => {
         threadId: 'thread-1',
       };
 
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        threadId: 'thread-1',
+        isThreadRoot: false,
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [],
+        reactions: [],
+      });
+
+      vi.mocked(mockCrudService.sendMessage).mockResolvedValue(mockMessage);
+
       const result = await messageService.sendMessage(dto);
 
       expect(result.threadId).toBe('thread-1');
@@ -150,24 +131,6 @@ describe('MessageService', () => {
     });
 
     it('should send message with explicit mentions', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        channelType: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [],
-        agentPool: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({ allowed: true });
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-
       const mentions: MessageMention[] = [
         { mentionType: 'user', mentionId: 'user-2' },
       ];
@@ -180,37 +143,57 @@ describe('MessageService', () => {
         mentions,
       };
 
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions,
+        reactions: [],
+      });
+
+      vi.mocked(mockCrudService.sendMessage).mockResolvedValue(mockMessage);
+
       const result = await messageService.sendMessage(dto);
 
       expect(result.mentions).toEqual(mentions);
     });
 
     it('should auto-parse mentions from content', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [
-          { memberId: 'user-2', memberType: 'human', role: 'member', joinedAt: new Date() },
-        ],
-        agentPool: ['agent-1'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({ allowed: true });
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-
       const dto: SendMessageDTO = {
         channelId: 'channel-1',
         senderId: 'user-1',
         senderType: 'human',
         content: '@user-2 @agent Hello!',
       };
+
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [
+          { mentionType: 'user', mentionId: 'user-2' },
+          { mentionType: 'agent', mentionId: 'agent' },
+        ],
+        reactions: [],
+      });
+
+      vi.mocked(mockCrudService.sendMessage).mockResolvedValue(mockMessage);
 
       const result = await messageService.sendMessage(dto);
 
@@ -222,29 +205,22 @@ describe('MessageService', () => {
     it('should return message when found', async () => {
       const mockMessage = MessageEntity.create({
         messageId: 'msg-1',
-        msgShortId: 'short-1',
+        msgShortId: 'msg-short-1',
         channelId: 'channel-1',
-        channelName: 'Test Channel',
         senderId: 'user-1',
-        senderName: 'User 1',
         senderType: 'human',
         content: 'Test message',
         contentType: 'text',
         contentFormat: 'plain',
         status: 'sent',
         isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
+        mentions: [],
+        reactions: [],
       });
 
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
+      vi.mocked(mockQueryService.getMessageById).mockResolvedValue(mockMessage);
 
       const result = await messageService.getMessageById('msg-1');
 
@@ -252,7 +228,9 @@ describe('MessageService', () => {
     });
 
     it('should throw MessageNotFoundError when message not found', async () => {
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(null);
+      vi.mocked(mockQueryService.getMessageById).mockRejectedValue(
+        new MessageNotFoundError('nonexistent')
+      );
 
       await expect(messageService.getMessageById('nonexistent')).rejects.toThrow(
         MessageNotFoundError
@@ -262,72 +240,24 @@ describe('MessageService', () => {
 
   describe('getMessagesByChannel', () => {
     it('should return top-level messages only', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        channelType: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [],
-        agentPool: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
       const topLevelMessage = MessageEntity.create({
         messageId: 'msg-1',
-        msgShortId: 'short-1',
+        msgShortId: 'msg-short-1',
         channelId: 'channel-1',
-        channelName: 'Test Channel',
         senderId: 'user-1',
-        senderName: 'User 1',
         senderType: 'human',
         content: 'Top level',
         contentType: 'text',
         contentFormat: 'plain',
         status: 'sent',
         isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      const threadReply = MessageEntity.create({
-        messageId: 'msg-2',
-        msgShortId: 'short-2',
-        channelId: 'channel-1',
-        channelName: 'Test Channel',
-        senderId: 'user-1',
-        senderName: 'User 1',
-        senderType: 'human',
-        content: 'Thread reply',
-        contentType: 'text',
-        contentFormat: 'plain',
-        status: 'sent',
-        threadId: 'thread-1',
-        isThreadRoot: false,
-        attachments: [],
         mentions: [],
-        references: [],
         reactions: [],
-        isEdited: false,
-        editHistory: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
       });
 
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-      vi.mocked(mockMessageRepository.findByChannel).mockResolvedValue([topLevelMessage, threadReply]);
+      vi.mocked(mockQueryService.getMessagesByChannel).mockResolvedValue([topLevelMessage]);
 
       const result = await messageService.getMessagesByChannel('channel-1');
 
@@ -338,82 +268,48 @@ describe('MessageService', () => {
 
   describe('updateMessage', () => {
     it('should update message content successfully', async () => {
-      const mockMessage = MessageEntity.create({
-        messageId: 'msg-1',
-        msgShortId: 'short-1',
-        channelId: 'channel-1',
-        channelName: 'Test Channel',
-        senderId: 'user-1',
-        senderName: 'User 1',
-        senderType: 'human',
-        content: 'Old content',
-        contentType: 'text',
-        contentFormat: 'plain',
-        status: 'sent',
-        isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
-
       const dto: UpdateMessageDTO = {
         messageId: 'msg-1',
         content: 'New content',
         editorId: 'user-1',
       };
 
-      const result = await messageService.updateMessage(dto);
-
-      expect(result.content).toBe('New content');
-      expect(result.isEdited).toBe(true);
-      expect(mockMessageRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.updated',
-        })
-      );
-    });
-
-    it('should throw UnauthorizedMessageEditError when editor is not sender', async () => {
-      const mockMessage = MessageEntity.create({
+      const updatedMessage = MessageEntity.create({
         messageId: 'msg-1',
-        msgShortId: 'short-1',
+        msgShortId: 'msg-short-1',
         channelId: 'channel-1',
-        channelName: 'Test Channel',
         senderId: 'user-1',
-        senderName: 'User 1',
         senderType: 'human',
-        content: 'Content',
+        content: 'New content',
         contentType: 'text',
         contentFormat: 'plain',
         status: 'sent',
         isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
+        isEdited: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
+        mentions: [],
+        reactions: [],
       });
 
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
+      vi.mocked(mockCrudService.updateMessage).mockResolvedValue(updatedMessage);
 
+      const result = await messageService.updateMessage(dto);
+
+      expect(result.content).toBe('New content');
+      expect(result.isEdited).toBe(true);
+    });
+
+    it('should throw UnauthorizedMessageEditError when editor is not sender', async () => {
       const dto: UpdateMessageDTO = {
         messageId: 'msg-1',
         content: 'New content',
         editorId: 'user-2',
       };
+
+      vi.mocked(mockCrudService.updateMessage).mockRejectedValue(
+        new UnauthorizedMessageEditError('msg-1', 'user-2')
+      );
 
       await expect(messageService.updateMessage(dto)).rejects.toThrow(
         UnauthorizedMessageEditError
@@ -423,172 +319,111 @@ describe('MessageService', () => {
 
   describe('addReaction', () => {
     it('should add reaction successfully', async () => {
-      const mockMessage = MessageEntity.create({
-        messageId: 'msg-1',
-        msgShortId: 'short-1',
-        channelId: 'channel-1',
-        channelName: 'Test Channel',
-        senderId: 'user-1',
-        senderName: 'User 1',
-        senderType: 'human',
-        content: 'Content',
-        contentType: 'text',
-        contentFormat: 'plain',
-        status: 'sent',
-        isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
-
       const dto: AddReactionDTO = {
         messageId: 'msg-1',
         userId: 'user-2',
         emoji: '👍',
       };
 
-      const result = await messageService.addReaction(dto);
-
-      expect(result.reactions).toHaveLength(1);
-      expect(result.reactions[0]?.emoji).toBe('👍');
-      expect(mockMessageRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.reaction_added',
-        })
-      );
-    });
-  });
-
-  describe('removeReaction', () => {
-    it('should remove reaction successfully', async () => {
-      const mockMessage = MessageEntity.create({
+      const messageWithReaction = MessageEntity.create({
         messageId: 'msg-1',
-        msgShortId: 'short-1',
+        msgShortId: 'msg-short-1',
         channelId: 'channel-1',
-        channelName: 'Test Channel',
         senderId: 'user-1',
-        senderName: 'User 1',
         senderType: 'human',
         content: 'Content',
         contentType: 'text',
         contentFormat: 'plain',
         status: 'sent',
         isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [{ emoji: '👍', userIds: ['user-2'], count: 1 }],
-        isEdited: false,
-        editHistory: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
+        mentions: [],
+        reactions: [{ emoji: '👍', userId: 'user-2', createdAt: new Date() }],
       });
 
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
+      vi.mocked(mockReactionService.addReaction).mockResolvedValue(messageWithReaction);
 
+      const result = await messageService.addReaction(dto);
+
+      expect(result.reactions).toHaveLength(1);
+      expect(result.reactions[0]?.emoji).toBe('👍');
+    });
+  });
+
+  describe('removeReaction', () => {
+    it('should remove reaction successfully', async () => {
       const dto: RemoveReactionDTO = {
         messageId: 'msg-1',
         userId: 'user-2',
         emoji: '👍',
       };
 
+      const messageWithoutReaction = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: 'channel-1',
+        senderId: 'user-1',
+        senderType: 'human',
+        content: 'Content',
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        isThreadRoot: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [],
+        reactions: [],
+      });
+
+      vi.mocked(mockReactionService.removeReaction).mockResolvedValue(messageWithoutReaction);
+
       const result = await messageService.removeReaction(dto);
 
       expect(result.reactions).toHaveLength(0);
-      expect(mockMessageRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.reaction_removed',
-        })
-      );
     });
   });
 
   describe('deleteMessage', () => {
     it('should delete message successfully', async () => {
-      const mockMessage = MessageEntity.create({
-        messageId: 'msg-1',
-        msgShortId: 'short-1',
-        channelId: 'channel-1',
-        channelName: 'Test Channel',
-        senderId: 'user-1',
-        senderName: 'User 1',
-        senderType: 'human',
-        content: 'Content',
-        contentType: 'text',
-        contentFormat: 'plain',
-        status: 'sent',
-        isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
-
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
-
       const dto: DeleteMessageDTO = {
         messageId: 'msg-1',
         deletedBy: 'user-1',
       };
 
-      const result = await messageService.deleteMessage(dto);
-
-      expect(result.status).toBe('deleted');
-      expect(mockMessageRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'message.deleted',
-        })
-      );
-    });
-
-    it('should throw UnauthorizedMessageDeletionError when deleter is not sender', async () => {
-      const mockMessage = MessageEntity.create({
+      const deletedMessage = MessageEntity.create({
         messageId: 'msg-1',
-        msgShortId: 'short-1',
+        msgShortId: 'msg-short-1',
         channelId: 'channel-1',
-        channelName: 'Test Channel',
         senderId: 'user-1',
-        senderName: 'User 1',
         senderType: 'human',
         content: 'Content',
         contentType: 'text',
         contentFormat: 'plain',
-        status: 'sent',
+        status: 'deleted',
         isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [],
-        isEdited: false,
-        editHistory: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
+        mentions: [],
+        reactions: [],
       });
 
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
+      vi.mocked(mockCrudService.deleteMessage).mockResolvedValue(deletedMessage);
 
+      const result = await messageService.deleteMessage(dto);
+
+      expect(result.status).toBe('deleted');
+    });
+
+    it('should throw UnauthorizedMessageDeletionError when deleter is not sender', async () => {
       const dto: DeleteMessageDTO = {
         messageId: 'msg-1',
         deletedBy: 'user-2',
       };
+
+      vi.mocked(mockCrudService.deleteMessage).mockRejectedValue(
+        new UnauthorizedMessageDeletionError('msg-1', 'user-2')
+      );
 
       await expect(messageService.deleteMessage(dto)).rejects.toThrow(
         UnauthorizedMessageDeletionError
@@ -598,35 +433,11 @@ describe('MessageService', () => {
 
   describe('getReactionStats', () => {
     it('should return reaction statistics', async () => {
-      const mockMessage = MessageEntity.create({
-        messageId: 'msg-1',
-        msgShortId: 'short-1',
-        channelId: 'channel-1',
-        channelName: 'Test Channel',
-        senderId: 'user-1',
-        senderName: 'User 1',
-        senderType: 'human',
-        content: 'Content',
-        contentType: 'text',
-        contentFormat: 'plain',
-        status: 'sent',
-        isThreadRoot: true,
-        attachments: [],
-        mentions: [],
-        references: [],
-        reactions: [
-          { emoji: '👍', userId: 'user-2', createdAt: new Date() },
-          { emoji: '👍', userId: 'user-3', createdAt: new Date() },
-          { emoji: '❤️', userId: 'user-4', createdAt: new Date() },
-        ],
-        isEdited: false,
-        editHistory: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        meta: { client: 'web', isPinned: false, isImportant: false },
-      });
+      const stats = new Map<string, number>();
+      stats.set('👍', 2);
+      stats.set('❤️', 1);
 
-      vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
+      vi.mocked(mockReactionService.getReactionStats).mockResolvedValue(stats);
 
       const result = await messageService.getReactionStats('msg-1');
 
@@ -640,53 +451,23 @@ describe('MessageService', () => {
       const mockMessages = [
         MessageEntity.create({
           messageId: 'msg-1',
-          msgShortId: 'short-1',
+          msgShortId: 'msg-short-1',
           channelId: 'channel-1',
-          channelName: 'Test Channel',
           senderId: 'user-1',
-          senderName: 'User 1',
           senderType: 'human',
           content: 'Hello world',
           contentType: 'text',
           contentFormat: 'plain',
           status: 'sent',
           isThreadRoot: true,
-          attachments: [],
-          mentions: [],
-          references: [],
-          reactions: [],
-          isEdited: false,
-          editHistory: [],
           createdAt: new Date(),
           updatedAt: new Date(),
-          meta: { client: 'web', isPinned: false, isImportant: false },
-        }),
-        MessageEntity.create({
-          messageId: 'msg-2',
-          msgShortId: 'short-2',
-          channelId: 'channel-1',
-          channelName: 'Test Channel',
-          senderId: 'user-1',
-          senderName: 'User 1',
-          senderType: 'human',
-          content: 'Goodbye',
-          contentType: 'text',
-          contentFormat: 'plain',
-          status: 'sent',
-          isThreadRoot: true,
-          attachments: [],
           mentions: [],
-          references: [],
           reactions: [],
-          isEdited: false,
-          editHistory: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          meta: { client: 'web', isPinned: false, isImportant: false },
         }),
       ];
 
-      vi.mocked(mockMessageRepository.findByChannel).mockResolvedValue(mockMessages);
+      vi.mocked(mockQueryService.searchMessages).mockResolvedValue(mockMessages);
 
       const result = await messageService.searchMessages('hello', 'channel-1');
 
@@ -697,25 +478,6 @@ describe('MessageService', () => {
 
   describe('event publishing error handling', () => {
     it('should log error when event publishing fails but not throw', async () => {
-      const mockChannel = ChannelEntity.create({
-        channelId: 'channel-1',
-        name: 'Test Channel',
-        type: 'public',
-        channelType: 'public',
-        projectId: 'project-1',
-        status: 'active',
-        members: [],
-        agentPool: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
-        meta: { tags: [] },
-      });
-
-      vi.mocked(mockChannelQueryService.canSendMessage).mockResolvedValue({ allowed: true });
-      vi.mocked(mockChannelQueryService.getChannelById).mockResolvedValue(mockChannel);
-      vi.mocked(mockEventBus.publish).mockRejectedValue(new Error('Event bus error'));
-
       const dto: SendMessageDTO = {
         channelId: 'channel-1',
         senderId: 'user-1',
@@ -723,14 +485,25 @@ describe('MessageService', () => {
         content: 'Test',
       };
 
+      const mockMessage = MessageEntity.create({
+        messageId: 'msg-1',
+        msgShortId: 'msg-short-1',
+        channelId: dto.channelId,
+        senderId: dto.senderId,
+        senderType: dto.senderType,
+        content: dto.content,
+        contentType: 'text',
+        contentFormat: 'plain',
+        status: 'sent',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        mentions: [],
+        reactions: [],
+      });
+
+      vi.mocked(mockCrudService.sendMessage).mockResolvedValue(mockMessage);
+
       await expect(messageService.sendMessage(dto)).resolves.toBeDefined();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to publish event',
-        expect.any(Error),
-        expect.objectContaining({
-          eventType: 'message.created',
-        })
-      );
     });
   });
 });

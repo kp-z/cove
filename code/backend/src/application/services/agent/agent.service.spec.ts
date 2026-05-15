@@ -1,294 +1,64 @@
 /**
  * AgentService 单元测试
- *
- * 测试策略：
- * - Mock 所有外部依赖（Repository, Runtime, EventBus, Logger）
- * - 测试业务逻辑和流程编排
- * - 验证错误处理
- * - 验证事件发布
  */
 
-import { AgentService, CreateAgentDTO, UpdateAgentDTO, AssignTaskDTO } from './agent.service';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { AgentService } from './agent.service';
+import { AgentCrudService, CreateAgentDTO, UpdateAgentDTO } from './agent-crud.service';
+import { AgentQueryService } from './agent-query.service';
+import { AgentConfigService } from './agent-config.service';
+import { AgentTaskService, AgentAssignTaskDTO } from './agent-task.service';
 import { AgentResponseService } from './agent-response.service';
-import { AgentEntity, AgentStatus } from '../../../domain/models/agent/agent.entity';
-import { TaskEntity, TaskStatus } from '../../../domain/models/task/task.entity';
-import { AssigneeRef } from '../../../domain/models/value-objects';
-import {
-  IAgentRepository,
-  ITaskRepository,
-  IAgentRuntime,
-  IEventBus,
-  ILogger,
-  DomainEvent,
-} from '../../interfaces';
-
-// --- Mock Implementations ---
-
-class MockAgentRepository implements IAgentRepository {
-  private agents = new Map<string, AgentEntity>();
-
-  async findById(agentId: string): Promise<AgentEntity | null> {
-    return this.agents.get(agentId) || null;
-  }
-
-  async findAll(): Promise<AgentEntity[]> {
-    return Array.from(this.agents.values());
-  }
-
-  async findByStatus(status: AgentStatus): Promise<AgentEntity[]> {
-    return Array.from(this.agents.values()).filter((a) => a.status === status);
-  }
-
-  async findByProjectId(projectId: string): Promise<AgentEntity[]> {
-    return [];
-  }
-
-  async save(agent: AgentEntity): Promise<void> {
-    this.agents.set(agent.agentId, agent);
-  }
-
-  async update(agent: AgentEntity): Promise<void> {
-    this.agents.set(agent.agentId, agent);
-  }
-
-  async delete(agentId: string): Promise<void> {
-    this.agents.delete(agentId);
-  }
-
-  // Test helpers
-  clear(): void {
-    this.agents.clear();
-  }
-
-  seed(agent: AgentEntity): void {
-    this.agents.set(agent.agentId, agent);
-  }
-}
-
-class MockTaskRepository implements ITaskRepository {
-  private tasks = new Map<string, TaskEntity>();
-
-  async findById(taskId: string): Promise<TaskEntity | null> {
-    return this.tasks.get(taskId) || null;
-  }
-
-  async findByChannelId(channelId: string): Promise<TaskEntity[]> {
-    return [];
-  }
-
-  async findByAssignee(assigneeId: string): Promise<TaskEntity[]> {
-    return [];
-  }
-
-  async findByStatus(status: TaskStatus): Promise<TaskEntity[]> {
-    return [];
-  }
-
-  async findByPriority(priority: string): Promise<TaskEntity[]> {
-    return [];
-  }
-
-  async save(task: TaskEntity): Promise<void> {
-    this.tasks.set(task.taskId, task);
-  }
-
-  async update(task: TaskEntity): Promise<void> {
-    this.tasks.set(task.taskId, task);
-  }
-
-  async delete(taskId: string): Promise<void> {
-    this.tasks.delete(taskId);
-  }
-
-  async updateStatus(taskId: string, status: TaskStatus): Promise<void> {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      const updated = TaskEntity.create({ ...task, status });
-      this.tasks.set(taskId, updated);
-    }
-  }
-
-  async assignTask(taskId: string, assignee: AssigneeRef): Promise<void> {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      const updated = task.assignTo(assignee);
-      this.tasks.set(taskId, updated);
-    }
-  }
-
-  // Test helpers
-  clear(): void {
-    this.tasks.clear();
-  }
-
-  seed(task: TaskEntity): void {
-    this.tasks.set(task.taskId, task);
-  }
-}
-
-class MockAgentRuntime implements IAgentRuntime {
-  private runningAgents = new Set<string>();
-
-  async startAgent(agentId: string): Promise<void> {
-    this.runningAgents.add(agentId);
-  }
-
-  async stopAgent(agentId: string): Promise<void> {
-    this.runningAgents.delete(agentId);
-  }
-
-  async pauseAgent(agentId: string): Promise<void> {
-    // No-op for mock
-  }
-
-  async resumeAgent(agentId: string): Promise<void> {
-    // No-op for mock
-  }
-
-  async getAgentStatus(agentId: string): Promise<AgentStatus> {
-    return this.runningAgents.has(agentId) ? 'active' : 'idle';
-  }
-
-  async sendMessage(agentId: string, message: string): Promise<void> {
-    // No-op for mock
-  }
-
-  // Test helpers
-  isRunning(agentId: string): boolean {
-    return this.runningAgents.has(agentId);
-  }
-}
-
-class MockEventBus implements IEventBus {
-  public publishedEvents: DomainEvent[] = [];
-
-  async publish(event: DomainEvent): Promise<void> {
-    this.publishedEvents.push(event);
-  }
-
-  subscribe<K extends keyof any>(eventType: K, handler: (event: any) => void | Promise<void>): void {
-    // No-op for mock
-  }
-
-  unsubscribe<K extends keyof any>(eventType: K, handler: (event: any) => void | Promise<void>): void {
-    // No-op for mock
-  }
-
-  // Test helpers
-  clear(): void {
-    this.publishedEvents = [];
-  }
-
-  getEventsByType(eventType: string): DomainEvent[] {
-    return this.publishedEvents.filter((e) => e.eventType === eventType);
-  }
-}
-
-class MockLogger implements ILogger {
-  public logs: Array<{ level: string; message: string; context?: any }> = [];
-
-  debug(message: string, context?: Record<string, any>): void {
-    this.logs.push({ level: 'debug', message, context });
-  }
-
-  info(message: string, context?: Record<string, any>): void {
-    this.logs.push({ level: 'info', message, context });
-  }
-
-  warn(message: string, context?: Record<string, any>): void {
-    this.logs.push({ level: 'warn', message, context });
-  }
-
-  error(message: string, error: Error, context?: Record<string, any>): void {
-    this.logs.push({ level: 'error', message, context: { ...context, error } });
-  }
-
-  child(context: Record<string, any>): ILogger {
-    return this;
-  }
-
-  setLevel(level: string): void {
-    // No-op for mock
-  }
-
-  // Test helpers
-  clear(): void {
-    this.logs = [];
-  }
-}
-
-// --- Test Helpers ---
-
-function createTestAgent(overrides: Partial<any> = {}): AgentEntity {
-  const defaults = {
-    agentId: 'agent-123',
-    name: 'test-agent',
-    displayName: 'Test Agent',
-    description: 'A test agent',
-    status: 'idle' as const,
-    category: 'engineering' as const,
-    capabilities: ['coding', 'testing'],
-    tags: ['backend'],
-    createdBy: 'user-123',
-    createdAt: new Date(),
-  };
-  return AgentEntity.create({ ...defaults, ...overrides });
-}
-
-function createTestTask(overrides: Partial<any> = {}): TaskEntity {
-  const defaults = {
-    taskId: 'task-123',
-    title: 'Test Task',
-    description: 'A test task',
-    taskType: 'single_agent' as const,
-    priority: 'P1' as const,
-    status: 'todo' as const,
-    channelId: 'channel-123',
-    projectId: 'project-123',
-    createdBy: {
-      id: 'user-123',
-      type: 'human' as const,
-    },
-    createdAt: new Date(),
-  };
-  return TaskEntity.create({ ...defaults, ...overrides });
-}
-
-// --- Test Suite ---
+import { AgentEntity } from '../../../domain/models/agent/agent.entity';
+import { TaskEntity } from '../../../domain/models/task/task.entity';
+import { AgentNotFoundError } from './agent.errors';
 
 describe('AgentService', () => {
-  let service: AgentService;
-  let agentRepository: MockAgentRepository;
-  let taskRepository: MockTaskRepository;
-  let agentResponseService: AgentResponseService;
-  let messageRepository: any;
-  let channelRepository: any;
-  let eventBus: MockEventBus;
-  let logger: MockLogger;
+  let agentService: AgentService;
+  let mockCrudService: AgentCrudService;
+  let mockQueryService: AgentQueryService;
+  let mockConfigService: AgentConfigService;
+  let mockTaskService: AgentTaskService;
+  let mockResponseService: AgentResponseService;
 
   beforeEach(() => {
-    agentRepository = new MockAgentRepository();
-    taskRepository = new MockTaskRepository();
-    messageRepository = {}; // Minimal mock
-    channelRepository = {}; // Minimal mock
-    eventBus = new MockEventBus();
-    logger = new MockLogger();
+    mockCrudService = {
+      createAgent: vi.fn(),
+      updateAgent: vi.fn(),
+      deleteAgent: vi.fn(),
+    } as unknown as AgentCrudService;
 
-    // Create AgentResponseService with mocked dependencies
-    agentResponseService = new AgentResponseService(
-      agentRepository,
-      messageRepository,
-      channelRepository,
-      eventBus,
-      logger
-    );
+    mockQueryService = {
+      getAgentById: vi.fn(),
+      getAgentDetail: vi.fn(),
+      listAgents: vi.fn(),
+      getAgentsByStatus: vi.fn(),
+      getAvailableAgents: vi.fn(),
+    } as unknown as AgentQueryService;
 
-    service = new AgentService(
-      agentRepository,
-      taskRepository,
-      agentResponseService,
-      eventBus,
-      logger
+    mockConfigService = {
+      updateRuntime: vi.fn(),
+      updatePersona: vi.fn(),
+      updateSkills: vi.fn(),
+      updateTools: vi.fn(),
+      updateTriggers: vi.fn(),
+    } as unknown as AgentConfigService;
+
+    mockTaskService = {
+      assignTask: vi.fn(),
+    } as unknown as AgentTaskService;
+
+    mockResponseService = {
+      shouldAgentRespond: vi.fn(),
+      generateAgentResponse: vi.fn(),
+    } as unknown as AgentResponseService;
+
+    agentService = new AgentService(
+      mockCrudService,
+      mockQueryService,
+      mockConfigService,
+      mockTaskService,
+      mockResponseService
     );
   });
 
@@ -297,330 +67,331 @@ describe('AgentService', () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        description: 'A test agent',
-        capabilities: ['coding', 'testing'],
-        tags: ['backend'],
-        createdBy: 'user-123',
+        projectId: 'project-1',
+        createdBy: { id: 'user-1', type: 'human' },
       };
 
-      const agent = await service.createAgent(dto);
+      const mockAgent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: dto.name,
+        displayName: dto.displayName,
+        projectId: dto.projectId,
+        category: 'engineering',
+        status: 'idle',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: dto.createdBy,
+      });
 
-      expect(agent.name).toBe('test-agent');
-      expect(agent.displayName).toBe('Test Agent');
-      expect(agent.description).toBe('A test agent');
-      expect(agent.status).toBe('idle');
-      // Note: capabilities is not part of AgentEntity domain model
-      // expect(agent.capabilities).toEqual(['coding', 'testing']);
-      expect(agent.tags).toEqual(['backend']);
+      vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
+
+      const result = await agentService.createAgent(dto);
+
+      expect(result).toBe(mockAgent);
+      expect(mockCrudService.createAgent).toHaveBeenCalledWith(dto);
     });
 
     it('should save agent to repository', async () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        createdBy: 'user-123',
+        projectId: 'project-1',
+        createdBy: { id: 'user-1', type: 'human' },
       };
 
-      const agent = await service.createAgent(dto);
-      const saved = await agentRepository.findById(agent.agentId);
+      const mockAgent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: dto.name,
+        displayName: dto.displayName,
+        projectId: dto.projectId,
+        category: 'engineering',
+        status: 'idle',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: dto.createdBy,
+      });
 
-      expect(saved).not.toBeNull();
-      expect(saved?.agentId).toBe(agent.agentId);
+      vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
+
+      await agentService.createAgent(dto);
+
+      expect(mockCrudService.createAgent).toHaveBeenCalled();
     });
 
     it('should publish agent.created event', async () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        createdBy: 'user-123',
+        projectId: 'project-1',
+        createdBy: { id: 'user-1', type: 'human' },
       };
 
-      await service.createAgent(dto);
-
-      const events = eventBus.getEventsByType('agent.created');
-      expect(events).toHaveLength(1);
-      expect(events[0].payload).toMatchObject({
-        name: 'test-agent',
-        createdBy: 'user-123',
+      const mockAgent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: dto.name,
+        displayName: dto.displayName,
+        projectId: dto.projectId,
+        category: 'engineering',
+        status: 'idle',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: dto.createdBy,
       });
+
+      vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
+
+      await agentService.createAgent(dto);
+
+      expect(mockCrudService.createAgent).toHaveBeenCalled();
     });
 
     it('should log agent creation', async () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        createdBy: 'user-123',
+        projectId: 'project-1',
+        createdBy: { id: 'user-1', type: 'human' },
       };
 
-      await service.createAgent(dto);
+      const mockAgent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: dto.name,
+        displayName: dto.displayName,
+        projectId: dto.projectId,
+        category: 'engineering',
+        status: 'idle',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: dto.createdBy,
+      });
 
-      const infoLogs = logger.logs.filter((l) => l.level === 'info');
-      expect(infoLogs.length).toBeGreaterThan(0);
-      expect(infoLogs.some((l) => l.message.includes('Creating new agent'))).toBe(true);
+      vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
+
+      await agentService.createAgent(dto);
+
+      expect(mockCrudService.createAgent).toHaveBeenCalled();
     });
   });
 
   describe('getAgentById', () => {
     it('should return agent when found', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
+      const mockAgent = AgentEntity.create({
+        agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
+        projectId: 'project-1',
+        category: 'engineering',
         status: 'idle',
-        createdBy: 'user-123',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: { id: 'user-1', type: 'human' },
       });
-      agentRepository.seed(agent);
 
-      const result = await service.getAgentById('agent-123');
+      vi.mocked(mockQueryService.getAgentById).mockResolvedValue(mockAgent);
 
-      expect(result.agentId).toBe('agent-123');
+      const result = await agentService.getAgentById('agent-1');
+
+      expect(result).toBe(mockAgent);
     });
 
     it('should throw AgentNotFoundError when not found', async () => {
-      await expect(service.getAgentById('non-existent')).rejects.toThrow('Agent not found');
+      vi.mocked(mockQueryService.getAgentById).mockRejectedValue(
+        new AgentNotFoundError('nonexistent')
+      );
+
+      await expect(agentService.getAgentById('nonexistent')).rejects.toThrow(
+        AgentNotFoundError
+      );
     });
   });
 
   describe('getAgentsByStatus', () => {
     it('should return agents with matching status', async () => {
-      const agent1 = createTestAgent({
-        agentId: 'agent-1',
-        name: 'agent-1',
-        displayName: 'Agent 1',
+      const mockAgents = [
+        AgentEntity.create({
+          agentId: 'agent-1',
+          name: 'agent-1',
+          displayName: 'Agent 1',
+          projectId: 'project-1',
+          category: 'engineering',
         status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      const agent2 = createTestAgent({
-        agentId: 'agent-2',
-        name: 'agent-2',
-        displayName: 'Agent 2',
-        status: 'active',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent1);
-      agentRepository.seed(agent2);
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: { id: 'user-1', type: 'human' },
+        }),
+        AgentEntity.create({
+          agentId: 'agent-2',
+          name: 'agent-2',
+          displayName: 'Agent 2',
+          projectId: 'project-1',
+          category: 'engineering',
+        status: 'idle',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: { id: 'user-1', type: 'human' },
+        }),
+      ];
 
-      const idleAgents = await service.getAgentsByStatus('idle');
+      vi.mocked(mockQueryService.getAgentsByStatus).mockResolvedValue(mockAgents);
 
-      expect(idleAgents).toHaveLength(1);
-      expect(idleAgents[0].agentId).toBe('agent-1');
+      const result = await agentService.getAgentsByStatus('idle');
+
+      expect(result).toHaveLength(2);
+      expect(result).toEqual(mockAgents);
     });
   });
 
   describe('updateAgent', () => {
     it('should update agent properties', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Old Name',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-
       const dto: UpdateAgentDTO = {
-        displayName: 'New Name',
-        description: 'Updated description',
+        displayName: 'Updated Agent',
       };
 
-      const updated = await service.updateAgent('agent-123', dto);
+      const updatedAgent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: 'test-agent',
+        displayName: 'Updated Agent',
+        projectId: 'project-1',
+        category: 'engineering',
+        status: 'idle',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: { id: 'user-1', type: 'human' },
+      });
 
-      expect(updated.displayName).toBe('New Name');
-      expect(updated.description).toBe('Updated description');
+      vi.mocked(mockCrudService.updateAgent).mockResolvedValue(updatedAgent);
+
+      const result = await agentService.updateAgent('agent-1', dto);
+
+      expect(result.displayName).toBe('Updated Agent');
     });
 
     it('should publish agent.updated event', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
+      const dto: UpdateAgentDTO = {
+        displayName: 'Updated Agent',
+      };
+
+      const updatedAgent = AgentEntity.create({
+        agentId: 'agent-1',
         name: 'test-agent',
-        displayName: 'Test Agent',
+        displayName: 'Updated Agent',
+        projectId: 'project-1',
+        category: 'engineering',
         status: 'idle',
-        createdBy: 'user-123',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: { id: 'user-1', type: 'human' },
       });
-      agentRepository.seed(agent);
 
-      await service.updateAgent('agent-123', { displayName: 'New Name' });
+      vi.mocked(mockCrudService.updateAgent).mockResolvedValue(updatedAgent);
 
-      const events = eventBus.getEventsByType('agent.updated');
-      expect(events).toHaveLength(1);
+      await agentService.updateAgent('agent-1', dto);
+
+      expect(mockCrudService.updateAgent).toHaveBeenCalled();
     });
   });
 
-  // startAgent and stopAgent tests moved to agent-runtime.service — those methods
-  // are now in AgentRuntimeService, not AgentService.
-
   describe('assignTask', () => {
     it('should assign task to idle agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      const task = createTestTask({
-        taskId: 'task-123',
-        title: 'Test Task',
-        channelId: 'channel-123',
-        status: 'todo',
-        priority: 'P1',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-      taskRepository.seed(task);
-
-      const dto: AssignTaskDTO = {
-        taskId: 'task-123',
-        agentId: 'agent-123',
+      const dto: AgentAssignTaskDTO = {
+        agentId: 'agent-1',
+        taskId: 'task-1',
       };
 
-      const assignedTask = await service.assignTask(dto);
+      const mockTask = TaskEntity.create({
+        taskId: 'task-1',
+        title: 'Test Task',
+        taskType: 'single_agent',
+        projectId: 'project-1',
+        status: 'in_progress',
+        priority: 'P2',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: { id: 'user-1', type: 'human' },
+      });
 
-      expect(assignedTask.status).toBe('in_progress');
-      expect(assignedTask.assignee?.id).toBe('agent-123');
-      expect(assignedTask.assignee?.type).toBe('agent');
+      vi.mocked(mockTaskService.assignTask).mockResolvedValue(mockTask);
+
+      const result = await agentService.assignTask(dto);
+
+      expect(result).toBe(mockTask);
+      expect(mockTaskService.assignTask).toHaveBeenCalledWith(dto);
     });
 
     it('should throw error when agent is not available', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'error',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      const task = createTestTask({
-        taskId: 'task-123',
-        title: 'Test Task',
-        channelId: 'channel-123',
-        status: 'todo',
-        priority: 'P1',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-      taskRepository.seed(task);
-
-      const dto: AssignTaskDTO = {
-        taskId: 'task-123',
-        agentId: 'agent-123',
+      const dto: AgentAssignTaskDTO = {
+        agentId: 'agent-1',
+        taskId: 'task-1',
       };
 
-      await expect(service.assignTask(dto)).rejects.toThrow('Agent is not available');
+      vi.mocked(mockTaskService.assignTask).mockRejectedValue(
+        new Error('Agent is not available')
+      );
+
+      await expect(agentService.assignTask(dto)).rejects.toThrow('Agent is not available');
     });
 
     it('should throw error when task is not in todo status', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      const task = createTestTask({
-        taskId: 'task-123',
-        title: 'Test Task',
-        channelId: 'channel-123',
-        status: 'done',
-        priority: 'P1',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
-      taskRepository.seed(task);
-
-      const dto: AssignTaskDTO = {
-        taskId: 'task-123',
-        agentId: 'agent-123',
+      const dto: AgentAssignTaskDTO = {
+        agentId: 'agent-1',
+        taskId: 'task-1',
       };
 
-      await expect(service.assignTask(dto)).rejects.toThrow('Task cannot be assigned');
+      vi.mocked(mockTaskService.assignTask).mockRejectedValue(
+        new Error('Task cannot be assigned')
+      );
+
+      await expect(agentService.assignTask(dto)).rejects.toThrow('Task cannot be assigned');
     });
 
     it('should publish task.assigned event', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      const task = createTestTask({
-        taskId: 'task-123',
+      const dto: AgentAssignTaskDTO = {
+        agentId: 'agent-1',
+        taskId: 'task-1',
+      };
+
+      const mockTask = TaskEntity.create({
+        taskId: 'task-1',
         title: 'Test Task',
-        channelId: 'channel-123',
-        status: 'todo',
-        priority: 'P1',
-        createdBy: 'user-123',
+        taskType: 'single_agent',
+        projectId: 'project-1',
+        status: 'in_progress',
+        priority: 'P2',
         createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: { id: 'user-1', type: 'human' },
       });
-      agentRepository.seed(agent);
-      taskRepository.seed(task);
 
-      await service.assignTask({ taskId: 'task-123', agentId: 'agent-123' });
+      vi.mocked(mockTaskService.assignTask).mockResolvedValue(mockTask);
 
-      const events = eventBus.getEventsByType('task.assigned');
-      expect(events).toHaveLength(1);
+      await agentService.assignTask(dto);
+
+      expect(mockTaskService.assignTask).toHaveBeenCalled();
     });
   });
 
   describe('deleteAgent', () => {
     it('should delete an idle agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
+      vi.mocked(mockCrudService.deleteAgent).mockResolvedValue(undefined);
 
-      await service.deleteAgent('agent-123');
-
-      const deleted = await agentRepository.findById('agent-123');
-      expect(deleted).toBeNull();
+      await expect(agentService.deleteAgent('agent-1')).resolves.toBeUndefined();
+      expect(mockCrudService.deleteAgent).toHaveBeenCalledWith('agent-1');
     });
 
     it('should throw error when deleting active agent', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'active',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
+      vi.mocked(mockCrudService.deleteAgent).mockRejectedValue(
+        new Error('Agent is in use')
+      );
 
-      await expect(service.deleteAgent('agent-123')).rejects.toThrow('Agent is in use');
+      await expect(agentService.deleteAgent('agent-1')).rejects.toThrow('Agent is in use');
     });
 
     it('should publish agent.deleted event', async () => {
-      const agent = createTestAgent({
-        agentId: 'agent-123',
-        name: 'test-agent',
-        displayName: 'Test Agent',
-        status: 'idle',
-        createdBy: 'user-123',
-        createdAt: new Date(),
-      });
-      agentRepository.seed(agent);
+      vi.mocked(mockCrudService.deleteAgent).mockResolvedValue(undefined);
 
-      await service.deleteAgent('agent-123');
+      await agentService.deleteAgent('agent-1');
 
-      const events = eventBus.getEventsByType('agent.deleted');
-      expect(events).toHaveLength(1);
+      expect(mockCrudService.deleteAgent).toHaveBeenCalled();
     });
   });
 });

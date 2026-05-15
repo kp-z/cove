@@ -8,6 +8,7 @@
  */
 
 import { UserEntity, UserRole } from '../../../domain/models/user/user.entity';
+import { UserNotFoundError, UsernameAlreadyExistsError, EmailAlreadyExistsError } from './user.errors';
 import {
   IUserRepository,
   IEventBus,
@@ -204,23 +205,3 @@ export class UserService {
   }
 }
 
-export class UserNotFoundError extends Error {
-  constructor(identifier: string) {
-    super(`User not found: ${identifier}`);
-    this.name = 'UserNotFoundError';
-  }
-}
-
-export class UsernameAlreadyExistsError extends Error {
-  constructor(username: string) {
-    super(`Username already exists: ${username}`);
-    this.name = 'UsernameAlreadyExistsError';
-  }
-}
-
-export class EmailAlreadyExistsError extends Error {
-  constructor(email: string) {
-    super(`Email already exists: ${email}`);
-    this.name = 'EmailAlreadyExistsError';
-  }
-}

@@ -66,6 +66,7 @@ model Channel {
   projectId     String?
   parentChannelId String?
   metadataPath  String   // 指向 .cove/storage/channels/{id}.json
+  memberIds     String   @default("[]") // JSON array of member user IDs (冗余字段用于快速查询)
   messageCount  Int      @default(0)
   memberCount   Int      @default(0)
   createdAt     DateTime
@@ -82,6 +83,8 @@ model Channel {
   @@index([type])
   @@index([status])
   @@index([parentChannelId])
+  @@index([projectId, status])
+  @@index([type, status])
 }
 
 model Member {
@@ -133,6 +136,8 @@ model Message {
   @@index([threadId])
   @@index([status])
   @@index([shortId])
+  @@index([senderId, createdAt])
+  @@index([status, createdAt])
 }
 
 // ============================================
@@ -159,6 +164,8 @@ model Task {
   @@index([status])
   @@index([priority])
   @@index([assigneeId])
+  @@index([projectId, status, priority])
+  @@index([assigneeId, status])
 }
 
 model Workflow {

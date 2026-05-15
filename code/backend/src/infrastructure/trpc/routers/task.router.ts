@@ -15,8 +15,8 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
 import { TaskService } from '../../../application/services/task/task.service';
+import { mapErrorToTRPC } from '../../../common/errors';
 
 // Zod Schemas
 const createTaskSchema = z.object({
@@ -65,10 +65,7 @@ export const taskRouter = (taskService: TaskService) =>
           const task = await taskService.createTask(input);
           return task.toJSON();
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to create task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -102,10 +99,7 @@ export const taskRouter = (taskService: TaskService) =>
             total: tasks.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch tasks',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -117,16 +111,7 @@ export const taskRouter = (taskService: TaskService) =>
           const task = await taskService.getTaskById(input.taskId);
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -141,16 +126,7 @@ export const taskRouter = (taskService: TaskService) =>
           const task = await taskService.updateTask(input.taskId, input.data);
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -162,16 +138,7 @@ export const taskRouter = (taskService: TaskService) =>
           await taskService.deleteTask(input.taskId);
           return { taskId: input.taskId, deleted: true };
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -187,16 +154,7 @@ export const taskRouter = (taskService: TaskService) =>
           );
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'MessageNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to convert message to task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -212,22 +170,7 @@ export const taskRouter = (taskService: TaskService) =>
           });
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          if (error.name === 'TaskNotAssignableError') {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to claim task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -242,22 +185,7 @@ export const taskRouter = (taskService: TaskService) =>
           const task = await taskService.unclaimTask(input.taskId, input.userId);
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          if (error.message?.includes('is not the assignee')) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to unclaim task',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -273,22 +201,7 @@ export const taskRouter = (taskService: TaskService) =>
           );
           return task.toJSON();
         } catch (error: any) {
-          if (error.name === 'TaskNotFoundError' || error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          if (error.name === 'InvalidStatusTransitionError' || error.message?.includes('Cannot')) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update task status',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

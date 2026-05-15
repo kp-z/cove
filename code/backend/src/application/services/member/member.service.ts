@@ -8,6 +8,14 @@
  * - 成员统计更新
  */
 
+import {
+  MemberNotFoundError,
+  MemberNotFoundInChannelError,
+  MemberAlreadyInChannelError,
+  ChannelNotFoundForMemberError,
+  UserNotFoundForMemberError,
+} from './member.errors';
+
 import { MemberEntity, MemberRole } from '../../../domain/models/member/member.entity';
 import {
   IMemberRepository,
@@ -296,37 +304,3 @@ export class MemberService {
   }
 }
 
-export class MemberNotFoundError extends Error {
-  constructor(memberId: string) {
-    super(`Member not found: ${memberId}`);
-    this.name = 'MemberNotFoundError';
-  }
-}
-
-export class MemberNotFoundInChannelError extends Error {
-  constructor(userId: string, channelId: string) {
-    super(`User ${userId} is not a member of channel ${channelId}`);
-    this.name = 'MemberNotFoundInChannelError';
-  }
-}
-
-export class MemberAlreadyInChannelError extends Error {
-  constructor(userId: string, channelId: string) {
-    super(`User ${userId} is already a member of channel ${channelId}`);
-    this.name = 'MemberAlreadyInChannelError';
-  }
-}
-
-export class ChannelNotFoundForMemberError extends Error {
-  constructor(channelId: string) {
-    super(`Channel not found: ${channelId}`);
-    this.name = 'ChannelNotFoundForMemberError';
-  }
-}
-
-export class UserNotFoundForMemberError extends Error {
-  constructor(userId: string) {
-    super(`User not found: ${userId}`);
-    this.name = 'UserNotFoundForMemberError';
-  }
-}

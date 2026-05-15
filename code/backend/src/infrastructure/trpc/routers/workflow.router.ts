@@ -11,8 +11,9 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
+import { router, publicProcedure } from '../trpc';
+import { mapErrorToTRPC } from '../../../common/errors';
 import { WorkflowService } from '../../../application/services/workflow/workflow.service';
 
 // Zod Schemas
@@ -63,10 +64,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
           const workflow = await workflowService.createWorkflow(input);
           return workflow.toJSON();
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to create workflow',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -93,10 +91,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
             total: workflows.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch workflows',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -108,16 +103,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
           const workflow = await workflowService.getWorkflowById(input.workflowId);
           return workflow.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch workflow',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -132,16 +118,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
           const workflow = await workflowService.updateWorkflow(input.workflowId, input.data);
           return workflow.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update workflow',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -164,16 +141,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
           await workflowService.deleteWorkflow(input.workflowId);
           return { workflowId: input.workflowId, deleted: true };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete workflow',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

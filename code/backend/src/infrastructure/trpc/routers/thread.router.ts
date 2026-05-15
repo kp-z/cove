@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
+import { mapErrorToTRPC } from '../../../common/errors';
 import { ThreadService } from '../../../application/services/thread/thread.service';
 
 // Zod Schemas
@@ -36,22 +36,7 @@ export const threadRouter = (threadService: ThreadService) =>
           );
           return message.toJSON();
         } catch (error: any) {
-          if (error.name === 'NestedThreadError') {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: error.message,
-            });
-          }
-          if (error.name === 'ThreadNotFoundError' || error.name === 'RootMessageNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to reply in thread',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -75,16 +60,7 @@ export const threadRouter = (threadService: ThreadService) =>
             total: messages.length,
           };
         } catch (error: any) {
-          if (error.name === 'ThreadNotFoundError' || error.name === 'RootMessageNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch thread messages',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -96,16 +72,7 @@ export const threadRouter = (threadService: ThreadService) =>
           const thread = await threadService.getOrCreateThread(input.threadId);
           return thread.toJSON();
         } catch (error: any) {
-          if (error.name === 'ThreadNotFoundError' || error.name === 'RootMessageNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch thread metadata',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -121,10 +88,7 @@ export const threadRouter = (threadService: ThreadService) =>
             total: threads.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch channel threads',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

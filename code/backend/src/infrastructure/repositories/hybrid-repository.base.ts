@@ -130,6 +130,7 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
    */
   protected async findEntityById(entityId: string): Promise<TEntity | null> {
     const entityType = this.getEntityType();
+    const startTime = Date.now();
 
     try {
       // 1. 从数据库查询索引
@@ -144,7 +145,19 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
       const content = await this.storage.loadJson(contentPath);
 
       // 3. 组装领域实体
-      return this.toDomain(dbRecord, content);
+      const entity = this.toDomain(dbRecord, content);
+
+      // 4. 性能监控
+      const duration = Date.now() - startTime;
+      if (duration > 50) {
+        this.logger.warn(`Slow query: findEntityById(${entityId}) took ${duration}ms`, {
+          entityType,
+          entityId,
+          duration,
+        });
+      }
+
+      return entity;
     } catch (error: any) {
       this.logger.error(`Failed to find ${entityType} ${entityId}`, error);
       throw error;
@@ -155,16 +168,35 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
    * 批量加载实体
    */
   protected async loadEntities(dbRecords: TDbRecord[]): Promise<TEntity[]> {
-    // 并行加载所有内容文件
-    const entities = await Promise.all(
-      dbRecords.map(async (record) => {
-        const contentPath = this.getContentPath(record);
-        const content = await this.storage.loadJson(contentPath);
-        return this.toDomain(record, content);
-      })
-    );
+    const startTime = Date.now();
+    const entityType = this.getEntityType();
 
-    return entities;
+    try {
+      // 并行加载所有内容文件
+      const entities = await Promise.all(
+        dbRecords.map(async (record) => {
+          const contentPath = this.getContentPath(record);
+          const content = await this.storage.loadJson(contentPath);
+          return this.toDomain(record, content);
+        })
+      );
+
+      // 性能监控
+      const duration = Date.now() - startTime;
+      if (duration > 100) {
+        this.logger.warn(`Slow batch query: loadEntities(${dbRecords.length} records) took ${duration}ms`, {
+          entityType,
+          count: dbRecords.length,
+          duration,
+          avgPerRecord: Math.round(duration / dbRecords.length),
+        });
+      }
+
+      return entities;
+    } catch (error: any) {
+      this.logger.error(`Failed to load ${entityType} entities`, error);
+      throw error;
+    }
   }
 
   // ============================================

@@ -21,12 +21,16 @@ npm install
 npm run dev
 ```
 
-The server will start at `http://localhost:3001`.
+The server will start at `http://localhost:3001`. The dev script uses nodemon to watch for file changes and automatically rebuilds with esbuild.
 
 ### Build
 
 ```bash
+# TypeScript compilation (for type checking)
 npm run build
+
+# Fast bundling with esbuild (used by start/dev)
+npm run build:esbuild
 ```
 
 ### Production
@@ -34,6 +38,23 @@ npm run build
 ```bash
 npm start
 ```
+
+This will bundle the application with esbuild and run it with Node.js.
+
+## API Documentation
+
+Interactive API documentation is available at:
+
+**Development**: http://localhost:3001/docs
+
+The documentation provides:
+- Complete endpoint listing for all routers
+- Interactive request builder with schema validation
+- Real-time response preview
+- Zod schema visualization
+- WebSocket subscription testing
+
+**Note**: The `/docs` endpoint is only available in development mode for security reasons.
 
 ## Development Tools
 

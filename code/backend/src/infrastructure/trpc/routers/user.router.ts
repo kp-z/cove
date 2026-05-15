@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
+import { mapErrorToTRPC } from '../../../common/errors';
 import { UserService } from '../../../application/services/user/user.service';
 
 // Zod Schemas
@@ -39,16 +39,7 @@ export const userRouter = (userService: UserService) =>
           const user = await userService.createUser(input);
           return user.toJSON();
         } catch (error: any) {
-          if (error.name === 'UsernameAlreadyExistsError' || error.name === 'EmailAlreadyExistsError') {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to create user',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -68,10 +59,7 @@ export const userRouter = (userService: UserService) =>
             total: users.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch users',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -83,16 +71,7 @@ export const userRouter = (userService: UserService) =>
           const user = await userService.getUserById(input.userId);
           return user.toJSON();
         } catch (error: any) {
-          if (error.name === 'UserNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch user',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -107,16 +86,7 @@ export const userRouter = (userService: UserService) =>
           const user = await userService.updateUser(input.userId, input.data);
           return user.toJSON();
         } catch (error: any) {
-          if (error.name === 'UserNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update user',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -128,16 +98,7 @@ export const userRouter = (userService: UserService) =>
           await userService.deleteUser(input.userId);
           return { userId: input.userId, deleted: true };
         } catch (error: any) {
-          if (error.name === 'UserNotFoundError') {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete user',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

@@ -327,6 +327,130 @@ describe('AgentResponseService', () => {
     });
   });
 
+  describe('shouldAgentRespond', () => {
+    it('should return true when agent is mentioned', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'active' });
+      const message = createTestMessage({
+        mentions: [{ mentionType: 'agent', mentionId: 'agent-1', mentionName: 'Agent' }],
+        status: 'sent',
+      });
+      const channel = createTestChannel();
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when agent is not active or idle', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'disabled' });
+      const message = createTestMessage({ status: 'sent' });
+      const channel = createTestChannel();
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when message is from the agent itself', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'active' });
+      const message = createTestMessage({
+        senderId: 'agent-1',
+        status: 'sent',
+      });
+      const channel = createTestChannel();
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when message status is not sent', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'active' });
+      const message = createTestMessage({ status: 'deleted' });
+      const channel = createTestChannel();
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true for DM channel with agent as member', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'active' });
+      const message = createTestMessage({ status: 'sent' });
+      const channel = createTestChannel({
+        type: 'dm',
+        members: [
+          { memberId: 'agent-1', memberType: 'agent', role: 'member', joinedAt: new Date() },
+          { memberId: 'user-1', memberType: 'human', role: 'member', joinedAt: new Date() },
+        ],
+      });
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for DM channel without agent as member', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', status: 'active' });
+      const message = createTestMessage({ status: 'sent' });
+      const channel = createTestChannel({
+        type: 'dm',
+        members: [
+          { memberId: 'user-1', memberType: 'human', role: 'member', joinedAt: new Date() },
+          { memberId: 'user-2', memberType: 'human', role: 'member', joinedAt: new Date() },
+        ],
+      });
+
+      const result = await service.shouldAgentRespond(agent, message, channel);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('generateAgentResponse', () => {
+    it('should generate mock response when no config store', async () => {
+      const agent = createTestAgent({ agentId: 'agent-1', displayName: 'TestAgent' });
+      const message = createTestMessage({ content: 'Hello agent' });
+      const channel = createTestChannel();
+
+      const response = await service.generateAgentResponse(agent, message, channel);
+
+      expect(response).toContain('TestAgent');
+      expect(typeof response).toBe('string');
+    });
+
+    it('should generate mock response when agent has no api_key', async () => {
+      const mockConfigStore = {
+        getRuntime: vi.fn().mockResolvedValue({
+          api: { provider: 'anthropic' },
+          model: { max_tokens: 1000 },
+        }),
+        getPersona: vi.fn(),
+      };
+
+      const serviceWithConfig = new AgentResponseService(
+        mockAgentRepository,
+        mockMessageRepository,
+        mockChannelRepository,
+        mockEventBus,
+        mockLogger,
+        mockConfigStore as any
+      );
+
+      const agent = createTestAgent({ agentId: 'agent-1', displayName: 'TestAgent' });
+      const message = createTestMessage({ content: 'Hello' });
+      const channel = createTestChannel();
+
+      const response = await serviceWithConfig.generateAgentResponse(agent, message, channel);
+
+      expect(response).toContain('TestAgent');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Agent has no api_key configured, using mock',
+        expect.any(Object)
+      );
+    });
+  });
+
   describe('EventBus integration', () => {
     it('should publish event when message is sent', async () => {
       const message = MessageEntity.create({

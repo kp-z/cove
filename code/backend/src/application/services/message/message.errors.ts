@@ -1,34 +1,43 @@
-export class MessageNotFoundError extends Error {
+import { NotFoundError, AuthorizationError, ValidationError } from '../../../common/errors';
+import { ERROR_CODES } from '../../../common/errors/error-codes';
+
+export class MessageNotFoundError extends NotFoundError {
+  readonly code = ERROR_CODES.MESSAGE_NOT_FOUND;
+
   constructor(messageId: string) {
-    super(`Message not found: ${messageId}`);
-    this.name = 'MessageNotFoundError';
+    super(`Message not found: ${messageId}`, { messageId });
   }
 }
 
-export class SenderNotInChannelError extends Error {
+export class SenderNotInChannelError extends ValidationError {
+  readonly code = ERROR_CODES.SENDER_NOT_IN_CHANNEL;
+
   constructor(senderId: string, channelId: string) {
-    super(`Sender ${senderId} is not in channel ${channelId}`);
-    this.name = 'SenderNotInChannelError';
+    super(`Sender ${senderId} is not in channel ${channelId}`, { senderId, channelId });
   }
 }
 
-export class UnauthorizedMessageDeletionError extends Error {
+export class UnauthorizedMessageDeletionError extends AuthorizationError {
+  readonly code = ERROR_CODES.MESSAGE_DELETION_UNAUTHORIZED;
+
   constructor(messageId: string, userId: string) {
-    super(`User ${userId} is not authorized to delete message ${messageId}`);
-    this.name = 'UnauthorizedMessageDeletionError';
+    super(`User ${userId} is not authorized to delete message ${messageId}`, { messageId, userId });
   }
 }
 
-export class UnauthorizedMessageEditError extends Error {
+export class UnauthorizedMessageEditError extends AuthorizationError {
+  readonly code = ERROR_CODES.MESSAGE_EDIT_UNAUTHORIZED;
+
   constructor(messageId: string, userId: string) {
-    super(`User ${userId} is not authorized to edit message ${messageId}`);
-    this.name = 'UnauthorizedMessageEditError';
+    super(`User ${userId} is not authorized to edit message ${messageId}`, { messageId, userId });
   }
 }
 
-export class SendMessageDeniedError extends Error {
+export class SendMessageDeniedError extends AuthorizationError {
+  readonly code = ERROR_CODES.SEND_MESSAGE_DENIED;
+
   constructor(senderId: string, channelId: string, reason: string) {
-    super(`Send denied for ${senderId} in channel ${channelId}: ${reason}`);
-    this.name = 'SendMessageDeniedError';
+    super(`Send denied for ${senderId} in channel ${channelId}: ${reason}`, { senderId, channelId, reason });
   }
 }
+

@@ -25,5 +25,11 @@
   "confirm": {
     "title": "Confirm Delete",
     "cannotUndo": "This action cannot be undone."
+  },
+  "welcome": {
+    "title": "Welcome to Cove",
+    "subtitle": "Sign in to continue",
+    "greeting": "Welcome back! Here's what's happening.",
+    "firstTime": "Get started by creating your first channel or agent"
   }
 }

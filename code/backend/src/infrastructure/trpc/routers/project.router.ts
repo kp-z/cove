@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
-import { TRPCError } from '@trpc/server';
+import { mapErrorToTRPC } from '../../../common/errors';
 import { ProjectService } from '../../../application/services/project/project.service';
 
 // Zod Schemas
@@ -36,16 +36,7 @@ export const projectRouter = (projectService: ProjectService) =>
           const project = await projectService.createProject(input);
           return project.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('already exists')) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to create project',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -60,10 +51,7 @@ export const projectRouter = (projectService: ProjectService) =>
             total: projects.length,
           };
         } catch (error: any) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch projects',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -75,16 +63,7 @@ export const projectRouter = (projectService: ProjectService) =>
           const project = await projectService.getProjectById(input.projectId);
           return project.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to fetch project',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -99,16 +78,7 @@ export const projectRouter = (projectService: ProjectService) =>
           const project = await projectService.updateProject(input.projectId, input.data);
           return project.toJSON();
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to update project',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -120,16 +90,7 @@ export const projectRouter = (projectService: ProjectService) =>
           await projectService.deleteProject(input.projectId);
           return { projectId: input.projectId, deleted: true };
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: error.message,
-            });
-          }
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: error.message || 'Failed to delete project',
-          });
+          throw mapErrorToTRPC(error);
         }
       }),
   });

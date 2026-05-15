@@ -13,6 +13,8 @@
  * - ILogger: 日志记录
  */
 
+import { RootMessageNotFoundError, NestedThreadError } from './thread.errors';
+
 import { ThreadEntity } from '../../../domain/models/thread/thread.entity';
 import { MessageEntity, SenderType } from '../../../domain/models/message/message.entity';
 import {
@@ -132,23 +134,3 @@ export class ThreadService {
 
 // --- Application Layer Errors ---
 
-export class ThreadNotFoundError extends Error {
-  constructor(threadId: string) {
-    super(`Thread not found: ${threadId}`);
-    this.name = 'ThreadNotFoundError';
-  }
-}
-
-export class NestedThreadError extends Error {
-  constructor(messageId: string) {
-    super(`Cannot create a thread on a thread reply: ${messageId}`);
-    this.name = 'NestedThreadError';
-  }
-}
-
-export class RootMessageNotFoundError extends Error {
-  constructor(messageId: string) {
-    super(`Root message not found: ${messageId}`);
-    this.name = 'RootMessageNotFoundError';
-  }
-}

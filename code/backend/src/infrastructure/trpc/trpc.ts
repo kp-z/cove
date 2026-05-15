@@ -1,7 +1,17 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { Context } from './context';
 
-const t = initTRPC.context<Context>().create();
+const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, error }) {
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+    };
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

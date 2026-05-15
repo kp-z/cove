@@ -1,5 +1,5 @@
 import { HybridRepository } from './hybrid-repository.base';
-import { ChannelEntity } from '../../domain/models/channel/channel.entity';
+import { ChannelEntity, ChannelContent } from '../../domain/models/channel/channel.entity';
 import { IChannelRepository } from '../../application/interfaces/repositories/channel.repository.interface';
 import type { ChannelType } from '../../domain/models/channel/channel.types';
 
@@ -12,22 +12,11 @@ interface ChannelDbRecord {
   projectId: string | null;
   parentChannelId: string | null;
   metadataPath: string;
+  memberIds: string;
   messageCount: number;
   memberCount: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-interface ChannelContent {
-  description?: string;
-  icon?: string;
-  members: any[];
-  agentPool: string[];
-  taskPool: string[];
-  conversationPool: any[];
-  communicationRules: any;
-  workspace: any;
-  meta: any;
 }
 
 export class HybridChannelRepository
@@ -48,7 +37,7 @@ export class HybridChannelRepository
       parentChannelId: dbRecord.parentChannelId ?? undefined,
       description: content.description,
       icon: content.icon,
-      members: content.members.map((m: any) => ({
+      members: content.members.map(m => ({
         memberId: m.memberId,
         memberType: m.memberType,
         role: m.role,
@@ -78,6 +67,7 @@ export class HybridChannelRepository
       projectId: entity.projectId ?? null,
       parentChannelId: entity.parentChannelId ?? null,
       metadataPath: '',
+      memberIds: JSON.stringify(entity.members.map(m => m.memberId)),
       messageCount: entity.meta.messageCount,
       memberCount: entity.members.length,
       createdAt: entity.meta.createdAt,
@@ -101,7 +91,7 @@ export class HybridChannelRepository
       communicationRules: entity.communicationRules,
       workspace: entity.workspace,
       meta: {
-        tags: entity.meta.tags,
+        tags: entity.meta.tags ? [...entity.meta.tags] : undefined,
         category: entity.meta.category,
         createdBy: entity.meta.createdBy,
       },
@@ -135,8 +125,16 @@ export class HybridChannelRepository
   }
 
   async findByMember(memberId: string): Promise<ChannelEntity[]> {
-    const all = await this.findAll();
-    return all.filter(ch => ch.hasMember(memberId));
+    // 使用数据库查询替代全量加载 + 内存过滤
+    const records = await this.prisma.channel.findMany({
+      where: {
+        memberIds: {
+          contains: `"${memberId}"`
+        }
+      },
+      orderBy: { name: 'asc' },
+    });
+    return this.loadEntities(records as unknown as ChannelDbRecord[]);
   }
 
   async findAll(): Promise<ChannelEntity[]> {
@@ -176,6 +174,7 @@ export class HybridChannelRepository
         projectId: dbRecord.projectId,
         parentChannelId: dbRecord.parentChannelId,
         metadataPath: contentPath,
+        memberIds: dbRecord.memberIds,
         messageCount: dbRecord.messageCount,
         memberCount: dbRecord.memberCount,
         createdAt: dbRecord.createdAt,
@@ -194,6 +193,7 @@ export class HybridChannelRepository
         status: dbRecord.status,
         projectId: dbRecord.projectId,
         metadataPath: contentPath,
+        memberIds: dbRecord.memberIds,
         messageCount: dbRecord.messageCount,
         memberCount: dbRecord.memberCount,
         updatedAt: dbRecord.updatedAt,

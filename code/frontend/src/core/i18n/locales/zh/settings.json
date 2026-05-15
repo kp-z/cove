@@ -1,0 +1,42 @@
+{
+  "general": {
+    "title": "通用设置",
+    "language": {
+      "label": "语言",
+      "description": "选择您的首选语言"
+    },
+    "timezone": {
+      "label": "时区",
+      "description": "设置您的本地时区",
+      "auto": "自动检测"
+    },
+    "projectView": {
+      "label": "默认项目视图",
+      "description": "选择项目的显示方式",
+      "grid": "网格",
+      "list": "列表"
+    }
+  },
+  "appearance": {
+    "title": "外观",
+    "theme": {
+      "label": "主题模式",
+      "description": "在亮色和暗色模式之间选择",
+      "dark": "暗色",
+      "light": "亮色",
+      "auto": "自动"
+    },
+    "accentColor": {
+      "label": "强调色",
+      "description": "选择您喜欢的强调色"
+    },
+    "compactMode": {
+      "label": "紧凑模式",
+      "description": "减少间距以获得更紧凑的布局"
+    },
+    "animations": {
+      "label": "显示动画",
+      "description": "启用或禁用 UI 动画"
+    }
+  }
+}

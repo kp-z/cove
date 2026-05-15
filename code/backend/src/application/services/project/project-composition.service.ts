@@ -9,7 +9,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { ProjectNotFoundError, ProjectNotArchivedError } from './project.service';
+import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
 import { ChannelNotFoundError } from '../channel/channel.errors';
 
