@@ -1,0 +1,17 @@
+{
+  "panel": {
+    "newThread": "新建线程"
+  },
+  "composer": {
+    "placeholder": "输入消息...",
+    "sendHint": "按 {{modifier}}+Enter 发送"
+  },
+  "messageList": {
+    "emptyTitle": "暂无消息",
+    "emptyDescription": "发送第一条消息开始对话"
+  },
+  "tabs": {
+    "close": "关闭",
+    "newThread": "新建线程"
+  }
+}

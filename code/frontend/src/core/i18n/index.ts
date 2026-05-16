@@ -12,6 +12,10 @@ import dashboardEn from './locales/en/dashboard.json';
 // Chinese
 import commonZh from './locales/zh/common.json';
 import settingsZh from './locales/zh/settings.json';
+import agentZh from './locales/zh/agent.json';
+import channelZh from './locales/zh/channel.json';
+import layoutZh from './locales/zh/layout.json';
+import dashboardZh from './locales/zh/dashboard.json';
 
 // 从 localStorage 读取初始语言
 const getInitialLanguage = (): string => {
@@ -44,6 +48,10 @@ i18n.use(initReactI18next).init({
     zh: {
       common: commonZh,
       settings: settingsZh,
+      agent: agentZh,
+      channel: channelZh,
+      layout: layoutZh,
+      dashboard: dashboardZh,
     },
   },
   interpolation: {

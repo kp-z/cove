@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -11,6 +12,7 @@ import { AgentStatusCard } from './AgentStatusCard';
 import { ChannelActivityCard } from './ChannelActivityCard';
 
 export default function DashboardPage() {
+  const { t } = useTranslation('dashboard');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
 
   const cardGridConfig = {
@@ -63,7 +65,7 @@ export default function DashboardPage() {
     <PageShell>
       <PageHeader
         title="Dashboard"
-        subtitle="系统监控和统计"
+        subtitle={t('page.subtitle')}
         actions={<TimeRangeFilter value={timeRange} onChange={setTimeRange} />}
       />
 

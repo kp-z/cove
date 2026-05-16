@@ -52,12 +52,22 @@ Thumbs.db
 .cove/cache/
 .cove/database/backups/
 
-# Screenshots / temp images
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
+# Screenshots / temp images (only in specific directories)
+# Allow documentation images in docs/
+backend/screenshots/*.png
+backend/screenshots/*.jpg
+backend/screenshots/*.jpeg
+backend/screenshots/*.gif
+backend/screenshots/*.bmp
+frontend/screenshots/*.png
+frontend/screenshots/*.jpg
+frontend/screenshots/*.jpeg
+frontend/screenshots/*.gif
+frontend/screenshots/*.bmp
+backend/temp/*.png
+backend/temp/*.jpg
+frontend/temp/*.png
+frontend/temp/*.jpg
 
 # MCP config
 .mcp.json

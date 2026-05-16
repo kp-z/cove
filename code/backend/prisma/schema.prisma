@@ -192,14 +192,17 @@ model Agent {
   id          String   @id
   name        String
   displayName String
-  status      String   // idle | running | paused | stopped | error
-  category    String   // assistant | executor | monitor | custom
+  status      String   // idle | active | disabled | error
+  scope       String   @default("user") // built-in | user | project | admin
+  projectIds  String   @default("[]") // JSON array of project IDs
   configPath  String   // 指向 .cove/storage/agents/{id}.json
+  createdBy   String   @default("system")
   createdAt   DateTime
 
   @@index([status])
-  @@index([category])
+  @@index([scope])
   @@index([name])
+  @@index([createdBy])
 }
 
 // ============================================

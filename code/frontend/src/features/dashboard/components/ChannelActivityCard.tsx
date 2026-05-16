@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
 import { chartColors } from '@/shared/lib/echarts-theme';
@@ -75,6 +76,7 @@ interface ChannelActivityCardProps {
 }
 
 export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
+  const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const messageActivity = mockMessageActivity;
   const activeChannels = mockActiveChannels;
@@ -111,7 +113,7 @@ export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
   return (
     <GlassCard>
       <div className="p-6">
-        <h2 className="text-xl font-semibold mb-6">Channel 活动监控</h2>
+        <h2 className="text-xl font-semibold mb-6">{t('channelActivity.title')}</h2>
 
         {/* 消息活动柱状图 */}
         <div className="mb-6">
@@ -120,7 +122,7 @@ export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
 
         {/* 活跃 Channel 列表 */}
         <div>
-          <h3 className="text-sm font-medium text-gray-400 mb-3">活跃 Channel</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-3">{t('channelActivity.activeChannels')}</h3>
           <div className="space-y-2">
             {activeChannels.map((channel) => (
               <div
@@ -132,7 +134,7 @@ export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
                   <div>
                     <div className="font-medium text-sm">{channel.name}</div>
                     <div className="text-xs text-gray-400">
-                      {channel.messageCount} 消息 · {channel.threadCount} 线程
+                      {channel.messageCount} {t('channelActivity.messages')} · {channel.threadCount} {t('channelActivity.threads')}
                     </div>
                   </div>
                   <div className="text-xs text-gray-500">
@@ -147,7 +149,7 @@ export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
         {/* 空状态提示 */}
         <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <p className="text-xs text-blue-400">
-            💡 数据将通过 API 提供（GET /api/stats/channel-activity?timeRange={timeRange}）
+            💡 {t('channelActivity.apiNote')}
           </p>
         </div>
       </div>

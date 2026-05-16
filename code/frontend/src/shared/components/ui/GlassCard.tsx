@@ -14,7 +14,7 @@ export function GlassCard({ children, className, onClick }: GlassCardProps) {
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       onClick={onClick}
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-xl',
+        'relative z-40 overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-xl',
         'hover:border-white/20 transition-[border-color] duration-300',
         onClick && 'cursor-pointer',
         className,

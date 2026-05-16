@@ -1,0 +1,67 @@
+{
+  "subtitle": "AI 智能体协作平台",
+  "welcome": {
+    "description": "AI 智能体协作平台 — 统一的智能体管理与编排"
+  },
+  "cards": {
+    "startChat": "与 AI 智能体开始对话",
+    "manageAgents": "创建和管理 AI 智能体",
+    "createWorkflow": "设计工作流编排"
+  },
+  "projectPage": {
+    "title": "项目",
+    "heading": "项目管理",
+    "description": "项目创建、成员管理、资源配置和监控将在此实现。"
+  },
+  "okrPage": {
+    "title": "OKR",
+    "heading": "OKR 管理",
+    "description": "OKR 设定、进度跟踪和目标对齐将在此实现。"
+  },
+  "workflowPage": {
+    "title": "工作流",
+    "heading": "工作流编排",
+    "description": "可视化工作流设计、节点配置和执行监控将在此实现。"
+  },
+  "taskPage": {
+    "title": "任务",
+    "heading": "任务管理",
+    "description": "任务看板、分配、进度跟踪和协作将在此实现。"
+  },
+  "page": {
+    "subtitle": "系统监控和统计"
+  },
+  "tokenUsage": {
+    "title": "Token 使用概览",
+    "used": "已使用",
+    "costToday": "今日成本",
+    "costWeek": "本周成本",
+    "costMonth": "本月成本",
+    "apiNote": "数据将通过 API 提供（GET /api/stats/token-overview?timeRange={{timeRange}}）"
+  },
+  "timeRange": {
+    "today": "今日",
+    "week": "本周",
+    "month": "本月"
+  },
+  "systemStatus": {
+    "title": "系统状态监控",
+    "apiNote": "系统状态数据将通过后端 API 提供"
+  },
+  "channelActivity": {
+    "title": "Channel 活动监控",
+    "activeChannels": "活跃 Channel",
+    "messages": "消息",
+    "threads": "线程",
+    "apiNote": "数据将通过 API 提供"
+  },
+  "tokenTrend": {
+    "title": "Token 使用趋势",
+    "apiNote": "数据将通过 API 提供"
+  },
+  "agentStatus": {
+    "title": "Agent 监控",
+    "runningAgents": "运行中的 Agent",
+    "apiNote": "数据将通过 API 提供"
+  }
+}

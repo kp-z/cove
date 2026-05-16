@@ -29,29 +29,30 @@ const categoryColors: Record<AgentCategory, string> = {
   custom: 'text-gray-400 bg-gray-500/20 border-gray-500/30',
 };
 
-const categoryLabels: Record<AgentCategory, string> = {
-  engineering: 'Engineering',
-  operations: 'Operations',
-  design: 'Design',
-  qa: 'QA',
-  research: 'Research',
-  platform: 'Platform',
-  collaboration: 'Collaboration',
-  custom: 'Custom',
-};
-
-const statusConfig: Record<AgentStatus, { dotColor: string; textColor: string; label: string }> = {
-  idle: { dotColor: 'bg-gray-400', textColor: 'text-gray-400', label: 'Idle' },
-  active: { dotColor: 'bg-green-400', textColor: 'text-green-400', label: 'Active' },
-  disabled: { dotColor: 'bg-yellow-400', textColor: 'text-yellow-400', label: 'Disabled' },
-  error: { dotColor: 'bg-red-500', textColor: 'text-red-500', label: 'Error' },
-};
-
 export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProps) {
   const { t } = useTranslation('agent');
   const [avatarError, setAvatarError] = useState(false);
   const avatarUrl = getAgentAvatarUrl(agent.agent_id, agent.name);
   const initials = getAgentInitials(agent.name);
+
+  const categoryLabels: Record<AgentCategory, string> = {
+    engineering: t('category.engineering'),
+    operations: t('category.operations'),
+    design: t('category.design'),
+    qa: t('category.qa'),
+    research: t('category.research'),
+    platform: t('category.platform'),
+    collaboration: t('category.collaboration'),
+    custom: t('category.custom'),
+  };
+
+  const statusConfig: Record<AgentStatus, { dotColor: string; textColor: string; label: string }> = {
+    idle: { dotColor: 'bg-gray-400', textColor: 'text-gray-400', label: t('status.idle') },
+    active: { dotColor: 'bg-green-400', textColor: 'text-green-400', label: t('status.active') },
+    disabled: { dotColor: 'bg-yellow-400', textColor: 'text-yellow-400', label: t('status.disabled') },
+    error: { dotColor: 'bg-red-500', textColor: 'text-red-500', label: t('status.error') },
+  };
+
   const status = statusConfig[agent.status as AgentStatus] || statusConfig.idle;
 
   return (
@@ -112,14 +113,14 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <div className="p-2 bg-white/5 rounded-xl text-center">
-          <div className="text-[10px] text-gray-500 mb-0.5">Status</div>
+          <div className="text-[10px] text-gray-500 mb-0.5">{t('card.status')}</div>
           <div className={`flex items-center justify-center gap-1 ${status.textColor}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
             <span className="text-xs font-medium">{status.label}</span>
           </div>
         </div>
         <div className="p-2 bg-white/5 rounded-xl text-center">
-          <div className="text-[10px] text-gray-500 mb-0.5">Category</div>
+          <div className="text-[10px] text-gray-500 mb-0.5">{t('card.category')}</div>
           <div className="text-xs font-semibold text-gray-400">
             {categoryLabels[agent.category as AgentCategory]}
           </div>
@@ -143,7 +144,7 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
           </>
         ) : (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-500">
-            No capabilities
+            {t('card.empty.noCapabilities')}
           </span>
         )}
         {agent.tags && agent.tags.length > 0 && (
@@ -162,14 +163,14 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
           className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Play size={14} />
-          Run
+          {t('actions.run')}
         </button>
         <button
           onClick={() => onConfigure?.(agent)}
           className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors"
         >
           <Settings2 size={14} />
-          Config
+          {t('actions.config')}
         </button>
       </div>
     </GlassCard>

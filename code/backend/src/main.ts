@@ -368,6 +368,23 @@ function createStandaloneServer(deps: {
       // Log all requests
       deps.logger.info(`${req.method} ${req.url}`);
 
+      // Handle CORS preflight requests
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-trpc-source',
+          'Access-Control-Max-Age': '86400',
+        });
+        res.end();
+        return;
+      }
+
+      // Set CORS headers for all responses
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-trpc-source');
+
       // Handle API documentation endpoint
       if (req.url?.startsWith('/docs') && req.method === 'GET') {
         if (process.env.NODE_ENV === 'production') {

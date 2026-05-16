@@ -9,34 +9,39 @@ const createAgentSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().optional(),
   description: z.string().optional(),
+  scope: z.enum(['built-in', 'user', 'project', 'admin']).optional(),
+  projectIds: z.array(z.string()).optional(),
   capabilities: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   createdBy: z.string().optional(),
 });
 
-const updateRuntimeSchema = z.object({
+const updateAgentSchema = z.object({
+  // Basic info
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+  scope: z.enum(['built-in', 'user', 'project', 'admin']).optional(),
+  projectIds: z.array(z.string()).optional(),
+  capabilities: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+
+  // Runtime config
   model: z.string().optional(),
   temperature: z.number().optional(),
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
-});
 
-const updatePersonaSchema = z.object({
-  name: z.string().optional(),
+  // Persona
+  personaName: z.string().optional(),
   role: z.string().optional(),
   tone: z.string().optional(),
   instructions: z.string().optional(),
-});
 
-const updateSkillsSchema = z.object({
-  skillIds: z.array(z.string()),
-});
+  // Skills & Tools
+  skillIds: z.array(z.string()).optional(),
+  toolIds: z.array(z.string()).optional(),
 
-const updateToolsSchema = z.object({
-  toolIds: z.array(z.string()),
-});
-
-const updateTriggersSchema = z.object({
+  // Triggers
   onMention: z.boolean().optional(),
   onDirectMessage: z.boolean().optional(),
   onSchedule: z.string().optional(),
@@ -84,6 +89,8 @@ export function createAgentRouter(deps: AgentRouterDeps) {
             name: input.name,
             displayName: input.displayName ?? input.name,
             description: input.description,
+            scope: input.scope,
+            projectIds: input.projectIds,
             capabilities: input.capabilities,
             tags: input.tags,
             createdBy: input.createdBy ?? 'system',
@@ -95,121 +102,21 @@ export function createAgentRouter(deps: AgentRouterDeps) {
         }
       }),
 
-    // Update runtime config
-    updateRuntime: procedure
+    // Update agent (unified endpoint for all updates)
+    update: procedure
       .input(
         z.object({
           agentId: z.string(),
-          config: updateRuntimeSchema,
+          data: updateAgentSchema,
         })
       )
       .mutation(async ({ input }) => {
         try {
-          const result = await deps.agentService.updateRuntimeConfig(
+          const agent = await deps.agentService.updateAgent(
             input.agentId,
-            input.config
+            input.data
           );
-          const data =
-            result && typeof result === 'object' && 'toJSON' in result
-              ? (result as any).toJSON()
-              : result;
-          return data;
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Update persona
-    updatePersona: procedure
-      .input(
-        z.object({
-          agentId: z.string(),
-          persona: updatePersonaSchema,
-        })
-      )
-      .mutation(async ({ input }) => {
-        try {
-          const result = await deps.agentService.updatePersona(
-            input.agentId,
-            input.persona
-          );
-          const data =
-            result && typeof result === 'object' && 'toJSON' in result
-              ? (result as any).toJSON()
-              : result;
-          return data;
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Update skills
-    updateSkills: procedure
-      .input(
-        z.object({
-          agentId: z.string(),
-          skills: updateSkillsSchema,
-        })
-      )
-      .mutation(async ({ input }) => {
-        try {
-          const result = await deps.agentService.updateSkills(
-            input.agentId,
-            input.skills
-          );
-          const data =
-            result && typeof result === 'object' && 'toJSON' in result
-              ? (result as any).toJSON()
-              : result;
-          return data;
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Update tools
-    updateTools: procedure
-      .input(
-        z.object({
-          agentId: z.string(),
-          tools: updateToolsSchema,
-        })
-      )
-      .mutation(async ({ input }) => {
-        try {
-          const result = await deps.agentService.updateTools(
-            input.agentId,
-            input.tools
-          );
-          const data =
-            result && typeof result === 'object' && 'toJSON' in result
-              ? (result as any).toJSON()
-              : result;
-          return data;
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Update triggers
-    updateTriggers: procedure
-      .input(
-        z.object({
-          agentId: z.string(),
-          triggers: updateTriggersSchema,
-        })
-      )
-      .mutation(async ({ input }) => {
-        try {
-          const result = await deps.agentService.updateTriggers(
-            input.agentId,
-            input.triggers
-          );
-          const data =
-            result && typeof result === 'object' && 'toJSON' in result
-              ? (result as any).toJSON()
-              : result;
-          return data;
+          return agent.toJSON();
         } catch (error) {
           throw mapErrorToTRPC(error);
         }

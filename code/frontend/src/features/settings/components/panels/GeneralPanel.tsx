@@ -23,8 +23,8 @@ export function GeneralPanel() {
             onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
             className="px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:border-white/40"
           >
-            <option value="en">English</option>
-            <option value="zh">中文</option>
+            <option value="en">{t('general.language.options.en')}</option>
+            <option value="zh">{t('general.language.options.zh')}</option>
           </select>
         </SettingsItem>
 

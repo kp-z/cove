@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 
 export type TimeRange = 'today' | 'week' | 'month';
@@ -7,13 +8,14 @@ interface TimeRangeFilterProps {
   onChange: (range: TimeRange) => void;
 }
 
-const timeRangeOptions: Array<{ value: TimeRange; label: string }> = [
-  { value: 'today', label: '今日' },
-  { value: 'week', label: '本周' },
-  { value: 'month', label: '本月' },
-];
-
 export function TimeRangeFilter({ value, onChange }: TimeRangeFilterProps) {
+  const { t } = useTranslation('dashboard');
+
+  const timeRangeOptions: Array<{ value: TimeRange; label: string }> = [
+    { value: 'today', label: t('timeRange.today') },
+    { value: 'week', label: t('timeRange.week') },
+    { value: 'month', label: t('timeRange.month') },
+  ];
   return (
     <div className="flex gap-2">
       {timeRangeOptions.map((option) => (

@@ -2,7 +2,7 @@
  * AgentCrudService - Agent CRUD 操作
  */
 
-import { AgentEntity, AgentCategory } from '../../../domain/models/agent/agent.entity';
+import { AgentEntity, AgentScope } from '../../../domain/models/agent/agent.entity';
 import {
   IAgentRepository,
   IEventBus,
@@ -15,7 +15,8 @@ export interface CreateAgentDTO {
   readonly name: string;
   readonly displayName: string;
   readonly description?: string;
-  readonly category?: AgentCategory;
+  readonly scope?: AgentScope;
+  readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
   readonly createdBy: string;
@@ -25,7 +26,8 @@ export interface UpdateAgentDTO {
   // Basic info
   readonly displayName?: string;
   readonly description?: string;
-  readonly category?: AgentCategory;
+  readonly scope?: AgentScope;
+  readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
 
@@ -70,7 +72,8 @@ export class AgentCrudService {
       displayName: dto.displayName,
       description: dto.description,
       status: 'idle',
-      category: dto.category ?? 'custom',
+      scope: dto.scope ?? 'user',
+      projectIds: dto.projectIds,
       capabilities: dto.capabilities,
       tags: dto.tags,
       createdBy: dto.createdBy,
@@ -102,20 +105,64 @@ export class AgentCrudService {
 
     const agent = await this.getAgentById(agentId);
 
+    // Build runtime config if any runtime fields are provided
+    const runtimeConfig = (dto.model !== undefined || dto.temperature !== undefined ||
+                          dto.maxTokens !== undefined || dto.systemPrompt !== undefined)
+      ? {
+          model: dto.model ?? agent.runtimeConfig?.model,
+          temperature: dto.temperature ?? agent.runtimeConfig?.temperature,
+          maxTokens: dto.maxTokens ?? agent.runtimeConfig?.maxTokens,
+          systemPrompt: dto.systemPrompt ?? agent.runtimeConfig?.systemPrompt,
+        }
+      : agent.runtimeConfig;
+
+    // Build persona if any persona fields are provided
+    const persona = (dto.personaName !== undefined || dto.role !== undefined ||
+                    dto.tone !== undefined || dto.instructions !== undefined)
+      ? {
+          name: dto.personaName ?? agent.persona?.name,
+          role: dto.role ?? agent.persona?.role,
+          tone: dto.tone ?? agent.persona?.tone,
+          instructions: dto.instructions ?? agent.persona?.instructions,
+        }
+      : agent.persona;
+
+    // Build skills if provided
+    const skills = dto.skillIds !== undefined
+      ? { skillIds: dto.skillIds }
+      : agent.skills;
+
+    // Build tools if provided
+    const tools = dto.toolIds !== undefined
+      ? { toolIds: dto.toolIds }
+      : agent.tools;
+
+    // Build triggers if any trigger fields are provided
+    const triggers = (dto.onMention !== undefined || dto.onDirectMessage !== undefined ||
+                     dto.onSchedule !== undefined || dto.customRules !== undefined)
+      ? {
+          onMention: dto.onMention ?? agent.triggers?.onMention,
+          onDirectMessage: dto.onDirectMessage ?? agent.triggers?.onDirectMessage,
+          onSchedule: dto.onSchedule ?? agent.triggers?.onSchedule,
+          customRules: dto.customRules ?? agent.triggers?.customRules,
+        }
+      : agent.triggers;
+
     const updatedAgent = AgentEntity.create({
       agentId: agent.agentId,
       name: agent.name,
       displayName: dto.displayName !== undefined ? dto.displayName : agent.displayName,
       description: dto.description !== undefined ? dto.description : agent.description,
       status: agent.status,
-      category: dto.category !== undefined ? dto.category : agent.category,
+      scope: dto.scope !== undefined ? dto.scope : agent.scope,
+      projectIds: dto.projectIds !== undefined ? dto.projectIds : agent.projectIds,
       capabilities: dto.capabilities !== undefined ? dto.capabilities : agent.capabilities,
       tags: dto.tags !== undefined ? dto.tags : agent.tags,
-      runtimeConfig: agent.runtimeConfig,
-      persona: agent.persona,
-      skills: agent.skills,
-      tools: agent.tools,
-      triggers: agent.triggers,
+      runtimeConfig,
+      persona,
+      skills,
+      tools,
+      triggers,
       createdBy: agent.createdBy,
       createdAt: agent.createdAt,
     });

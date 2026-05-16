@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
 import { chartColors } from '@/shared/lib/echarts-theme';
@@ -26,6 +27,7 @@ interface TokenTrendCardProps {
 }
 
 export function TokenTrendCard({ timeRange }: TokenTrendCardProps) {
+  const { t } = useTranslation('dashboard');
   const data = mockData;
 
   const option: EChartsOption = {
@@ -81,14 +83,14 @@ export function TokenTrendCard({ timeRange }: TokenTrendCardProps) {
   return (
     <GlassCard>
       <div className="p-6">
-        <h2 className="text-xl font-semibold mb-6">Token 使用趋势</h2>
+        <h2 className="text-xl font-semibold mb-6">{t('tokenTrend.title')}</h2>
 
         <EChartWrapper option={option} height={250} />
 
         {/* 空状态提示 */}
         <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <p className="text-xs text-blue-400">
-            💡 数据将通过 API 提供（GET /api/stats/token-trend?timeRange={timeRange}）
+            💡 {t('tokenTrend.apiNote')}
           </p>
         </div>
       </div>

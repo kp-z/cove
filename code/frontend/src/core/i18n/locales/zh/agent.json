@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": "智能体",
+    "subtitle": "{{count}} 个子智能体",
+    "searchPlaceholder": "搜索智能体...",
+    "emptyTitle": "暂无智能体",
+    "emptySearchDescription": "没有匹配的搜索结果",
+    "emptyDescription": "点击新建创建您的第一个子智能体",
+    "deleteDialogDescription": "确定要删除智能体 <1>{{name}}</1> 吗？此操作无法撤销。"
+  },
+  "editForm": {
+    "subtitle": "编辑智能体配置",
+    "basicInfo": "基本信息",
+    "name": "名称",
+    "description": "描述",
+    "category": "分类",
+    "priority": "优先级",
+    "modelConfig": "模型配置",
+    "model": "模型",
+    "framework": "框架",
+    "scope": "作用域",
+    "toolsAndSkills": "工具与技能",
+    "tools": "工具",
+    "toolPlaceholder": "输入工具名称，按 Enter 添加",
+    "skills": "技能",
+    "skillPlaceholder": "输入技能名称，按 Enter 添加",
+    "permissions": "权限",
+    "permissionMode": "权限模式",
+    "memory": "持久化内存"
+  },
+  "priority": {
+    "high": "高",
+    "normal": "普通",
+    "low": "低"
+  },
+  "memoryOption": {
+    "none": "无"
+  },
+  "card": {
+    "delete": "删除",
+    "inheritAllTools": "继承所有工具",
+    "status": "状态",
+    "category": "分类",
+    "empty": {
+      "noCapabilities": "无能力"
+    }
+  },
+  "scope": {
+    "builtIn": "内置",
+    "user": "用户",
+    "project": "项目",
+    "admin": "管理员"
+  },
+  "actions": {
+    "sync": "同步",
+    "new": "新建",
+    "run": "运行",
+    "config": "配置"
+  },
+  "filter": {
+    "byTag": "按标签筛选",
+    "allTags": "所有标签"
+  },
+  "category": {
+    "engineering": "工程",
+    "operations": "运维",
+    "design": "设计",
+    "qa": "测试",
+    "research": "研究",
+    "platform": "平台",
+    "collaboration": "协作",
+    "custom": "自定义"
+  },
+  "status": {
+    "idle": "空闲",
+    "active": "活跃",
+    "disabled": "已禁用",
+    "error": "错误"
+  }
+}

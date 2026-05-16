@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import type { TimeRange } from './TimeRangeFilter';
 
@@ -31,33 +32,34 @@ interface TokenUsageOverviewCardProps {
 }
 
 export function TokenUsageOverviewCard({ timeRange }: TokenUsageOverviewCardProps) {
+  const { t } = useTranslation('dashboard');
   const data = mockData;
 
   return (
     <GlassCard>
       <div className="p-6">
-        <h2 className="text-xl font-semibold mb-6">Token 使用概览</h2>
+        <h2 className="text-xl font-semibold mb-6">{t('tokenUsage.title')}</h2>
 
         {/* 总量显示 */}
         <div className="mb-6">
           <div className="text-3xl font-bold mb-2">
             {data.used.toLocaleString()} / {data.total.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-400">已使用 {data.percentage}%</div>
+          <div className="text-sm text-gray-400">{t('tokenUsage.used')} {data.percentage}%</div>
         </div>
 
         {/* 成本统计 */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-400">今日成本</span>
+            <span className="text-sm text-gray-400">{t('tokenUsage.costToday')}</span>
             <span className="font-medium text-lg">${data.cost.today.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-400">本周成本</span>
+            <span className="text-sm text-gray-400">{t('tokenUsage.costWeek')}</span>
             <span className="font-medium text-lg">${data.cost.week.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-400">本月成本</span>
+            <span className="text-sm text-gray-400">{t('tokenUsage.costMonth')}</span>
             <span className="font-medium text-lg">${data.cost.month.toFixed(2)}</span>
           </div>
         </div>
@@ -65,7 +67,7 @@ export function TokenUsageOverviewCard({ timeRange }: TokenUsageOverviewCardProp
         {/* 空状态提示 */}
         <div className="mt-6 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <p className="text-xs text-blue-400">
-            💡 数据将通过 API 提供（GET /api/stats/token-overview?timeRange={timeRange}）
+            💡 {t('tokenUsage.apiNote', { timeRange })}
           </p>
         </div>
       </div>

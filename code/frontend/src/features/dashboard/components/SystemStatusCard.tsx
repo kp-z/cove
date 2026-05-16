@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 
@@ -62,6 +63,7 @@ function getOverallStatusText(status: SystemStatus): string {
 }
 
 export function SystemStatusCard() {
+  const { t } = useTranslation('dashboard');
   const components = mockComponents;
   const overallStatus = getOverallStatus(components);
 
@@ -69,7 +71,7 @@ export function SystemStatusCard() {
     <GlassCard>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">系统状态监控</h2>
+          <h2 className="text-xl font-semibold">{t('systemStatus.title')}</h2>
           <div className="flex items-center gap-2">
             <div className={cn('w-2 h-2 rounded-full', getStatusColor(overallStatus))} />
             <span className="text-sm text-gray-400">{getOverallStatusText(overallStatus)}</span>
@@ -96,7 +98,7 @@ export function SystemStatusCard() {
         {/* 空状态提示 */}
         <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <p className="text-sm text-blue-400">
-            💡 系统状态数据将通过后端 API 提供（GET /api/system/status）
+            💡 {t('systemStatus.apiNote')}
           </p>
         </div>
       </div>

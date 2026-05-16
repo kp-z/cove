@@ -6,18 +6,24 @@
  * 业务规则：
  * - agentId, name 不能为空
  * - status 只能是 active | idle | disabled | error
- * - category 表示 Agent 的职能分类，不是运行模式
+ * - scope 表示 Agent 的权限范围和可见性：
+ *   - built-in: 系统内置，所有用户可用
+ *   - user: 用户级别，创建者跨项目可用
+ *   - project: 项目级别，仅特定项目可用
+ *   - admin: 管理员级别，系统管理和审计
  * - 已激活的 agent 不能再激活
+ * - project scope 的 agent 必须关联至少一个项目
  *
  * 设计决策：
  * - 运行模式（daemon/session/workflow）不是 Agent 本质属性，由 AgentDaemon 调度配置决定
+ * - projectIds 支持一个 agent 服务多个项目（特别是 user scope）
  */
 
 export type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
-export type AgentCategory = 'engineering' | 'operations' | 'design' | 'qa' | 'research' | 'platform' | 'collaboration' | 'custom';
+export type AgentScope = 'built-in' | 'user' | 'project' | 'admin';
 
 const VALID_STATUSES: readonly AgentStatus[] = ['active', 'idle', 'disabled', 'error'];
-const VALID_CATEGORIES: readonly AgentCategory[] = ['engineering', 'operations', 'design', 'qa', 'research', 'platform', 'collaboration', 'custom'];
+const VALID_SCOPES: readonly AgentScope[] = ['built-in', 'user', 'project', 'admin'];
 
 // --- Sub-config interfaces ---
 
@@ -56,7 +62,8 @@ export interface AgentEntityProps {
   readonly displayName: string;
   readonly description?: string;
   readonly status: AgentStatus;
-  readonly category: AgentCategory;
+  readonly scope: AgentScope;
+  readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
   readonly runtimeConfig?: AgentRuntimeConfig;
@@ -74,7 +81,8 @@ export interface AgentEntityJSON {
   readonly display_name: string;
   readonly description?: string;
   readonly status: AgentStatus;
-  readonly category: AgentCategory;
+  readonly scope: AgentScope;
+  readonly project_ids: readonly string[];
   readonly capabilities: readonly string[];
   readonly tags: readonly string[];
   readonly runtime_config?: AgentRuntimeConfig;
@@ -102,7 +110,8 @@ export class AgentEntity {
       displayName: json.display_name,
       description: json.description,
       status: json.status,
-      category: json.category,
+      scope: json.scope,
+      projectIds: json.project_ids,
       capabilities: json.capabilities,
       tags: json.tags,
       runtimeConfig: json.runtime_config,
@@ -125,8 +134,12 @@ export class AgentEntity {
     if (!VALID_STATUSES.includes(this.props.status)) {
       throw new Error(`Invalid agent status: ${this.props.status}`);
     }
-    if (!VALID_CATEGORIES.includes(this.props.category)) {
-      throw new Error(`Invalid agent category: ${this.props.category}`);
+    if (!VALID_SCOPES.includes(this.props.scope)) {
+      throw new Error(`Invalid agent scope: ${this.props.scope}`);
+    }
+    // project scope 的 agent 必须关联至少一个项目
+    if (this.props.scope === 'project' && (!this.props.projectIds || this.props.projectIds.length === 0)) {
+      throw new Error('Project-scoped agent must be linked to at least one project');
     }
   }
 
@@ -137,7 +150,8 @@ export class AgentEntity {
   get displayName(): string { return this.props.displayName; }
   get description(): string | undefined { return this.props.description; }
   get status(): AgentStatus { return this.props.status; }
-  get category(): AgentCategory { return this.props.category; }
+  get scope(): AgentScope { return this.props.scope; }
+  get projectIds(): readonly string[] { return this.props.projectIds ?? []; }
   get capabilities(): readonly string[] { return this.props.capabilities ?? []; }
   get tags(): readonly string[] { return this.props.tags ?? []; }
   get runtimeConfig(): AgentRuntimeConfig | undefined { return this.props.runtimeConfig; }
@@ -181,6 +195,32 @@ export class AgentEntity {
 
   updateCategory(category: AgentCategory): AgentEntity {
     return AgentEntity.create({ ...this.props, category });
+  }
+
+  updateScope(scope: AgentScope): AgentEntity {
+    return AgentEntity.create({ ...this.props, scope });
+  }
+
+  linkToProject(projectId: string): AgentEntity {
+    if (this.projectIds.includes(projectId)) {
+      throw new Error('Agent is already linked to this project');
+    }
+    return AgentEntity.create({
+      ...this.props,
+      projectIds: [...this.projectIds, projectId],
+    });
+  }
+
+  unlinkFromProject(projectId: string): AgentEntity {
+    const newProjectIds = this.projectIds.filter(id => id !== projectId);
+    // project scope 的 agent 必须至少关联一个项目
+    if (this.props.scope === 'project' && newProjectIds.length === 0) {
+      throw new Error('Cannot unlink last project from project-scoped agent');
+    }
+    return AgentEntity.create({
+      ...this.props,
+      projectIds: newProjectIds,
+    });
   }
 
   addCapability(capability: string): AgentEntity {
@@ -261,7 +301,8 @@ export class AgentEntity {
       display_name: this.props.displayName,
       description: this.props.description,
       status: this.props.status,
-      category: this.props.category,
+      scope: this.props.scope,
+      project_ids: [...this.projectIds],
       capabilities: [...this.capabilities],
       tags: [...this.tags],
       runtime_config: this.props.runtimeConfig,

@@ -3,7 +3,11 @@
     "title": "General Settings",
     "language": {
       "label": "Language",
-      "description": "Select your preferred language"
+      "description": "Select your preferred language",
+      "options": {
+        "en": "English",
+        "zh": "中文"
+      }
     },
     "timezone": {
       "label": "Time Zone",

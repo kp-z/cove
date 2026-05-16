@@ -1,5 +1,5 @@
 import { HybridRepository } from './hybrid-repository.base';
-import { AgentEntity, AgentStatus } from '../../domain/models/agent/agent.entity';
+import { AgentEntity, AgentStatus, AgentScope } from '../../domain/models/agent/agent.entity';
 import { IAgentRepository } from '../../application/interfaces/repositories/agent.repository.interface';
 import {
   IAgentConfigStore,
@@ -42,8 +42,10 @@ interface AgentDbRecord {
   name: string;
   displayName: string;
   status: string;
-  category: string;
+  scope: string;
+  projectIds: string;
   configPath: string;
+  createdBy: string;
   createdAt: Date;
 }
 
@@ -87,7 +89,8 @@ export class HybridAgentRepository
       displayName: dbRecord.displayName,
       description: content.description,
       status: dbRecord.status as AgentStatus,
-      category: dbRecord.category as any,
+      scope: dbRecord.scope as AgentScope,
+      projectIds: JSON.parse(dbRecord.projectIds || '[]'),
       capabilities: content.capabilities,
       tags: content.tags,
       runtimeConfig: content.runtimeConfig,
@@ -106,8 +109,10 @@ export class HybridAgentRepository
       name: entity.name,
       displayName: entity.displayName,
       status: entity.status,
-      category: entity.category,
+      scope: entity.scope,
+      projectIds: JSON.stringify(entity.projectIds),
       configPath: '',
+      createdBy: entity.createdBy,
       createdAt: entity.createdAt,
     };
   }

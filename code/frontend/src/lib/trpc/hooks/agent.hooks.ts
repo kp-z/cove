@@ -36,7 +36,7 @@ export function useCreateAgent() {
 export function useUpdateAgent() {
   const utils = trpc.useUtils();
 
-  return trpc.agent.updateRuntime.useMutation({
+  return trpc.agent.update.useMutation({
     onSuccess: (_result, variables) => {
       utils.agent.getById.invalidate({ agentId: variables.agentId });
       utils.agent.list.invalidate();
@@ -48,7 +48,7 @@ export function useDeleteAgent() {
   const utils = trpc.useUtils();
 
   return trpc.agent.delete.useMutation({
-    onMutate: async (agentId: string) => {
+    onMutate: async (variables) => {
       await utils.agent.list.cancel();
 
       const previousData = utils.agent.list.getData();
@@ -57,14 +57,14 @@ export function useDeleteAgent() {
         if (!old) return old;
         return {
           ...old,
-          agents: old.agents.filter((a: any) => a.agent_id !== agentId),
+          agents: old.agents.filter((a: any) => a.agent_id !== variables.agentId),
           total: old.total - 1,
         };
       });
 
       return { previousData };
     },
-    onError: (_err, _agentId, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousData) {
         utils.agent.list.setData(undefined, context.previousData);
       }

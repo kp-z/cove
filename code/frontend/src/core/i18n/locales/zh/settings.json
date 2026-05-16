@@ -3,7 +3,11 @@
     "title": "通用设置",
     "language": {
       "label": "语言",
-      "description": "选择您的首选语言"
+      "description": "选择您的首选语言",
+      "options": {
+        "en": "English",
+        "zh": "中文"
+      }
     },
     "timezone": {
       "label": "时区",
