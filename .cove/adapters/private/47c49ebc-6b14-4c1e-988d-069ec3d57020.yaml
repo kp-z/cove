@@ -1,0 +1,20 @@
+id: 47c49ebc-6b14-4c1e-988d-069ec3d57020
+name: claude-api-adapter
+description: Claude API adapter for aaron
+type: anthropic-api
+scope: private
+owner_id: kp
+created_at: 2026-05-17T13:17:36.204Z
+updated_at: 2026-05-17T13:17:36.204Z
+config:
+  api_key_ref: env:ANTHROPIC_API_KEY
+  model: claude-sonnet-4-20250514
+  base_url: https://api.anthropic.com/v1
+  temperature: 0.7
+  max_tokens: 8192
+  context:
+    max_context_window: 200000
+    compression_threshold: 0.8
+  retry:
+    max_retries: 3
+    backoff_strategy: exponential

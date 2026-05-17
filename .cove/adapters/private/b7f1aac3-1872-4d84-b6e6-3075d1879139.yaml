@@ -1,0 +1,15 @@
+id: b7f1aac3-1872-4d84-b6e6-3075d1879139
+name: claude-api-adapter
+description: Claude API adapter for aaron
+type: anthropic-api
+scope: private
+owner_id: kp
+created_at: 2026-05-17T13:34:31.490Z
+updated_at: 2026-05-18T00:23:00.000Z
+config:
+  model: claude-opus-4-6
+  base_url: https://api.nuoda.vip
+  custom_headers:
+    x-api-key: sk-nEHbPwB3ksQOUAj5FG2pfXHvShQtceVrtlj1FTiPPlNOjx1C
+  temperature: 0.7
+  max_tokens: 8192
