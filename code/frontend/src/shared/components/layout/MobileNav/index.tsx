@@ -4,28 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   BookOpen,
-  Zap,
   FolderOpen,
-  Bell,
+  MessageSquare,
   X,
   Users,
   Terminal,
-  GitBranch,
-  Target,
-  History,
 } from 'lucide-react';
 import { Logo } from '../Sidebar/Logo';
 import { Navigation } from '../Sidebar/Navigation';
+import { borderRadius } from '@/core/config/design-tokens';
 
 const libraryMenuItems = [
   { name: 'Agents', path: '/agents', icon: Users },
   { name: 'Terminal', path: '/terminal', icon: Terminal },
-];
-
-const automationMenuItems = [
-  { name: 'Workflows', path: '/workflows', icon: GitBranch },
-  { name: 'OKR', path: '/okr', icon: Target },
-  { name: 'History', path: '/history', icon: History },
 ];
 
 function getActiveMenuItem(items: typeof libraryMenuItems, pathname: string) {
@@ -88,7 +79,8 @@ function SubMenuPopup({ items, onClose }: SubMenuPopupProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 30, scale: 0.9 }}
       transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
-      className="absolute bottom-20 left-0 right-0 mx-4 p-2 rounded-2xl backdrop-blur-2xl backdrop-saturate-150 border border-white/20 shadow-2xl bg-white/15"
+      className="absolute bottom-20 left-0 right-0 mx-4 p-2 backdrop-blur-2xl backdrop-saturate-150 border border-white/20 shadow-2xl bg-white/15"
+      style={{ borderRadius: borderRadius['2xl'] }}
     >
       <div className="space-y-1">
         {items.map((item, index) => (
@@ -102,13 +94,14 @@ function SubMenuPopup({ items, onClose }: SubMenuPopupProps) {
               to={item.path}
               onClick={onClose}
               className={({ isActive }) => `
-                flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
+                flex items-center gap-3 px-4 py-3 transition-colors
                 ${
                   isActive
                     ? 'bg-gradient-to-r from-white/40 to-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
                     : 'bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white active:scale-[0.98]'
                 }
               `}
+              style={{ borderRadius: borderRadius.xl }}
             >
               <item.icon size={20} className="shrink-0" />
               <span className="text-sm font-medium">{item.name}</span>
@@ -126,7 +119,6 @@ export function MobileNav() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const activeLibraryItem = getActiveMenuItem(libraryMenuItems, location.pathname);
-  const activeAutomationItem = getActiveMenuItem(automationMenuItems, location.pathname);
 
   const closeAll = () => {
     setActiveMenu(null);
@@ -150,17 +142,15 @@ export function MobileNav() {
               {activeMenu === 'library' && (
                 <SubMenuPopup items={libraryMenuItems} onClose={closeAll} />
               )}
-              {activeMenu === 'automation' && (
-                <SubMenuPopup items={automationMenuItems} onClose={closeAll} />
-              )}
             </>
           )}
         </AnimatePresence>
 
         <div className="relative">
           <div
-            className="absolute top-0 -bottom-[23px] -left-4 -right-4 pointer-events-none rounded-[2.75rem]"
+            className="absolute top-0 -bottom-[23px] -left-4 -right-4 pointer-events-none"
             style={{
+              borderRadius: borderRadius.mobileNav,
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               background:
@@ -169,8 +159,9 @@ export function MobileNav() {
           />
 
           <div
-            className="absolute inset-0 rounded-[2.75rem] overflow-hidden pointer-events-none"
+            className="absolute inset-0 overflow-hidden pointer-events-none"
             style={{
+              borderRadius: borderRadius.mobileNav,
               background:
                 'linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.03) 60%, rgba(255,255,255,0) 100%)',
               backdropFilter: 'blur(20px)',
@@ -178,19 +169,23 @@ export function MobileNav() {
             }}
           />
 
-          <div className="relative grid grid-cols-5 items-center gap-1 px-2 h-16 rounded-[2.75rem] backdrop-blur-2xl backdrop-saturate-150 border border-white/20 shadow-2xl bg-white/10">
+          <div
+            className="relative grid grid-cols-4 items-center gap-1 px-2 h-16 backdrop-blur-2xl backdrop-saturate-150 border border-white/20 shadow-2xl bg-white/10"
+            style={{ borderRadius: borderRadius.mobileNav }}
+          >
             {/* Dashboard */}
             <NavLink
               to="/"
               onClick={closeAll}
               className={({ isActive }) => `
-                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 rounded-[2.75rem] transition-colors duration-300
+                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 transition-colors duration-300
                 ${
                   isActive && !activeMenu
                     ? 'text-white bg-gradient-to-br from-white/40 via-white/20 to-white/10 shadow-[0_0_20px_rgba(255,255,255,0.3)]'
                     : 'text-gray-400 hover:text-white'
                 }
               `}
+              style={{ borderRadius: borderRadius.mobileNav }}
             >
               <LayoutDashboard size={20} className="relative z-10" />
               <span className="text-[10px] font-medium relative z-10 w-full truncate text-center">
@@ -202,13 +197,14 @@ export function MobileNav() {
             <button
               onClick={() => setActiveMenu(activeMenu === 'library' ? null : 'library')}
               className={`
-                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 rounded-[2.75rem] transition-colors duration-300
+                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 transition-colors duration-300
                 ${
                   activeLibraryItem || activeMenu === 'library'
                     ? 'text-white bg-gradient-to-br from-white/40 via-white/20 to-white/10 shadow-[0_0_20px_rgba(255,255,255,0.3)]'
                     : 'text-gray-400 hover:text-white'
                 }
               `}
+              style={{ borderRadius: borderRadius.mobileNav }}
             >
               {activeLibraryItem ? (
                 <activeLibraryItem.icon size={20} className="relative z-10" />
@@ -220,40 +216,19 @@ export function MobileNav() {
               </span>
             </button>
 
-            {/* Automation */}
-            <button
-              onClick={() => setActiveMenu(activeMenu === 'automation' ? null : 'automation')}
-              className={`
-                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 rounded-[2.75rem] transition-colors duration-300
-                ${
-                  activeAutomationItem || activeMenu === 'automation'
-                    ? 'text-white bg-gradient-to-br from-white/40 via-white/20 to-white/10 shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-                    : 'text-gray-400 hover:text-white'
-                }
-              `}
-            >
-              {activeAutomationItem ? (
-                <activeAutomationItem.icon size={20} className="relative z-10" />
-              ) : (
-                <Zap size={20} className="relative z-10" />
-              )}
-              <span className="text-[10px] font-medium relative z-10 w-full truncate text-center">
-                {activeAutomationItem ? activeAutomationItem.name : 'Auto'}
-              </span>
-            </button>
-
             {/* Projects */}
             <NavLink
               to="/projects"
               onClick={closeAll}
               className={({ isActive }) => `
-                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 rounded-[2.75rem] transition-colors duration-300
+                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 transition-colors duration-300
                 ${
                   isActive && !activeMenu
                     ? 'text-white bg-gradient-to-br from-white/40 via-white/20 to-white/10 shadow-[0_0_20px_rgba(255,255,255,0.3)]'
                     : 'text-gray-400 hover:text-white'
                 }
               `}
+              style={{ borderRadius: borderRadius.mobileNav }}
             >
               <FolderOpen size={20} className="relative z-10" />
               <span className="text-[10px] font-medium relative z-10 w-full truncate text-center">
@@ -261,15 +236,25 @@ export function MobileNav() {
               </span>
             </NavLink>
 
-            {/* Notifications */}
-            <button
-              className="relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 rounded-[2.75rem] transition-colors duration-300 text-gray-400 hover:text-white"
+            {/* Channel */}
+            <NavLink
+              to="/channel"
+              onClick={closeAll}
+              className={({ isActive }) => `
+                relative flex flex-col items-center justify-center gap-1 p-2 w-full min-w-0 transition-colors duration-300
+                ${
+                  isActive && !activeMenu
+                    ? 'text-white bg-gradient-to-br from-white/40 via-white/20 to-white/10 shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                    : 'text-gray-400 hover:text-white'
+                }
+              `}
+              style={{ borderRadius: borderRadius.mobileNav }}
             >
-              <Bell size={20} className="relative z-10" />
+              <MessageSquare size={20} className="relative z-10" />
               <span className="text-[10px] font-medium relative z-10 w-full truncate text-center">
-                Alerts
+                Channel
               </span>
-            </button>
+            </NavLink>
           </div>
         </div>
       </nav>

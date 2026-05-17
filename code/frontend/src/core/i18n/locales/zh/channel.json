@@ -13,5 +13,16 @@
   "tabs": {
     "close": "关闭",
     "newThread": "新建线程"
+  },
+  "list": {
+    "recent": "最近",
+    "pinChannel": "置顶频道",
+    "unpinChannel": "取消置顶",
+    "markAsRead": "标记为已读",
+    "channelSettings": "频道设置",
+    "leaveChannel": "离开频道",
+    "pinSuccess": "已置顶频道",
+    "unpinSuccess": "已取消置顶",
+    "pinError": "置顶失败"
   }
 }

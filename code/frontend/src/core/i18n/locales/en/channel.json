@@ -13,5 +13,16 @@
   "tabs": {
     "close": "Close",
     "newThread": "New Thread"
+  },
+  "list": {
+    "recent": "Recent",
+    "pinChannel": "Pin Channel",
+    "unpinChannel": "Unpin Channel",
+    "markAsRead": "Mark as Read",
+    "channelSettings": "Channel Settings",
+    "leaveChannel": "Leave Channel",
+    "pinSuccess": "Channel pinned",
+    "unpinSuccess": "Channel unpinned",
+    "pinError": "Failed to pin channel"
   }
 }

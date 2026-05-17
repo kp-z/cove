@@ -1,6 +1,7 @@
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
+import { Toaster } from 'sonner';
 import { router } from '@/core/router';
 import { trpc, trpcClient } from '@/lib/trpc';
 import { GlobalLoader } from '@/shared/components/layout/GlobalLoader';
@@ -21,6 +22,9 @@ function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
+        {/* Toast Notifications */}
+        <Toaster position="top-right" richColors />
+
         {/* Global Loader */}
         <AnimatePresence>
           {isLoading && (
