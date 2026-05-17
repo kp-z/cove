@@ -35,7 +35,7 @@ export function createLlmAdapter(): LlmAdapter {
       const timeout = process.env.CLAUDE_CLI_TIMEOUT
         ? parseInt(process.env.CLAUDE_CLI_TIMEOUT, 10)
         : undefined;
-      return new ClaudeCodeCLIAdapter(cliPath, model, maxTokens, workingDir, timeout);
+      return new ClaudeCodeCLIAdapter(cliPath, model, workingDir, timeout);
     }
     default:
       throw new Error(`Unknown LLM provider: ${provider}. Use "anthropic", "openai", or "claude-code-cli".`);
@@ -67,7 +67,7 @@ export function createLlmAdapterFromConfig(runtime: AgentRuntimeConfig): LlmAdap
       const cliPath = (runtime as any).cli?.path;
       const workingDir = (runtime as any).cli?.working_dir;
       const timeout = (runtime as any).cli?.timeout;
-      return new ClaudeCodeCLIAdapter(cliPath, model, maxTokens, workingDir, timeout);
+      return new ClaudeCodeCLIAdapter(cliPath, model, workingDir, timeout);
     }
     default:
       throw new Error(`Unknown provider: ${provider}`);

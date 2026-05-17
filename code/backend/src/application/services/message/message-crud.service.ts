@@ -68,7 +68,7 @@ export class MessageCrudService {
     }
 
     const messageId = this.generateMessageId();
-    const msgShortId = messageId.split('-')[1]?.substring(0, 8) || 'unknown';
+    const msgShortId = messageId.split('-')[2] || 'unknown'; // 使用随机部分而不是时间戳
     const now = new Date();
 
     const message = MessageEntity.create({

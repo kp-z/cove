@@ -50,13 +50,12 @@ describe('AgentRuntimeService', () => {
     it('should start agent successfully', async () => {
       const agent = AgentEntity.create({
         agentId: 'agent-1',
-        name: 'Test Agent',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test',
-        status: 'active',
-        runtimeConfig: { timeout: 30000 },
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'project',
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         createdAt: new Date(),
       });
 
@@ -65,7 +64,7 @@ describe('AgentRuntimeService', () => {
 
       await service.startAgent('agent-1');
 
-      expect(mockRuntimeAdapter.startAgent).toHaveBeenCalledWith('agent-1', { timeout: 30000 });
+      expect(mockRuntimeAdapter.startAgent).toHaveBeenCalledWith('agent-1', undefined);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'agent_status_changed',
@@ -88,12 +87,12 @@ describe('AgentRuntimeService', () => {
     it('should throw AgentNotReadyError when agent cannot be started', async () => {
       const agent = AgentEntity.create({
         agentId: 'agent-1',
-        name: 'Test Agent',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test',
-        status: 'active',
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'project',
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         createdAt: new Date(),
       });
 
@@ -110,12 +109,12 @@ describe('AgentRuntimeService', () => {
     it('should stop agent successfully', async () => {
       const agent = AgentEntity.create({
         agentId: 'agent-1',
-        name: 'Test Agent',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test',
-        status: 'active',
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'project',
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         createdAt: new Date(),
       });
 

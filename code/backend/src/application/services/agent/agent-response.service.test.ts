@@ -11,7 +11,8 @@ function createTestAgent(overrides: Partial<any> = {}): AgentEntity {
     name: 'test-agent',
     displayName: 'Test Agent',
     status: 'idle' as const,
-    category: 'engineering' as const,
+    scope: 'project' as const,
+        projectIds: ['project-1'],
     createdBy: 'user-123',
     createdAt: new Date(),
   };

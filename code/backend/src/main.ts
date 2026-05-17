@@ -359,7 +359,6 @@ function createStandaloneServer(deps: {
   const trpcHandler = createHTTPHandler({
     router: appRouter,
     createContext: createContext({ logger: deps.logger }),
-    endpoint: '/trpc',
   });
 
   // Create HTTP server with custom request handler

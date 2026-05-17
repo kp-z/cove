@@ -77,10 +77,10 @@ describe('ProjectCompositionService', () => {
       const agent = AgentEntity.create({
         agentId: 'agent-1',
         name: 'Test Agent',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test prompt',
+        displayName: 'Test Agent',
+        scope: 'project' as const,
+        projectIds: ['proj-1'],
+        createdBy: 'user-1',
         status: 'active',
         createdAt: new Date(),
       });
@@ -118,10 +118,10 @@ describe('ProjectCompositionService', () => {
       const agent = AgentEntity.create({
         agentId: 'agent-1',
         name: 'Test Agent',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test prompt',
+        displayName: 'Test Agent',
+        scope: 'project' as const,
+        projectIds: ['proj-1'],
+        createdBy: 'user-1',
         status: 'active',
         createdAt: new Date(),
       });
@@ -496,10 +496,10 @@ describe('ProjectCompositionService', () => {
       const agent1 = AgentEntity.create({
         agentId: 'agent-1',
         name: 'Agent 1',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test',
+        displayName: 'Agent 1',
+        scope: 'project' as const,
+        projectIds: ['proj-1'],
+        createdBy: 'user-1',
         status: 'active',
         createdAt: new Date(),
       });
@@ -507,10 +507,10 @@ describe('ProjectCompositionService', () => {
       const agent2 = AgentEntity.create({
         agentId: 'agent-2',
         name: 'Agent 2',
-        type: 'assistant',
-        category: 'engineering',
-        model: 'gpt-4',
-        systemPrompt: 'Test',
+        displayName: 'Agent 2',
+        scope: 'project' as const,
+        projectIds: ['proj-1'],
+        createdBy: 'user-1',
         status: 'active',
         createdAt: new Date(),
       });

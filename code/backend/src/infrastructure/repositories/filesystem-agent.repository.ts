@@ -197,7 +197,7 @@ export class FileSystemAgentRepository implements IAgentRepository, IAgentConfig
       name: json.name,
       display_name: json.display_name,
       status: json.status,
-      category: json.category,
+      scope: json.scope,
       capabilities: json.capabilities,
       tags: json.tags,
       created_by: json.created_by,

@@ -15,20 +15,17 @@ interface ClaudeCliOutput {
 export class ClaudeCodeCLIAdapter implements LlmAdapter {
   private readonly cliPath: string;
   private readonly model: string;
-  private readonly maxTokens: number;
   private readonly workingDir: string;
   private readonly timeout: number;
 
   constructor(
     cliPath?: string,
     model?: string,
-    maxTokens?: number,
     workingDir?: string,
     timeout?: number
   ) {
     this.cliPath = cliPath || 'claude';
     this.model = model || 'opus';
-    this.maxTokens = maxTokens || 4096;
     this.workingDir = workingDir || process.cwd();
     this.timeout = timeout || 120000; // 默认 2 分钟超时
   }

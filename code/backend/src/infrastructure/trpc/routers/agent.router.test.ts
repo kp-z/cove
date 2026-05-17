@@ -17,11 +17,7 @@ describe('agentRouter', () => {
       createAgent: vi.fn(),
       getAllAgents: vi.fn(),
       getAgentDetail: vi.fn(),
-      updateRuntimeConfig: vi.fn(),
-      updatePersona: vi.fn(),
-      updateSkills: vi.fn(),
-      updateTools: vi.fn(),
-      updateTriggers: vi.fn(),
+      updateAgent: vi.fn(),
       deleteAgent: vi.fn(),
     } as unknown as AgentService;
 
@@ -60,7 +56,8 @@ describe('agentRouter', () => {
           name: 'Agent 1',
           displayName: 'Agent One',
           status: 'idle',
-          category: 'engineering',
+          scope: 'project' as const,
+        projectIds: ['project-1'], createdBy: 'user-1',
           createdAt: new Date(),
         }),
         AgentEntity.create({
@@ -68,7 +65,8 @@ describe('agentRouter', () => {
           name: 'Agent 2',
           displayName: 'Agent Two',
           status: 'active',
-          category: 'operations',
+          scope: 'project' as const,
+        projectIds: ['project-1'], createdBy: 'user-1',
           createdAt: new Date(),
         }),
       ];
@@ -91,7 +89,8 @@ describe('agentRouter', () => {
           name: 'Test Agent',
           displayName: 'Test Agent',
           status: 'idle',
-          category: 'engineering',
+          scope: 'project' as const,
+        projectIds: ['project-1'], createdBy: 'user-1',
           createdAt: new Date(),
         }).toJSON(),
         runtime: { model: 'gpt-4', temperature: 0.7 },
@@ -127,7 +126,8 @@ describe('agentRouter', () => {
         name: 'new-agent',
         displayName: 'New Agent',
         status: 'idle',
-        category: 'engineering',
+        scope: 'project' as const,
+        projectIds: ['project-1'], createdBy: 'user-1',
         createdAt: new Date(),
       });
 
@@ -156,96 +156,6 @@ describe('agentRouter', () => {
           name: 'existing-agent',
         })
       ).rejects.toThrow('Agent already exists');
-    });
-  });
-
-  describe('updateRuntime', () => {
-    it('should update runtime config successfully', async () => {
-      const updatedConfig = { model: 'gpt-4', temperature: 0.8 };
-      vi.mocked(mockAgentService.updateRuntimeConfig).mockResolvedValue(updatedConfig);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.updateRuntime({
-        agentId: 'agent-1',
-        config: { model: 'gpt-4', temperature: 0.8 },
-      });
-
-      expect(result).toEqual(updatedConfig);
-    });
-
-    it('should throw NOT_FOUND when agent not found', async () => {
-      const error = new AgentNotFoundError('agent-1');
-      error.name = 'AgentNotFoundError';
-      vi.mocked(mockAgentService.updateRuntimeConfig).mockRejectedValue(error);
-
-      const caller = router.createCaller(mockContext);
-
-      await expect(
-        caller.updateRuntime({
-          agentId: 'nonexistent',
-          config: { model: 'gpt-4' },
-        })
-      ).rejects.toThrow('Agent not found');
-    });
-  });
-
-  describe('updatePersona', () => {
-    it('should update persona successfully', async () => {
-      const updatedPersona = { name: 'Helper', role: 'assistant' };
-      vi.mocked(mockAgentService.updatePersona).mockResolvedValue(updatedPersona);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.updatePersona({
-        agentId: 'agent-1',
-        persona: { name: 'Helper', role: 'assistant' },
-      });
-
-      expect(result).toEqual(updatedPersona);
-    });
-  });
-
-  describe('updateSkills', () => {
-    it('should update skills successfully', async () => {
-      const updatedSkills = { skillIds: ['skill-1', 'skill-2'] };
-      vi.mocked(mockAgentService.updateSkills).mockResolvedValue(updatedSkills);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.updateSkills({
-        agentId: 'agent-1',
-        skills: { skillIds: ['skill-1', 'skill-2'] },
-      });
-
-      expect(result).toEqual(updatedSkills);
-    });
-  });
-
-  describe('updateTools', () => {
-    it('should update tools successfully', async () => {
-      const updatedTools = { toolIds: ['tool-1', 'tool-2'] };
-      vi.mocked(mockAgentService.updateTools).mockResolvedValue(updatedTools);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.updateTools({
-        agentId: 'agent-1',
-        tools: { toolIds: ['tool-1', 'tool-2'] },
-      });
-
-      expect(result).toEqual(updatedTools);
-    });
-  });
-
-  describe('updateTriggers', () => {
-    it('should update triggers successfully', async () => {
-      const updatedTriggers = { onMention: true, onDirectMessage: false };
-      vi.mocked(mockAgentService.updateTriggers).mockResolvedValue(updatedTriggers);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.updateTriggers({
-        agentId: 'agent-1',
-        triggers: { onMention: true, onDirectMessage: false },
-      });
-
-      expect(result).toEqual(updatedTriggers);
     });
   });
 

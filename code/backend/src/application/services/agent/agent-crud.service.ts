@@ -109,7 +109,7 @@ export class AgentCrudService {
     const runtimeConfig = (dto.model !== undefined || dto.temperature !== undefined ||
                           dto.maxTokens !== undefined || dto.systemPrompt !== undefined)
       ? {
-          model: dto.model ?? agent.runtimeConfig?.model,
+          model: dto.model ?? agent.runtimeConfig?.model ?? 'opus',
           temperature: dto.temperature ?? agent.runtimeConfig?.temperature,
           maxTokens: dto.maxTokens ?? agent.runtimeConfig?.maxTokens,
           systemPrompt: dto.systemPrompt ?? agent.runtimeConfig?.systemPrompt,
@@ -120,8 +120,8 @@ export class AgentCrudService {
     const persona = (dto.personaName !== undefined || dto.role !== undefined ||
                     dto.tone !== undefined || dto.instructions !== undefined)
       ? {
-          name: dto.personaName ?? agent.persona?.name,
-          role: dto.role ?? agent.persona?.role,
+          name: dto.personaName ?? agent.persona?.name ?? agent.name,
+          role: dto.role ?? agent.persona?.role ?? 'assistant',
           tone: dto.tone ?? agent.persona?.tone,
           instructions: dto.instructions ?? agent.persona?.instructions,
         }

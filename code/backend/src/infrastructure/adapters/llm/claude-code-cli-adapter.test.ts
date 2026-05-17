@@ -17,7 +17,7 @@ describe('ClaudeCodeCLIAdapter', () => {
   const mockSpawn = vi.mocked(spawn);
 
   beforeEach(() => {
-    adapter = new ClaudeCodeCLIAdapter('claude', 'opus', 4096, '/tmp', 5000);
+    adapter = new ClaudeCodeCLIAdapter('claude', 'opus', '/tmp', 5000);
   });
 
   afterEach(() => {

@@ -68,12 +68,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'error',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -87,7 +87,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -96,13 +95,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: [],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -118,12 +116,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -137,7 +135,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -146,13 +143,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: [],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -168,12 +164,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -187,7 +183,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'deleted',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -196,13 +191,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: [],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -218,12 +212,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -237,7 +231,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [{ mentionType: 'agent', mentionId: 'agent-1' }],
         reactions: [],
       });
@@ -246,13 +239,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: ['agent-1'],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -268,12 +260,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -287,7 +279,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -296,7 +287,7 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'dm-user-1-agent-1',
         type: 'dm',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [
           { memberId: 'user-1', memberType: 'human', role: 'member', joinedAt: new Date() },
@@ -304,8 +295,7 @@ describe('AgentService', () => {
         ],
         agentPool: ['agent-1'],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -321,12 +311,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -340,7 +330,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -349,13 +338,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: ['agent-1'],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -371,12 +359,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'idle',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -390,7 +378,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [{ mentionType: 'agent', mentionId: 'agent-1' }],
         reactions: [],
       });
@@ -399,13 +386,12 @@ describe('AgentService', () => {
         channelId: 'channel-1',
         name: 'general',
         type: 'public',
-        projectId: 'project-1',
+        projectIds: ['project-1'],
         status: 'active',
         members: [],
         agentPool: ['agent-1'],
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
         meta: { tags: [] },
       });
 
@@ -423,12 +409,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -442,7 +428,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });
@@ -461,12 +446,12 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        category: 'engineering',
-        projectId: 'project-1',
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        projectIds: ['project-1'],
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: { id: 'user-1', type: 'human' },
+        createdBy: 'user-1',
       });
 
       const mockMessage = MessageEntity.create({
@@ -480,7 +465,6 @@ describe('AgentService', () => {
         contentFormat: 'plain',
         status: 'sent',
         createdAt: new Date(),
-        updatedAt: new Date(),
         mentions: [],
         reactions: [],
       });

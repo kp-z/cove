@@ -193,10 +193,6 @@ export class AgentEntity {
     return AgentEntity.create({ ...this.props, description });
   }
 
-  updateCategory(category: AgentCategory): AgentEntity {
-    return AgentEntity.create({ ...this.props, category });
-  }
-
   updateScope(scope: AgentScope): AgentEntity {
     return AgentEntity.create({ ...this.props, scope });
   }

@@ -448,10 +448,11 @@ function createTestAgent(agentId: string): AgentEntity {
   return AgentEntity.create({
     agentId,
     name: `Agent ${agentId}`,
-    type: 'assistant',
-    category: 'engineering',
+    displayName: `Agent ${agentId}`,
+    scope: 'project' as const,
+    projectIds: ['proj-1'],
+    createdBy: 'user-1',
     status: 'idle',
-    capabilities: [],
     createdAt: new Date(),
   });
 }

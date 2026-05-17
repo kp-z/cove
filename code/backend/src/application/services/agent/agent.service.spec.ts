@@ -67,7 +67,7 @@ describe('AgentService', () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        projectId: 'project-1',
+        
         createdBy: { id: 'user-1', type: 'human' },
       };
 
@@ -75,12 +75,11 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: dto.name,
         displayName: dto.displayName,
-        projectId: dto.projectId,
-        category: 'engineering',
+        scope: 'project',
+        projectIds: [dto.projectId],
         status: 'idle',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: dto.createdBy,
+        createdBy: dto.createdBy.id,
       });
 
       vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
@@ -95,7 +94,7 @@ describe('AgentService', () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        projectId: 'project-1',
+        
         createdBy: { id: 'user-1', type: 'human' },
       };
 
@@ -103,12 +102,11 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: dto.name,
         displayName: dto.displayName,
-        projectId: dto.projectId,
-        category: 'engineering',
+        scope: 'project',
+        projectIds: [dto.projectId],
         status: 'idle',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: dto.createdBy,
+        createdBy: dto.createdBy.id,
       });
 
       vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
@@ -122,7 +120,7 @@ describe('AgentService', () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        projectId: 'project-1',
+        
         createdBy: { id: 'user-1', type: 'human' },
       };
 
@@ -130,12 +128,11 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: dto.name,
         displayName: dto.displayName,
-        projectId: dto.projectId,
-        category: 'engineering',
+        scope: 'project',
+        projectIds: [dto.projectId],
         status: 'idle',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: dto.createdBy,
+        createdBy: dto.createdBy.id,
       });
 
       vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
@@ -149,7 +146,7 @@ describe('AgentService', () => {
       const dto: CreateAgentDTO = {
         name: 'test-agent',
         displayName: 'Test Agent',
-        projectId: 'project-1',
+        
         createdBy: { id: 'user-1', type: 'human' },
       };
 
@@ -157,12 +154,11 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: dto.name,
         displayName: dto.displayName,
-        projectId: dto.projectId,
-        category: 'engineering',
+        scope: 'project',
+        projectIds: [dto.projectId],
         status: 'idle',
         createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: dto.createdBy,
+        createdBy: dto.createdBy.id,
       });
 
       vi.mocked(mockCrudService.createAgent).mockResolvedValue(mockAgent);
@@ -179,8 +175,10 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Test Agent',
-        projectId: 'project-1',
-        category: 'engineering',
+        
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         status: 'idle',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -212,8 +210,10 @@ describe('AgentService', () => {
           agentId: 'agent-1',
           name: 'agent-1',
           displayName: 'Agent 1',
-          projectId: 'project-1',
-          category: 'engineering',
+          
+          scope: 'project' as const,
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         status: 'idle',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -223,8 +223,10 @@ describe('AgentService', () => {
           agentId: 'agent-2',
           name: 'agent-2',
           displayName: 'Agent 2',
-          projectId: 'project-1',
-          category: 'engineering',
+          
+          scope: 'project' as const,
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         status: 'idle',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -251,8 +253,10 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Updated Agent',
-        projectId: 'project-1',
-        category: 'engineering',
+        
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         status: 'idle',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -275,8 +279,10 @@ describe('AgentService', () => {
         agentId: 'agent-1',
         name: 'test-agent',
         displayName: 'Updated Agent',
-        projectId: 'project-1',
-        category: 'engineering',
+        
+        scope: 'project' as const,
+        projectIds: ['project-1'],
+        createdBy: 'user-1',
         status: 'idle',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -302,7 +308,7 @@ describe('AgentService', () => {
         taskId: 'task-1',
         title: 'Test Task',
         taskType: 'single_agent',
-        projectId: 'project-1',
+        
         status: 'in_progress',
         priority: 'P2',
         createdAt: new Date(),
@@ -354,7 +360,7 @@ describe('AgentService', () => {
         taskId: 'task-1',
         title: 'Test Task',
         taskType: 'single_agent',
-        projectId: 'project-1',
+        
         status: 'in_progress',
         priority: 'P2',
         createdAt: new Date(),
