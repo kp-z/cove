@@ -13,6 +13,7 @@ import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateChannel, useUpdateChannel, useAddChannelMember, useRemoveChannelMember } from '@/lib/trpc/hooks/channel.hooks';
 import { useAgents } from '@/lib/trpc/hooks/agent.hooks';
 import { useUsers } from '@/lib/trpc/hooks/user.hooks';
+import { useAuthStore } from '@/core/auth/authStore';
 import type { Channel } from '@/lib/trpc-types';
 
 interface ChannelEditFormProps {
@@ -28,6 +29,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
   const updateChannel = useUpdateChannel();
   const addMember = useAddChannelMember();
   const removeMember = useRemoveChannelMember();
+  const { user } = useAuthStore();
 
   const { data: agents } = useAgents();
   const { data: users } = useUsers();
@@ -90,7 +92,13 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
     };
 
     if (isCreateMode) {
-      createChannel.mutate(data, {
+      // Add createdBy for create mode
+      const createData = {
+        ...data,
+        createdBy: user?.id || 'system', // Use current user ID or fallback to 'system'
+      };
+
+      createChannel.mutate(createData, {
         onSuccess: () => {
           setSaved(true);
           setTimeout(onSaved, 600);
@@ -207,14 +215,16 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
       />
 
       <PageContent>
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Basic Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>📋 {t('edit.basicInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        {/* Two Column Layout like Agent Edit */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          {/* Left Column */}
+          <div className="flex flex-col gap-6">
+            {/* Basic Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📋 {t('edit.basicInfo')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <Label>{t('edit.form.name')} *</Label>
                   <Input
@@ -223,6 +233,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                     placeholder={t('edit.form.nameRequired')}
                   />
                 </div>
+
                 <div>
                   <Label>{t('edit.form.displayName')}</Label>
                   <Input
@@ -231,316 +242,319 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                     placeholder={t('edit.form.displayNamePlaceholder')}
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label>{t('edit.form.description')}</Label>
-                <Textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder={t('edit.form.descriptionPlaceholder')}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>{t('edit.form.icon')}</Label>
-                  <Input
-                    value={icon}
-                    onChange={e => setIcon(e.target.value)}
-                    placeholder="🔍"
-                  />
-                </div>
-                <div>
-                  <Label>{t('edit.form.category')}</Label>
-                  <Input
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    placeholder={t('edit.form.categoryPlaceholder')}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>{t('edit.form.type')}</Label>
-                  <select className={selectCls} value={type} onChange={e => setType(e.target.value as any)}>
-                    <option value="public">{t('edit.form.typePublic')}</option>
-                    <option value="private">{t('edit.form.typePrivate')}</option>
-                    <option value="dm">{t('edit.form.typeDM')}</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>{t('edit.form.status')}</Label>
-                  <select className={selectCls} value={status} onChange={e => setStatus(e.target.value as any)}>
-                    <option value="active">{t('edit.form.statusActive')}</option>
-                    <option value="archived">{t('edit.form.statusArchived')}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <Label>{t('edit.form.tags')}</Label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="gap-1">
-                      {tag}
-                      <button
-                        onClick={() => removeTag(tag)}
-                        className="hover:text-foreground transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="relative">
-                  <Input
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={addTag}
-                    placeholder={t('edit.form.tagPlaceholder')}
-                  />
-                  <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Members Management - Only in Edit Mode */}
-          {!isCreateMode && (
-            <Card>
-              <CardHeader>
-                <CardTitle>👥 {t('edit.members.title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    value={memberSearchQuery}
-                    onChange={e => setMemberSearchQuery(e.target.value)}
-                    placeholder={t('edit.members.search')}
-                    className="flex-1"
+                  <Label>{t('edit.form.description')}</Label>
+                  <Textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={3}
+                    placeholder={t('edit.form.descriptionPlaceholder')}
                   />
                 </div>
 
-                {/* Current Members */}
-                <div className="space-y-2">
-                  <Label>{t('edit.members.current')}</Label>
-                  <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
-                    {members.length === 0 ? (
-                      <div className="p-4 text-sm text-muted-foreground text-center">
-                        {t('edit.members.noMembers')}
-                      </div>
-                    ) : (
-                      members.map(member => (
-                        <div key={member.member_id} className="flex items-center justify-between p-3">
-                          <div className="flex items-center gap-2">
-                            <span>{member.member_type === 'human' ? '👤' : '🤖'}</span>
-                            <span className="text-sm">{member.member_id}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {member.role}
-                            </Badge>
-                          </div>
-                          {member.role !== 'owner' && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleRemoveMember(member.member_id)}
-                              disabled={removeMember.isPending}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
-                        </div>
-                      ))
-                    )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>{t('edit.form.icon')}</Label>
+                    <Input
+                      value={icon}
+                      onChange={e => setIcon(e.target.value)}
+                      placeholder="🔍"
+                    />
+                  </div>
+                  <div>
+                    <Label>{t('edit.form.category')}</Label>
+                    <Input
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      placeholder={t('edit.form.categoryPlaceholder')}
+                    />
                   </div>
                 </div>
 
-                {/* Add Members */}
-                {(filteredAvailableUsers.length > 0 || filteredAvailableAgents.length > 0) && (
-                  <div className="space-y-2">
-                    <Label>{t('edit.members.available')}</Label>
-                    <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
-                      {filteredAvailableUsers.map(user => (
-                        <div key={user.user_id} className="flex items-center justify-between p-3">
-                          <div className="flex items-center gap-2">
-                            <span>👤</span>
-                            <span className="text-sm">{user.name}</span>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddMember(user.user_id, 'human')}
-                            disabled={addMember.isPending}
-                          >
-                            <UserPlus size={14} />
-                          </Button>
-                        </div>
-                      ))}
-                      {filteredAvailableAgents.map(agent => (
-                        <div key={agent.agent_id} className="flex items-center justify-between p-3">
-                          <div className="flex items-center gap-2">
-                            <span>🤖</span>
-                            <span className="text-sm">{agent.name}</span>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddMember(agent.agent_id, 'agent')}
-                            disabled={addMember.isPending}
-                          >
-                            <UserPlus size={14} />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>{t('edit.form.type')}</Label>
+                    <select className={selectCls} value={type} onChange={e => setType(e.target.value as any)}>
+                      <option value="public">{t('edit.form.typePublic')}</option>
+                      <option value="private">{t('edit.form.typePrivate')}</option>
+                      <option value="dm">{t('edit.form.typeDM')}</option>
+                    </select>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  <div>
+                    <Label>{t('edit.form.status')}</Label>
+                    <select className={selectCls} value={status} onChange={e => setStatus(e.target.value as any)}>
+                      <option value="active">{t('edit.form.statusActive')}</option>
+                      <option value="archived">{t('edit.form.statusArchived')}</option>
+                    </select>
+                  </div>
+                </div>
 
-          {/* Agent Pool */}
-          <Card>
-            <CardHeader>
-              <CardTitle>🤖 {t('edit.agentPool.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {agents && agents.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {agents.map(agent => (
-                      <label key={agent.agent_id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent">
-                        <input
-                          type="checkbox"
-                          checked={selectedAgents.includes(agent.agent_id)}
-                          onChange={() => toggleAgent(agent.agent_id)}
-                          className="w-4 h-4 rounded border-input"
-                        />
-                        <span className="text-sm">{agent.name}</span>
-                      </label>
+                <div>
+                  <Label>{t('edit.form.tags')}</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        {tag}
+                        <button
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-foreground transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </Badge>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    {t('edit.agentPool.noAgents')}
+                  <div className="relative">
+                    <Input
+                      value={tagInput}
+                      onChange={e => setTagInput(e.target.value)}
+                      onKeyDown={addTag}
+                      placeholder={t('edit.form.tagPlaceholder')}
+                    />
+                    <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Communication Rules */}
-          <Card>
-            <CardHeader>
-              <CardTitle>⚙️ {t('edit.communicationRules.title')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={allowMentions}
-                    onChange={e => setAllowMentions(e.target.checked)}
-                    className="w-4 h-4 rounded border-input"
-                  />
-                  {t('edit.communicationRules.allowMentions')}
-                </Label>
-
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={allowThreads}
-                    onChange={e => setAllowThreads(e.target.checked)}
-                    className="w-4 h-4 rounded border-input"
-                  />
-                  {t('edit.communicationRules.allowThreads')}
-                </Label>
-
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={allowAttachments}
-                    onChange={e => setAllowAttachments(e.target.checked)}
-                    className="w-4 h-4 rounded border-input"
-                  />
-                  {t('edit.communicationRules.allowAttachments')}
-                </Label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>{t('edit.communicationRules.maxMessageLength')}</Label>
-                  <Input
-                    type="number"
-                    value={maxMessageLength}
-                    onChange={e => setMaxMessageLength(Number(e.target.value))}
-                    min={1}
-                  />
                 </div>
-                <div>
-                  <Label>{t('edit.communicationRules.maxMembers')}</Label>
-                  <Input
-                    type="number"
-                    value={maxMembers ?? ''}
-                    onChange={e => setMaxMembers(e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder={t('edit.communicationRules.maxMembersPlaceholder')}
-                  />
+              </CardContent>
+            </Card>
+
+            {/* Agent Pool */}
+            <Card>
+              <CardHeader>
+                <CardTitle>🤖 {t('edit.agentPool.title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {agents && agents.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {agents.map(agent => (
+                        <label key={agent.agent_id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent">
+                          <input
+                            type="checkbox"
+                            checked={selectedAgents.includes(agent.agent_id)}
+                            onChange={() => toggleAgent(agent.agent_id)}
+                            className="w-4 h-4 rounded border-input"
+                          />
+                          <span className="text-sm">{agent.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-4">
+                      {t('edit.agentPool.noAgents')}
+                    </div>
+                  )}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-3 pt-2 border-t">
-                <Label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={rateLimitEnabled}
-                    onChange={e => setRateLimitEnabled(e.target.checked)}
-                    className="w-4 h-4 rounded border-input"
-                  />
-                  {t('edit.communicationRules.rateLimitEnabled')}
-                </Label>
+            {/* Workspace - Read Only */}
+            {!isCreateMode && channel?.workspace && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>📁 {t('edit.workspace.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-sm space-y-1">
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-24">Root:</span>
+                      <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.root}</code>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-24">Shared:</span>
+                      <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.shared_files}</code>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-24">Attachments:</span>
+                      <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.attachments}</code>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-                {rateLimitEnabled && (
+          {/* Right Column */}
+          <div className="flex flex-col gap-6">
+            {/* Members Management - Only in Edit Mode */}
+            {!isCreateMode && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>👥 {t('edit.members.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={memberSearchQuery}
+                      onChange={e => setMemberSearchQuery(e.target.value)}
+                      placeholder={t('edit.members.search')}
+                      className="flex-1"
+                    />
+                  </div>
+
+                  {/* Current Members */}
+                  <div className="space-y-2">
+                    <Label>{t('edit.members.current')}</Label>
+                    <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
+                      {members.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground text-center">
+                          {t('edit.members.noMembers')}
+                        </div>
+                      ) : (
+                        members.map(member => (
+                          <div key={member.member_id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-2">
+                              <span>{member.member_type === 'human' ? '👤' : '🤖'}</span>
+                              <span className="text-sm">{member.member_id}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {member.role}
+                              </Badge>
+                            </div>
+                            {member.role !== 'owner' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleRemoveMember(member.member_id)}
+                                disabled={removeMember.isPending}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add Members */}
+                  {(filteredAvailableUsers.length > 0 || filteredAvailableAgents.length > 0) && (
+                    <div className="space-y-2">
+                      <Label>{t('edit.members.available')}</Label>
+                      <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
+                        {filteredAvailableUsers.map(user => (
+                          <div key={user.user_id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-2">
+                              <span>👤</span>
+                              <span className="text-sm">{user.name}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAddMember(user.user_id, 'human')}
+                              disabled={addMember.isPending}
+                            >
+                              <UserPlus size={14} />
+                            </Button>
+                          </div>
+                        ))}
+                        {filteredAvailableAgents.map(agent => (
+                          <div key={agent.agent_id} className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-2">
+                              <span>🤖</span>
+                              <span className="text-sm">{agent.name}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAddMember(agent.agent_id, 'agent')}
+                              disabled={addMember.isPending}
+                            >
+                              <UserPlus size={14} />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Communication Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle>⚙️ {t('edit.communicationRules.title')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={allowMentions}
+                      onChange={e => setAllowMentions(e.target.checked)}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    {t('edit.communicationRules.allowMentions')}
+                  </Label>
+
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={allowThreads}
+                      onChange={e => setAllowThreads(e.target.checked)}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    {t('edit.communicationRules.allowThreads')}
+                  </Label>
+
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={allowAttachments}
+                      onChange={e => setAllowAttachments(e.target.checked)}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    {t('edit.communicationRules.allowAttachments')}
+                  </Label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>{t('edit.communicationRules.messagesPerMinute')}</Label>
+                    <Label>{t('edit.communicationRules.maxMessageLength')}</Label>
                     <Input
                       type="number"
-                      value={messagesPerMinute}
-                      onChange={e => setMessagesPerMinute(Number(e.target.value))}
+                      value={maxMessageLength}
+                      onChange={e => setMaxMessageLength(Number(e.target.value))}
                       min={1}
                     />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <div>
+                    <Label>{t('edit.communicationRules.maxMembers')}</Label>
+                    <Input
+                      type="number"
+                      value={maxMembers ?? ''}
+                      onChange={e => setMaxMembers(e.target.value ? Number(e.target.value) : undefined)}
+                      placeholder={t('edit.communicationRules.maxMembersPlaceholder')}
+                    />
+                  </div>
+                </div>
 
-          {/* Workspace - Read Only */}
-          {!isCreateMode && channel?.workspace && (
-            <Card>
-              <CardHeader>
-                <CardTitle>📁 {t('edit.workspace.title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm space-y-1">
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-24">Root:</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.root}</code>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-24">Shared:</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.shared_files}</code>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-24">Attachments:</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{channel.workspace.attachments}</code>
-                  </div>
+                <div className="space-y-3 pt-2 border-t">
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={rateLimitEnabled}
+                      onChange={e => setRateLimitEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    {t('edit.communicationRules.rateLimitEnabled')}
+                  </Label>
+
+                  {rateLimitEnabled && (
+                    <div>
+                      <Label>{t('edit.communicationRules.messagesPerMinute')}</Label>
+                      <Input
+                        type="number"
+                        value={messagesPerMinute}
+                        onChange={e => setMessagesPerMinute(Number(e.target.value))}
+                        min={1}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
+          </div>
         </div>
       </PageContent>
     </PageShell>
