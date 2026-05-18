@@ -6,7 +6,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Badge } from '@/shared/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { GlassCard } from '@/shared/components/ui/GlassCard';
+import { CardGridLayout } from '@/shared/components/layout/CardGridLayout';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -138,6 +139,189 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
     };
   }
 
+  // CardGridLayout configuration
+  const cardGridConfig = {
+    rows: [
+      {
+        id: 'agent-edit-row',
+        cols: 2,
+        gap: 6,
+        items: [
+          // Left Column
+          {
+            id: 'left-column',
+            colSpan: { default: 1, lg: 1 },
+            content: (
+              <div className="flex flex-col gap-6">
+                {/* Basic Info */}
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">{t('editForm.basicInfo')}</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>{t('editForm.name')}</Label>
+                      <Input value={name} onChange={e => setName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>{t('editForm.description')}</Label>
+                      <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>{t('editForm.category')}</Label>
+                        <select value={category} onChange={e => setCategory(e.target.value as AgentCategory)} className={selectCls}>
+                          {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>{t('editForm.priority')}</Label>
+                        <select value={priority} onChange={e => setPriority(e.target.value as AgentPriority)} className={selectCls}>
+                          {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Model Config */}
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">{t('editForm.modelConfig')}</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>{t('editForm.model')}</Label>
+                      <select value={model} onChange={e => setModel(e.target.value)} className={selectCls}>
+                        {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>{t('editForm.framework')}</Label>
+                        <select value={framework} onChange={e => setFramework(e.target.value as AgentFramework)} className={selectCls}>
+                          {FRAMEWORK_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>{t('editForm.scope')}</Label>
+                        <select value={scope} onChange={e => setScope(e.target.value as AgentScope)} className={selectCls}>
+                          {SCOPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+            ),
+            animation: { delay: 0.1 },
+          },
+          // Right Column
+          {
+            id: 'right-column',
+            colSpan: { default: 1, lg: 1 },
+            content: (
+              <div className="flex flex-col gap-6">
+                {/* Tools and Skills */}
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">{t('editForm.toolsAndSkills')}</h3>
+                  <div className="space-y-5">
+                    <div>
+                      <Label>{t('editForm.tools')}</Label>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {tools.map(tool => (
+                          <Badge key={tool} variant="secondary" className="gap-1">
+                            {tool}
+                            <button onClick={() => setTools(tools.filter(x => x !== tool))} className="hover:text-foreground transition-colors">
+                              <X size={12} />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          value={toolInput}
+                          onChange={e => setToolInput(e.target.value)}
+                          onKeyDown={addTag(toolInput, tools, setTools, setToolInput)}
+                          placeholder={t('editForm.toolPlaceholder')}
+                        />
+                        <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>{t('editForm.skills')}</Label>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {skills.map(skill => (
+                          <Badge key={skill} variant="outline" className="gap-1 text-cyan-400 border-cyan-500/25">
+                            {skill}
+                            <button onClick={() => setSkills(skills.filter(x => x !== skill))} className="hover:text-foreground transition-colors">
+                              <X size={12} />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          value={skillInput}
+                          onChange={e => setSkillInput(e.target.value)}
+                          onKeyDown={addTag(skillInput, skills, setSkills, setSkillInput)}
+                          placeholder={t('editForm.skillPlaceholder')}
+                        />
+                        <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Permissions */}
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">{t('editForm.permissions')}</h3>
+                  <div className="space-y-5">
+                    <div>
+                      <Label>{t('editForm.permissionMode')}</Label>
+                      <div className="flex flex-wrap gap-2 mt-1.5">
+                        {PERMISSION_OPTIONS.map(o => (
+                          <button
+                            key={o.value}
+                            onClick={() => setPermissionMode(o.value)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                              permissionMode === o.value
+                                ? `${o.color} ring-1 ring-white/20`
+                                : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>{t('editForm.memory')}</Label>
+                      <div className="flex flex-wrap gap-2 mt-1.5">
+                        {MEMORY_OPTIONS.map(o => (
+                          <button
+                            key={o.value ?? 'none'}
+                            onClick={() => setMemory(o.value)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                              memory === o.value
+                                ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 ring-1 ring-white/20'
+                                : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+            ),
+            animation: { delay: 0.2 },
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -151,162 +335,9 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
         }
       />
 
-      {/* Form Content */}
       <PageContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {/* Left Column */}
-          <div className="flex flex-col gap-6">
-            <Card>
-              <CardHeader><CardTitle>{t('editForm.basicInfo')}</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>{t('editForm.name')}</Label>
-                  <Input value={name} onChange={e => setName(e.target.value)} />
-                </div>
-                <div>
-                  <Label>{t('editForm.description')}</Label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>{t('editForm.category')}</Label>
-                    <select value={category} onChange={e => setCategory(e.target.value as AgentCategory)} className={selectCls}>
-                      {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <Label>{t('editForm.priority')}</Label>
-                    <select value={priority} onChange={e => setPriority(e.target.value as AgentPriority)} className={selectCls}>
-                      {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>{t('editForm.modelConfig')}</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>{t('editForm.model')}</Label>
-                  <select value={model} onChange={e => setModel(e.target.value)} className={selectCls}>
-                    {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>{t('editForm.framework')}</Label>
-                    <select value={framework} onChange={e => setFramework(e.target.value as AgentFramework)} className={selectCls}>
-                      {FRAMEWORK_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <Label>{t('editForm.scope')}</Label>
-                    <select value={scope} onChange={e => setScope(e.target.value as AgentScope)} className={selectCls}>
-                      {SCOPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column */}
-          <div className="flex flex-col gap-6">
-            <Card>
-              <CardHeader><CardTitle>{t('editForm.toolsAndSkills')}</CardTitle></CardHeader>
-              <CardContent className="space-y-5">
-                <div>
-                  <Label>{t('editForm.tools')}</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {tools.map(t => (
-                      <Badge key={t} variant="secondary" className="gap-1">
-                        {t}
-                        <button onClick={() => setTools(tools.filter(x => x !== t))} className="hover:text-foreground transition-colors">
-                          <X size={12} />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <Input
-                      value={toolInput}
-                      onChange={e => setToolInput(e.target.value)}
-                      onKeyDown={addTag(toolInput, tools, setTools, setToolInput)}
-                      placeholder={t('editForm.toolPlaceholder')}
-                    />
-                    <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>{t('editForm.skills')}</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {skills.map(s => (
-                      <Badge key={s} variant="outline" className="gap-1 text-cyan-400 border-cyan-500/25">
-                        {s}
-                        <button onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-foreground transition-colors">
-                          <X size={12} />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <Input
-                      value={skillInput}
-                      onChange={e => setSkillInput(e.target.value)}
-                      onKeyDown={addTag(skillInput, skills, setSkills, setSkillInput)}
-                      placeholder={t('editForm.skillPlaceholder')}
-                    />
-                    <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>{t('editForm.permissions')}</CardTitle></CardHeader>
-              <CardContent className="space-y-5">
-                <div>
-                  <Label>{t('editForm.permissionMode')}</Label>
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    {PERMISSION_OPTIONS.map(o => (
-                      <button
-                        key={o.value}
-                        onClick={() => setPermissionMode(o.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          permissionMode === o.value
-                            ? `${o.color} ring-1 ring-white/20`
-                            : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label>{t('editForm.memory')}</Label>
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    {MEMORY_OPTIONS.map(o => (
-                      <button
-                        key={o.value ?? 'none'}
-                        onClick={() => setMemory(o.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          memory === o.value
-                            ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 ring-1 ring-white/20'
-                            : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="max-w-6xl mx-auto">
+          <CardGridLayout {...cardGridConfig} />
         </div>
       </PageContent>
     </PageShell>
