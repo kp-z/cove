@@ -25,17 +25,57 @@
     "unpinSuccess": "已取消置顶",
     "pinError": "置顶失败"
   },
-  "editForm": {
-    "newChannel": "新建频道",
-    "subtitle": "配置频道设置",
+  "edit": {
+    "title": "频道",
+    "createTitle": "新建频道",
+    "editTitle": "编辑频道",
+    "save": "保存",
+    "cancel": "取消",
     "basicInfo": "基本信息",
-    "name": "名称",
-    "namePlaceholder": "输入频道名称",
-    "description": "描述",
-    "descriptionPlaceholder": "输入频道描述",
-    "private": "私有频道",
-    "privateDescription": "只有受邀成员可以访问此频道",
-    "tags": "标签",
-    "tagPlaceholder": "添加标签（按 Enter）"
+    "form": {
+      "name": "名称",
+      "nameRequired": "请输入频道名称",
+      "displayName": "显示名称",
+      "displayNamePlaceholder": "输入显示名称",
+      "description": "描述",
+      "descriptionPlaceholder": "输入频道描述",
+      "icon": "图标",
+      "type": "类型",
+      "typePublic": "公开",
+      "typePrivate": "私有",
+      "typeDM": "私信",
+      "status": "状态",
+      "statusActive": "活跃",
+      "statusArchived": "已归档",
+      "category": "分类",
+      "categoryPlaceholder": "输入分类",
+      "tags": "标签",
+      "tagPlaceholder": "添加标签（按 Enter）"
+    },
+    "members": {
+      "title": "成员管理",
+      "search": "搜索用户/Agent",
+      "current": "当前成员",
+      "available": "可添加成员",
+      "noMembers": "暂无成员"
+    },
+    "agentPool": {
+      "title": "Agent 池",
+      "noAgents": "暂无可用 Agent"
+    },
+    "communicationRules": {
+      "title": "通信规则",
+      "allowMentions": "允许 @提及",
+      "allowThreads": "允许线程",
+      "allowAttachments": "允许附件",
+      "maxMessageLength": "最大消息长度",
+      "maxMembers": "最大成员数",
+      "maxMembersPlaceholder": "可选",
+      "rateLimitEnabled": "启用速率限制",
+      "messagesPerMinute": "每分钟消息数"
+    },
+    "workspace": {
+      "title": "工作空间"
+    }
   }
 }

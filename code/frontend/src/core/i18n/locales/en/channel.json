@@ -25,17 +25,57 @@
     "unpinSuccess": "Channel unpinned",
     "pinError": "Failed to pin channel"
   },
-  "editForm": {
-    "newChannel": "New Channel",
-    "subtitle": "Configure channel settings",
+  "edit": {
+    "title": "Channel",
+    "createTitle": "New Channel",
+    "editTitle": "Edit Channel",
+    "save": "Save",
+    "cancel": "Cancel",
     "basicInfo": "Basic Information",
-    "name": "Name",
-    "namePlaceholder": "Enter channel name",
-    "description": "Description",
-    "descriptionPlaceholder": "Enter channel description",
-    "private": "Private Channel",
-    "privateDescription": "Only invited members can access this channel",
-    "tags": "Tags",
-    "tagPlaceholder": "Add tags (press Enter)"
+    "form": {
+      "name": "Name",
+      "nameRequired": "Please enter channel name",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "Enter display name",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter channel description",
+      "icon": "Icon",
+      "type": "Type",
+      "typePublic": "Public",
+      "typePrivate": "Private",
+      "typeDM": "DM",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusArchived": "Archived",
+      "category": "Category",
+      "categoryPlaceholder": "Enter category",
+      "tags": "Tags",
+      "tagPlaceholder": "Add tags (press Enter)"
+    },
+    "members": {
+      "title": "Member Management",
+      "search": "Search users/agents",
+      "current": "Current Members",
+      "available": "Available to Add",
+      "noMembers": "No members yet"
+    },
+    "agentPool": {
+      "title": "Agent Pool",
+      "noAgents": "No agents available"
+    },
+    "communicationRules": {
+      "title": "Communication Rules",
+      "allowMentions": "Allow @mentions",
+      "allowThreads": "Allow Threads",
+      "allowAttachments": "Allow Attachments",
+      "maxMessageLength": "Max Message Length",
+      "maxMembers": "Max Members",
+      "maxMembersPlaceholder": "Optional",
+      "rateLimitEnabled": "Enable Rate Limit",
+      "messagesPerMinute": "Messages Per Minute"
+    },
+    "workspace": {
+      "title": "Workspace"
+    }
   }
 }
