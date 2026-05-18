@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TokenPill, type TokenUsageData } from './TokenPill';
 import { TimeCapsule } from './TimeCapsule';
 import { AgentRunCapsule } from './AgentRunCapsule';
-import { NotificationBubble, type Notification } from './NotificationBubble';
+import { NotificationBubble } from './NotificationBubble';
 import { UserMenu } from './UserMenu';
 import { DockCapsuleItem } from './DockCapsuleItem';
 import { AnimatedBorder } from './AnimatedBorder';
 import { useDockMagnification } from '@/shared/hooks/useDockMagnification';
+import { useNotificationStore } from '@/core/stores/notificationStore';
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -20,7 +21,11 @@ export function TopBar() {
 
   const [tokenUsage] = useState<TokenUsageData | undefined>(undefined);
   const [isTokenLoading] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Use global notification store
+  const notifications = useNotificationStore((state) => state.notifications);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const clearAll = useNotificationStore((state) => state.clearAll);
 
   const { mouseX, containerRef, handleMouseMove, handleMouseLeave } =
     useDockMagnification();
@@ -44,14 +49,6 @@ export function TopBar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isSearchOpen]);
-
-  const handleDismissNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-  };
 
   return (
     <motion.header
@@ -143,8 +140,8 @@ export function TopBar() {
         <DockCapsuleItem mouseX={mouseX} index={1}>
           <NotificationBubble
             notifications={notifications}
-            onDismiss={handleDismissNotification}
-            onClearAll={handleClearAllNotifications}
+            onDismiss={removeNotification}
+            onClearAll={clearAll}
           />
         </DockCapsuleItem>
 
