@@ -6,7 +6,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Badge } from '@/shared/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { GlassCard } from '@/shared/components/ui/GlassCard';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -232,15 +232,14 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
       />
 
       <PageContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 max-w-[1800px] mx-auto">
-          {/* Column 1: System & Basic Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1400px] mx-auto">
+          {/* Left Column */}
           <div className="flex flex-col gap-6">
+            {/* System Information (Edit Mode Only) */}
             {!isCreateMode && agent && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+              <GlassCard className="p-6">
+                <h3 className="text-lg font-semibold mb-4">🔧 System Information</h3>
+                <div className="space-y-3">
                   <InfoField label="Agent ID" value={agent.agent_id} mono />
                   <InfoField label="Name" value={agent.name} mono />
                   <div>
@@ -253,15 +252,14 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                   </div>
                   <InfoField label="Created By" value={agent.created_by} />
                   <InfoField label="Created At" value={new Date(agent.created_at).toLocaleString()} />
-                </CardContent>
-              </Card>
+                </div>
+              </GlassCard>
             )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Basic Information */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">📋 Basic Information</h3>
+              <div className="space-y-4">
                 <FormField label="Display Name" required>
                   <Input
                     value={displayName}
@@ -282,31 +280,47 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                     {SCOPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </FormField>
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Association</CardTitle>
-              </CardHeader>
-              <CardContent>
+            {/* Project Association */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">📁 Project Association</h3>
+              <TagInput
+                label="Project IDs"
+                tags={projectIds}
+                onAdd={id => setProjectIds([...projectIds, id])}
+                onRemove={id => setProjectIds(projectIds.filter(x => x !== id))}
+              />
+            </GlassCard>
+
+            {/* Capabilities & Tags */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">🏷️ Capabilities & Tags</h3>
+              <div className="space-y-5">
                 <TagInput
-                  label="Project IDs"
-                  tags={projectIds}
-                  onAdd={id => setProjectIds([...projectIds, id])}
-                  onRemove={id => setProjectIds(projectIds.filter(x => x !== id))}
+                  label="Capabilities"
+                  tags={capabilities}
+                  onAdd={cap => setCapabilities([...capabilities, cap])}
+                  onRemove={cap => setCapabilities(capabilities.filter(x => x !== cap))}
                 />
-              </CardContent>
-            </Card>
+                <TagInput
+                  label="Tags"
+                  tags={tags}
+                  onAdd={tag => setTags([...tags, tag])}
+                  onRemove={tag => setTags(tags.filter(x => x !== tag))}
+                  variant="outline"
+                />
+              </div>
+            </GlassCard>
           </div>
 
-          {/* Column 2: Runtime & Persona */}
+          {/* Right Column */}
           <div className="flex flex-col gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Runtime Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Runtime Configuration */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">⚙️ Runtime Configuration</h3>
+              <div className="space-y-4">
                 <FormField label="Model">
                   <select value={model} onChange={e => setModel(e.target.value)} className={SELECT_CLASS}>
                     {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -342,14 +356,13 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                     placeholder="Custom system prompt (optional)"
                   />
                 </FormField>
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Persona Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Persona Configuration */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">👤 Persona Configuration</h3>
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField label="Persona Name">
                     <Input value={personaName} onChange={e => setPersonaName(e.target.value)} placeholder="Technical Expert" />
@@ -409,38 +422,13 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </GlassCard>
 
-          {/* Column 3: Skills, Tools, Triggers & Tags */}
-          <div className="flex flex-col gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Capabilities & Tags</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <TagInput
-                  label="Capabilities"
-                  tags={capabilities}
-                  onAdd={cap => setCapabilities([...capabilities, cap])}
-                  onRemove={cap => setCapabilities(capabilities.filter(x => x !== cap))}
-                />
-                <TagInput
-                  label="Tags"
-                  tags={tags}
-                  onAdd={tag => setTags([...tags, tag])}
-                  onRemove={tag => setTags(tags.filter(x => x !== tag))}
-                  variant="outline"
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills & Tools</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
+            {/* Skills & Tools */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">🛠️ Skills & Tools</h3>
+              <div className="space-y-5">
                 <TagInput
                   label="Skill IDs"
                   tags={skillIds}
@@ -455,14 +443,13 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                   onAdd={id => setToolIds([...toolIds, id])}
                   onRemove={id => setToolIds(toolIds.filter(x => x !== id))}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Triggers</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Triggers */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold mb-4">⚡ Triggers</h3>
+              <div className="space-y-4">
                 <CheckboxField
                   id="onMention"
                   label="Trigger on @mention"
@@ -489,8 +476,8 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                   onRemove={rule => setCustomRules(customRules.filter(x => x !== rule))}
                   variant="outline"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
           </div>
         </div>
       </PageContent>

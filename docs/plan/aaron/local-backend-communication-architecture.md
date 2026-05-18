@@ -138,9 +138,9 @@ cove/
 
 ### 4.1 连接建立
 
-**Local 启动流程：**
+**Local-Server 启动流程：**
 ```
-1. Local 启动时读取配置（服务器地址、认证 Token）
+1. Local-Server 启动时读取配置（服务器地址、认证 Token）
 2. 建立 WebSocket 连接到 Backend
    wss://server.com/gateway/connect?token=xxx
 3. Backend 验证 Token，建立连接
@@ -165,9 +165,9 @@ class ConnectionManager {
 }
 ```
 
-**Local 端实现：**
+**Local-Server 端实现：**
 ```typescript
-// local/src/websocket-client.ts
+// local-server/src/websocket-client.ts
 class WebSocketClient {
   private ws: WebSocket
   private reconnectAttempts = 0
@@ -239,9 +239,9 @@ enum MessageType {
      }
    }
    ↓
-5. Local 接收任务，执行 Agent
+5. Local-Server 接收任务，执行 Agent
    ↓
-6. Local 返回结果到 Backend
+6. Local-Server 返回结果到 Backend
    {
      type: 'TASK_RESULT',
      payload: {
@@ -278,9 +278,9 @@ enum MessageType {
      }
    }
    ↓
-5. Local 读取本地文件
+5. Local-Server 读取本地文件
    ↓
-6. Local 返回文件内容
+6. Local-Server 返回文件内容
    {
      type: 'FILE_CONTENT',
      payload: {
@@ -298,7 +298,7 @@ enum MessageType {
 #### 场景 3：心跳保活
 
 ```
-Local 每 30 秒发送心跳：
+Local-Server 每 30 秒发送心跳：
 {
   type: 'HEARTBEAT',
   payload: {
@@ -338,7 +338,7 @@ Backend 响应：
 
 **启动时同步：**
 ```
-1. Local 启动时扫描 .cove/agents/
+1. Local-Server 启动时扫描 .cove/agents/
 2. 解析所有 agent.md 的 Frontmatter
 3. 通过 WebSocket 发送到 Backend
 4. Backend 更新数据库（upsert）
@@ -346,7 +346,7 @@ Backend 响应：
 
 **运行时同步：**
 ```
-1. Local 修改 agent.md 时
+1. Local-Server 修改 agent.md 时
 2. 解析新的 Frontmatter
 3. 发送更新到 Backend
 4. Backend 更新数据库
@@ -436,7 +436,7 @@ interface TokenPayload {
 4. 初始化 package.json
 
 **交付物：**
-- `local/src/` 目录结构
+- `local-server/src/` 目录结构
 - `local/package.json`
 - `local/config.example.json`
 - `local/.cove/` 数据目录
@@ -471,7 +471,7 @@ interface TokenPayload {
 
 ### Phase 3：实现通信协议（2 天）
 
-**Local 端实现：**
+**Local-Server 端实现：**
 1. WebSocket 连接和重连
 2. 消息发送和接收
 3. 任务执行（调用 Agent Executor）
@@ -486,9 +486,9 @@ interface TokenPayload {
 5. 心跳监控
 
 **交付物：**
-- `local/src/websocket-client.ts`
-- `local/src/message-handler.ts`
-- `local/src/heartbeat.ts`
+- `local-server/src/websocket-client.ts`
+- `local-server/src/message-handler.ts`
+- `local-server/src/heartbeat.ts`
 - `backend/src/gateway/` 完整实现
 
 ---
@@ -496,7 +496,7 @@ interface TokenPayload {
 ### Phase 4：集成测试（1 天）
 
 **测试场景：**
-1. Local 启动并连接到 Backend
+1. Local-Server 启动并连接到 Backend
 2. 发送消息给 Agent，验证响应
 3. 查看 Agent Memory，验证文件读取
 4. 断开连接，验证自动重连

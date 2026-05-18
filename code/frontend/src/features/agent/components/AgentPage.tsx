@@ -21,7 +21,7 @@ type ScopeFilter = 'built-in' | 'user' | 'project' | 'admin';
 export default function AgentPage() {
   const { t } = useTranslation('agent');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedScope, setSelectedScope] = useState<ScopeFilter>('built-in');
+  const [selectedScope, setSelectedScope] = useState<ScopeFilter>('user');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
