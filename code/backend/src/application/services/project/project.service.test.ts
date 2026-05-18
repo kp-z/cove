@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectService } from './project.service';
 import { ProjectRepository } from '../../../infrastructure/database/repositories/project.repository';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('ProjectService', () => {
   let projectService: ProjectService;
@@ -9,8 +11,11 @@ describe('ProjectService', () => {
   let mockChannelRepository: any;
   let mockEventBus: any;
   let mockLogger: any;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
+
     mockProjectRepository = {
       findById: vi.fn(),
       create: vi.fn(),
@@ -56,7 +61,9 @@ describe('ProjectService', () => {
 
     mockProjectRepository.save.mockResolvedValue(undefined);
 
-    const project = await projectService.createProject(projectData);
+    const project = await runWithContext(testContext, async () => {
+      return await projectService.createProject(projectData);
+    });
     expect(project.name).toBe('New Project');
     expect(mockProjectRepository.save).toHaveBeenCalled();
   });

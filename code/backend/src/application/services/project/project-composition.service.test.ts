@@ -337,7 +337,9 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(null);
 
       await expect(
-        service.addChannelToProject({ projectId: 'proj-1', channelId: 'nonexistent' })
+        runWithContext(testContext, async () => {
+          return await service.addChannelToProject({ projectId: 'proj-1', channelId: 'nonexistent' });
+        })
       ).rejects.toThrow(ChannelNotFoundError);
     });
   });
@@ -358,9 +360,11 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.removeChannelFromProject({
-        projectId: 'proj-1',
-        channelId: 'channel-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.removeChannelFromProject({
+          projectId: 'proj-1',
+          channelId: 'channel-1',
+        });
       });
 
       expect(result.channelIds).not.toContain('channel-1');
@@ -387,9 +391,11 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.removeChannelFromProject({
-        projectId: 'proj-1',
-        channelId: 'channel-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.removeChannelFromProject({
+          projectId: 'proj-1',
+          channelId: 'channel-1',
+        });
       });
 
       expect(result).toBe(project);
@@ -413,7 +419,9 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.archiveProject('proj-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.archiveProject('proj-1');
+      });
 
       expect(result.status).toBe('archived');
       expect(mockProjectRepository.update).toHaveBeenCalled();
@@ -441,7 +449,9 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.activateProject('proj-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.activateProject('proj-1');
+      });
 
       expect(result.status).toBe('active');
       expect(mockProjectRepository.update).toHaveBeenCalled();
@@ -613,7 +623,9 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
       vi.mocked(mockEventBus.publish).mockRejectedValue(new Error('Event bus error'));
 
-      const result = await service.archiveProject('proj-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.archiveProject('proj-1');
+      });
 
       expect(result.status).toBe('archived');
       expect(mockLogger.error).toHaveBeenCalledWith(

@@ -14,6 +14,8 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotDeletableError } from './task.errors';
 import { MessageNotFoundError } from '../message/message.errors';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('TaskService', () => {
   let taskService: TaskService;
@@ -24,8 +26,11 @@ describe('TaskService', () => {
   let mockLogger: ILogger;
   let taskStatusService: TaskStatusService;
   let taskAssignmentService: TaskAssignmentService;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
+
     mockTaskRepository = {
       save: vi.fn(),
       update: vi.fn(),
@@ -88,14 +93,24 @@ describe('TaskService', () => {
         createdBy: 'user-1',
       };
 
-      const result = await taskService.createTask(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await taskService.createTask(dto);
+      });
 
       expect(result).toBeInstanceOf(TaskEntity);
       expect(result.title).toBe(dto.title);
       expect(result.description).toBe(dto.description);
       expect(result.priority).toBe(dto.priority);
       expect(result.status).toBe('todo');
-      expect(mockTaskRepository.save).toHaveBeenCalledWith(expect.any(TaskEntity));
+      expect(mockTaskRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: dto.title,
+          description: dto.description,
+          priority: dto.priority,
+          status: 'todo',
+        }),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.created',
@@ -115,7 +130,11 @@ describe('TaskService', () => {
         createdBy: 'user-1',
       };
 
-      const result = await taskService.createTask(dto);
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.createTask(dto);
+
+      });
 
       expect(result.dependsOn).toEqual(['task-1', 'task-2']);
     });
@@ -131,7 +150,11 @@ describe('TaskService', () => {
         createdBy: 'user-1',
       };
 
-      const result = await taskService.createTask(dto);
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.createTask(dto);
+
+      });
 
       expect(result.krId).toBe('kr-123');
     });
@@ -153,7 +176,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(mockTask);
 
-      const result = await taskService.getTaskById('task-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTaskById('task-1');
+
+      });
 
       expect(result).toBe(mockTask);
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-1');
@@ -162,7 +189,11 @@ describe('TaskService', () => {
     it('should throw TaskNotFoundError when task not found', async () => {
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(null);
 
-      await expect(taskService.getTaskById('nonexistent')).rejects.toThrow(TaskNotFoundError);
+      await expect(
+        runWithContext(testContext, async () => {
+          return taskService.getTaskById('nonexistent');
+        })
+      ).rejects.toThrow(TaskNotFoundError);
     });
   });
 
@@ -184,7 +215,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findByChannel).mockResolvedValue(mockTasks);
 
-      const result = await taskService.getTasksByChannel('channel-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTasksByChannel('channel-1');
+
+      });
 
       expect(result).toEqual(mockTasks);
       expect(mockTaskRepository.findByChannel).toHaveBeenCalledWith('channel-1');
@@ -209,7 +244,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findByProject).mockResolvedValue(mockTasks);
 
-      const result = await taskService.getTasksByProject('project-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTasksByProject('project-1');
+
+      });
 
       expect(result).toEqual(mockTasks);
     });
@@ -233,7 +272,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findByStatus).mockResolvedValue(mockTasks);
 
-      const result = await taskService.getTasksByStatus('in_progress');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTasksByStatus('in_progress');
+
+      });
 
       expect(result).toEqual(mockTasks);
     });
@@ -257,7 +300,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findByPriority).mockResolvedValue(mockTasks);
 
-      const result = await taskService.getTasksByPriority('P0');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTasksByPriority('P0');
+
+      });
 
       expect(result).toEqual(mockTasks);
     });
@@ -281,7 +328,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findByAssignee).mockResolvedValue(mockTasks);
 
-      const result = await taskService.getTasksByAssignee('agent-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.getTasksByAssignee('agent-1');
+
+      });
 
       expect(result).toEqual(mockTasks);
     });
@@ -310,7 +361,11 @@ describe('TaskService', () => {
         priority: 'P1',
       };
 
-      const result = await taskService.updateTask('task-1', dto);
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.updateTask('task-1', dto);
+
+      });
 
       expect(result.title).toBe('New Title');
       expect(result.description).toBe('New Description');
@@ -326,7 +381,11 @@ describe('TaskService', () => {
     it('should throw TaskNotFoundError when updating nonexistent task', async () => {
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(null);
 
-      await expect(taskService.updateTask('nonexistent', { title: 'New' })).rejects.toThrow(
+      await expect(
+        runWithContext(testContext, async () => {
+          return taskService.updateTask('nonexistent', { title: 'New' });
+        })
+      ).rejects.toThrow(
         TaskNotFoundError
       );
     });
@@ -347,7 +406,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(existingTask);
 
-      const result = await taskService.updateTask('task-1', { title: 'New Title' });
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.updateTask('task-1', { title: 'New Title' });
+
+      });
 
       expect(result.title).toBe('New Title');
       expect(result.description).toBe('Old Description');
@@ -371,7 +434,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(task);
 
-      await taskService.deleteTask('task-1');
+      await runWithContext(testContext, async () => {
+
+        await taskService.deleteTask('task-1');
+
+      });
 
       expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
@@ -396,7 +463,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(task);
 
-      await taskService.deleteTask('task-1');
+      await runWithContext(testContext, async () => {
+
+        await taskService.deleteTask('task-1');
+
+      });
 
       expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1');
     });
@@ -416,7 +487,11 @@ describe('TaskService', () => {
 
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(task);
 
-      await expect(taskService.deleteTask('task-1')).rejects.toThrow(TaskNotDeletableError);
+      await expect(
+        runWithContext(testContext, async () => {
+          return taskService.deleteTask('task-1');
+        })
+      ).rejects.toThrow(TaskNotDeletableError);
     });
   });
 
@@ -438,7 +513,11 @@ describe('TaskService', () => {
       vi.mocked(mockMessageRepository.findById).mockResolvedValue(mockMessage);
       vi.mocked(mockTaskRepository.getNextTaskNumber).mockResolvedValue(42);
 
-      const result = await taskService.convertMessageToTask('msg-1', 'Task from message', 'user-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.convertMessageToTask('msg-1', 'Task from message', 'user-1');
+
+      });
 
       expect(result.title).toBe('Task from message');
       expect(result.sourceMessageId).toBe('msg-1');
@@ -460,7 +539,9 @@ describe('TaskService', () => {
       vi.mocked(mockMessageRepository.findById).mockResolvedValue(null);
 
       await expect(
-        taskService.convertMessageToTask('nonexistent', 'Task', 'user-1')
+        runWithContext(testContext, async () => {
+          return taskService.convertMessageToTask('nonexistent', 'Task', 'user-1');
+        })
       ).rejects.toThrow(MessageNotFoundError);
     });
 
@@ -474,7 +555,9 @@ describe('TaskService', () => {
       );
 
       await expect(
-        serviceWithoutMessageRepo.convertMessageToTask('msg-1', 'Task', 'user-1')
+        runWithContext(testContext, async () => {
+          return serviceWithoutMessageRepo.convertMessageToTask('msg-1', 'Task', 'user-1');
+        })
       ).rejects.toThrow('MessageRepository is required for convertMessageToTask');
     });
   });
@@ -499,7 +582,9 @@ describe('TaskService', () => {
     });
 
     it('should delegate startTask to TaskStatusService', async () => {
-      const result = await taskService.startTask('task-1');
+      const result = await runWithContext(testContext, async () => {
+        return await taskService.startTask('task-1');
+      });
 
       expect(result.status).toBe('in_progress');
       expect(mockTaskRepository.update).toHaveBeenCalled();
@@ -510,13 +595,19 @@ describe('TaskService', () => {
       const inReviewTask = inProgressTask.submitForReview();
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(inReviewTask);
 
-      const result = await taskService.completeTask('task-1');
+      const result = await runWithContext(testContext, async () => {
+
+        return await taskService.completeTask('task-1');
+
+      });
 
       expect(result.status).toBe('done');
     });
 
     it('should delegate cancelTask to TaskStatusService', async () => {
-      const result = await taskService.cancelTask('task-1');
+      const result = await runWithContext(testContext, async () => {
+        return await taskService.cancelTask('task-1');
+      });
 
       expect(result.status).toBe('cancelled');
     });
@@ -535,7 +626,11 @@ describe('TaskService', () => {
         createdBy: 'user-1',
       };
 
-      await expect(taskService.createTask(dto)).resolves.toBeDefined();
+      await expect(
+        runWithContext(testContext, async () => {
+          return taskService.createTask(dto);
+        })
+      ).resolves.toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish event',
         expect.any(Error),

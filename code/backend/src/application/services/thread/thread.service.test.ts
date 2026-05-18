@@ -7,14 +7,19 @@ import {
   IMessageRepository,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('ThreadService', () => {
   let threadService: ThreadService;
   let mockThreadRepository: IThreadRepository;
   let mockMessageRepository: IMessageRepository;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
+
     mockThreadRepository = {
       save: vi.fn(),
       update: vi.fn(),
@@ -55,7 +60,9 @@ describe('ThreadService', () => {
 
       vi.mocked(mockThreadRepository.findById).mockResolvedValue(existingThread);
 
-      const result = await threadService.getOrCreateThread('msg-1');
+      const result = await runWithContext(testContext, async () => {
+        return await threadService.getOrCreateThread('msg-1');
+      });
 
       expect(result).toBe(existingThread);
       expect(mockThreadRepository.save).not.toHaveBeenCalled();
@@ -89,13 +96,21 @@ describe('ThreadService', () => {
       vi.mocked(mockThreadRepository.findById).mockResolvedValue(null);
       vi.mocked(mockMessageRepository.findById).mockResolvedValue(rootMessage);
 
-      const result = await threadService.getOrCreateThread('msg-1');
+      const result = await runWithContext(testContext, async () => {
+        return await threadService.getOrCreateThread('msg-1');
+      });
 
       expect(result).toBeInstanceOf(ThreadEntity);
       expect(result.threadId).toBe('msg-1');
       expect(result.channelId).toBe('channel-1');
       expect(result.participants).toContain('user-1');
-      expect(mockThreadRepository.save).toHaveBeenCalledWith(expect.any(ThreadEntity));
+      expect(mockThreadRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          threadId: 'msg-1',
+          channelId: 'channel-1',
+        }),
+        'test-server-id'
+      );
     });
 
     it('should throw RootMessageNotFoundError when root message not found', async () => {
@@ -146,7 +161,9 @@ describe('ThreadService', () => {
       vi.mocked(mockMessageRepository.findById).mockResolvedValue(rootMessage);
       vi.mocked(mockThreadRepository.findById).mockResolvedValue(thread);
 
-      const result = await threadService.replyInThread('msg-1', 'user-2', 'human', 'Reply content');
+      const result = await runWithContext(testContext, async () => {
+        return await threadService.replyInThread('msg-1', 'user-2', 'human', 'Reply content');
+      });
 
       expect(result).toBeInstanceOf(MessageEntity);
       expect(result.threadId).toBe('msg-1');
@@ -235,7 +252,9 @@ describe('ThreadService', () => {
       vi.mocked(mockMessageRepository.findById).mockResolvedValue(rootMessage);
       vi.mocked(mockThreadRepository.findById).mockResolvedValue(thread);
 
-      await threadService.replyInThread('msg-1', 'user-2', 'human', 'Reply');
+      await runWithContext(testContext, async () => {
+        await threadService.replyInThread('msg-1', 'user-2', 'human', 'Reply');
+      });
 
       expect(mockThreadRepository.update).toHaveBeenCalledWith(
         expect.objectContaining({
