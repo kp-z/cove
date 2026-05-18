@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { ILogger } from '../../application/interfaces/logger.interface';
 
 export interface Context {
+  serverId?: string;
   userId?: string;
   userType?: 'human' | 'agent';
   logger: ILogger;
@@ -19,7 +20,7 @@ export function createContext(opts: CreateContextOptions) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-user-type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-user-type, x-server-id');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     // Handle OPTIONS preflight
@@ -27,6 +28,7 @@ export function createContext(opts: CreateContextOptions) {
       res.writeHead(204);
       res.end();
       return {
+        serverId: undefined,
         userId: undefined,
         userType: 'human',
         logger: opts.logger,
@@ -36,10 +38,12 @@ export function createContext(opts: CreateContextOptions) {
     }
 
     // Extract user info from headers
+    const serverId = req.headers['x-server-id'] as string | undefined;
     const userId = req.headers['x-user-id'] as string | undefined;
     const userType = req.headers['x-user-type'] as 'human' | 'agent' | undefined;
 
     return {
+      serverId,
       userId,
       userType: userType || 'human',
       logger: opts.logger,

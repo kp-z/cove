@@ -22,6 +22,7 @@ import {
   IMessageRepository,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
 
 export class ThreadService {
   constructor(
@@ -30,7 +31,7 @@ export class ThreadService {
     private readonly logger: ILogger
   ) {}
 
-  async getOrCreateThread(rootMessageId: string): Promise<ThreadEntity> {
+  async getOrCreateThread(rootMessageId: string, context: ServerContext): Promise<ThreadEntity> {
     const existing = await this.threadRepository.findById(rootMessageId);
     if (existing) {
       return existing;
@@ -50,7 +51,7 @@ export class ThreadService {
       createdAt: new Date(),
     });
 
-    await this.threadRepository.save(thread);
+    await this.threadRepository.save(thread, context.serverId);
 
     this.logger.info('Thread created', { threadId: rootMessageId, channelId: rootMessage.channelId });
 
@@ -62,6 +63,7 @@ export class ThreadService {
     senderId: string,
     senderType: SenderType,
     content: string,
+    context: ServerContext,
   ): Promise<MessageEntity> {
     const rootMessage = await this.messageRepository.findById(rootMessageId);
     if (!rootMessage) {
@@ -72,7 +74,7 @@ export class ThreadService {
       throw new NestedThreadError(rootMessageId);
     }
 
-    const thread = await this.getOrCreateThread(rootMessageId);
+    const thread = await this.getOrCreateThread(rootMessageId, context);
 
     const messageId = this.generateMessageId();
     const msgShortId = messageId.split('-')[1]?.substring(0, 8) ?? 'unknown';
@@ -107,10 +109,10 @@ export class ThreadService {
       },
     });
 
-    await this.messageRepository.save(message);
+    await this.messageRepository.save(message, context.serverId);
 
     const updatedThread = thread.addReply().addParticipant(senderId);
-    await this.threadRepository.update(updatedThread);
+    await this.threadRepository.update(updatedThread, context.serverId);
 
     this.logger.info('Thread reply sent', { threadId: rootMessageId, messageId });
 

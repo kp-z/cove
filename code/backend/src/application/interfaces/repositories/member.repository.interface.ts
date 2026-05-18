@@ -13,8 +13,8 @@ export interface IMemberRepository {
   findByChannelAndUser(channelId: string, userId: string): Promise<MemberEntity | null>;
   findByRole(channelId: string, role: MemberRole): Promise<MemberEntity[]>;
   findByStatus(channelId: string, status: MemberStatus): Promise<MemberEntity[]>;
-  save(member: MemberEntity): Promise<void>;
-  update(member: MemberEntity): Promise<void>;
+  save(member: MemberEntity, serverId: string): Promise<void>;
+  update(member: MemberEntity, serverId: string): Promise<void>;
   delete(memberId: string): Promise<void>;
   exists(memberId: string): Promise<boolean>;
   existsByChannelAndUser(channelId: string, userId: string): Promise<boolean>;

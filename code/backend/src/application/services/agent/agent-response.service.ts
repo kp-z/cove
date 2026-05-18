@@ -15,6 +15,7 @@ import type { ChatMessage } from '../../../infrastructure/adapters/llm/index';
 import { AgentResponseGenerationError } from './agent.errors';
 import { AdapterService } from '../adapter/adapter.service';
 import { LlmAdapterFactory } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
+import { ServerContext } from '../../context/server-context';
 
 export class AgentResponseService {
   constructor(
@@ -27,10 +28,11 @@ export class AgentResponseService {
     private readonly adapterService?: AdapterService,
   ) {}
 
-  async handleIncomingMessage(message: MessageEntity): Promise<void> {
+  async handleIncomingMessage(message: MessageEntity, context: ServerContext): Promise<void> {
     this.logger.info('Handling incoming message', {
       messageId: message.messageId,
       channelId: message.channelId,
+      serverId: context.serverId,
     });
 
     const channel = await this.channelRepository.findById(message.channelId);
@@ -47,7 +49,7 @@ export class AgentResponseService {
         const shouldRespond = await this.shouldAgentRespond(agent, message, channel);
         if (!shouldRespond) continue;
 
-        await this.generateAndSendResponse(agent, message, channel);
+        await this.generateAndSendResponse(agent, message, channel, context);
       } catch (error) {
         this.logger.error('Error handling message for agent', error as Error, {
           agentId, messageId: message.messageId,
@@ -152,7 +154,8 @@ export class AgentResponseService {
   private async generateAndSendResponse(
     agent: AgentEntity,
     originalMessage: MessageEntity,
-    channel: ChannelEntity
+    channel: ChannelEntity,
+    context: ServerContext
   ): Promise<void> {
     const responseContent = await this.generateAgentResponse(agent, originalMessage, channel);
 
@@ -181,7 +184,7 @@ export class AgentResponseService {
       meta: { client: 'agent-runtime', isPinned: false, isImportant: false },
     });
 
-    await this.messageRepository.save(responseMessage);
+    await this.messageRepository.save(responseMessage, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

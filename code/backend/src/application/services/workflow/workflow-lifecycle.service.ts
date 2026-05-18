@@ -10,6 +10,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
+import { ServerContext } from '../../context/server-context';
 
 export class WorkflowLifecycleService {
   constructor(
@@ -18,7 +19,7 @@ export class WorkflowLifecycleService {
     private readonly logger: ILogger
   ) {}
 
-  async activateWorkflow(workflowId: string): Promise<WorkflowEntity> {
+  async activateWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Activating workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -28,7 +29,7 @@ export class WorkflowLifecycleService {
 
     const activatedWorkflow = workflow.activate();
 
-    await this.workflowRepository.update(activatedWorkflow);
+    await this.workflowRepository.update(activatedWorkflow, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -44,7 +45,7 @@ export class WorkflowLifecycleService {
     return activatedWorkflow;
   }
 
-  async pauseWorkflow(workflowId: string): Promise<WorkflowEntity> {
+  async pauseWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Pausing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -54,7 +55,7 @@ export class WorkflowLifecycleService {
 
     const pausedWorkflow = workflow.pause();
 
-    await this.workflowRepository.update(pausedWorkflow);
+    await this.workflowRepository.update(pausedWorkflow, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -70,7 +71,7 @@ export class WorkflowLifecycleService {
     return pausedWorkflow;
   }
 
-  async resumeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+  async resumeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Resuming workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -80,7 +81,7 @@ export class WorkflowLifecycleService {
 
     const resumedWorkflow = workflow.resume();
 
-    await this.workflowRepository.update(resumedWorkflow);
+    await this.workflowRepository.update(resumedWorkflow, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -96,7 +97,7 @@ export class WorkflowLifecycleService {
     return resumedWorkflow;
   }
 
-  async completeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+  async completeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Completing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -106,7 +107,7 @@ export class WorkflowLifecycleService {
 
     const completedWorkflow = workflow.complete();
 
-    await this.workflowRepository.update(completedWorkflow);
+    await this.workflowRepository.update(completedWorkflow, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -122,7 +123,7 @@ export class WorkflowLifecycleService {
     return completedWorkflow;
   }
 
-  async archiveWorkflow(workflowId: string): Promise<WorkflowEntity> {
+  async archiveWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Archiving workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -132,7 +133,7 @@ export class WorkflowLifecycleService {
 
     const archivedWorkflow = workflow.archive();
 
-    await this.workflowRepository.update(archivedWorkflow);
+    await this.workflowRepository.update(archivedWorkflow, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

@@ -265,12 +265,12 @@ export class HybridMessageRepository
     return await this.loadEntities(records as MessageDbRecord[]);
   }
 
-  async save(message: MessageEntity): Promise<void> {
-    await this.saveEntity(message);
+  async save(message: MessageEntity, serverId: string): Promise<void> {
+    await this.saveEntity(message, serverId);
   }
 
-  async update(message: MessageEntity): Promise<void> {
-    await this.updateEntity(message);
+  async update(message: MessageEntity, serverId: string): Promise<void> {
+    await this.updateEntity(message, serverId);
   }
 
   async delete(messageId: string): Promise<void> {

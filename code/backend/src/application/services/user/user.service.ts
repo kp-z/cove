@@ -15,6 +15,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
 
 export interface CreateUserDTO {
   readonly username: string;
@@ -38,8 +39,8 @@ export class UserService {
     private readonly logger: ILogger
   ) {}
 
-  async createUser(dto: CreateUserDTO): Promise<UserEntity> {
-    this.logger.info('Creating new user', { username: dto.username });
+  async createUser(dto: CreateUserDTO, context: ServerContext): Promise<UserEntity> {
+    this.logger.info('Creating new user', { username: dto.username, serverId: context.serverId });
 
     if (await this.userRepository.usernameExists(dto.username)) {
       throw new UsernameAlreadyExistsError(dto.username);
@@ -62,7 +63,7 @@ export class UserService {
       createdAt: new Date(),
     });
 
-    await this.userRepository.save(user);
+    await this.userRepository.save(user, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -113,8 +114,8 @@ export class UserService {
     return await this.userRepository.findAll();
   }
 
-  async updateUser(userId: string, dto: UpdateUserDTO): Promise<UserEntity> {
-    this.logger.info('Updating user', { userId });
+  async updateUser(userId: string, dto: UpdateUserDTO, context: ServerContext): Promise<UserEntity> {
+    this.logger.info('Updating user', { userId, serverId: context.serverId });
 
     let user = await this.getUserById(userId);
 
@@ -136,7 +137,7 @@ export class UserService {
       user = user.updatePreference(dto.preference);
     }
 
-    await this.userRepository.update(user);
+    await this.userRepository.update(user, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -151,13 +152,13 @@ export class UserService {
     return user;
   }
 
-  async updateUserRole(userId: string, role: UserRole): Promise<UserEntity> {
-    this.logger.info('Updating user role', { userId, role });
+  async updateUserRole(userId: string, role: UserRole, context: ServerContext): Promise<UserEntity> {
+    this.logger.info('Updating user role', { userId, role, serverId: context.serverId });
 
     let user = await this.getUserById(userId);
     user = user.updateRole(role);
 
-    await this.userRepository.update(user);
+    await this.userRepository.update(user, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

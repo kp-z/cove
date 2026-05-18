@@ -1,6 +1,7 @@
 import { WorkflowEntity, WorkflowTrigger } from '../../../domain/models/workflow/workflow.entity';
 import { IWorkflowRepository, IEventBus, ILogger } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
+import { ServerContext } from '../../context/server-context';
 
 export interface AddTriggerDTO {
   readonly workflowId: string;
@@ -30,44 +31,44 @@ export class WorkflowTriggerService {
     private readonly logger: ILogger
   ) {}
 
-  async addTrigger(dto: AddTriggerDTO): Promise<WorkflowEntity> {
+  async addTrigger(dto: AddTriggerDTO, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Adding trigger to workflow', { workflowId: dto.workflowId });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.addTrigger(dto.trigger);
-    await this.workflowRepository.update(updated);
+    await this.workflowRepository.update(updated, context.serverId);
     await this.publishEvent('workflow.trigger_added', dto.workflowId, {
       workflowId: dto.workflowId, trigger: dto.trigger,
     });
     return updated;
   }
 
-  async updateTrigger(dto: UpdateTriggerDTO): Promise<WorkflowEntity> {
+  async updateTrigger(dto: UpdateTriggerDTO, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Updating trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.updateTrigger(dto.triggerIndex, dto.trigger);
-    await this.workflowRepository.update(updated);
+    await this.workflowRepository.update(updated, context.serverId);
     await this.publishEvent('workflow.trigger_updated', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex, trigger: dto.trigger,
     });
     return updated;
   }
 
-  async enableTrigger(dto: EnableTriggerDTO): Promise<WorkflowEntity> {
+  async enableTrigger(dto: EnableTriggerDTO, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Enabling trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.enableTrigger(dto.triggerIndex);
-    await this.workflowRepository.update(updated);
+    await this.workflowRepository.update(updated, context.serverId);
     await this.publishEvent('workflow.trigger_enabled', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex,
     });
     return updated;
   }
 
-  async disableTrigger(dto: DisableTriggerDTO): Promise<WorkflowEntity> {
+  async disableTrigger(dto: DisableTriggerDTO, context: ServerContext): Promise<WorkflowEntity> {
     this.logger.info('Disabling trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.disableTrigger(dto.triggerIndex);
-    await this.workflowRepository.update(updated);
+    await this.workflowRepository.update(updated, context.serverId);
     await this.publishEvent('workflow.trigger_disabled', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex,
     });

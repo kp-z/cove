@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';
+import { ServerContext } from '../../../application/context/server-context';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -67,9 +68,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 发送消息
     send: publicProcedure
       .input(sendMessageSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const message = await messageService.sendMessage(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const message = await messageService.sendMessage(input, context);
           return message.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -83,12 +85,14 @@ export const messageRouter = (messageService: MessageService) =>
         limit: z.number().min(1).max(100).optional().default(20),
         cursor: z.string().optional(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const result = await messageService.getMessagesByChannelCursor(
             input.channelId,
             input.cursor || null,
-            input.limit
+            input.limit,
+            context
           );
 
           return {
@@ -103,9 +107,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 获取单条消息
     getById: publicProcedure
       .input(z.object({ messageId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const message = await messageService.getMessageById(input.messageId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const message = await messageService.getMessageById(input.messageId, context);
           return message.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -115,9 +120,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 更新消息
     update: publicProcedure
       .input(updateMessageSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const message = await messageService.updateMessage(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const message = await messageService.updateMessage(input, context);
           return message.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -127,9 +133,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 删除消息
     delete: publicProcedure
       .input(deleteMessageSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await messageService.deleteMessage(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          await messageService.deleteMessage(input, context);
           return { messageId: input.messageId, deleted: true };
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -139,9 +146,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 添加反应
     addReaction: publicProcedure
       .input(reactionSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const message = await messageService.addReaction(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const message = await messageService.addReaction(input, context);
           return message.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -151,9 +159,10 @@ export const messageRouter = (messageService: MessageService) =>
     // 移除反应
     removeReaction: publicProcedure
       .input(reactionSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const message = await messageService.removeReaction(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const message = await messageService.removeReaction(input, context);
           return message.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -166,11 +175,13 @@ export const messageRouter = (messageService: MessageService) =>
         messageId: z.string(),
         limit: z.number().min(1).max(100).optional(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const messages = await messageService.getMessagesByThread(
             input.messageId,
-            input.limit
+            input.limit,
+            context
           );
 
           return {
@@ -185,10 +196,11 @@ export const messageRouter = (messageService: MessageService) =>
     // 回复线程
     replyToThread: publicProcedure
       .input(replyToThreadSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           // 获取 thread root 消息以获取 channelId
-          const threadRoot = await messageService.getMessageById(input.messageId);
+          const threadRoot = await messageService.getMessageById(input.messageId, context);
 
           const message = await messageService.sendMessage({
             senderId: input.senderId,
@@ -198,7 +210,7 @@ export const messageRouter = (messageService: MessageService) =>
             threadId: input.messageId,
             attachments: input.attachments,
             mentions: input.mentions,
-          });
+          }, context);
 
           return message.toJSON();
         } catch (error: any) {

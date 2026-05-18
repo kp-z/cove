@@ -199,12 +199,12 @@ export class HybridAgentRepository
     return this.loadEntities(dbRecords);
   }
 
-  async save(agent: AgentEntity): Promise<void> {
-    await this.saveEntity(agent);
+  async save(agent: AgentEntity, serverId: string): Promise<void> {
+    await this.saveEntity(agent, serverId);
   }
 
-  async update(agent: AgentEntity): Promise<void> {
-    await this.updateEntity(agent);
+  async update(agent: AgentEntity, serverId: string): Promise<void> {
+    await this.updateEntity(agent, serverId);
   }
 
   async delete(agentId: string): Promise<void> {

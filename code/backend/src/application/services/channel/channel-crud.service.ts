@@ -15,6 +15,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { ChannelNotFoundError, ChannelNotArchivedError } from './channel.errors';
+import { ServerContext } from '../../context/server-context';
 
 export interface CreateChannelDTO {
   readonly name: string;
@@ -37,8 +38,8 @@ export class ChannelCrudService {
     private readonly logger: ILogger
   ) {}
 
-  async createChannel(dto: CreateChannelDTO): Promise<ChannelEntity> {
-    this.logger.info('Creating new channel', { name: dto.name, type: dto.type });
+  async createChannel(dto: CreateChannelDTO, context: ServerContext): Promise<ChannelEntity> {
+    this.logger.info('Creating new channel', { name: dto.name, type: dto.type, serverId: context.serverId });
 
     const channelId = this.generateChannelId();
     const now = new Date();
@@ -84,7 +85,7 @@ export class ChannelCrudService {
       },
     });
 
-    await this.channelRepository.save(channel);
+    await this.channelRepository.save(channel, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -106,8 +107,8 @@ export class ChannelCrudService {
     return channel;
   }
 
-  async updateChannel(channelId: string, dto: UpdateChannelDTO): Promise<ChannelEntity> {
-    this.logger.info('Updating channel', { channelId });
+  async updateChannel(channelId: string, dto: UpdateChannelDTO, context: ServerContext): Promise<ChannelEntity> {
+    this.logger.info('Updating channel', { channelId, serverId: context.serverId });
 
     const channel = await this.getChannelById(channelId);
 
@@ -164,7 +165,7 @@ export class ChannelCrudService {
 
     const updatedChannel = ChannelEntity.create(updatedProps);
 
-    await this.channelRepository.update(updatedChannel);
+    await this.channelRepository.update(updatedChannel, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

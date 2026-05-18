@@ -25,6 +25,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
 
 export interface JoinChannelDTO {
   readonly channelId: string;
@@ -55,8 +56,8 @@ export class MemberService {
     private readonly logger: ILogger
   ) {}
 
-  async joinChannel(dto: JoinChannelDTO): Promise<MemberEntity> {
-    this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId });
+  async joinChannel(dto: JoinChannelDTO, context: ServerContext): Promise<MemberEntity> {
+    this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, serverId: context.serverId });
 
     const channelExists = await this.channelRepository.exists(dto.channelId);
     if (!channelExists) {
@@ -102,7 +103,7 @@ export class MemberService {
       },
     });
 
-    await this.memberRepository.save(member);
+    await this.memberRepository.save(member, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -122,13 +123,13 @@ export class MemberService {
     return member;
   }
 
-  async leaveChannel(channelId: string, userId: string): Promise<MemberEntity> {
-    this.logger.info('User leaving channel', { channelId, userId });
+  async leaveChannel(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+    this.logger.info('User leaving channel', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const updatedMember = member.leave();
 
-    await this.memberRepository.update(updatedMember);
+    await this.memberRepository.update(updatedMember, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -163,13 +164,13 @@ export class MemberService {
     return await this.memberRepository.findByUser(userId);
   }
 
-  async updateMemberRole(dto: UpdateMemberRoleDTO): Promise<MemberEntity> {
-    this.logger.info('Updating member role', { memberId: dto.memberId, role: dto.role });
+  async updateMemberRole(dto: UpdateMemberRoleDTO, context: ServerContext): Promise<MemberEntity> {
+    this.logger.info('Updating member role', { memberId: dto.memberId, role: dto.role, serverId: context.serverId });
 
     let member = await this.getMemberById(dto.memberId);
     member = member.updateRole(dto.role);
 
-    await this.memberRepository.update(member);
+    await this.memberRepository.update(member, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -189,13 +190,13 @@ export class MemberService {
     return member;
   }
 
-  async banMember(channelId: string, userId: string): Promise<MemberEntity> {
-    this.logger.info('Banning member', { channelId, userId });
+  async banMember(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+    this.logger.info('Banning member', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const bannedMember = member.ban();
 
-    await this.memberRepository.update(bannedMember);
+    await this.memberRepository.update(bannedMember, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -214,13 +215,13 @@ export class MemberService {
     return bannedMember;
   }
 
-  async unbanMember(channelId: string, userId: string): Promise<MemberEntity> {
-    this.logger.info('Unbanning member', { channelId, userId });
+  async unbanMember(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+    this.logger.info('Unbanning member', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const unbannedMember = member.unban();
 
-    await this.memberRepository.update(unbannedMember);
+    await this.memberRepository.update(unbannedMember, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -239,7 +240,7 @@ export class MemberService {
     return unbannedMember;
   }
 
-  async updateNotificationSettings(dto: UpdateNotificationDTO): Promise<MemberEntity> {
+  async updateNotificationSettings(dto: UpdateNotificationDTO, context: ServerContext): Promise<MemberEntity> {
     let member = await this.getMemberById(dto.memberId);
 
     if (dto.muteUntil) {
@@ -251,15 +252,15 @@ export class MemberService {
       });
     }
 
-    await this.memberRepository.update(member);
+    await this.memberRepository.update(member, context.serverId);
     return member;
   }
 
-  async recordActivity(memberId: string): Promise<MemberEntity> {
+  async recordActivity(memberId: string, context: ServerContext): Promise<MemberEntity> {
     let member = await this.getMemberById(memberId);
     member = member.updateLastActive();
 
-    await this.memberRepository.update(member);
+    await this.memberRepository.update(member, context.serverId);
     return member;
   }
 

@@ -22,6 +22,7 @@ import {
   UnauthorizedMessageEditError,
   SendMessageDeniedError,
 } from './message.errors';
+import { ServerContext } from '../../context/server-context';
 
 export interface SendMessageDTO {
   readonly channelId: string;
@@ -52,8 +53,8 @@ export class MessageCrudService {
     private readonly logger: ILogger
   ) {}
 
-  async sendMessage(dto: SendMessageDTO): Promise<MessageEntity> {
-    this.logger.info('Sending message', { channelId: dto.channelId, senderId: dto.senderId });
+  async sendMessage(dto: SendMessageDTO, context: ServerContext): Promise<MessageEntity> {
+    this.logger.info('Sending message', { channelId: dto.channelId, senderId: dto.senderId, serverId: context.serverId });
 
     const result = await this.channelQueryService.canSendMessage(dto.channelId, dto.senderId);
     if (!result.allowed) {
@@ -100,7 +101,7 @@ export class MessageCrudService {
       },
     });
 
-    await this.messageRepository.save(message);
+    await this.messageRepository.save(message, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -123,8 +124,8 @@ export class MessageCrudService {
     return message;
   }
 
-  async updateMessage(dto: UpdateMessageDTO): Promise<MessageEntity> {
-    this.logger.info('Updating message', { messageId: dto.messageId });
+  async updateMessage(dto: UpdateMessageDTO, context: ServerContext): Promise<MessageEntity> {
+    this.logger.info('Updating message', { messageId: dto.messageId, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);
 
@@ -134,7 +135,7 @@ export class MessageCrudService {
 
     const updatedMessage = message.updateContent(dto.content, dto.editorId);
 
-    await this.messageRepository.update(updatedMessage);
+    await this.messageRepository.update(updatedMessage, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -153,8 +154,8 @@ export class MessageCrudService {
     return updatedMessage;
   }
 
-  async deleteMessage(dto: DeleteMessageDTO): Promise<MessageEntity> {
-    this.logger.info('Deleting message', { messageId: dto.messageId });
+  async deleteMessage(dto: DeleteMessageDTO, context: ServerContext): Promise<MessageEntity> {
+    this.logger.info('Deleting message', { messageId: dto.messageId, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);
 
@@ -164,7 +165,7 @@ export class MessageCrudService {
 
     const deletedMessage = message.markAsDeleted();
 
-    await this.messageRepository.update(deletedMessage);
+    await this.messageRepository.update(deletedMessage, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

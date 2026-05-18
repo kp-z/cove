@@ -12,6 +12,7 @@ import {
 import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
 import { ChannelNotFoundError } from '../channel/channel.errors';
+import { ServerContext } from '../../context/server-context';
 
 export interface AddAgentToProjectDTO {
   readonly projectId: string;
@@ -42,7 +43,7 @@ export class ProjectCompositionService {
     private readonly logger: ILogger
   ) {}
 
-  async addAgentToProject(dto: AddAgentToProjectDTO): Promise<ProjectEntity> {
+  async addAgentToProject(dto: AddAgentToProjectDTO, context: ServerContext): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
@@ -67,7 +68,7 @@ export class ProjectCompositionService {
     const updatedProject = project.addAgent(dto.agentId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject);
+    await this.projectRepository.update(updatedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({
@@ -90,7 +91,7 @@ export class ProjectCompositionService {
   /**
    * 从 Project 移除 Agent
    */
-  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO): Promise<ProjectEntity> {
+  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO, context: ServerContext): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
@@ -109,7 +110,7 @@ export class ProjectCompositionService {
     const updatedProject = project.removeAgent(dto.agentId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject);
+    await this.projectRepository.update(updatedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({
@@ -132,7 +133,7 @@ export class ProjectCompositionService {
   /**
    * 添加 Channel 到 Project
    */
-  async addChannelToProject(dto: AddChannelToProjectDTO): Promise<ProjectEntity> {
+  async addChannelToProject(dto: AddChannelToProjectDTO, context: ServerContext): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
@@ -157,7 +158,7 @@ export class ProjectCompositionService {
     const updatedProject = project.addChannel(dto.channelId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject);
+    await this.projectRepository.update(updatedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({
@@ -180,7 +181,7 @@ export class ProjectCompositionService {
   /**
    * 从 Project 移除 Channel
    */
-  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO): Promise<ProjectEntity> {
+  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO, context: ServerContext): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
@@ -199,7 +200,7 @@ export class ProjectCompositionService {
     const updatedProject = project.removeChannel(dto.channelId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject);
+    await this.projectRepository.update(updatedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({
@@ -222,7 +223,7 @@ export class ProjectCompositionService {
   /**
    * 归档 Project
    */
-  async archiveProject(projectId: string): Promise<ProjectEntity> {
+  async archiveProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
     this.logger.info('Archiving project', { projectId });
 
     // 获取 Project
@@ -235,7 +236,7 @@ export class ProjectCompositionService {
     const archivedProject = project.archive();
 
     // 保存更新
-    await this.projectRepository.update(archivedProject);
+    await this.projectRepository.update(archivedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({
@@ -255,7 +256,7 @@ export class ProjectCompositionService {
   /**
    * 激活 Project
    */
-  async activateProject(projectId: string): Promise<ProjectEntity> {
+  async activateProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
     this.logger.info('Activating project', { projectId });
 
     // 获取 Project
@@ -268,7 +269,7 @@ export class ProjectCompositionService {
     const activatedProject = project.activate();
 
     // 保存更新
-    await this.projectRepository.update(activatedProject);
+    await this.projectRepository.update(activatedProject, context.serverId);
 
     // 发布事件
     await this.publishEvent({

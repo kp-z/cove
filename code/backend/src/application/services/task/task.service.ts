@@ -12,6 +12,7 @@ import { TaskAssignmentService } from './task-assignment.service';
 import type { AssignTaskDTO, ClaimTaskDTO, AddDependencyDTO, RemoveDependencyDTO } from './task-assignment.service';
 import { TaskNotFoundError, TaskNotDeletableError } from './task.errors';
 import { MessageNotFoundError } from '../message/message.errors';
+import { ServerContext } from '../../context/server-context';
 
 export { TaskNotFoundError } from './task.errors';
 
@@ -45,7 +46,7 @@ export class TaskService {
     private readonly messageRepository?: IMessageRepository
   ) {}
 
-  async createTask(dto: CreateTaskDTO): Promise<TaskEntity> {
+  async createTask(dto: CreateTaskDTO, context: ServerContext): Promise<TaskEntity> {
     this.logger.info('Creating new task', { title: dto.title });
 
     const taskId = this.generateTaskId();
@@ -66,7 +67,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task);
+    await this.taskRepository.save(task, context.serverId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',
@@ -106,7 +107,7 @@ export class TaskService {
     return this.taskRepository.findByAssignee(assigneeId);
   }
 
-  async updateTask(taskId: string, dto: UpdateTaskDTO): Promise<TaskEntity> {
+  async updateTask(taskId: string, dto: UpdateTaskDTO, context: ServerContext): Promise<TaskEntity> {
     this.logger.info('Updating task', { taskId });
     const task = await this.getTaskById(taskId);
 
@@ -118,7 +119,7 @@ export class TaskService {
       priority: dto.priority ?? json.priority,
     });
 
-    await this.taskRepository.update(updated);
+    await this.taskRepository.update(updated, context.serverId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.updated',
@@ -150,7 +151,7 @@ export class TaskService {
     });
   }
 
-  async convertMessageToTask(messageId: string, title: string, createdBy: string): Promise<TaskEntity> {
+  async convertMessageToTask(messageId: string, title: string, createdBy: string, context: ServerContext): Promise<TaskEntity> {
     this.logger.info('Converting message to task', { messageId, title });
 
     if (!this.messageRepository) {
@@ -178,7 +179,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task);
+    await this.taskRepository.save(task, context.serverId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',
@@ -192,21 +193,21 @@ export class TaskService {
   }
 
   // --- Delegation to TaskStatusService ---
-  async startTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.startTask(taskId); }
-  async submitForReview(taskId: string): Promise<TaskEntity> { return this.taskStatusService.submitForReview(taskId); }
-  async completeTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.completeTask(taskId); }
-  async blockTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.blockTask(taskId); }
-  async cancelTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.cancelTask(taskId); }
-  async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string): Promise<TaskEntity> {
-    return this.taskStatusService.updateTaskStatus(taskId, status, actorId);
+  async startTask(taskId: string, context: ServerContext): Promise<TaskEntity> { return this.taskStatusService.startTask(taskId, context); }
+  async submitForReview(taskId: string, context: ServerContext): Promise<TaskEntity> { return this.taskStatusService.submitForReview(taskId, context); }
+  async completeTask(taskId: string, context: ServerContext): Promise<TaskEntity> { return this.taskStatusService.completeTask(taskId, context); }
+  async blockTask(taskId: string, context: ServerContext): Promise<TaskEntity> { return this.taskStatusService.blockTask(taskId, context); }
+  async cancelTask(taskId: string, context: ServerContext): Promise<TaskEntity> { return this.taskStatusService.cancelTask(taskId, context); }
+  async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string, context: ServerContext): Promise<TaskEntity> {
+    return this.taskStatusService.updateTaskStatus(taskId, status, actorId, context);
   }
 
   // --- Delegation to TaskAssignmentService ---
-  async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> { return this.taskAssignmentService.assignTask(dto); }
-  async claimTask(dto: ClaimTaskDTO): Promise<TaskEntity> { return this.taskAssignmentService.claimTask(dto); }
-  async unclaimTask(taskId: string, userId: string): Promise<TaskEntity> { return this.taskAssignmentService.unclaimTask(taskId, userId); }
-  async addDependency(dto: AddDependencyDTO): Promise<TaskEntity> { return this.taskAssignmentService.addDependency(dto); }
-  async removeDependency(dto: RemoveDependencyDTO): Promise<TaskEntity> { return this.taskAssignmentService.removeDependency(dto); }
+  async assignTask(dto: AssignTaskDTO, context: ServerContext): Promise<TaskEntity> { return this.taskAssignmentService.assignTask(dto, context); }
+  async claimTask(dto: ClaimTaskDTO, context: ServerContext): Promise<TaskEntity> { return this.taskAssignmentService.claimTask(dto, context); }
+  async unclaimTask(taskId: string, userId: string, context: ServerContext): Promise<TaskEntity> { return this.taskAssignmentService.unclaimTask(taskId, userId, context); }
+  async addDependency(dto: AddDependencyDTO, context: ServerContext): Promise<TaskEntity> { return this.taskAssignmentService.addDependency(dto, context); }
+  async removeDependency(dto: RemoveDependencyDTO, context: ServerContext): Promise<TaskEntity> { return this.taskAssignmentService.removeDependency(dto, context); }
 
   // --- Private helpers ---
   private generateTaskId(): string {

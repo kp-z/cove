@@ -15,6 +15,7 @@ import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { WorkflowService } from '../../../application/services/workflow/workflow.service';
+import { ServerContext } from '../../../application/context/server-context';
 
 // Zod Schemas
 const workflowStepSchema = z.object({
@@ -59,9 +60,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
     // 创建工作流
     create: publicProcedure
       .input(createWorkflowSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const workflow = await workflowService.createWorkflow(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const workflow = await workflowService.createWorkflow(input, context);
           return workflow.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -74,14 +76,15 @@ export const workflowRouter = (workflowService: WorkflowService) =>
         projectId: z.string().optional(),
         status: z.enum(['draft', 'active', 'paused', 'completed']).optional(),
       }).optional())
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           let workflows: any[] = [];
 
           if (input?.status) {
-            workflows = await workflowService.getWorkflowsByStatus(input.status);
+            workflows = await workflowService.getWorkflowsByStatus(input.status, context);
           } else if (input?.projectId) {
-            workflows = await workflowService.getWorkflowsByProject(input.projectId);
+            workflows = await workflowService.getWorkflowsByProject(input.projectId, context);
           } else {
             workflows = [];
           }
@@ -98,9 +101,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
     // 获取单个工作流
     getById: publicProcedure
       .input(z.object({ workflowId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const workflow = await workflowService.getWorkflowById(input.workflowId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const workflow = await workflowService.getWorkflowById(input.workflowId, context);
           return workflow.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -113,9 +117,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
         workflowId: z.string(),
         data: updateWorkflowSchema,
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const workflow = await workflowService.updateWorkflow(input.workflowId, input.data);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const workflow = await workflowService.updateWorkflow(input.workflowId, input.data, context);
           return workflow.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -136,9 +141,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
     // 删除工作流
     delete: publicProcedure
       .input(z.object({ workflowId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await workflowService.deleteWorkflow(input.workflowId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          await workflowService.deleteWorkflow(input.workflowId, context);
           return { workflowId: input.workflowId, deleted: true };
         } catch (error: any) {
           throw mapErrorToTRPC(error);

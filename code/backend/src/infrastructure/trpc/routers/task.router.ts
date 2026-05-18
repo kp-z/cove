@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { TaskService } from '../../../application/services/task/task.service';
 import { mapErrorToTRPC } from '../../../common/errors';
+import { ServerContext } from '../../../application/context/server-context';
 
 // Zod Schemas
 const createTaskSchema = z.object({
@@ -60,9 +61,10 @@ export const taskRouter = (taskService: TaskService) =>
     // 创建任务
     create: publicProcedure
       .input(createTaskSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const task = await taskService.createTask(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const task = await taskService.createTask(input, context);
           return task.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -77,18 +79,19 @@ export const taskRouter = (taskService: TaskService) =>
         status: z.enum(['todo', 'in_progress', 'blocked', 'in_review', 'done', 'cancelled']).optional(),
         priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
       }).optional())
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           let tasks: any[] = [];
 
           if (input?.channelId) {
-            tasks = await taskService.getTasksByChannel(input.channelId);
+            tasks = await taskService.getTasksByChannel(input.channelId, context);
           } else if (input?.status) {
-            tasks = await taskService.getTasksByStatus(input.status);
+            tasks = await taskService.getTasksByStatus(input.status, context);
           } else if (input?.priority) {
-            tasks = await taskService.getTasksByPriority(input.priority);
+            tasks = await taskService.getTasksByPriority(input.priority, context);
           } else if (input?.projectId) {
-            tasks = await taskService.getTasksByProject(input.projectId);
+            tasks = await taskService.getTasksByProject(input.projectId, context);
           } else {
             // Default: get all tasks (you may want to add a getAllTasks method)
             tasks = [];
@@ -106,9 +109,10 @@ export const taskRouter = (taskService: TaskService) =>
     // 获取单个任务
     getById: publicProcedure
       .input(z.object({ taskId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const task = await taskService.getTaskById(input.taskId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const task = await taskService.getTaskById(input.taskId, context);
           return task.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -121,9 +125,10 @@ export const taskRouter = (taskService: TaskService) =>
         taskId: z.string(),
         data: updateTaskSchema,
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const task = await taskService.updateTask(input.taskId, input.data);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const task = await taskService.updateTask(input.taskId, input.data, context);
           return task.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -133,9 +138,10 @@ export const taskRouter = (taskService: TaskService) =>
     // 删除任务
     delete: publicProcedure
       .input(z.object({ taskId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await taskService.deleteTask(input.taskId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          await taskService.deleteTask(input.taskId, context);
           return { taskId: input.taskId, deleted: true };
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -145,12 +151,14 @@ export const taskRouter = (taskService: TaskService) =>
     // 消息转任务
     convertMessageToTask: publicProcedure
       .input(convertMessageToTaskSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const task = await taskService.convertMessageToTask(
             input.messageId,
             input.title,
-            input.createdBy
+            input.createdBy,
+            context
           );
           return task.toJSON();
         } catch (error: any) {
@@ -161,13 +169,14 @@ export const taskRouter = (taskService: TaskService) =>
     // 认领任务
     claim: publicProcedure
       .input(claimTaskSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const task = await taskService.claimTask({
             taskId: input.taskId,
             assigneeId: input.assigneeId,
             assigneeType: input.assigneeType,
-          });
+          }, context);
           return task.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -180,9 +189,10 @@ export const taskRouter = (taskService: TaskService) =>
         taskId: z.string(),
         userId: z.string(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const task = await taskService.unclaimTask(input.taskId, input.userId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const task = await taskService.unclaimTask(input.taskId, input.userId, context);
           return task.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -192,12 +202,14 @@ export const taskRouter = (taskService: TaskService) =>
     // 更新任务状态
     updateStatus: publicProcedure
       .input(updateStatusSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const task = await taskService.updateTaskStatus(
             input.taskId,
             input.status,
-            input.actorId
+            input.actorId,
+            context
           );
           return task.toJSON();
         } catch (error: any) {

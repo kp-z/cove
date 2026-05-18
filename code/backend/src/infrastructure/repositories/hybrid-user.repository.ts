@@ -107,12 +107,12 @@ export class HybridUserRepository
     return this.loadEntities(records as unknown as UserDbRecord[]);
   }
 
-  async save(user: UserEntity): Promise<void> {
-    await this.saveEntity(user);
+  async save(user: UserEntity, serverId: string): Promise<void> {
+    await this.saveEntity(user, serverId);
   }
 
-  async update(user: UserEntity): Promise<void> {
-    await this.updateEntity(user);
+  async update(user: UserEntity, serverId: string): Promise<void> {
+    await this.updateEntity(user, serverId);
   }
 
   async delete(userId: string): Promise<void> {

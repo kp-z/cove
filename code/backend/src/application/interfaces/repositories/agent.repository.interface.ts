@@ -43,14 +43,16 @@ export interface IAgentRepository {
   /**
    * 保存新 Agent
    * @param agent - Agent 实体
+   * @param serverId - Server ID（用于多 Server 数据隔离）
    */
-  save(agent: AgentEntity): Promise<void>;
+  save(agent: AgentEntity, serverId: string): Promise<void>;
 
   /**
    * 更新 Agent
    * @param agent - Agent 实体
+   * @param serverId - Server ID（用于多 Server 数据隔离）
    */
-  update(agent: AgentEntity): Promise<void>;
+  update(agent: AgentEntity, serverId: string): Promise<void>;
 
   /**
    * 删除 Agent

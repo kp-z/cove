@@ -37,14 +37,16 @@ export interface IProjectRepository {
   /**
    * 保存新 Project
    * @param project - Project 实体
+   * @param serverId - Server ID（用于多 Server 数据隔离）
    */
-  save(project: ProjectEntity): Promise<void>;
+  save(project: ProjectEntity, serverId: string): Promise<void>;
 
   /**
    * 更新 Project
    * @param project - Project 实体
+   * @param serverId - Server ID（用于多 Server 数据隔离）
    */
-  update(project: ProjectEntity): Promise<void>;
+  update(project: ProjectEntity, serverId: string): Promise<void>;
 
   /**
    * 删除 Project

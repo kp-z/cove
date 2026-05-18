@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { UserService } from '../../../application/services/user/user.service';
+import { ServerContext } from '../../../application/context/server-context';
 
 // Zod Schemas
 const createUserSchema = z.object({
@@ -37,9 +38,10 @@ export const userRouter = (userService: UserService) =>
     // 创建用户
     create: publicProcedure
       .input(createUserSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const user = await userService.createUser(input);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const user = await userService.createUser(input, context);
           return user.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -51,11 +53,12 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({
         role: z.enum(['owner', 'admin', 'user', 'visitor']).optional(),
       }).optional())
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           const users = input?.role
-            ? await userService.getUsersByRole(input.role)
-            : await userService.getAllUsers();
+            ? await userService.getUsersByRole(input.role, context)
+            : await userService.getAllUsers(context);
 
           return {
             users: users.map(u => u.toJSON()),
@@ -69,9 +72,10 @@ export const userRouter = (userService: UserService) =>
     // 获取单个用户
     getById: publicProcedure
       .input(z.object({ userId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const user = await userService.getUserById(input.userId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const user = await userService.getUserById(input.userId, context);
           return user.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -84,9 +88,10 @@ export const userRouter = (userService: UserService) =>
         userId: z.string(),
         data: updateUserSchema,
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const user = await userService.updateUser(input.userId, input.data);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const user = await userService.updateUser(input.userId, input.data, context);
           return user.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -96,9 +101,10 @@ export const userRouter = (userService: UserService) =>
     // 删除用户
     delete: publicProcedure
       .input(z.object({ userId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await userService.deleteUser(input.userId);
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          await userService.deleteUser(input.userId, context);
           return { userId: input.userId, deleted: true };
         } catch (error: any) {
           throw mapErrorToTRPC(error);

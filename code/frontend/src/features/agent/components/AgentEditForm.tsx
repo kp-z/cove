@@ -12,6 +12,8 @@ import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
 import type { Agent, AgentScope } from '../types/agent.types';
+import { RuntimeAdapterConfig } from './RuntimeAdapterConfig';
+import type { AdapterConfig } from '../types/adapter.types';
 
 interface AgentEditFormProps {
   agent?: Agent;
@@ -131,10 +133,15 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const [capabilities, setCapabilities] = useState<string[]>(agent?.capabilities ? [...agent.capabilities] : []);
   const [tags, setTags] = useState<string[]>(agent?.tags ? [...agent.tags] : []);
 
-  // Runtime Config
-  const [model, setModel] = useState(agent?.runtime_config?.model ?? 'claude-3-sonnet');
-  const [temperature, setTemperature] = useState<number>(agent?.runtime_config?.temperature ?? 0.7);
-  const [maxTokens, setMaxTokens] = useState<number>(agent?.runtime_config?.maxTokens ?? 4096);
+  // Runtime Config - Adapter Configuration
+  const [adapterConfig, setAdapterConfig] = useState<AdapterConfig | null>(
+    agent?.runtime_config?.adapter_config ?? {
+      type: 'anthropic-api',
+      model: 'claude-3-sonnet-20240229',
+      temperature: 0.7,
+      max_tokens: 4096,
+    }
+  );
   const [systemPrompt, setSystemPrompt] = useState(agent?.runtime_config?.systemPrompt ?? '');
 
   // Persona
@@ -189,9 +196,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             projectIds,
             capabilities,
             tags,
-            model,
-            temperature,
-            maxTokens,
+            adapterConfig: adapterConfig || undefined,
             systemPrompt: systemPrompt || undefined,
             personaName: personaName || undefined,
             role: personaTitle || undefined,
@@ -335,34 +340,11 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                 <Cpu size={20} />
                 Runtime Configuration
               </h3>
-              <div className="space-y-4">
-                <FormField label="Model">
-                  <select value={model} onChange={e => setModel(e.target.value)} className={SELECT_CLASS}>
-                    {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </FormField>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Temperature">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="2"
-                      step="0.1"
-                      value={temperature}
-                      onChange={e => setTemperature(parseFloat(e.target.value))}
-                    />
-                  </FormField>
-                  <FormField label="Max Tokens">
-                    <Input
-                      type="number"
-                      min="1"
-                      max="200000"
-                      step="1"
-                      value={maxTokens}
-                      onChange={e => setMaxTokens(parseInt(e.target.value))}
-                    />
-                  </FormField>
-                </div>
+              <RuntimeAdapterConfig
+                value={adapterConfig}
+                onChange={setAdapterConfig}
+              />
+              <div className="mt-4 pt-4 border-t">
                 <FormField label="System Prompt">
                   <Textarea
                     value={systemPrompt}

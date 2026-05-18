@@ -14,8 +14,8 @@ export interface IMessageRepository {
   findBySender(senderId: string): Promise<MessageEntity[]>;
   findByThread(threadId: string): Promise<MessageEntity[]>;
   findByStatus(status: MessageStatus): Promise<MessageEntity[]>;
-  save(message: MessageEntity): Promise<void>;
-  update(message: MessageEntity): Promise<void>;
+  save(message: MessageEntity, serverId: string): Promise<void>;
+  update(message: MessageEntity, serverId: string): Promise<void>;
   delete(messageId: string): Promise<void>;
   exists(messageId: string): Promise<boolean>;
 }

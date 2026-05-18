@@ -1,3 +1,4 @@
+export * from './adapter.hooks';
 export * from './agent.hooks';
 export * from './channel.hooks';
 export * from './message.hooks';
