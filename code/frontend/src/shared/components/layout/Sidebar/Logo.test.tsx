@@ -13,13 +13,13 @@ describe('Logo', () => {
 
   it('shows brand text when not collapsed', () => {
     renderWithRouter(<Logo collapsed={false} />);
-    expect(screen.getByText('Open')).toBeInTheDocument();
-    expect(screen.getByText('Adventure')).toBeInTheDocument();
+    expect(screen.getByText('COVE')).toBeInTheDocument();
+    expect(screen.getByText('AI WORKS, YOU CHILL')).toBeInTheDocument();
   });
 
   it('hides brand text when collapsed', () => {
     renderWithRouter(<Logo collapsed={true} />);
-    expect(screen.queryByText('Open')).not.toBeInTheDocument();
+    expect(screen.queryByText('COVE')).not.toBeInTheDocument();
   });
 
   it('calls onClick when clicked', async () => {

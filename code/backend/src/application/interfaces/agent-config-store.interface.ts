@@ -1,18 +1,43 @@
 export interface AgentRuntimeConfig {
-  model: {
+  /**
+   * Reference to an AdapterConfig entity
+   * This is the new way to configure agent runtime
+   */
+  adapter_id?: string;
+
+  /**
+   * @deprecated Use adapter_id instead. Will be removed in a future version.
+   * Legacy model configuration for backward compatibility
+   */
+  model?: {
     provider: string;
     model_name: string;
     temperature: number;
     max_tokens: number;
   };
+
+  /**
+   * @deprecated Use adapter_id instead. Will be removed in a future version.
+   * Legacy API configuration for backward compatibility
+   */
   api?: {
     base_url?: string;
     timeout_seconds?: number;
   };
+
+  /**
+   * @deprecated Use adapter_id instead. Will be removed in a future version.
+   * Legacy context configuration for backward compatibility
+   */
   context?: {
     max_context_window?: number;
     compression_threshold?: number;
   };
+
+  /**
+   * @deprecated Use adapter_id instead. Will be removed in a future version.
+   * Legacy retry configuration for backward compatibility
+   */
   retry?: {
     max_retries?: number;
     backoff_strategy?: string;

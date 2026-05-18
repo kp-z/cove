@@ -27,6 +27,9 @@ const updateUserSchema = z.object({
   displayName: z.string().min(1).optional(),
   email: z.string().email().optional(),
   avatar: z.string().optional(),
+  preference: z.object({
+    pinned_channels: z.array(z.string()).max(10, 'Cannot pin more than 10 channels').optional(),
+  }).optional(),
 });
 
 export const userRouter = (userService: UserService) =>

@@ -9,11 +9,11 @@ describe('Sidebar', () => {
       route: '/',
     });
     // Logo text
-    expect(screen.getByText('Open')).toBeInTheDocument();
+    expect(screen.getByText('COVE')).toBeInTheDocument();
     // Navigation items
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    // User section
-    expect(screen.getByText('User')).toBeInTheDocument();
+    // Settings link
+    expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
   it('renders collapse button', () => {
@@ -30,7 +30,7 @@ describe('Sidebar', () => {
       route: '/',
     });
     // Logo text hidden when collapsed
-    expect(screen.queryByText('Open')).not.toBeInTheDocument();
+    expect(screen.queryByText('COVE')).not.toBeInTheDocument();
     // User text hidden when collapsed
     expect(screen.queryByText('user@cove.ai')).not.toBeInTheDocument();
   });

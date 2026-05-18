@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  MoreVertical, Play, Settings2, Shield, Activity, Zap, Trash2,
+  MoreVertical, Play, Settings2, Zap, Trash2,
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { GlassCard } from '@/shared/components/ui/GlassCard';

@@ -7,7 +7,6 @@ import { LlmAdapter } from './llm-adapter.interface';
 import { AnthropicAdapter } from './anthropic-adapter';
 import { OpenAIAdapter } from './openai-adapter';
 import { ClaudeCodeCLIAdapter } from './claude-code-cli-adapter';
-import type { AgentRuntimeConfig } from '../../../application/interfaces/agent-config-store.interface';
 
 export function createLlmAdapter(): LlmAdapter {
   const provider = process.env.LLM_PROVIDER || 'anthropic';
@@ -39,37 +38,5 @@ export function createLlmAdapter(): LlmAdapter {
     }
     default:
       throw new Error(`Unknown LLM provider: ${provider}. Use "anthropic", "openai", or "claude-code-cli".`);
-  }
-}
-
-export function createLlmAdapterFromConfig(runtime: AgentRuntimeConfig): LlmAdapter {
-  const provider = runtime.model.provider || 'anthropic';
-  const model = runtime.model.model_name;
-  const maxTokens = runtime.model.max_tokens || 4096;
-
-  switch (provider) {
-    case 'anthropic': {
-      const apiKey = (runtime.api as any)?.api_key;
-      if (!apiKey) {
-        throw new Error('Runtime config missing api.api_key');
-      }
-      const baseUrl = runtime.api?.base_url;
-      return new AnthropicAdapter(apiKey, model, maxTokens, baseUrl);
-    }
-    case 'openai': {
-      const apiKey = (runtime.api as any)?.api_key;
-      if (!apiKey) {
-        throw new Error('Runtime config missing api.api_key');
-      }
-      return new OpenAIAdapter(apiKey, model, maxTokens);
-    }
-    case 'claude-code-cli': {
-      const cliPath = (runtime as any).cli?.path;
-      const workingDir = (runtime as any).cli?.working_dir;
-      const timeout = (runtime as any).cli?.timeout;
-      return new ClaudeCodeCLIAdapter(cliPath, model, workingDir, timeout);
-    }
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
   }
 }

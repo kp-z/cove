@@ -26,8 +26,11 @@ export default function AgentPage() {
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
   const navigate = useNavigate();
-  const { data: agents, isLoading, error } = useAgents();
+  const { data, isLoading, error, refetch } = useAgents();
   const deleteAgent = useDeleteAgent();
+
+  // Backend returns { agents: [...], total: number }
+  const agents = data?.agents || [];
 
   const scopeFilterItems: { key: ScopeFilter; label: string; icon: JSX.Element }[] = [
     { key: 'built-in', label: t('scope.builtIn'), icon: <Settings size={20} /> },
@@ -37,7 +40,7 @@ export default function AgentPage() {
   ];
 
   const filteredAgents = useMemo(() => {
-    if (!agents) return [];
+    if (agents.length === 0) return [];
     let result = agents.filter(a => a.scope === selectedScope);
 
     if (selectedTag !== 'all') {
@@ -109,7 +112,7 @@ export default function AgentPage() {
         subtitle={t('page.subtitle', { count: agents?.length ?? 0 })}
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw size={14} />
               {t('actions.sync')}
             </Button>

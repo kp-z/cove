@@ -51,6 +51,7 @@ const updateAgentSchema = z.object({
 interface AgentRouterDeps {
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
+  adapterService?: any; // AdapterService for adapter operations
 }
 
 export function createAgentRouter(deps: AgentRouterDeps) {
@@ -165,6 +166,178 @@ export function createAgentRouter(deps: AgentRouterDeps) {
         try {
           await deps.agentService.deleteAgent(input.agentId);
           return { message: 'Agent deleted successfully' };
+        } catch (error) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Switch agent's adapter configuration
+    switchAdapter: procedure
+      .input(
+        z.object({
+          agentId: z.string(),
+          adapterId: z.string(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          if (!deps.adapterService) {
+            throw new Error('AdapterService not available');
+          }
+
+          const actorId = ctx.userId || 'system';
+
+          // Verify adapter exists
+          await deps.adapterService.getById(input.adapterId, actorId);
+
+          // Update agent's runtime config to use the new adapter
+          await deps.agentService.updateRuntimeConfig(input.agentId, {
+            adapter_id: input.adapterId,
+          });
+
+          const agent = await deps.agentService.getAgentById(input.agentId);
+
+          return {
+            message: 'Adapter switched successfully',
+            agent: agent.toJSON(),
+          };
+        } catch (error) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Update agent's adapter configuration
+    updateAdapter: procedure
+      .input(
+        z.object({
+          agentId: z.string(),
+          adapterUpdates: z.object({
+            name: z.string().optional(),
+            description: z.string().optional(),
+            config: z.any().optional(),
+          }),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          if (!deps.adapterService) {
+            throw new Error('AdapterService not available');
+          }
+
+          const actorId = ctx.userId || 'system';
+
+          // Get agent's current adapter
+          const agent = await deps.agentService.getAgentById(input.agentId);
+          const runtimeConfig = agent.runtimeConfig as any;
+
+          if (!runtimeConfig?.adapter_id) {
+            throw new Error('Agent does not have an adapter configured');
+          }
+
+          // Update the adapter configuration
+          const updatedAdapter = await deps.adapterService.update(
+            runtimeConfig.adapter_id,
+            input.adapterUpdates,
+            actorId
+          );
+
+          return {
+            message: 'Adapter updated successfully',
+            adapter: updatedAdapter,
+          };
+        } catch (error) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Fork (duplicate) an adapter for this agent
+    forkAdapter: procedure
+      .input(
+        z.object({
+          agentId: z.string(),
+          sourceAdapterId: z.string(),
+          newAdapterName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        try {
+          if (!deps.adapterService) {
+            throw new Error('AdapterService not available');
+          }
+
+          const actorId = ctx.userId || 'system';
+
+          // Get the source adapter
+          const sourceAdapter = await deps.adapterService.getById(
+            input.sourceAdapterId,
+            actorId
+          );
+
+          if (!sourceAdapter) {
+            throw new Error('Source adapter not found');
+          }
+
+          // Create a new private adapter with the same configuration
+          const agent = await deps.agentService.getAgentById(input.agentId);
+          const newAdapterName =
+            input.newAdapterName || `${agent.name}-adapter-fork`;
+
+          const newAdapter = await deps.adapterService.create({
+            name: newAdapterName,
+            description: `Forked from ${sourceAdapter.name}`,
+            scope: 'private',
+            owner_id: agent.agentId,
+            type: sourceAdapter.type,
+            config: sourceAdapter.config,
+          }, actorId);
+
+          // Update agent to use the new adapter
+          await deps.agentService.updateRuntimeConfig(input.agentId, {
+            adapter_id: newAdapter.id,
+          });
+
+          const updatedAgent = await deps.agentService.getAgentById(input.agentId);
+
+          return {
+            message: 'Adapter forked successfully',
+            adapter: newAdapter,
+            agent: updatedAgent.toJSON(),
+          };
+        } catch (error) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Get agent's current adapter configuration
+    getAdapter: procedure
+      .input(z.object({ agentId: z.string() }))
+      .query(async ({ input, ctx }) => {
+        try {
+          if (!deps.adapterService) {
+            throw new Error('AdapterService not available');
+          }
+
+          const actorId = ctx.userId || 'system';
+
+          const agent = await deps.agentService.getAgentById(input.agentId);
+          const runtimeConfig = agent.runtimeConfig as any;
+
+          if (!runtimeConfig?.adapter_id) {
+            return {
+              hasAdapter: false,
+              message: 'Agent uses legacy inline configuration',
+            };
+          }
+
+          const adapter = await deps.adapterService.getById(
+            runtimeConfig.adapter_id,
+            actorId
+          );
+
+          return {
+            hasAdapter: true,
+            adapter,
+          };
         } catch (error) {
           throw mapErrorToTRPC(error);
         }

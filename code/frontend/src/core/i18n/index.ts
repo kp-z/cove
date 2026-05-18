@@ -19,16 +19,25 @@ import dashboardZh from './locales/zh/dashboard.json';
 
 // 从 localStorage 读取初始语言
 const getInitialLanguage = (): string => {
-  const stored = localStorage.getItem('settings-storage');
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      return parsed.state?.language || 'en';
-    } catch {
-      return 'en';
-    }
+  // Check if localStorage is available (for test environment)
+  if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') {
+    return 'en';
   }
-  return navigator.language.startsWith('zh') ? 'zh' : 'en';
+
+  try {
+    const stored = localStorage.getItem('settings-storage');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.state?.language || 'en';
+      } catch {
+        return 'en';
+      }
+    }
+    return navigator.language.startsWith('zh') ? 'zh' : 'en';
+  } catch {
+    return 'en';
+  }
 };
 
 i18n.use(initReactI18next).init({

@@ -41,11 +41,6 @@
     "accountSettings": "账户设置",
     "logout": "退出登录"
   },
-  "channelPanel": {
-    "floatingMode": "浮动模式",
-    "dockedMode": "停靠模式",
-    "close": "关闭"
-  },
   "pageError": {
     "back": "返回"
   }

@@ -7,11 +7,10 @@ interface NavGroupProps {
   collapsed: boolean;
   isExpanded: boolean;
   onToggle: () => void;
-  onToggleSidebar?: () => void;
   menuState: 'active' | 'partial' | 'inactive';
 }
 
-export function NavGroup({ item, collapsed, isExpanded, onToggle, onToggleSidebar, menuState }: NavGroupProps) {
+export function NavGroup({ item, collapsed, isExpanded, onToggle, menuState }: NavGroupProps) {
   return (
     <div>
       <button

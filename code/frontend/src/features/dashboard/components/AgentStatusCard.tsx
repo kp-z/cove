@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
-import { chartColors } from '@/shared/lib/echarts-theme';
 import type { EChartsOption } from 'echarts';
 import { useNavigate } from 'react-router';
 import { cn } from '@/shared/lib/utils';
-import type { TimeRange } from './TimeRangeFilter';
 
 type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
 
@@ -64,11 +62,7 @@ function getStatusDotColor(status: 'active' | 'idle'): string {
   return status === 'active' ? 'bg-green-400' : 'bg-gray-400';
 }
 
-interface AgentStatusCardProps {
-  timeRange: TimeRange;
-}
-
-export function AgentStatusCard({ timeRange }: AgentStatusCardProps) {
+export function AgentStatusCard() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const statusData = mockStatusData;

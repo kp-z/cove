@@ -25,6 +25,9 @@ interface UserDbRecord {
 interface UserContent {
   avatar?: string;
   permissions: string[];
+  preference?: {
+    pinned_channels?: readonly string[];
+  };
 }
 
 export class HybridUserRepository
@@ -43,6 +46,7 @@ export class HybridUserRepository
       role: dbRecord.role as UserRole,
       avatar: content.avatar,
       permissions: content.permissions,
+      preference: content.preference,
       createdAt: dbRecord.createdAt,
     });
   }
@@ -65,6 +69,7 @@ export class HybridUserRepository
     return {
       avatar: entity.avatar,
       permissions: Array.from(entity.permissions || []),
+      preference: entity.preference,
     };
   }
 

@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { TokenPill, TokenUsageData } from './index';
 
 describe('TokenPill', () => {
   it('should render loading state', () => {
-    render(<TokenPill data={undefined} isLoading={true} />);
-    const container = screen.getByRole('generic');
-    expect(container).toHaveClass('animate-pulse');
+    const { container } = render(<TokenPill data={undefined} isLoading={true} />);
+    const loadingElement = container.querySelector('.animate-pulse');
+    expect(loadingElement).toBeInTheDocument();
   });
 
   it('should render with token data', () => {
@@ -30,8 +31,8 @@ describe('TokenPill', () => {
       percentage: 85,
     };
 
-    render(<TokenPill data={mockData} isLoading={false} />);
-    const dot = screen.getByRole('generic').querySelector('.bg-amber-400');
+    const { container } = render(<TokenPill data={mockData} isLoading={false} />);
+    const dot = container.querySelector('.bg-amber-400');
     expect(dot).toBeInTheDocument();
   });
 

@@ -4,7 +4,6 @@ import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
 import { chartColors } from '@/shared/lib/echarts-theme';
 import type { EChartsOption } from 'echarts';
 import { useNavigate } from 'react-router';
-import type { TimeRange } from './TimeRangeFilter';
 
 interface MessageActivity {
   date: string;
@@ -71,11 +70,7 @@ function formatRelativeTime(isoString: string): string {
   }
 }
 
-interface ChannelActivityCardProps {
-  timeRange: TimeRange;
-}
-
-export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
+export function ChannelActivityCard() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const messageActivity = mockMessageActivity;
@@ -103,8 +98,8 @@ export function ChannelActivityCard({ timeRange }: ChannelActivityCardProps) {
     ],
     tooltip: {
       trigger: 'axis',
-      formatter: (params: any) => {
-        const item = params[0];
+      formatter: (params: unknown) => {
+        const item = (params as Array<{ name: string; value: number }>)[0];
         return `${item.name}<br/>Messages: ${item.value}`;
       },
     },

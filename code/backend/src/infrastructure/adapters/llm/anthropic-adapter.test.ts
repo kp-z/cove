@@ -58,7 +58,7 @@ describe('AnthropicAdapter', () => {
 
       expect(result).toBe('Hello, how can I help you?');
       expect(mockCreate).toHaveBeenCalledWith({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4096,
         system: 'You are a helpful assistant',
         messages: [

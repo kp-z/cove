@@ -7,7 +7,7 @@
  * - 角色和权限管理
  */
 
-import { UserEntity, UserRole } from '../../../domain/models/user/user.entity';
+import { UserEntity, UserRole, UserPreference } from '../../../domain/models/user/user.entity';
 import { UserNotFoundError, UsernameAlreadyExistsError, EmailAlreadyExistsError } from './user.errors';
 import {
   IUserRepository,
@@ -28,6 +28,7 @@ export interface UpdateUserDTO {
   readonly displayName?: string;
   readonly email?: string;
   readonly avatar?: string;
+  readonly preference?: UserPreference;
 }
 
 export class UserService {
@@ -129,6 +130,10 @@ export class UserService {
         }
       }
       user = user.updateEmail(dto.email);
+    }
+
+    if (dto.preference !== undefined) {
+      user = user.updatePreference(dto.preference);
     }
 
     await this.userRepository.update(user);

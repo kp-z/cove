@@ -1,7 +1,8 @@
-# Local-Backend 通信架构设计方案
+# Local-Server-Backend 通信架构设计方案
 
 **作者**: InfraEngineer  
 **日期**: 2026-05-18  
+**更新**: 2026-05-18 (目录命名更新为 local-server)  
 **状态**: 待审核  
 
 ---
@@ -10,23 +11,29 @@
 
 本方案设计 Cove 项目的混合部署架构，将系统分为：
 - **Backend + Frontend**: 部署到远程服务器
-- **Local**: 部署到用户本地机器
+- **Local-Server**: 部署到用户本地机器
 
-通过 WebSocket 实现 Local 和 Backend 的双向通信。
+通过 WebSocket 实现 Local-Server 和 Backend 的双向通信。
 
 ---
 
 ## 2. 目录结构
 
-### 2.1 推荐命名
+### 2.1 最终命名决策
 
-使用 `local` 作为本地运行时目录名，简洁直接。
+使用 `local-server` 作为本地运行时目录名。
+
+**命名理由：**
+- ✅ 语义最清晰：既表明是服务器，又表明在本地运行
+- ✅ 与 backend 形成明确对比：远程服务器 vs 本地服务器
+- ✅ 避免混淆：不会与 backend 混淆
+- ✅ 用户友好："本地服务器"是自然的称呼
 
 ```
 cove/code/
-├── backend/      # 服务器端（部署到远程服务器）
-├── frontend/     # 前端（部署到远程服务器）
-└── local/        # 本地运行时（用户本地运行）
+├── backend/        # 远程服务器（部署到远程服务器）
+├── frontend/       # 前端（部署到远程服务器）
+└── local-server/   # 本地服务器（用户本地运行）
 ```
 
 ### 2.2 完整目录结构
@@ -38,7 +45,7 @@ cove/
 │   │   ├── src/
 │   │   │   ├── main.ts
 │   │   │   ├── trpc/        # tRPC 路由
-│   │   │   ├── gateway/     # 🆕 Local 通信层
+│   │   │   ├── gateway/     # 🆕 Local-Server 通信层
 │   │   │   │   ├── connection-manager.ts
 │   │   │   │   ├── message-router.ts
 │   │   │   │   ├── task-dispatcher.ts
@@ -53,9 +60,9 @@ cove/
 │   │   ├── dist/
 │   │   └── package.json
 │   │
-│   └── local/                # 🆕 本地运行时（本地运行）
+│   └── local-server/         # 🆕 本地服务器（本地运行）
 │       ├── src/
-│       │   ├── main.ts                    # 入口文件
+│       │   ├── main.ts                    # 服务器入口
 │       │   ├── config.ts                  # 配置管理
 │       │   ├── websocket-client.ts        # WebSocket 客户端
 │       │   ├── message-handler.ts         # 消息处理器
@@ -91,7 +98,7 @@ cove/
                          │ HTTP/WebSocket
                          ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    Backend (服务器端)                         │
+│                    Backend (远程服务器)                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  tRPC API    │  │  WebSocket   │  │  PostgreSQL  │      │
 │  │   Server     │  │   Gateway    │  │   Database   │      │
@@ -101,7 +108,7 @@ cove/
                               │ 双向通信
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    Local (本地运行时)                         │
+│                    Local-Server (本地服务器)                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  WebSocket   │  │    Agent     │  │    File      │      │
 │  │   Client     │→ │   Executor   │→ │   Manager    │      │
@@ -120,7 +127,7 @@ cove/
 - **WebSocket Gateway**: 管理与 Local 的 WebSocket 连接
 - **PostgreSQL Database**: 存储业务数据（User, Project, Channel, Message 元数据等）
 
-#### Local (本地运行时)
+#### Local-Server (本地服务器)
 - **WebSocket Client**: 连接到 Backend，接收任务和发送结果
 - **Agent Executor**: 执行 Agent 任务（调用 Claude API）
 - **File Manager**: 管理本地文件（Agent Memory, Workspace, Storage）

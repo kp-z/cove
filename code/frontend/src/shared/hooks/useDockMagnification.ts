@@ -14,9 +14,7 @@ interface UseDockMagnificationReturn {
   handleMouseLeave: () => void;
 }
 
-export function useDockMagnification(
-  options: UseDockMagnificationOptions = {}
-): UseDockMagnificationReturn {
+export function useDockMagnification(): UseDockMagnificationReturn {
   const mouseX = useMotionValue(Infinity);
   const containerRef = useRef<HTMLDivElement>(null);
 

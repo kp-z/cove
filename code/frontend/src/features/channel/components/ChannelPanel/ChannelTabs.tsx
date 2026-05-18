@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Hash, Lock, Plus, X, Loader2 } from 'lucide-react';
 import type { Channel, Thread } from './types';
@@ -12,6 +12,7 @@ interface ChannelTabsProps {
   onCloseThread: (threadId: string) => void;
   onRenameThread?: (threadId: string, newTitle: string) => void;
   onPinThread?: (threadId: string) => void;
+  leftActions?: React.ReactNode;
   className?: string;
 }
 
@@ -24,7 +25,7 @@ function ChannelTab({
   isActive: boolean;
   onClick: () => void;
 }) {
-  const getChannelIcon = () => {
+  const IconComponent = useMemo(() => {
     switch (channel.type) {
       case 'public':
         return Hash;
@@ -36,8 +37,7 @@ function ChannelTab({
       default:
         return Hash;
     }
-  };
-  const Icon = getChannelIcon();
+  }, [channel.type]);
 
   return (
     <button
@@ -50,7 +50,7 @@ function ChannelTab({
       }`}
     >
       <span className="flex items-center gap-1 truncate whitespace-nowrap font-medium text-[11px] leading-tight min-w-0">
-        <Icon className="w-3 h-3 shrink-0 opacity-80" aria-label="Channel" />
+        <IconComponent className="w-3 h-3 shrink-0 opacity-80" aria-label="Channel" />
         <span className="truncate">{channel.name}</span>
         {channel.unread_count > 0 && (
           <span className="ml-0.5 px-1 py-0.5 text-[9px] font-bold bg-red-500 text-white rounded-full">
@@ -148,6 +148,7 @@ export function ChannelTabs({
   onThreadChange,
   onNewThread,
   onCloseThread,
+  leftActions,
   className = '',
 }: ChannelTabsProps) {
   const checkScroll = () => {
@@ -169,9 +170,12 @@ export function ChannelTabs({
   return (
     <div className={`relative border-b border-white/10 ${className}`}>
       <div className="flex items-stretch gap-2 px-2 py-1">
-        <div className="shrink-0 flex items-center gap-1">
-          <NewThreadButton onClick={onNewThread} />
-        </div>
+        {(leftActions || true) && (
+          <div className="shrink-0 flex items-center gap-1">
+            {leftActions}
+            <NewThreadButton onClick={onNewThread} />
+          </div>
+        )}
 
         <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-hide">
           <ChannelTab

@@ -1,5 +1,6 @@
 {
   "page": {
+    "title": "Agents",
     "subtitle": "{{count}} sub-agents",
     "searchPlaceholder": "Search agents...",
     "emptyTitle": "No agents",
@@ -37,6 +38,43 @@
   },
   "card": {
     "delete": "Delete",
-    "inheritAllTools": "Inherits all tools"
+    "inheritAllTools": "Inherits all tools",
+    "status": "Status",
+    "category": "Category",
+    "empty": {
+      "noCapabilities": "No capabilities"
+    }
+  },
+  "scope": {
+    "builtIn": "Built-in",
+    "user": "User",
+    "project": "Project",
+    "admin": "Admin"
+  },
+  "actions": {
+    "sync": "Sync",
+    "new": "New",
+    "run": "Run",
+    "config": "Config"
+  },
+  "filter": {
+    "byTag": "Filter by tag",
+    "allTags": "All tags"
+  },
+  "category": {
+    "engineering": "Engineering",
+    "operations": "Operations",
+    "design": "Design",
+    "qa": "QA",
+    "research": "Research",
+    "platform": "Platform",
+    "collaboration": "Collaboration",
+    "custom": "Custom"
+  },
+  "status": {
+    "idle": "Idle",
+    "active": "Active",
+    "disabled": "Disabled",
+    "error": "Error"
   }
 }

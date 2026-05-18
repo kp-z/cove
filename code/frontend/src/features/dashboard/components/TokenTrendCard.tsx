@@ -3,7 +3,6 @@ import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
 import { chartColors } from '@/shared/lib/echarts-theme';
 import type { EChartsOption } from 'echarts';
-import type { TimeRange } from './TimeRangeFilter';
 
 interface TokenTrendData {
   date: string;
@@ -22,11 +21,7 @@ const mockData: TokenTrendData[] = [
   { date: '01/21', tokens: 69000, cost: 7.2 },
 ];
 
-interface TokenTrendCardProps {
-  timeRange: TimeRange;
-}
-
-export function TokenTrendCard({ timeRange }: TokenTrendCardProps) {
+export function TokenTrendCard() {
   const { t } = useTranslation('dashboard');
   const data = mockData;
 
@@ -73,8 +68,8 @@ export function TokenTrendCard({ timeRange }: TokenTrendCardProps) {
     ],
     tooltip: {
       trigger: 'axis',
-      formatter: (params: any) => {
-        const item = params[0];
+      formatter: (params: unknown) => {
+        const item = (params as Array<{ name: string; value: number }>)[0];
         return `${item.name}<br/>Tokens: ${item.value.toLocaleString()}`;
       },
     },

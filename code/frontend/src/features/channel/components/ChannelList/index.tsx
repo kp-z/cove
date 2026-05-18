@@ -1,7 +1,8 @@
 import { PinnedChannels } from './PinnedChannels';
 import { ChannelListItem } from './ChannelListItem';
 import { ChannelListEmpty } from './ChannelListEmpty';
-import { useChannels, useUpdateChannel } from '@/lib/trpc/hooks';
+import { useChannels } from '@/lib/trpc/hooks';
+import { useChannelPin } from '../../hooks/useChannelPin';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +17,11 @@ interface ChannelListProps {
 export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListProps) {
   const { t } = useTranslation('channel');
   const { data, isLoading, error } = useChannels();
-  const updateChannel = useUpdateChannel();
+
+  // TODO: Get current user ID from auth context
+  // For now, using hardcoded user ID
+  const currentUserId = 'user-kp';
+  const { pinnedChannels: pinnedChannelIds, togglePin, isPinned } = useChannelPin(currentUserId);
 
   if (isLoading) return <PageLoader />;
   if (error) return <PageError message="Failed to load channels" />;
@@ -25,37 +30,44 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
   const channels = data?.channels || [];
   if (channels.length === 0) return <ChannelListEmpty />;
 
-  const pinnedChannels = channels.filter((ch: ChannelEntity) => ch.is_pinned);
+  // Filter channels based on user's pinned list
+  const pinnedChannels = channels.filter((ch: ChannelEntity) =>
+    isPinned(ch.channel_id)
+  );
+
+  // Sort pinned channels by user's preference order
+  pinnedChannels.sort((a: ChannelEntity, b: ChannelEntity) => {
+    const indexA = pinnedChannelIds.indexOf(a.channel_id);
+    const indexB = pinnedChannelIds.indexOf(b.channel_id);
+    return indexA - indexB;
+  });
+
   const recentChannels = channels
-    .filter((ch: ChannelEntity) => !ch.is_pinned)
+    .filter((ch: ChannelEntity) => !isPinned(ch.channel_id))
     .sort((a: ChannelEntity, b: ChannelEntity) =>
       new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
   // Business logic handlers
   const handleTogglePin = async (channel: ChannelEntity) => {
-    const isPinning = !channel.is_pinned;
+    const willPin = !isPinned(channel.channel_id);
 
     try {
       console.log('Toggling pin for channel:', {
         channelId: channel.channel_id,
         name: channel.name,
-        currentPinState: channel.is_pinned,
-        newPinState: isPinning,
+        currentPinState: isPinned(channel.channel_id),
+        newPinState: willPin,
       });
 
-      await updateChannel.mutateAsync({
-        channelId: channel.channel_id,
-        name: channel.name,
-        description: channel.description || undefined,
-        is_pinned: isPinning,
-      });
+      await togglePin(channel.channel_id);
 
-      toast.success(isPinning ? t('list.pinSuccess') : t('list.unpinSuccess'));
+      toast.success(willPin ? t('list.pinSuccess') : t('list.unpinSuccess'));
       console.log('Pin toggle successful');
     } catch (error) {
       console.error('Failed to toggle pin:', error);
-      toast.error(t('list.pinError'));
+      const errorMessage = error instanceof Error ? error.message : t('list.pinError');
+      toast.error(errorMessage);
     }
   };
 

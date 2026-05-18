@@ -10,17 +10,23 @@ export default function AgentEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Only fetch agent data if we have an id (edit mode)
-  const { data: agent, isLoading, error } = useAgent(id!, { enabled: !!id });
+  // If no id, this is create mode
+  const isCreateMode = !id;
 
-  // Create mode: no id provided
-  if (!id) {
-    return <AgentEditForm onSaved={() => navigate('/agents')} />;
+  const { data: agent, isLoading, error } = useAgent(id!, {
+    enabled: !isCreateMode,
+  });
+
+  // Loading state only applies to edit mode
+  if (!isCreateMode && isLoading) return <PageLoader />;
+  if (!isCreateMode && (error || !agent)) {
+    return <PageError message={error?.message ?? t('error.notFound', { resource: 'Agent' })} backTo="/agents" />;
   }
 
-  // Edit mode: loading or error states
-  if (isLoading) return <PageLoader />;
-  if (error || !agent) return <PageError message={error?.message ?? t('error.notFound', { resource: 'Agent' })} backTo="/agents" />;
-
-  return <AgentEditForm agent={agent} onSaved={() => navigate('/agents')} />;
+  return (
+    <AgentEditForm
+      agent={isCreateMode ? undefined : agent}
+      onSaved={() => navigate('/agents')}
+    />
+  );
 }

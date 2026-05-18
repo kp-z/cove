@@ -1,10 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PanelRight, X } from 'lucide-react';
 import { ChannelTabs } from './ChannelTabs';
+import { ChannelMemberBar } from './ChannelMemberBar';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
 import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
+import { useChannelPanelStore } from '../../stores/channelStore';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -79,32 +82,47 @@ export function ChannelPanel({
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreadId || null);
 
-  const { data: channelData, isLoading: channelLoading } = useChannels();
-  const { data: messageEntities, isLoading: messagesLoading } = useMessages(channel_id, activeThreadId);
+  const { mode, setMode, closeChannel } = useChannelPanelStore();
+  const { data: channelsData, isLoading: channelLoading } = useChannels();
+  const { data: messagesData, isLoading: messagesLoading } = useMessages(channel_id);
   const sendMessage = useSendMessage();
 
-  const channel: Channel | null = channelData
+  const handleTogglePin = useCallback(() => {
+    setMode(mode === 'docked' ? 'floating' : 'docked');
+  }, [mode, setMode]);
+
+  const handleClose = useCallback(() => {
+    closeChannel();
+  }, [closeChannel]);
+
+  // Backend returns { channels: [...], total: number }
+  const channels = channelsData?.channels || [];
+  const currentChannel = channels.find(ch => ch.channel_id === channel_id);
+
+  const channel: Channel | null = currentChannel
     ? {
-        channel_id: channelData.channel_id,
-        type: channelData.type as Channel['type'],
-        name: channelData.name,
-        description: channelData.description,
+        channel_id: currentChannel.channel_id,
+        type: currentChannel.type as Channel['type'],
+        name: currentChannel.name,
+        description: currentChannel.description,
         unread_count: 0,
-        last_activity: new Date(channelData.updated_at),
-        is_pinned: false,
-        metadata: { project_id: channelData.project_id },
+        last_activity: new Date(currentChannel.updated_at),
+        is_pinned: currentChannel.is_pinned || false,
+        metadata: { project_id: currentChannel.project_id },
       }
     : null;
 
-  const messages: Message[] = (messageEntities?.messages ?? []).map(messageEntityToMessage);
+  // Backend returns { messages: [...], nextCursor: string }
+  const messageEntities = messagesData?.messages || [];
+  const messages: Message[] = messageEntities.map(messageEntityToMessage);
 
   const handleSendMessage = useCallback(async (content: string) => {
     sendMessage.mutate({
-      channel_id,
-      sender_id: 'current-user-id',
-      sender_type: 'human',
+      channelId: channel_id,
+      senderId: 'current-user-id',
+      senderType: 'human',
       content,
-      thread_id: activeThreadId || undefined,
+      threadId: activeThreadId || undefined,
     });
   }, [channel_id, activeThreadId, sendMessage]);
 
@@ -139,10 +157,45 @@ export function ChannelPanel({
     }
   }, [activeThreadId]);
 
+  // 左侧操作按钮（悬浮和关闭）
+  const leftActions = (
+    <>
+      <button
+        onClick={handleTogglePin}
+        className="p-1.5 rounded hover:bg-white/10 transition-colors"
+        title={mode === 'docked' ? t('panel.float') : t('panel.dock')}
+      >
+        <PanelRight
+          className={`w-4 h-4 ${mode === 'docked' ? 'text-gray-400' : 'text-blue-400'}`}
+        />
+      </button>
+      <button
+        onClick={handleClose}
+        className="p-1.5 rounded hover:bg-white/10 transition-colors"
+        title={t('panel.close')}
+      >
+        <X className="w-4 h-4 text-gray-400" />
+      </button>
+    </>
+  );
+
+  // 加载态：显示 ChannelTabs 和按钮，但内容区域显示加载中
   if (channelLoading || !channel) {
     return (
-      <div className={`flex items-center justify-center h-full bg-[#1a1d2e] ${className}`}>
-        <div className="text-gray-400">{t('common:loading')}</div>
+      <div className={`flex flex-col h-full bg-[#1a1d2e] ${className}`}>
+        <div className="flex items-center gap-2 px-2 py-1 border-b border-white/10">
+          <div className="shrink-0 flex items-center gap-1">
+            {leftActions}
+          </div>
+          <div className="flex-1 min-w-0 flex items-center gap-1">
+            <div className="px-3 py-1.5 text-xs text-gray-400">
+              {t('common:loading')}
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-400">{t('common:loading')}</div>
+        </div>
       </div>
     );
   }
@@ -156,7 +209,9 @@ export function ChannelPanel({
         onThreadChange={handleThreadChange}
         onNewThread={handleNewThread}
         onCloseThread={handleCloseThread}
+        leftActions={leftActions}
       />
+      <ChannelMemberBar channelId={channel_id} />
       <MessageList
         messages={messages}
         isLoading={messagesLoading}

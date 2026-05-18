@@ -33,7 +33,7 @@ function formatTime(dateStr: string) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function TimelineItem({ thread, isActive, isFirst, isLast, onClick }: TimelineItemProps) {
+export function TimelineItem({ thread, isActive, isLast, onClick }: TimelineItemProps) {
   return (
     <div className="relative flex items-start gap-4 group">
       {/* Timeline line */}

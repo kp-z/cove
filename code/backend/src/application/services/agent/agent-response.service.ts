@@ -10,9 +10,11 @@ import {
   DomainEvent,
   IAgentConfigStore,
 } from '../../interfaces';
-import { createLlmAdapterFromConfig } from '../../../infrastructure/adapters/llm/index';
+import { createLlmAdapterFromConfig } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
 import type { ChatMessage } from '../../../infrastructure/adapters/llm/index';
 import { AgentResponseGenerationError } from './agent.errors';
+import { AdapterService } from '../adapter/adapter.service';
+import { LlmAdapterFactory } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
 
 export class AgentResponseService {
   constructor(
@@ -21,7 +23,8 @@ export class AgentResponseService {
     private readonly channelRepository: IChannelRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
-    private readonly configStore?: IAgentConfigStore
+    private readonly configStore?: IAgentConfigStore,
+    private readonly adapterService?: AdapterService,
   ) {}
 
   async handleIncomingMessage(message: MessageEntity): Promise<void> {
@@ -92,6 +95,35 @@ export class AgentResponseService {
       }
 
       const runtime = await this.configStore.getRuntime(agent.agentId);
+
+      // New adapter system: check if adapter_id is present
+      if (runtime.adapter_id && this.adapterService) {
+        this.logger.info('Using new adapter system', {
+          agentId: agent.agentId,
+          adapterId: runtime.adapter_id
+        });
+
+        const persona = await this.configStore.getPersona(agent.agentId);
+        const systemPrompt = this.buildSystemPrompt(persona);
+        const history = await this.buildConversationHistory(message, channel);
+
+        const factory = new LlmAdapterFactory(this.adapterService);
+        // Use agent's createdBy as actorId, with skipPermissionCheck=true for internal agent operations
+        const adapter = await factory.createById(runtime.adapter_id, agent.createdBy);
+
+        const response = await adapter.generateResponse({
+          systemPrompt,
+          messages: history,
+        });
+
+        return response;
+      }
+
+      // Legacy system: fall back to inline configuration
+      this.logger.warn('Using legacy inline configuration (deprecated)', {
+        agentId: agent.agentId
+      });
+
       if (!(runtime.api as any)?.api_key) {
         this.logger.warn('Agent has no api_key configured, using mock', { agentId: agent.agentId });
         return this.generateMockResponse(agent, message);
@@ -101,11 +133,11 @@ export class AgentResponseService {
       const systemPrompt = this.buildSystemPrompt(persona);
       const history = await this.buildConversationHistory(message, channel);
 
-      const adapter = createLlmAdapterFromConfig(runtime);
+      const adapter = await createLlmAdapterFromConfig(runtime, this.adapterService);
       const response = await adapter.generateResponse({
         systemPrompt,
         messages: history,
-        maxTokens: runtime.model.max_tokens,
+        maxTokens: runtime.model?.max_tokens,
       });
 
       return response;

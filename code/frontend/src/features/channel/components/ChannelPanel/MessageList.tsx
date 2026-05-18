@@ -69,14 +69,11 @@ function DateSeparator({ date }: { date: Date }) {
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
-  let label = '';
-  if (isToday) {
-    label = t('time.today');
-  } else if (isYesterday) {
-    label = t('time.yesterday');
-  } else {
-    label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
+  const label = isToday
+    ? t('time.today')
+    : isYesterday
+    ? t('time.yesterday')
+    : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="flex items-center justify-center py-3">

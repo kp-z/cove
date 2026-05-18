@@ -6,99 +6,171 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Badge } from '@/shared/components/ui/badge';
-import { GlassCard } from '@/shared/components/ui/GlassCard';
-import { CardGridLayout } from '@/shared/components/layout/CardGridLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
-import { useUpdateAgent, useCreateAgent } from '@/lib/trpc/hooks/agent.hooks';
-import type {
-  Agent, AgentFramework, AgentCategory, AgentPriority, AgentScope, AgentPermissionMode,
-} from '../types/agent.types';
+import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
+import type { Agent, AgentScope } from '../types/agent.types';
 
 interface AgentEditFormProps {
   agent?: Agent;
   onSaved: () => void;
 }
 
+// ============================================================================
+// Constants
+// ============================================================================
+
 const MODEL_OPTIONS = [
-  { value: 'claude-3-opus', label: 'Opus' },
-  { value: 'claude-3-sonnet', label: 'Sonnet' },
-  { value: 'claude-3-haiku', label: 'Haiku' },
-];
-
-const FRAMEWORK_OPTIONS: { value: AgentFramework; label: string }[] = [
-  { value: 'claude_code', label: 'Claude Code' },
-  { value: 'openclaw', label: 'OpenClaw' },
-  { value: 'hybrid', label: 'Hybrid' },
-];
-
-const CATEGORY_OPTIONS: { value: AgentCategory; label: string }[] = [
-  { value: 'engineering', label: 'Engineering' },
-  { value: 'operations', label: 'Operations' },
-  { value: 'design', label: 'Design' },
-  { value: 'qa', label: 'QA' },
-  { value: 'research', label: 'Research' },
-  { value: 'platform', label: 'Platform' },
-  { value: 'collaboration', label: 'Collaboration' },
-  { value: 'custom', label: 'Custom' },
-];
-
-const PRIORITY_OPTIONS: { value: AgentPriority; label: string }[] = [
-  { value: 'high', label: 'High' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'low', label: 'Low' },
-];
+  { value: 'claude-3-opus', label: 'Claude 3 Opus' },
+  { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet' },
+  { value: 'claude-3-haiku', label: 'Claude 3 Haiku' },
+  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+] as const;
 
 const SCOPE_OPTIONS: { value: AgentScope; label: string }[] = [
   { value: 'user', label: 'User' },
   { value: 'project', label: 'Project' },
-  { value: 'builtin', label: 'Built-in' },
-  { value: 'plugin', label: 'Plugin' },
-];
+  { value: 'built-in', label: 'Built-in' },
+  { value: 'admin', label: 'Admin' },
+] as const;
 
-const PERMISSION_OPTIONS: { value: AgentPermissionMode; label: string; color: string }[] = [
-  { value: 'default', label: 'Default', color: 'bg-gray-500/20 border-gray-500/30 text-gray-400' },
-  { value: 'acceptEdits', label: 'Accept', color: 'bg-blue-500/20 border-blue-500/30 text-blue-400' },
-  { value: 'plan', label: 'Plan', color: 'bg-purple-500/20 border-purple-500/30 text-purple-400' },
-  { value: 'bypassPermissions', label: 'Bypass', color: 'bg-red-500/20 border-red-500/30 text-red-400' },
-];
+const FORMALITY_OPTIONS = [
+  { value: 'casual', label: 'Casual' },
+  { value: 'professional', label: 'Professional' },
+  { value: 'formal', label: 'Formal' },
+] as const;
 
-const MEMORY_OPTIONS: { value: Agent['memory']; label: string }[] = [
-  { value: null, label: 'None' },
-  { value: 'user', label: 'User' },
-  { value: 'project', label: 'Project' },
-  { value: 'local', label: 'Local' },
-];
+const VERBOSITY_OPTIONS = [
+  { value: 'concise', label: 'Concise' },
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'detailed', label: 'Detailed' },
+] as const;
 
-const selectCls = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+const SELECT_CLASS = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+interface TagInputProps {
+  label: string;
+  tags: string[];
+  onAdd: (tag: string) => void;
+  onRemove: (tag: string) => void;
+  placeholder?: string;
+  variant?: 'default' | 'secondary' | 'outline';
+  className?: string;
+}
+
+function TagInput({ label, tags, onAdd, onRemove, placeholder = 'Press Enter to add', variant = 'secondary', className }: TagInputProps) {
+  const [input, setInput] = useState('');
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input.trim()) {
+      e.preventDefault();
+      if (!tags.includes(input.trim())) {
+        onAdd(input.trim());
+      }
+      setInput('');
+    }
+  };
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[32px]">
+        {tags.map(tag => (
+          <Badge key={tag} variant={variant} className={`gap-1 ${className || ''}`}>
+            {tag}
+            <button
+              onClick={() => onRemove(tag)}
+              className="hover:text-foreground transition-colors"
+              type="button"
+            >
+              <X size={12} />
+            </button>
+          </Badge>
+        ))}
+      </div>
+      <div className="relative">
+        <Input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+        />
+        <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const { t } = useTranslation('agent');
-  const updateAgent = useUpdateAgent();
-  const createAgent = useCreateAgent();
-
   const isCreateMode = !agent;
+  const createAgent = useCreateAgent();
+  const updateAgent = useUpdateAgent();
 
-  const [name, setName] = useState(agent?.name ?? '');
+  // Basic Info
+  const [displayName, setDisplayName] = useState(agent?.display_name ?? '');
   const [description, setDescription] = useState(agent?.description ?? '');
-  const [category, setCategory] = useState<AgentCategory>(agent?.category ?? 'engineering');
-  const [priority, setPriority] = useState<AgentPriority>(agent?.priority ?? 'normal');
-  const [model, setModel] = useState(agent?.model ?? 'claude-3-sonnet');
-  const [framework, setFramework] = useState<AgentFramework>(agent?.framework ?? 'claude_code');
   const [scope, setScope] = useState<AgentScope>(agent?.scope ?? 'user');
-  const [tools, setTools] = useState<string[]>(agent?.tools ?? []);
-  const [skills, setSkills] = useState<string[]>(agent?.skills ?? []);
-  const [permissionMode, setPermissionMode] = useState<AgentPermissionMode>(agent?.permission_mode ?? 'default');
-  const [memory, setMemory] = useState<Agent['memory']>(agent?.memory ?? null);
-  const [toolInput, setToolInput] = useState('');
-  const [skillInput, setSkillInput] = useState('');
+
+  // Project IDs
+  const [projectIds, setProjectIds] = useState<string[]>(agent?.project_ids ? [...agent.project_ids] : []);
+
+  // Capabilities & Tags
+  const [capabilities, setCapabilities] = useState<string[]>(agent?.capabilities ? [...agent.capabilities] : []);
+  const [tags, setTags] = useState<string[]>(agent?.tags ? [...agent.tags] : []);
+
+  // Runtime Config
+  const [model, setModel] = useState(agent?.runtime_config?.model ?? 'claude-3-sonnet');
+  const [temperature, setTemperature] = useState<number>(agent?.runtime_config?.temperature ?? 0.7);
+  const [maxTokens, setMaxTokens] = useState<number>(agent?.runtime_config?.maxTokens ?? 4096);
+  const [systemPrompt, setSystemPrompt] = useState(agent?.runtime_config?.systemPrompt ?? '');
+
+  // Persona
+  const [personaName, setPersonaName] = useState(agent?.persona?.name ?? '');
+  const [personaTitle, setPersonaTitle] = useState(agent?.persona?.title ?? '');
+  const [personaDescription, setPersonaDescription] = useState(agent?.persona?.description ?? '');
+  const [formality, setFormality] = useState(agent?.persona?.language_style?.formality ?? 'professional');
+  const [verbosity, setVerbosity] = useState(agent?.persona?.language_style?.verbosity ?? 'balanced');
+  const [preferredLanguage, setPreferredLanguage] = useState(agent?.persona?.language_style?.preferred_language ?? 'en');
+  const [proactive, setProactive] = useState(agent?.persona?.behavior?.proactive ?? false);
+  const [askBeforeAction, setAskBeforeAction] = useState(agent?.persona?.behavior?.ask_before_action ?? true);
+
+  // Skills & Tools
+  const [skillIds, setSkillIds] = useState<string[]>(agent?.skills?.skillIds ? [...agent.skills.skillIds] : []);
+  const [toolIds, setToolIds] = useState<string[]>(agent?.tools?.toolIds ? [...agent.tools.toolIds] : []);
+
+  // Triggers
+  const [onMention, setOnMention] = useState(agent?.triggers?.onMention ?? false);
+  const [onDirectMessage, setOnDirectMessage] = useState(agent?.triggers?.onDirectMessage ?? false);
+  const [onSchedule, setOnSchedule] = useState(agent?.triggers?.onSchedule ?? '');
+  const [customRules, setCustomRules] = useState<string[]>(agent?.triggers?.customRules ? [...agent.triggers.customRules] : []);
+
   const [saved, setSaved] = useState(false);
 
-  function handleSave() {
+  const handleSave = () => {
     if (isCreateMode) {
       createAgent.mutate(
-        { name, description, category, priority, model, framework, scope, tools, skills, permission_mode: permissionMode, memory },
+        {
+          name: displayName.toLowerCase().replace(/\s+/g, '-'),
+          displayName,
+          description,
+          scope,
+          projectIds,
+          capabilities,
+          tags,
+        },
         {
           onSuccess: () => {
             setSaved(true);
@@ -109,8 +181,29 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
     } else {
       updateAgent.mutate(
         {
-          id: agent.agent_id,
-          data: { name, description, category, priority, model, framework, scope, tools, skills, permission_mode: permissionMode, memory },
+          agentId: agent.agent_id,
+          data: {
+            displayName,
+            description,
+            scope,
+            projectIds,
+            capabilities,
+            tags,
+            model,
+            temperature,
+            maxTokens,
+            systemPrompt: systemPrompt || undefined,
+            personaName: personaName || undefined,
+            role: personaTitle || undefined,
+            tone: formality || undefined,
+            instructions: personaDescription || undefined,
+            skillIds,
+            toolIds,
+            onMention,
+            onDirectMessage,
+            onSchedule: onSchedule || undefined,
+            customRules,
+          },
         },
         {
           onSuccess: () => {
@@ -120,226 +213,348 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
         },
       );
     }
-  }
-
-  function addTag(
-    value: string,
-    list: string[],
-    setList: (v: string[]) => void,
-    setInput: (v: string) => void,
-  ) {
-    return (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter' && value.trim()) {
-        e.preventDefault();
-        if (!list.includes(value.trim())) {
-          setList([...list, value.trim()]);
-        }
-        setInput('');
-      }
-    };
-  }
-
-  // CardGridLayout configuration
-  const cardGridConfig = {
-    rows: [
-      {
-        id: 'agent-edit-row',
-        cols: 2,
-        gap: 6,
-        items: [
-          // Left Column
-          {
-            id: 'left-column',
-            colSpan: { default: 1, lg: 1 },
-            content: (
-              <div className="flex flex-col gap-6">
-                {/* Basic Info */}
-                <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">{t('editForm.basicInfo')}</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>{t('editForm.name')}</Label>
-                      <Input value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>{t('editForm.description')}</Label>
-                      <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>{t('editForm.category')}</Label>
-                        <select value={category} onChange={e => setCategory(e.target.value as AgentCategory)} className={selectCls}>
-                          {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>{t('editForm.priority')}</Label>
-                        <select value={priority} onChange={e => setPriority(e.target.value as AgentPriority)} className={selectCls}>
-                          {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Model Config */}
-                <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">{t('editForm.modelConfig')}</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>{t('editForm.model')}</Label>
-                      <select value={model} onChange={e => setModel(e.target.value)} className={selectCls}>
-                        {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>{t('editForm.framework')}</Label>
-                        <select value={framework} onChange={e => setFramework(e.target.value as AgentFramework)} className={selectCls}>
-                          {FRAMEWORK_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>{t('editForm.scope')}</Label>
-                        <select value={scope} onChange={e => setScope(e.target.value as AgentScope)} className={selectCls}>
-                          {SCOPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              </div>
-            ),
-            animation: { delay: 0.1 },
-          },
-          // Right Column
-          {
-            id: 'right-column',
-            colSpan: { default: 1, lg: 1 },
-            content: (
-              <div className="flex flex-col gap-6">
-                {/* Tools and Skills */}
-                <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">{t('editForm.toolsAndSkills')}</h3>
-                  <div className="space-y-5">
-                    <div>
-                      <Label>{t('editForm.tools')}</Label>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {tools.map(tool => (
-                          <Badge key={tool} variant="secondary" className="gap-1">
-                            {tool}
-                            <button onClick={() => setTools(tools.filter(x => x !== tool))} className="hover:text-foreground transition-colors">
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="relative">
-                        <Input
-                          value={toolInput}
-                          onChange={e => setToolInput(e.target.value)}
-                          onKeyDown={addTag(toolInput, tools, setTools, setToolInput)}
-                          placeholder={t('editForm.toolPlaceholder')}
-                        />
-                        <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>{t('editForm.skills')}</Label>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {skills.map(skill => (
-                          <Badge key={skill} variant="outline" className="gap-1 text-cyan-400 border-cyan-500/25">
-                            {skill}
-                            <button onClick={() => setSkills(skills.filter(x => x !== skill))} className="hover:text-foreground transition-colors">
-                              <X size={12} />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="relative">
-                        <Input
-                          value={skillInput}
-                          onChange={e => setSkillInput(e.target.value)}
-                          onKeyDown={addTag(skillInput, skills, setSkills, setSkillInput)}
-                          placeholder={t('editForm.skillPlaceholder')}
-                        />
-                        <Plus size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Permissions */}
-                <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">{t('editForm.permissions')}</h3>
-                  <div className="space-y-5">
-                    <div>
-                      <Label>{t('editForm.permissionMode')}</Label>
-                      <div className="flex flex-wrap gap-2 mt-1.5">
-                        {PERMISSION_OPTIONS.map(o => (
-                          <button
-                            key={o.value}
-                            onClick={() => setPermissionMode(o.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                              permissionMode === o.value
-                                ? `${o.color} ring-1 ring-white/20`
-                                : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>{t('editForm.memory')}</Label>
-                      <div className="flex flex-wrap gap-2 mt-1.5">
-                        {MEMORY_OPTIONS.map(o => (
-                          <button
-                            key={o.value ?? 'none'}
-                            onClick={() => setMemory(o.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                              memory === o.value
-                                ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 ring-1 ring-white/20'
-                                : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              </div>
-            ),
-            animation: { delay: 0.2 },
-          },
-        ],
-      },
-    ],
   };
+
+  const isPending = createAgent.isPending || updateAgent.isPending;
+  const canSave = displayName.trim() && !isPending && !saved;
 
   return (
     <PageShell>
       <PageHeader
-        title={agent?.name ?? t('editForm.newAgent')}
-        subtitle={t('editForm.subtitle')}
+        title={isCreateMode ? 'Create Agent' : (agent?.display_name || agent?.name || 'Edit Agent')}
+        subtitle={isCreateMode ? 'Create a new AI agent' : `Agent ID: ${agent?.agent_id}`}
         actions={
-          <Button onClick={handleSave} disabled={updateAgent.isPending || createAgent.isPending || saved}>
+          <Button onClick={handleSave} disabled={!canSave}>
             {saved ? <Check size={16} /> : <Save size={16} />}
-            {saved ? t('common:actions.saved') : t('common:actions.save')}
+            {saved ? 'Saved' : 'Save'}
           </Button>
         }
       />
 
       <PageContent>
-        <div className="max-w-6xl mx-auto">
-          <CardGridLayout {...cardGridConfig} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 max-w-[1800px] mx-auto">
+          {/* Column 1: System & Basic Info */}
+          <div className="flex flex-col gap-6">
+            {!isCreateMode && agent && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <InfoField label="Agent ID" value={agent.agent_id} mono />
+                  <InfoField label="Name" value={agent.name} mono />
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
+                        {agent.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <InfoField label="Created By" value={agent.created_by} />
+                  <InfoField label="Created At" value={new Date(agent.created_at).toLocaleString()} />
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField label="Display Name" required>
+                  <Input
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    placeholder="My Agent"
+                  />
+                </FormField>
+                <FormField label="Description">
+                  <Textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Agent description"
+                  />
+                </FormField>
+                <FormField label="Scope">
+                  <select value={scope} onChange={e => setScope(e.target.value as AgentScope)} className={SELECT_CLASS}>
+                    {SCOPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </FormField>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Association</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TagInput
+                  label="Project IDs"
+                  tags={projectIds}
+                  onAdd={id => setProjectIds([...projectIds, id])}
+                  onRemove={id => setProjectIds(projectIds.filter(x => x !== id))}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Column 2: Runtime & Persona */}
+          <div className="flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Runtime Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField label="Model">
+                  <select value={model} onChange={e => setModel(e.target.value)} className={SELECT_CLASS}>
+                    {MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </FormField>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Temperature">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      value={temperature}
+                      onChange={e => setTemperature(parseFloat(e.target.value))}
+                    />
+                  </FormField>
+                  <FormField label="Max Tokens">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="200000"
+                      step="1"
+                      value={maxTokens}
+                      onChange={e => setMaxTokens(parseInt(e.target.value))}
+                    />
+                  </FormField>
+                </div>
+                <FormField label="System Prompt">
+                  <Textarea
+                    value={systemPrompt}
+                    onChange={e => setSystemPrompt(e.target.value)}
+                    rows={4}
+                    placeholder="Custom system prompt (optional)"
+                  />
+                </FormField>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Persona Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Persona Name">
+                    <Input value={personaName} onChange={e => setPersonaName(e.target.value)} placeholder="Technical Expert" />
+                  </FormField>
+                  <FormField label="Title">
+                    <Input value={personaTitle} onChange={e => setPersonaTitle(e.target.value)} placeholder="Senior Engineer" />
+                  </FormField>
+                </div>
+                <FormField label="Description">
+                  <Textarea
+                    value={personaDescription}
+                    onChange={e => setPersonaDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Persona description"
+                  />
+                </FormField>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-3">Language Style</h4>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField label="Formality">
+                        <select value={formality} onChange={e => setFormality(e.target.value)} className={SELECT_CLASS}>
+                          {FORMALITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </FormField>
+                      <FormField label="Verbosity">
+                        <select value={verbosity} onChange={e => setVerbosity(e.target.value)} className={SELECT_CLASS}>
+                          {VERBOSITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </FormField>
+                    </div>
+                    <FormField label="Preferred Language">
+                      <Input
+                        value={preferredLanguage}
+                        onChange={e => setPreferredLanguage(e.target.value)}
+                        placeholder="en, zh-CN"
+                      />
+                    </FormField>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium mb-3">Behavior</h4>
+                  <div className="space-y-3">
+                    <CheckboxField
+                      id="proactive"
+                      label="Proactive"
+                      checked={proactive}
+                      onChange={setProactive}
+                    />
+                    <CheckboxField
+                      id="askBeforeAction"
+                      label="Ask Before Action"
+                      checked={askBeforeAction}
+                      onChange={setAskBeforeAction}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Column 3: Skills, Tools, Triggers & Tags */}
+          <div className="flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Capabilities & Tags</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <TagInput
+                  label="Capabilities"
+                  tags={capabilities}
+                  onAdd={cap => setCapabilities([...capabilities, cap])}
+                  onRemove={cap => setCapabilities(capabilities.filter(x => x !== cap))}
+                />
+                <TagInput
+                  label="Tags"
+                  tags={tags}
+                  onAdd={tag => setTags([...tags, tag])}
+                  onRemove={tag => setTags(tags.filter(x => x !== tag))}
+                  variant="outline"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Skills & Tools</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <TagInput
+                  label="Skill IDs"
+                  tags={skillIds}
+                  onAdd={id => setSkillIds([...skillIds, id])}
+                  onRemove={id => setSkillIds(skillIds.filter(x => x !== id))}
+                  variant="outline"
+                  className="text-cyan-400 border-cyan-500/25"
+                />
+                <TagInput
+                  label="Tool IDs"
+                  tags={toolIds}
+                  onAdd={id => setToolIds([...toolIds, id])}
+                  onRemove={id => setToolIds(toolIds.filter(x => x !== id))}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Triggers</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <CheckboxField
+                  id="onMention"
+                  label="Trigger on @mention"
+                  checked={onMention}
+                  onChange={setOnMention}
+                />
+                <CheckboxField
+                  id="onDirectMessage"
+                  label="Trigger on direct message"
+                  checked={onDirectMessage}
+                  onChange={setOnDirectMessage}
+                />
+                <FormField label="Schedule (cron)">
+                  <Input
+                    value={onSchedule}
+                    onChange={e => setOnSchedule(e.target.value)}
+                    placeholder="0 9 * * *"
+                  />
+                </FormField>
+                <TagInput
+                  label="Custom Rules"
+                  tags={customRules}
+                  onAdd={rule => setCustomRules([...customRules, rule])}
+                  onRemove={rule => setCustomRules(customRules.filter(x => x !== rule))}
+                  variant="outline"
+                />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </PageContent>
     </PageShell>
+  );
+}
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+interface FormFieldProps {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}
+
+function FormField({ label, required, children }: FormFieldProps) {
+  return (
+    <div>
+      <Label>
+        {label}
+        {required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+interface InfoFieldProps {
+  label: string;
+  value: string;
+  mono?: boolean;
+}
+
+function InfoField({ label, value, mono }: InfoFieldProps) {
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className={`text-sm ${mono ? 'font-mono break-all' : ''}`}>{value}</p>
+    </div>
+  );
+}
+
+interface CheckboxFieldProps {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function CheckboxField({ id, label, checked, onChange }: CheckboxFieldProps) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="w-4 h-4 rounded border-input"
+      />
+      <Label htmlFor={id} className="cursor-pointer">
+        {label}
+      </Label>
+    </div>
   );
 }

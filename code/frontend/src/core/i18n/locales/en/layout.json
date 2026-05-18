@@ -41,11 +41,6 @@
     "accountSettings": "Account Settings",
     "logout": "Log out"
   },
-  "channelPanel": {
-    "floatingMode": "Floating mode",
-    "dockedMode": "Docked mode",
-    "close": "Close"
-  },
   "pageError": {
     "back": "Back"
   }

@@ -27,5 +27,41 @@
     "title": "Tasks",
     "heading": "Task Management",
     "description": "Task board, assignment, progress tracking, and collaboration will be implemented here."
+  },
+  "page": {
+    "subtitle": "System monitoring and statistics"
+  },
+  "tokenUsage": {
+    "title": "Token Usage Overview",
+    "used": "Used",
+    "costToday": "Today's Cost",
+    "costWeek": "This Week's Cost",
+    "costMonth": "This Month's Cost",
+    "apiNote": "Data will be provided via API (GET /api/stats/token-overview?timeRange={{timeRange}})"
+  },
+  "timeRange": {
+    "today": "Today",
+    "week": "This Week",
+    "month": "This Month"
+  },
+  "systemStatus": {
+    "title": "System Status Monitoring",
+    "apiNote": "System status data will be provided via backend API"
+  },
+  "channelActivity": {
+    "title": "Channel Activity Monitoring",
+    "activeChannels": "Active Channels",
+    "messages": "Messages",
+    "threads": "Threads",
+    "apiNote": "Data will be provided via API"
+  },
+  "tokenTrend": {
+    "title": "Token Usage Trend",
+    "apiNote": "Data will be provided via API"
+  },
+  "agentStatus": {
+    "title": "Agent Monitoring",
+    "runningAgents": "Running Agents",
+    "apiNote": "Data will be provided via API"
   }
 }

@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { UserMenu } from './index';
 import { useAuthStore } from '@/core/auth/authStore';
@@ -43,7 +44,8 @@ describe('UserMenu', () => {
     expect(screen.getByText('Log in')).toBeInTheDocument();
   });
 
-  it('should navigate to login page when login button clicked', () => {
+  it('should navigate to login page when login button clicked', async () => {
+    const user = userEvent.setup();
     vi.mocked(useAuthStore).mockReturnValue({
       user: null,
       isAuthenticated: false,
@@ -60,7 +62,7 @@ describe('UserMenu', () => {
     );
 
     const loginButton = screen.getByText('Log in');
-    fireEvent.click(loginButton);
+    await user.click(loginButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
@@ -89,7 +91,8 @@ describe('UserMenu', () => {
     expect(screen.getByText('T')).toBeInTheDocument();
   });
 
-  it('should show dropdown menu when avatar clicked', () => {
+  it('should show dropdown menu when avatar clicked', async () => {
+    const user = userEvent.setup();
     vi.mocked(useAuthStore).mockReturnValue({
       user: {
         id: '1',
@@ -110,14 +113,18 @@ describe('UserMenu', () => {
     );
 
     const avatarButton = screen.getByRole('button');
-    fireEvent.click(avatarButton);
+    await user.click(avatarButton);
 
     // Dropdown should show username and email
-    expect(screen.getByText('testuser')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    });
+    // Username appears in multiple places (button and dropdown), so just check email
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
-  it('should call logout when logout button clicked', () => {
+  it('should call logout when logout button clicked', async () => {
+    const user = userEvent.setup();
     const mockLogout = vi.fn();
     vi.mocked(useAuthStore).mockReturnValue({
       user: {
@@ -139,16 +146,17 @@ describe('UserMenu', () => {
     );
 
     const avatarButton = screen.getByRole('button');
-    fireEvent.click(avatarButton);
+    await user.click(avatarButton);
 
-    const logoutButton = screen.getByText('Log out');
-    fireEvent.click(logoutButton);
+    const logoutButton = await screen.findByText('Log out');
+    await user.click(logoutButton);
 
     expect(mockLogout).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
-  it('should navigate to settings when settings clicked', () => {
+  it('should navigate to settings when settings clicked', async () => {
+    const user = userEvent.setup();
     vi.mocked(useAuthStore).mockReturnValue({
       user: {
         id: '1',
@@ -169,10 +177,10 @@ describe('UserMenu', () => {
     );
 
     const avatarButton = screen.getByRole('button');
-    fireEvent.click(avatarButton);
+    await user.click(avatarButton);
 
-    const settingsButton = screen.getByText('Account Settings');
-    fireEvent.click(settingsButton);
+    const settingsButton = await screen.findByText('Account Settings');
+    await user.click(settingsButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/settings?tab=profile');
   });

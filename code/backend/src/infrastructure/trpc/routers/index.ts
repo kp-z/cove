@@ -1,5 +1,6 @@
 import { router, procedure } from '../trpc';
 import { createAgentRouter } from './agent.router';
+import { createAdapterRouter } from './adapter.router';
 import { channelRouter } from './channel.router';
 import { messageRouter } from './message.router';
 import { taskRouter } from './task.router';
@@ -10,6 +11,7 @@ import { projectRouter } from './project.router';
 import { createSubscriptionRouter } from './subscription.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
+import type { AdapterService } from '../../../application/services/adapter/adapter.service';
 import type { ChannelService } from '../../../application/services/channel/channel.service';
 import type { MessageService } from '../../../application/services/message/message.service';
 import type { TaskService } from '../../../application/services/task/task.service';
@@ -22,6 +24,7 @@ import type { IEventBus } from '../../../application/interfaces/event-bus.interf
 export interface RouterDependencies {
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
+  adapterService: AdapterService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -45,6 +48,12 @@ export function createAppRouter(deps: RouterDependencies) {
     agent: createAgentRouter({
       agentService: deps.agentService,
       agentRuntimeService: deps.agentRuntimeService,
+      adapterService: deps.adapterService,
+    }),
+
+    // Adapter router
+    adapter: createAdapterRouter({
+      adapterService: deps.adapterService,
     }),
 
     // Channel router

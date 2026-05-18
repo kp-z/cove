@@ -78,7 +78,7 @@ export const createMockApiResponse = <T,>(data: T) => ({
   status: 200,
   statusText: 'OK',
   headers: {},
-  config: {} as any,
+  config: {} as Record<string, unknown>,
 });
 
 /**
@@ -90,11 +90,11 @@ export const createMockApiError = (message: string, status = 500) => ({
     status,
     statusText: 'Error',
     headers: {},
-    config: {} as any,
+    config: {} as Record<string, unknown>,
   },
   message,
   name: 'AxiosError',
-  config: {} as any,
+  config: {} as Record<string, unknown>,
   isAxiosError: true,
   toJSON: () => ({}),
 });

@@ -16,6 +16,10 @@ export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 const VALID_ROLES: readonly UserRole[] = ['owner', 'admin', 'user', 'visitor'];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export interface UserPreference {
+  readonly pinned_channels?: readonly string[];
+}
+
 export interface UserEntityProps {
   readonly userId: string;
   readonly username: string;
@@ -24,6 +28,7 @@ export interface UserEntityProps {
   readonly role: UserRole;
   readonly avatar?: string;
   readonly permissions?: readonly string[];
+  readonly preference?: UserPreference;
   readonly createdAt: Date;
 }
 
@@ -35,6 +40,7 @@ export interface UserEntityJSON {
   readonly role: UserRole;
   readonly avatar?: string;
   readonly permissions: readonly string[];
+  readonly preference?: UserPreference;
   readonly created_at: string;
 }
 
@@ -56,6 +62,7 @@ export class UserEntity {
       role: json.role,
       avatar: json.avatar,
       permissions: json.permissions,
+      preference: json.preference,
       createdAt: new Date(json.created_at),
     });
   }
@@ -84,6 +91,7 @@ export class UserEntity {
   get role(): UserRole { return this.props.role; }
   get avatar(): string | undefined { return this.props.avatar; }
   get permissions(): readonly string[] { return this.props.permissions ?? []; }
+  get preference(): UserPreference { return this.props.preference ?? {}; }
   get createdAt(): Date { return this.props.createdAt; }
 
   // --- Role checks ---
@@ -106,6 +114,14 @@ export class UserEntity {
     return UserEntity.create({ ...this.props, email });
   }
 
+  updatePreference(preference: UserPreference): UserEntity {
+    // Validate: max 10 pinned channels
+    if (preference.pinned_channels && preference.pinned_channels.length > 10) {
+      throw new Error('Cannot pin more than 10 channels');
+    }
+    return UserEntity.create({ ...this.props, preference });
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: UserEntity): boolean {
@@ -123,6 +139,7 @@ export class UserEntity {
       role: this.props.role,
       avatar: this.props.avatar,
       permissions: this.permissions,
+      preference: this.preference,
       created_at: this.props.createdAt.toISOString(),
     };
   }

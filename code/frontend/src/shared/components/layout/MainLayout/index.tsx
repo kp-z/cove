@@ -9,12 +9,9 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
 import { ChannelPanel } from '@/features/channel/components/ChannelPanel';
 import { useResizable } from '@/features/channel/hooks/useResizable';
-import { X, PanelRightClose, PanelRightOpen } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 function ChannelPanelWrapper() {
-  const { t } = useTranslation('layout');
-  const { channel_id: channelId, closeChannel, mode, setMode } = useChannelPanelStore();
+  const { channel_id: channelId, mode } = useChannelPanelStore();
   const { width: panelWidth, onDragStart } = useResizable({
     defaultWidth: 500,
     minWidth: 400,
@@ -27,32 +24,9 @@ function ChannelPanelWrapper() {
   const isDocked = mode === 'docked';
 
   const panelContent = (
-    <>
-      {/* Panel toolbar */}
-      <div className="flex items-center justify-end gap-1 px-2 py-1.5 border-b border-white/5 shrink-0">
-        <button
-          onClick={() => setMode(isDocked ? 'floating' : 'docked')}
-          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-          title={isDocked ? t('channelPanel.floatingMode') : t('channelPanel.dockedMode')}
-        >
-          {isDocked ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
-        </button>
-        <button
-          onClick={closeChannel}
-          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-          title={t('channelPanel.close')}
-        >
-          <X size={14} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <ChannelPanel
-          channel_id={channelId}
-          thread_id={null}
-          onClose={closeChannel}
-        />
-      </div>
-    </>
+    <div className="flex-1 overflow-hidden">
+      <ChannelPanel channel_id={channelId} thread_id={null} />
+    </div>
   );
 
   if (!isDocked) {
