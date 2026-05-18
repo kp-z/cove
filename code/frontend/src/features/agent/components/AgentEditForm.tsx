@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
-import { useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
+import { useUpdateAgent, useCreateAgent } from '@/lib/trpc/hooks/agent.hooks';
 import type {
   Agent, AgentFramework, AgentCategory, AgentPriority, AgentScope, AgentPermissionMode,
 } from '../types/agent.types';
 
 interface AgentEditFormProps {
-  agent: Agent;
+  agent?: Agent;
   onSaved: () => void;
 }
 
@@ -75,35 +75,50 @@ const selectCls = 'flex h-9 w-full rounded-md border border-input bg-transparent
 export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const { t } = useTranslation('agent');
   const updateAgent = useUpdateAgent();
+  const createAgent = useCreateAgent();
 
-  const [name, setName] = useState(agent.name);
-  const [description, setDescription] = useState(agent.description);
-  const [category, setCategory] = useState(agent.category);
-  const [priority, setPriority] = useState<AgentPriority>(agent.priority);
-  const [model, setModel] = useState(agent.model);
-  const [framework, setFramework] = useState<AgentFramework>(agent.framework);
-  const [scope, setScope] = useState<AgentScope>(agent.scope);
-  const [tools, setTools] = useState<string[]>(agent.tools);
-  const [skills, setSkills] = useState<string[]>(agent.skills);
-  const [permissionMode, setPermissionMode] = useState<AgentPermissionMode>(agent.permission_mode);
-  const [memory, setMemory] = useState<Agent['memory']>(agent.memory);
+  const isCreateMode = !agent;
+
+  const [name, setName] = useState(agent?.name ?? '');
+  const [description, setDescription] = useState(agent?.description ?? '');
+  const [category, setCategory] = useState<AgentCategory>(agent?.category ?? 'engineering');
+  const [priority, setPriority] = useState<AgentPriority>(agent?.priority ?? 'normal');
+  const [model, setModel] = useState(agent?.model ?? 'claude-3-sonnet');
+  const [framework, setFramework] = useState<AgentFramework>(agent?.framework ?? 'claude_code');
+  const [scope, setScope] = useState<AgentScope>(agent?.scope ?? 'user');
+  const [tools, setTools] = useState<string[]>(agent?.tools ?? []);
+  const [skills, setSkills] = useState<string[]>(agent?.skills ?? []);
+  const [permissionMode, setPermissionMode] = useState<AgentPermissionMode>(agent?.permission_mode ?? 'default');
+  const [memory, setMemory] = useState<Agent['memory']>(agent?.memory ?? null);
   const [toolInput, setToolInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [saved, setSaved] = useState(false);
 
   function handleSave() {
-    updateAgent.mutate(
-      {
-        id: agent.agent_id,
-        data: { name, description, category, priority, model, framework, scope, tools, skills, permission_mode: permissionMode, memory },
-      },
-      {
-        onSuccess: () => {
-          setSaved(true);
-          setTimeout(onSaved, 600);
+    if (isCreateMode) {
+      createAgent.mutate(
+        { name, description, category, priority, model, framework, scope, tools, skills, permission_mode: permissionMode, memory },
+        {
+          onSuccess: () => {
+            setSaved(true);
+            setTimeout(onSaved, 600);
+          },
         },
-      },
-    );
+      );
+    } else {
+      updateAgent.mutate(
+        {
+          id: agent.agent_id,
+          data: { name, description, category, priority, model, framework, scope, tools, skills, permission_mode: permissionMode, memory },
+        },
+        {
+          onSuccess: () => {
+            setSaved(true);
+            setTimeout(onSaved, 600);
+          },
+        },
+      );
+    }
   }
 
   function addTag(
@@ -126,10 +141,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   return (
     <PageShell>
       <PageHeader
-        title={agent.name}
+        title={agent?.name ?? t('editForm.newAgent')}
         subtitle={t('editForm.subtitle')}
         actions={
-          <Button onClick={handleSave} disabled={updateAgent.isPending || saved}>
+          <Button onClick={handleSave} disabled={updateAgent.isPending || createAgent.isPending || saved}>
             {saved ? <Check size={16} /> : <Save size={16} />}
             {saved ? t('common:actions.saved') : t('common:actions.save')}
           </Button>
