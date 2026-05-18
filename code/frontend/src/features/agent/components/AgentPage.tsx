@@ -113,7 +113,7 @@ export default function AgentPage() {
               <RefreshCw size={14} />
               {t('actions.sync')}
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => navigate('/agents/new')}>
               <Plus size={14} />
               {t('actions.new')}
             </Button>

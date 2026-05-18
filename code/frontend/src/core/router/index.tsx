@@ -44,6 +44,10 @@ export const router = createBrowserRouter([
         element: <AgentPage />,
       },
       {
+        path: 'agents/new',
+        element: <AgentEditPage />,
+      },
+      {
         path: 'agents/:id/edit',
         element: <AgentEditPage />,
       },
