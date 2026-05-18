@@ -9,7 +9,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn('shrink-0 px-6 pt-6 pb-4', className)}>
+    <header className={cn('shrink-0 px-6 pt-6 pb-4 bg-transparent', className)}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight uppercase">{title}</h1>

@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Save, X, Plus, Check, UserPlus, Trash2 } from 'lucide-react';
+import { Save, X, Plus, Check, UserPlus, Trash2, FileText, Bot, FolderOpen, Users, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -239,7 +239,10 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
               <div className="flex flex-col gap-6">
                 {/* Basic Info */}
                 <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">📋 {t('edit.basicInfo')}</h3>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    {t('edit.basicInfo')}
+                  </h3>
                   <div className="space-y-4">
                     <div>
                       <Label>{t('edit.form.name')} *</Label>
@@ -336,7 +339,10 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
 
                 {/* Agent Pool */}
                 <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">🤖 {t('edit.agentPool.title')}</h3>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-primary" />
+                    {t('edit.agentPool.title')}
+                  </h3>
                   <div className="space-y-2">
                     {agents && agents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-2">
@@ -363,7 +369,10 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                 {/* Workspace - Read Only */}
                 {!isCreateMode && channel?.workspace && (
                   <GlassCard className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">📁 {t('edit.workspace.title')}</h3>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <FolderOpen className="w-5 h-5 text-primary" />
+                      {t('edit.workspace.title')}
+                    </h3>
                     <div className="text-sm space-y-1">
                       <div className="flex gap-2">
                         <span className="text-muted-foreground w-24">Root:</span>
@@ -392,7 +401,10 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
               <div className="flex flex-col gap-6">
                 {/* Members Management */}
                 <GlassCard className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">👥 {t('edit.members.title')}</h3>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    {t('edit.members.title')}
+                  </h3>
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <Input
@@ -415,7 +427,11 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                           members.map(member => (
                             <div key={member.member_id} className="flex items-center justify-between p-3">
                               <div className="flex items-center gap-2">
-                                <span>{member.member_type === 'human' ? '👤' : '🤖'}</span>
+                                {member.member_type === 'human' ? (
+                                  <User className="w-4 h-4 text-muted-foreground" />
+                                ) : (
+                                  <Bot className="w-4 h-4 text-muted-foreground" />
+                                )}
                                 <span className="text-sm">{member.member_id}</span>
                                 <Badge variant="outline" className="text-xs">
                                   {member.role}
@@ -445,7 +461,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                             {filteredAvailableUsers.map(user => (
                               <div key={user.user_id} className="flex items-center justify-between p-3">
                                 <div className="flex items-center gap-2">
-                                  <span>👤</span>
+                                  <User className="w-4 h-4 text-muted-foreground" />
                                   <span className="text-sm">{user.name}</span>
                                 </div>
                                 <Button
@@ -461,7 +477,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                             {filteredAvailableAgents.map(agent => (
                               <div key={agent.agent_id} className="flex items-center justify-between p-3">
                                 <div className="flex items-center gap-2">
-                                  <span>🤖</span>
+                                  <Bot className="w-4 h-4 text-muted-foreground" />
                                   <span className="text-sm">{agent.name}</span>
                                 </div>
                                 <Button

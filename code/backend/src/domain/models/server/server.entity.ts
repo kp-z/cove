@@ -1,134 +1,101 @@
 /**
- * ServerEntity - 服务器实体（聚合根）
+ * ServerEntity - 服务器/工作空间实体（聚合根）
  *
- * 服务器是运行 Agent 的计算资源，管理资源配置、网络、安全等基础设施。
+ * Server 是 Cove 的顶层容器，代表一个工作空间或团队空间。
+ * 类似于 Slack Workspace 或 Discord Server。
  *
  * 业务规则：
- * - serverId 不能为空
- * - name 不能为空
- * - projectId 不能为空
- * - type 只能是 physical | virtual | container | cloud
- * - status 只能是 provisioning | running | stopped | maintenance | error | terminated
+ * - server_id 不能为空
+ * - name 不能为空且长度在 1-50 之间
+ * - owner_id 不能为空
+ * - status 只能是 active | suspended | archived
+ * - visibility 只能是 public | private
  * - Entity 是不可变的（更新返回新实例）
  */
 
-export type ServerType = 'physical' | 'virtual' | 'container' | 'cloud';
-export type ServerProvider = 'aws' | 'gcp' | 'azure' | 'local';
-export type ServerStatus = 'provisioning' | 'running' | 'stopped' | 'maintenance' | 'error' | 'terminated';
-export type NetworkProtocol = 'http' | 'https';
+export type ServerStatus = 'active' | 'suspended' | 'archived';
+export type ServerVisibility = 'public' | 'private';
+export type MemberRole = 'member' | 'guest';
 
-const VALID_SERVER_TYPES: readonly ServerType[] = ['physical', 'virtual', 'container', 'cloud'];
-const VALID_SERVER_STATUSES: readonly ServerStatus[] = ['provisioning', 'running', 'stopped', 'maintenance', 'error', 'terminated'];
+const VALID_SERVER_STATUSES: readonly ServerStatus[] = ['active', 'suspended', 'archived'];
+const VALID_SERVER_VISIBILITIES: readonly ServerVisibility[] = ['public', 'private'];
+const VALID_MEMBER_ROLES: readonly MemberRole[] = ['member', 'guest'];
 
-export interface ServerResources {
-  readonly cpuCores: number;
-  readonly memoryGb: number;
-  readonly diskGb: number;
-  readonly gpuCount?: number;
+/**
+ * Server 设置
+ */
+export interface ServerSettings {
+  readonly allow_public_channels: boolean;
+  readonly allow_private_channels: boolean;
+  readonly allow_dm: boolean;
+  readonly require_approval: boolean;
+  readonly default_member_role: MemberRole;
 }
 
-export interface ServerNetwork {
-  readonly hostname: string;
-  readonly ipAddress?: string;
-  readonly port: number;
-  readonly protocol: NetworkProtocol;
-  readonly domain?: string;
-}
-
-export interface FirewallRule {
-  readonly port: number;
-  readonly protocol: 'tcp' | 'udp';
-  readonly source: string;
-}
-
-export interface ServerSecurity {
-  readonly sshEnabled: boolean;
-  readonly sshPort?: number;
-  readonly firewallRules?: readonly FirewallRule[];
-  readonly sslEnabled: boolean;
-  readonly sslCertPath?: string;
-}
-
+/**
+ * Server 资源限制
+ */
 export interface ServerLimits {
-  readonly maxAgents: number;
-  readonly maxConcurrentExecutions: number;
-  readonly maxMemoryPerAgentGb: number;
+  readonly max_members: number;
+  readonly max_projects: number;
+  readonly max_channels: number;
+  readonly max_agents: number;
+  readonly max_storage_gb: number;
 }
 
+/**
+ * ServerEntity Props（内部使用 camelCase）
+ */
 export interface ServerEntityProps {
-  readonly serverId: string;
+  readonly server_id: string;
   readonly name: string;
+  readonly display_name: string;
   readonly description?: string;
-  readonly projectId: string;
-  readonly type: ServerType;
-  readonly provider?: ServerProvider;
-  readonly region?: string;
-  readonly instanceType?: string;
-  readonly resources: ServerResources;
-  readonly network: ServerNetwork;
-  readonly security: ServerSecurity;
-  readonly limits: ServerLimits;
+  readonly owner_id: string;
   readonly status: ServerStatus;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
-  readonly startedAt?: Date;
-  readonly stoppedAt?: Date;
+  readonly visibility: ServerVisibility;
+  readonly settings: ServerSettings;
+  readonly limits: ServerLimits;
+  readonly created_at: Date;
+  readonly updated_at: Date;
   readonly meta: {
     readonly tags?: readonly string[];
-    readonly environment?: string;
-    readonly costCenter?: string;
-    readonly owner?: string;
+    readonly icon?: string;
+    readonly banner?: string;
   };
 }
 
+/**
+ * ServerEntity JSON（序列化格式，使用 snake_case）
+ */
 export interface ServerEntityJSON {
   readonly server_id: string;
   readonly name: string;
+  readonly display_name: string;
   readonly description?: string;
-  readonly project_id: string;
-  readonly type: ServerType;
-  readonly provider?: ServerProvider;
-  readonly region?: string;
-  readonly instance_type?: string;
-  readonly resources: {
-    readonly cpu_cores: number;
-    readonly memory_gb: number;
-    readonly disk_gb: number;
-    readonly gpu_count?: number;
-  };
-  readonly network: {
-    readonly hostname: string;
-    readonly ip_address?: string;
-    readonly port: number;
-    readonly protocol: NetworkProtocol;
-    readonly domain?: string;
-  };
-  readonly security: {
-    readonly ssh_enabled: boolean;
-    readonly ssh_port?: number;
-    readonly firewall_rules?: readonly {
-      readonly port: number;
-      readonly protocol: 'tcp' | 'udp';
-      readonly source: string;
-    }[];
-    readonly ssl_enabled: boolean;
-    readonly ssl_cert_path?: string;
+  readonly owner_id: string;
+  readonly status: ServerStatus;
+  readonly visibility: ServerVisibility;
+  readonly settings: {
+    readonly allow_public_channels: boolean;
+    readonly allow_private_channels: boolean;
+    readonly allow_dm: boolean;
+    readonly require_approval: boolean;
+    readonly default_member_role: MemberRole;
   };
   readonly limits: {
+    readonly max_members: number;
+    readonly max_projects: number;
+    readonly max_channels: number;
     readonly max_agents: number;
-    readonly max_concurrent_executions: number;
-    readonly max_memory_per_agent_gb: number;
+    readonly max_storage_gb: number;
   };
-  readonly status: ServerStatus;
   readonly created_at: string;
   readonly updated_at: string;
-  readonly started_at?: string;
-  readonly stopped_at?: string;
   readonly meta: {
     readonly tags?: readonly string[];
-    readonly environment?: string;
-    readonly cost_center?: string;
-    readonly owner?: string;
+    readonly icon?: string;
+    readonly banner?: string;
   };
 }
 
@@ -143,130 +110,116 @@ export class ServerEntity {
 
   static fromJSON(json: ServerEntityJSON): ServerEntity {
     return ServerEntity.create({
-      serverId: json.server_id,
+      server_id: json.server_id,
       name: json.name,
+      display_name: json.display_name,
       description: json.description,
-      projectId: json.project_id,
-      type: json.type,
-      provider: json.provider,
-      region: json.region,
-      instanceType: json.instance_type,
-      resources: {
-        cpuCores: json.resources.cpu_cores,
-        memoryGb: json.resources.memory_gb,
-        diskGb: json.resources.disk_gb,
-        gpuCount: json.resources.gpu_count,
-      },
-      network: {
-        hostname: json.network.hostname,
-        ipAddress: json.network.ip_address,
-        port: json.network.port,
-        protocol: json.network.protocol,
-        domain: json.network.domain,
-      },
-      security: {
-        sshEnabled: json.security.ssh_enabled,
-        sshPort: json.security.ssh_port,
-        firewallRules: json.security.firewall_rules,
-        sslEnabled: json.security.ssl_enabled,
-        sslCertPath: json.security.ssl_cert_path,
-      },
-      limits: {
-        maxAgents: json.limits.max_agents,
-        maxConcurrentExecutions: json.limits.max_concurrent_executions,
-        maxMemoryPerAgentGb: json.limits.max_memory_per_agent_gb,
-      },
+      owner_id: json.owner_id,
       status: json.status,
-      createdAt: new Date(json.created_at),
-      updatedAt: new Date(json.updated_at),
-      startedAt: json.started_at ? new Date(json.started_at) : undefined,
-      stoppedAt: json.stopped_at ? new Date(json.stopped_at) : undefined,
+      visibility: json.visibility,
+      settings: json.settings,
+      limits: json.limits,
+      created_at: new Date(json.created_at),
+      updated_at: new Date(json.updated_at),
       meta: json.meta,
     });
   }
 
   private validate(): void {
-    if (!this.props.serverId || this.props.serverId.trim() === '') {
+    // Validate server_id
+    if (!this.props.server_id || this.props.server_id.trim() === '') {
       throw new Error('Server ID cannot be empty');
     }
+
+    // Validate name
     if (!this.props.name || this.props.name.trim() === '') {
       throw new Error('Server name cannot be empty');
     }
-    if (!this.props.projectId || this.props.projectId.trim() === '') {
-      throw new Error('Project ID cannot be empty');
+    if (this.props.name.length > 50) {
+      throw new Error('Server name cannot exceed 50 characters');
     }
-    if (!VALID_SERVER_TYPES.includes(this.props.type)) {
-      throw new Error(`Invalid server type: ${this.props.type}. Must be one of: ${VALID_SERVER_TYPES.join(', ')}`);
+
+    // Validate display_name
+    if (!this.props.display_name || this.props.display_name.trim() === '') {
+      throw new Error('Server display name cannot be empty');
     }
+    if (this.props.display_name.length > 100) {
+      throw new Error('Server display name cannot exceed 100 characters');
+    }
+
+    // Validate owner_id
+    if (!this.props.owner_id || this.props.owner_id.trim() === '') {
+      throw new Error('Owner ID cannot be empty');
+    }
+
+    // Validate status
     if (!VALID_SERVER_STATUSES.includes(this.props.status)) {
       throw new Error(`Invalid server status: ${this.props.status}. Must be one of: ${VALID_SERVER_STATUSES.join(', ')}`);
     }
 
-    // Validate resources
-    if (this.props.resources.cpuCores <= 0) {
-      throw new Error('CPU cores must be greater than 0');
+    // Validate visibility
+    if (!VALID_SERVER_VISIBILITIES.includes(this.props.visibility)) {
+      throw new Error(`Invalid server visibility: ${this.props.visibility}. Must be one of: ${VALID_SERVER_VISIBILITIES.join(', ')}`);
     }
-    if (this.props.resources.memoryGb <= 0) {
-      throw new Error('Memory must be greater than 0');
-    }
-    if (this.props.resources.diskGb <= 0) {
-      throw new Error('Disk size must be greater than 0');
+
+    // Validate default_member_role
+    if (!VALID_MEMBER_ROLES.includes(this.props.settings.default_member_role)) {
+      throw new Error(`Invalid default member role: ${this.props.settings.default_member_role}. Must be one of: ${VALID_MEMBER_ROLES.join(', ')}`);
     }
 
     // Validate limits
-    if (this.props.limits.maxAgents <= 0) {
-      throw new Error('Max agents must be greater than 0');
+    if (this.props.limits.max_members <= 0) {
+      throw new Error('Max members must be greater than 0');
     }
-    if (this.props.limits.maxConcurrentExecutions <= 0) {
-      throw new Error('Max concurrent executions must be greater than 0');
+    if (this.props.limits.max_projects < 0) {
+      throw new Error('Max projects cannot be negative');
+    }
+    if (this.props.limits.max_channels < 0) {
+      throw new Error('Max channels cannot be negative');
+    }
+    if (this.props.limits.max_agents < 0) {
+      throw new Error('Max agents cannot be negative');
+    }
+    if (this.props.limits.max_storage_gb <= 0) {
+      throw new Error('Max storage must be greater than 0');
     }
   }
 
   // --- Getters ---
 
-  get serverId(): string { return this.props.serverId; }
+  get server_id(): string { return this.props.server_id; }
   get name(): string { return this.props.name; }
+  get display_name(): string { return this.props.display_name; }
   get description(): string | undefined { return this.props.description; }
-  get projectId(): string { return this.props.projectId; }
-  get type(): ServerType { return this.props.type; }
-  get provider(): ServerProvider | undefined { return this.props.provider; }
-  get region(): string | undefined { return this.props.region; }
-  get instanceType(): string | undefined { return this.props.instanceType; }
-  get resources(): ServerResources { return this.props.resources; }
-  get network(): ServerNetwork { return this.props.network; }
-  get security(): ServerSecurity { return this.props.security; }
-  get limits(): ServerLimits { return this.props.limits; }
+  get owner_id(): string { return this.props.owner_id; }
   get status(): ServerStatus { return this.props.status; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
-  get startedAt(): Date | undefined { return this.props.startedAt; }
-  get stoppedAt(): Date | undefined { return this.props.stoppedAt; }
+  get visibility(): ServerVisibility { return this.props.visibility; }
+  get settings(): ServerSettings { return this.props.settings; }
+  get limits(): ServerLimits { return this.props.limits; }
+  get created_at(): Date { return this.props.created_at; }
+  get updated_at(): Date { return this.props.updated_at; }
   get meta(): ServerEntityProps['meta'] { return this.props.meta; }
 
   // --- Status checks ---
 
-  isProvisioning(): boolean { return this.props.status === 'provisioning'; }
-  isRunning(): boolean { return this.props.status === 'running'; }
-  isStopped(): boolean { return this.props.status === 'stopped'; }
-  isMaintenance(): boolean { return this.props.status === 'maintenance'; }
-  isError(): boolean { return this.props.status === 'error'; }
-  isTerminated(): boolean { return this.props.status === 'terminated'; }
-  canStartAgents(): boolean { return this.props.status === 'running'; }
+  isActive(): boolean { return this.props.status === 'active'; }
+  isSuspended(): boolean { return this.props.status === 'suspended'; }
+  isArchived(): boolean { return this.props.status === 'archived'; }
 
-  // --- Type checks ---
+  canAcceptMembers(): boolean { return this.props.status === 'active'; }
+  canCreateProjects(): boolean { return this.props.status === 'active'; }
 
-  isCloud(): boolean { return this.props.type === 'cloud'; }
-  isPhysical(): boolean { return this.props.type === 'physical'; }
-  isVirtual(): boolean { return this.props.type === 'virtual'; }
-  isContainer(): boolean { return this.props.type === 'container'; }
+  // --- Visibility checks ---
 
-  // --- Resource checks ---
+  isPublic(): boolean { return this.props.visibility === 'public'; }
+  isPrivate(): boolean { return this.props.visibility === 'private'; }
 
-  hasGpu(): boolean { return (this.props.resources.gpuCount ?? 0) > 0; }
+  // --- Settings checks ---
 
-  canAccommodateAgent(memoryGb: number): boolean {
-    return memoryGb <= this.props.limits.maxMemoryPerAgentGb;
-  }
+  allowsPublicChannels(): boolean { return this.props.settings.allow_public_channels; }
+  allowsPrivateChannels(): boolean { return this.props.settings.allow_private_channels; }
+  allowsDM(): boolean { return this.props.settings.allow_dm; }
+  requiresApproval(): boolean { return this.props.settings.require_approval; }
 
   // --- Immutable updates ---
 
@@ -274,167 +227,171 @@ export class ServerEntity {
     return ServerEntity.create({
       ...this.props,
       status,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     });
   }
 
-  start(): ServerEntity {
-    if (this.props.status !== 'stopped' && this.props.status !== 'provisioning') {
-      throw new Error('Only stopped or provisioning servers can be started');
+  suspend(): ServerEntity {
+    if (this.props.status !== 'active') {
+      throw new Error('Only active servers can be suspended');
     }
     return ServerEntity.create({
       ...this.props,
-      status: 'running',
-      startedAt: new Date(),
-      stoppedAt: undefined,
-      updatedAt: new Date(),
+      status: 'suspended',
+      updated_at: new Date(),
     });
   }
 
-  stop(): ServerEntity {
-    if (this.props.status !== 'running') {
-      throw new Error('Only running servers can be stopped');
+  activate(): ServerEntity {
+    if (this.props.status !== 'suspended') {
+      throw new Error('Only suspended servers can be activated');
     }
     return ServerEntity.create({
       ...this.props,
-      status: 'stopped',
-      stoppedAt: new Date(),
-      updatedAt: new Date(),
+      status: 'active',
+      updated_at: new Date(),
     });
   }
 
-  enterMaintenance(): ServerEntity {
-    if (this.props.status !== 'running') {
-      throw new Error('Only running servers can enter maintenance');
+  archive(): ServerEntity {
+    if (this.props.status === 'archived') {
+      throw new Error('Server is already archived');
     }
     return ServerEntity.create({
       ...this.props,
-      status: 'maintenance',
-      updatedAt: new Date(),
+      status: 'archived',
+      updated_at: new Date(),
     });
   }
 
-  exitMaintenance(): ServerEntity {
-    if (this.props.status !== 'maintenance') {
-      throw new Error('Only servers in maintenance can exit maintenance');
+  unarchive(): ServerEntity {
+    if (this.props.status !== 'archived') {
+      throw new Error('Only archived servers can be unarchived');
     }
     return ServerEntity.create({
       ...this.props,
-      status: 'running',
-      updatedAt: new Date(),
-    });
-  }
-
-  markAsError(): ServerEntity {
-    return ServerEntity.create({
-      ...this.props,
-      status: 'error',
-      updatedAt: new Date(),
-    });
-  }
-
-  recover(): ServerEntity {
-    if (this.props.status !== 'error') {
-      throw new Error('Only servers in error state can be recovered');
-    }
-    return ServerEntity.create({
-      ...this.props,
-      status: 'running',
-      updatedAt: new Date(),
-    });
-  }
-
-  terminate(): ServerEntity {
-    if (this.props.status !== 'stopped') {
-      throw new Error('Only stopped servers can be terminated');
-    }
-    return ServerEntity.create({
-      ...this.props,
-      status: 'terminated',
-      updatedAt: new Date(),
+      status: 'active',
+      updated_at: new Date(),
     });
   }
 
   updateName(name: string): ServerEntity {
+    if (!name || name.trim() === '') {
+      throw new Error('Server name cannot be empty');
+    }
+    if (name.length > 50) {
+      throw new Error('Server name cannot exceed 50 characters');
+    }
     return ServerEntity.create({
       ...this.props,
-      name,
-      updatedAt: new Date(),
+      name: name.trim(),
+      updated_at: new Date(),
     });
   }
 
-  updateDescription(description: string): ServerEntity {
+  updateDisplayName(display_name: string): ServerEntity {
+    if (!display_name || display_name.trim() === '') {
+      throw new Error('Server display name cannot be empty');
+    }
+    if (display_name.length > 100) {
+      throw new Error('Server display name cannot exceed 100 characters');
+    }
     return ServerEntity.create({
       ...this.props,
-      description,
-      updatedAt: new Date(),
+      display_name: display_name.trim(),
+      updated_at: new Date(),
     });
   }
 
-  updateResources(resources: ServerResources): ServerEntity {
+  updateDescription(description: string | undefined): ServerEntity {
     return ServerEntity.create({
       ...this.props,
-      resources,
-      updatedAt: new Date(),
+      description: description?.trim(),
+      updated_at: new Date(),
     });
   }
 
-  updateLimits(limits: ServerLimits): ServerEntity {
+  updateVisibility(visibility: ServerVisibility): ServerEntity {
     return ServerEntity.create({
       ...this.props,
-      limits,
-      updatedAt: new Date(),
+      visibility,
+      updated_at: new Date(),
+    });
+  }
+
+  updateSettings(settings: Partial<ServerSettings>): ServerEntity {
+    return ServerEntity.create({
+      ...this.props,
+      settings: {
+        ...this.props.settings,
+        ...settings,
+      },
+      updated_at: new Date(),
+    });
+  }
+
+  updateLimits(limits: Partial<ServerLimits>): ServerEntity {
+    const newLimits = {
+      ...this.props.limits,
+      ...limits,
+    };
+
+    // Validate new limits
+    if (newLimits.max_members <= 0) {
+      throw new Error('Max members must be greater than 0');
+    }
+    if (newLimits.max_projects < 0) {
+      throw new Error('Max projects cannot be negative');
+    }
+    if (newLimits.max_channels < 0) {
+      throw new Error('Max channels cannot be negative');
+    }
+    if (newLimits.max_agents < 0) {
+      throw new Error('Max agents cannot be negative');
+    }
+    if (newLimits.max_storage_gb <= 0) {
+      throw new Error('Max storage must be greater than 0');
+    }
+
+    return ServerEntity.create({
+      ...this.props,
+      limits: newLimits,
+      updated_at: new Date(),
+    });
+  }
+
+  updateMeta(meta: Partial<ServerEntityProps['meta']>): ServerEntity {
+    return ServerEntity.create({
+      ...this.props,
+      meta: {
+        ...this.props.meta,
+        ...meta,
+      },
+      updated_at: new Date(),
     });
   }
 
   // --- Equality (by ID) ---
 
   equals(other: ServerEntity): boolean {
-    return this.props.serverId === other.props.serverId;
+    return this.props.server_id === other.props.server_id;
   }
 
   // --- Serialization ---
 
   toJSON(): ServerEntityJSON {
     return {
-      server_id: this.props.serverId,
+      server_id: this.props.server_id,
       name: this.props.name,
+      display_name: this.props.display_name,
       description: this.props.description,
-      project_id: this.props.projectId,
-      type: this.props.type,
-      provider: this.props.provider,
-      region: this.props.region,
-      instance_type: this.props.instanceType,
-      resources: {
-        cpu_cores: this.props.resources.cpuCores,
-        memory_gb: this.props.resources.memoryGb,
-        disk_gb: this.props.resources.diskGb,
-        gpu_count: this.props.resources.gpuCount,
-      },
-      network: {
-        hostname: this.props.network.hostname,
-        ip_address: this.props.network.ipAddress,
-        port: this.props.network.port,
-        protocol: this.props.network.protocol,
-        domain: this.props.network.domain,
-      },
-      security: {
-        ssh_enabled: this.props.security.sshEnabled,
-        ssh_port: this.props.security.sshPort,
-        firewall_rules: this.props.security.firewallRules,
-        ssl_enabled: this.props.security.sslEnabled,
-        ssl_cert_path: this.props.security.sslCertPath,
-      },
-      limits: {
-        max_agents: this.props.limits.maxAgents,
-        max_concurrent_executions: this.props.limits.maxConcurrentExecutions,
-        max_memory_per_agent_gb: this.props.limits.maxMemoryPerAgentGb,
-      },
+      owner_id: this.props.owner_id,
       status: this.props.status,
-      created_at: this.props.createdAt.toISOString(),
-      updated_at: this.props.updatedAt.toISOString(),
-      started_at: this.props.startedAt?.toISOString(),
-      stopped_at: this.props.stoppedAt?.toISOString(),
+      visibility: this.props.visibility,
+      settings: this.props.settings,
+      limits: this.props.limits,
+      created_at: this.props.created_at.toISOString(),
+      updated_at: this.props.updated_at.toISOString(),
       meta: this.props.meta,
     };
   }

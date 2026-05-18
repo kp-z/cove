@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Save, X, Plus, Check } from 'lucide-react';
+import { Save, X, Plus, Check, Settings, FileText, FolderOpen, Tag, Cpu, User, Wrench, Zap } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -238,7 +238,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             {/* System Information (Edit Mode Only) */}
             {!isCreateMode && agent && (
               <GlassCard className="p-6">
-                <h3 className="text-lg font-semibold mb-4">🔧 System Information</h3>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Settings size={20} />
+                  System Information
+                </h3>
                 <div className="space-y-3">
                   <InfoField label="Agent ID" value={agent.agent_id} mono />
                   <InfoField label="Name" value={agent.name} mono />
@@ -258,7 +261,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Basic Information */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">📋 Basic Information</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <FileText size={20} />
+                Basic Information
+              </h3>
               <div className="space-y-4">
                 <FormField label="Display Name" required>
                   <Input
@@ -285,7 +291,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Project Association */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">📁 Project Association</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <FolderOpen size={20} />
+                Project Association
+              </h3>
               <TagInput
                 label="Project IDs"
                 tags={projectIds}
@@ -296,7 +305,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Capabilities & Tags */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">🏷️ Capabilities & Tags</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Tag size={20} />
+                Capabilities & Tags
+              </h3>
               <div className="space-y-5">
                 <TagInput
                   label="Capabilities"
@@ -319,7 +331,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
           <div className="flex flex-col gap-6">
             {/* Runtime Configuration */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">⚙️ Runtime Configuration</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Cpu size={20} />
+                Runtime Configuration
+              </h3>
               <div className="space-y-4">
                 <FormField label="Model">
                   <select value={model} onChange={e => setModel(e.target.value)} className={SELECT_CLASS}>
@@ -361,7 +376,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Persona Configuration */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">👤 Persona Configuration</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <User size={20} />
+                Persona Configuration
+              </h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField label="Persona Name">
@@ -427,7 +445,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Skills & Tools */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">🛠️ Skills & Tools</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Wrench size={20} />
+                Skills & Tools
+              </h3>
               <div className="space-y-5">
                 <TagInput
                   label="Skill IDs"
@@ -448,7 +469,10 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Triggers */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold mb-4">⚡ Triggers</h3>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Zap size={20} />
+                Triggers
+              </h3>
               <div className="space-y-4">
                 <CheckboxField
                   id="onMention"
