@@ -8,6 +8,8 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('MemberService', () => {
   let memberService: MemberService;
@@ -16,8 +18,10 @@ describe('MemberService', () => {
   let mockUserRepository: IUserRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockMemberRepository = {
       save: vi.fn(),
       update: vi.fn(),
@@ -66,14 +70,16 @@ describe('MemberService', () => {
         userId: 'user-1',
       };
 
-      const result = await memberService.joinChannel(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.joinChannel(dto);
+      });
 
       expect(result).toBeInstanceOf(MemberEntity);
       expect(result.channelId).toBe(dto.channelId);
       expect(result.userId).toBe(dto.userId);
       expect(result.role).toBe('member');
       expect(result.status).toBe('active');
-      expect(mockMemberRepository.save).toHaveBeenCalledWith(expect.any(MemberEntity));
+      expect(mockMemberRepository.save).toHaveBeenCalledWith(expect.any(MemberEntity), 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'member.joined',
@@ -93,7 +99,9 @@ describe('MemberService', () => {
         role: 'admin',
       };
 
-      const result = await memberService.joinChannel(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.joinChannel(dto);
+      });
 
       expect(result.role).toBe('admin');
       expect(result.permissions).toContain('manage_members');
@@ -184,7 +192,9 @@ describe('MemberService', () => {
         userId: 'user-1',
       };
 
-      const result = await memberService.joinChannel(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.joinChannel(dto);
+      });
 
       expect(result).toBeInstanceOf(MemberEntity);
     });
@@ -210,7 +220,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findByChannelAndUser).mockResolvedValue(member);
 
-      const result = await memberService.leaveChannel('channel-1', 'user-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.leaveChannel('channel-1', 'user-1');
+      });
 
       expect(result.status).toBe('left');
       expect(result.leftAt).toBeDefined();
@@ -251,7 +263,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findById).mockResolvedValue(member);
 
-      const result = await memberService.getMemberById('member-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.getMemberById('member-1');
+      });
 
       expect(result).toBe(member);
     });
@@ -287,7 +301,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findByChannel).mockResolvedValue(members);
 
-      const result = await memberService.getChannelMembers('channel-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.getChannelMembers('channel-1');
+      });
 
       expect(result).toEqual(members);
     });
@@ -315,7 +331,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findByUser).mockResolvedValue(members);
 
-      const result = await memberService.getUserChannels('user-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.getUserChannels('user-1');
+      });
 
       expect(result).toEqual(members);
     });
@@ -346,7 +364,9 @@ describe('MemberService', () => {
         role: 'admin',
       };
 
-      const result = await memberService.updateMemberRole(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.updateMemberRole(dto);
+      });
 
       expect(result.role).toBe('admin');
       expect(mockMemberRepository.update).toHaveBeenCalled();
@@ -378,7 +398,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findByChannelAndUser).mockResolvedValue(member);
 
-      const result = await memberService.banMember('channel-1', 'user-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.banMember('channel-1', 'user-1');
+      });
 
       expect(result.status).toBe('banned');
       expect(result.bannedAt).toBeDefined();
@@ -412,7 +434,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findByChannelAndUser).mockResolvedValue(member);
 
-      const result = await memberService.unbanMember('channel-1', 'user-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.unbanMember('channel-1', 'user-1');
+      });
 
       expect(result.status).toBe('joined');
       expect(mockMemberRepository.update).toHaveBeenCalled();
@@ -450,7 +474,9 @@ describe('MemberService', () => {
         mentionOnly: true,
       };
 
-      const result = await memberService.updateNotificationSettings(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.updateNotificationSettings(dto);
+      });
 
       expect(result.notificationSettings.enabled).toBe(false);
       expect(result.notificationSettings.mentionOnly).toBe(true);
@@ -482,7 +508,9 @@ describe('MemberService', () => {
         muteUntil,
       };
 
-      const result = await memberService.updateNotificationSettings(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.updateNotificationSettings(dto);
+      });
 
       expect(result.notificationSettings.muteUntil).toEqual(muteUntil);
       expect(mockMemberRepository.update).toHaveBeenCalled();
@@ -509,7 +537,9 @@ describe('MemberService', () => {
 
       vi.mocked(mockMemberRepository.findById).mockResolvedValue(member);
 
-      const result = await memberService.recordActivity('member-1');
+      const result = await runWithContext(testContext, async () => {
+        return await memberService.recordActivity('member-1');
+      });
 
       expect(result.lastActiveAt.getTime()).toBeGreaterThan(member.lastActiveAt.getTime());
       expect(mockMemberRepository.update).toHaveBeenCalled();
@@ -528,7 +558,11 @@ describe('MemberService', () => {
         userId: 'user-1',
       };
 
-      await expect(memberService.joinChannel(dto)).resolves.toBeDefined();
+      await expect(
+        runWithContext(testContext, async () => {
+          return await memberService.joinChannel(dto);
+        })
+      ).resolves.toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish event',
         expect.any(Error),

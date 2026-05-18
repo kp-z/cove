@@ -13,6 +13,8 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('ProjectCompositionService', () => {
   let service: ProjectCompositionService;
@@ -21,8 +23,11 @@ describe('ProjectCompositionService', () => {
   let mockChannelRepository: IChannelRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
+
     mockProjectRepository = {
       save: vi.fn(),
       update: vi.fn(),
@@ -88,9 +93,11 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(agent);
 
-      const result = await service.addAgentToProject({
-        projectId: 'proj-1',
-        agentId: 'agent-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.addAgentToProject({
+          projectId: 'proj-1',
+          agentId: 'agent-1',
+        });
       });
 
       expect(result.agentIds).toContain('agent-1');
@@ -129,9 +136,11 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(agent);
 
-      const result = await service.addAgentToProject({
-        projectId: 'proj-1',
-        agentId: 'agent-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.addAgentToProject({
+          projectId: 'proj-1',
+          agentId: 'agent-1',
+        });
       });
 
       expect(result).toBe(project);
@@ -142,7 +151,9 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(null);
 
       await expect(
-        service.addAgentToProject({ projectId: 'nonexistent', agentId: 'agent-1' })
+        runWithContext(testContext, async () => {
+          return await service.addAgentToProject({ projectId: 'nonexistent', agentId: 'agent-1' });
+        })
       ).rejects.toThrow(ProjectNotFoundError);
     });
 
@@ -163,7 +174,9 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(null);
 
       await expect(
-        service.addAgentToProject({ projectId: 'proj-1', agentId: 'nonexistent' })
+        runWithContext(testContext, async () => {
+          return await service.addAgentToProject({ projectId: 'proj-1', agentId: 'nonexistent' });
+        })
       ).rejects.toThrow(AgentNotFoundError);
     });
   });
@@ -184,9 +197,11 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.removeAgentFromProject({
-        projectId: 'proj-1',
-        agentId: 'agent-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.removeAgentFromProject({
+          projectId: 'proj-1',
+          agentId: 'agent-1',
+        });
       });
 
       expect(result.agentIds).not.toContain('agent-1');
@@ -213,9 +228,11 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      const result = await service.removeAgentFromProject({
-        projectId: 'proj-1',
-        agentId: 'agent-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.removeAgentFromProject({
+          projectId: 'proj-1',
+          agentId: 'agent-1',
+        });
       });
 
       expect(result).toBe(project);
@@ -250,9 +267,11 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
-      const result = await service.addChannelToProject({
-        projectId: 'proj-1',
-        channelId: 'channel-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.addChannelToProject({
+          projectId: 'proj-1',
+          channelId: 'channel-1',
+        });
       });
 
       expect(result.channelIds).toContain('channel-1');
@@ -290,9 +309,11 @@ describe('ProjectCompositionService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
-      const result = await service.addChannelToProject({
-        projectId: 'proj-1',
-        channelId: 'channel-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.addChannelToProject({
+          projectId: 'proj-1',
+          channelId: 'channel-1',
+        });
       });
 
       expect(result).toBe(project);

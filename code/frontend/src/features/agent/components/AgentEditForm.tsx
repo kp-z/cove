@@ -133,15 +133,14 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const [capabilities, setCapabilities] = useState<string[]>(agent?.capabilities ? [...agent.capabilities] : []);
   const [tags, setTags] = useState<string[]>(agent?.tags ? [...agent.tags] : []);
 
-  // Runtime Config - Adapter Configuration
-  const [adapterConfig, setAdapterConfig] = useState<AdapterConfig | null>(
-    agent?.runtime_config?.adapter_config ?? {
-      type: 'anthropic-api',
-      model: 'claude-3-sonnet-20240229',
-      temperature: 0.7,
-      max_tokens: 4096,
-    }
-  );
+  // Runtime Config - Adapter Configuration (two-part: adapter_id + overrides)
+  const [runtimeConfig, setRuntimeConfig] = useState<{
+    adapter_id?: string;
+    overrides?: Partial<AdapterConfig['config']>;
+  }>({
+    adapter_id: agent?.runtime_config?.adapter_id,
+    overrides: agent?.runtime_config?.overrides,
+  });
   const [systemPrompt, setSystemPrompt] = useState(agent?.runtime_config?.systemPrompt ?? '');
 
   // Persona
@@ -177,6 +176,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
           projectIds,
           capabilities,
           tags,
+          runtimeConfig, // Include adapter_id and overrides
         },
         {
           onSuccess: () => {
@@ -196,7 +196,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             projectIds,
             capabilities,
             tags,
-            adapterConfig: adapterConfig || undefined,
+            runtimeConfig, // Include adapter_id and overrides
             systemPrompt: systemPrompt || undefined,
             personaName: personaName || undefined,
             role: personaTitle || undefined,
@@ -335,25 +335,23 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
           {/* Right Column */}
           <div className="flex flex-col gap-6">
             {/* Runtime Configuration */}
+            <RuntimeAdapterConfig
+              value={runtimeConfig}
+              onChange={setRuntimeConfig}
+            />
+
+            {/* System Prompt */}
             <GlassCard className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Cpu size={20} />
-                Runtime Configuration
+                <FileText size={20} />
+                System Prompt
               </h3>
-              <RuntimeAdapterConfig
-                value={adapterConfig}
-                onChange={setAdapterConfig}
+              <Textarea
+                value={systemPrompt}
+                onChange={e => setSystemPrompt(e.target.value)}
+                rows={6}
+                placeholder="Custom system prompt (optional)"
               />
-              <div className="mt-4 pt-4 border-t">
-                <FormField label="System Prompt">
-                  <Textarea
-                    value={systemPrompt}
-                    onChange={e => setSystemPrompt(e.target.value)}
-                    rows={4}
-                    placeholder="Custom system prompt (optional)"
-                  />
-                </FormField>
-              </div>
             </GlassCard>
 
             {/* Persona Configuration */}

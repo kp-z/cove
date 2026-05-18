@@ -3,6 +3,8 @@ import { AgentResponseService } from './agent-response.service';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 import { AgentEntity } from '../../../domain/models/agent/agent.entity';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 // Test helper functions
 function createTestAgent(overrides: Partial<any> = {}): AgentEntity {
@@ -90,8 +92,10 @@ describe('AgentResponseService', () => {
   let mockChannelRepository: any;
   let mockEventBus: any;
   let mockLogger: any;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockAgentRepository = {
       findById: vi.fn(),
       findByStatus: vi.fn(),
@@ -198,7 +202,9 @@ describe('AgentResponseService', () => {
       mockMessageRepository.save.mockResolvedValue(undefined);
       mockEventBus.publish.mockResolvedValue(undefined);
 
-      await service.handleIncomingMessage(message);
+      await runWithContext(testContext, async () => {
+        await service.handleIncomingMessage(message);
+      });
 
       expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
       expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-1');
@@ -213,7 +219,9 @@ describe('AgentResponseService', () => {
 
       mockChannelRepository.findById.mockResolvedValue(null);
 
-      await service.handleIncomingMessage(message);
+      await runWithContext(testContext, async () => {
+        await service.handleIncomingMessage(message);
+      });
 
       expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
@@ -231,7 +239,9 @@ describe('AgentResponseService', () => {
 
       mockChannelRepository.findById.mockResolvedValue(channel);
 
-      await service.handleIncomingMessage(message);
+      await runWithContext(testContext, async () => {
+        await service.handleIncomingMessage(message);
+      });
 
       expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
@@ -321,7 +331,9 @@ describe('AgentResponseService', () => {
         .mockResolvedValueOnce(undefined);
       mockEventBus.publish.mockResolvedValue(undefined);
 
-      await service.handleIncomingMessage(message);
+      await runWithContext(testContext, async () => {
+        await service.handleIncomingMessage(message);
+      });
 
       expect(mockAgentRepository.findById).toHaveBeenCalledTimes(2);
       expect(mockMessageRepository.save).toHaveBeenCalledTimes(2);
@@ -337,7 +349,9 @@ describe('AgentResponseService', () => {
       });
       const channel = createTestChannel();
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(true);
     });
@@ -347,7 +361,9 @@ describe('AgentResponseService', () => {
       const message = createTestMessage({ status: 'sent' });
       const channel = createTestChannel();
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(false);
     });
@@ -360,7 +376,9 @@ describe('AgentResponseService', () => {
       });
       const channel = createTestChannel();
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(false);
     });
@@ -370,7 +388,9 @@ describe('AgentResponseService', () => {
       const message = createTestMessage({ status: 'deleted' });
       const channel = createTestChannel();
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(false);
     });
@@ -386,7 +406,9 @@ describe('AgentResponseService', () => {
         ],
       });
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(true);
     });
@@ -402,7 +424,9 @@ describe('AgentResponseService', () => {
         ],
       });
 
-      const result = await service.shouldAgentRespond(agent, message, channel);
+      const result = await runWithContext(testContext, async () => {
+        return await service.shouldAgentRespond(agent, message, channel);
+      });
 
       expect(result).toBe(false);
     });
@@ -414,7 +438,9 @@ describe('AgentResponseService', () => {
       const message = createTestMessage({ content: 'Hello agent' });
       const channel = createTestChannel();
 
-      const response = await service.generateAgentResponse(agent, message, channel);
+      const response = await runWithContext(testContext, async () => {
+        return await service.generateAgentResponse(agent, message, channel);
+      });
 
       expect(response).toContain('TestAgent');
       expect(typeof response).toBe('string');
@@ -515,7 +541,9 @@ describe('AgentResponseService', () => {
       mockMessageRepository.save.mockResolvedValue(undefined);
       mockEventBus.publish.mockResolvedValue(undefined);
 
-      await service.handleIncomingMessage(message);
+      await runWithContext(testContext, async () => {
+        await service.handleIncomingMessage(message);
+      });
 
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({

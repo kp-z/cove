@@ -9,6 +9,8 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('ChannelMessagingService', () => {
   let service: ChannelMessagingService;
@@ -16,8 +18,10 @@ describe('ChannelMessagingService', () => {
   let mockMessageRepository: IMessageRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockChannelRepository = {
       findById: vi.fn(),
     } as unknown as IChannelRepository;
@@ -61,17 +65,19 @@ describe('ChannelMessagingService', () => {
 
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
-      const result = await service.sendMessage({
-        channelId: 'channel-1',
-        content: 'Test message',
-        senderId: 'user-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.sendMessage({
+          channelId: 'channel-1',
+          content: 'Test message',
+          senderId: 'user-1',
+        });
       });
 
       expect(result).toBeInstanceOf(MessageEntity);
       expect(result.content).toBe('Test message');
       expect(result.channelId).toBe('channel-1');
       expect(result.senderId).toBe('user-1');
-      expect(mockMessageRepository.save).toHaveBeenCalledWith(expect.any(MessageEntity));
+      expect(mockMessageRepository.save).toHaveBeenCalledWith(expect.any(MessageEntity), 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'message.sent',
@@ -92,11 +98,13 @@ describe('ChannelMessagingService', () => {
 
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
-      const result = await service.sendMessage({
-        channelId: 'channel-1',
-        content: 'Thread reply',
-        senderId: 'user-1',
-        threadId: 'msg-1',
+      const result = await runWithContext(testContext, async () => {
+        return await service.sendMessage({
+          channelId: 'channel-1',
+          content: 'Thread reply',
+          senderId: 'user-1',
+          threadId: 'msg-1',
+        });
       });
 
       expect(result.threadId).toBe('msg-1');
@@ -107,10 +115,12 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(null);
 
       await expect(
-        service.sendMessage({
-          channelId: 'nonexistent',
-          content: 'Test',
-          senderId: 'user-1',
+        runWithContext(testContext, async () => {
+          return await service.sendMessage({
+            channelId: 'nonexistent',
+            content: 'Test',
+            senderId: 'user-1',
+          });
         })
       ).rejects.toThrow(ChannelNotFoundError);
     });
@@ -129,10 +139,12 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
       await expect(
-        service.sendMessage({
-          channelId: 'channel-1',
-          content: 'Test',
-          senderId: 'user-1',
+        runWithContext(testContext, async () => {
+          return await service.sendMessage({
+            channelId: 'channel-1',
+            content: 'Test',
+            senderId: 'user-1',
+          });
         })
       ).rejects.toThrow(ChannelNotActiveError);
     });
@@ -151,10 +163,12 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
 
       await expect(
-        service.sendMessage({
-          channelId: 'channel-1',
-          content: 'Test',
-          senderId: 'user-1',
+        runWithContext(testContext, async () => {
+          return await service.sendMessage({
+            channelId: 'channel-1',
+            content: 'Test',
+            senderId: 'user-1',
+          });
         })
       ).rejects.toThrow(MemberNotInChannelError);
     });
@@ -174,10 +188,12 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockEventBus.publish).mockRejectedValue(new Error('Event bus error'));
 
       await expect(
-        service.sendMessage({
-          channelId: 'channel-1',
-          content: 'Test',
-          senderId: 'user-1',
+        runWithContext(testContext, async () => {
+          return await service.sendMessage({
+            channelId: 'channel-1',
+            content: 'Test',
+            senderId: 'user-1',
+          });
         })
       ).resolves.toBeDefined();
 
