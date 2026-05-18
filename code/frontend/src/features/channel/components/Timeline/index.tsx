@@ -56,7 +56,8 @@ function getNodeIcon(type: TimelineNode['type']) {
 /**
  * 截断文本到指定行数
  */
-function truncateText(text: string, maxLength: number = 100): string {
+function truncateText(text: string | undefined, maxLength: number = 100): string {
+  if (!text) return '';
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 }
