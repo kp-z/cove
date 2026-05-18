@@ -1,13 +1,17 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { PrismaClient } from '@prisma/client';
 import { ILogger } from '../../application/interfaces/index';
+import { BuiltInAgentsInitializer } from './built-in-agents-initializer';
 
 export interface DatabaseInitializerOptions {
   databasePath: string;
   migrationsPath: string;
   logger: ILogger;
   autoMigrate?: boolean;
+  prisma?: PrismaClient;
+  storageRoot?: string; // Path to .cove directory for agent storage
 }
 
 export class DatabaseInitializer {
@@ -15,12 +19,16 @@ export class DatabaseInitializer {
   private readonly migrationsPath: string;
   private readonly logger: ILogger;
   private readonly autoMigrate: boolean;
+  private readonly prisma?: PrismaClient;
+  private readonly storageRoot?: string;
 
   constructor(options: DatabaseInitializerOptions) {
     this.databasePath = options.databasePath;
     this.migrationsPath = options.migrationsPath;
     this.logger = options.logger;
     this.autoMigrate = options.autoMigrate ?? true;
+    this.prisma = options.prisma;
+    this.storageRoot = options.storageRoot;
   }
 
   /**
@@ -127,10 +135,43 @@ export class DatabaseInitializer {
         size: stats.size
       });
 
+      // Step 4: Initialize built-in agents (if prisma and storageRoot are provided)
+      if (this.prisma && this.storageRoot) {
+        await this.initializeBuiltInAgents();
+      } else {
+        this.logger.debug('Skipping built-in agents initialization (prisma or storageRoot not provided)');
+      }
+
       return true;
     } catch (error) {
       this.logger.error('Database initialization failed', error as Error);
       throw error;
+    }
+  }
+
+  /**
+   * Initialize built-in agents
+   */
+  private async initializeBuiltInAgents(): Promise<void> {
+    if (!this.prisma || !this.storageRoot) {
+      return;
+    }
+
+    try {
+      this.logger.info('Initializing built-in agents...');
+
+      const agentsInitializer = new BuiltInAgentsInitializer({
+        prisma: this.prisma,
+        logger: this.logger,
+        storageRoot: this.storageRoot,
+      });
+
+      await agentsInitializer.initialize();
+
+      this.logger.info('Built-in agents initialization complete');
+    } catch (error) {
+      this.logger.error('Failed to initialize built-in agents', error as Error);
+      // Don't throw - built-in agents initialization failure shouldn't block database initialization
     }
   }
 

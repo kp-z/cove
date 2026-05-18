@@ -500,11 +500,18 @@ async function startServer() {
     const migrationsPath = path.join(__dirname, '../prisma/migrations');
 
     const logger = new ConsoleLogger();
+
+    // Get Prisma client and storage root for built-in agents initialization
+    const prisma = getPrismaClient();
+    const storageRoot = path.resolve(__dirname, '../../.cove');
+
     const dbInitializer = new DatabaseInitializer({
       databasePath,
       migrationsPath,
       logger,
       autoMigrate: process.env.AUTO_MIGRATE !== 'false', // Enable by default, disable with AUTO_MIGRATE=false
+      prisma, // Pass Prisma client for built-in agents initialization
+      storageRoot, // Pass storage root for agent files
     });
 
     await dbInitializer.initialize();
