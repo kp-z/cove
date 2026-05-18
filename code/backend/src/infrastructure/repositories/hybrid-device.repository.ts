@@ -25,9 +25,29 @@ interface DeviceDbRecord {
 }
 
 interface DeviceContent {
-  metadata?: Record<string, any>;
-  capabilities?: string[];
-  location?: string;
+  description?: string;
+  provider?: string;
+  specs: {
+    cpu_cores: number;
+    memory_gb: number;
+    storage_gb: number;
+    gpu_count?: number;
+    gpu_model?: string;
+  };
+  network?: {
+    hostname?: string;
+    ip_address?: string;
+    port?: number;
+    protocol?: 'http' | 'https';
+    domain?: string;
+  };
+  location?: {
+    datacenter?: string;
+    region?: string;
+    zone?: string;
+    rack?: string;
+  };
+  meta?: Record<string, unknown>;
 }
 
 export class HybridDeviceRepository
@@ -48,15 +68,17 @@ export class HybridDeviceRepository
       server_id: dbRecord.serverId,
       name: dbRecord.name,
       display_name: dbRecord.displayName || undefined,
+      description: content.description,
       type: dbRecord.type as DeviceType,
-      status: dbRecord.status as DeviceStatus,
-      platform: dbRecord.platform || undefined,
-      metadata: content.metadata,
-      capabilities: content.capabilities,
+      provider: content.provider,
+      specs: content.specs,
+      network: content.network,
       location: content.location,
+      status: dbRecord.status as DeviceStatus,
       last_seen_at: dbRecord.lastSeenAt || undefined,
       created_at: dbRecord.createdAt,
       updated_at: dbRecord.updatedAt,
+      meta: content.meta,
     });
   }
 
@@ -78,9 +100,12 @@ export class HybridDeviceRepository
 
   toStorage(entity: DeviceEntity): DeviceContent {
     return {
-      metadata: entity.metadata,
-      capabilities: entity.capabilities,
+      description: entity.description,
+      provider: entity.provider,
+      specs: entity.specs,
+      network: entity.network,
       location: entity.location,
+      meta: entity.meta,
     };
   }
 
