@@ -396,20 +396,26 @@ src/application/context/
 
 ### Phase 2: Infrastructure 层（3-4 天）
 
-#### 2.1 创建 Server 配置支持（0.5 天）
+#### 2.1 创建 Server 配置支持（0.5 天）✅
 
 **任务**：
-1. 创建 `ServerConfigRepository`
-2. 支持读写 `.cove/server.json` 或 `/data/servers/{serverId}/server.json`
-3. 编写单元测试
+1. ✅ 创建 `ServerConfigRepository`
+2. ✅ 支持读写 `.cove/server.json` 或 `/data/servers/{serverId}/server.json`
+3. ✅ 编写单元测试（12 个测试全部通过）
 
 **产出**：
 ```
 src/infrastructure/repositories/
-  ├─ server-config.repository.ts (新增)
+  ├─ server-config.repository.ts (已完成)
   └─ __tests__/
-      └─ server-config.repository.test.ts (新增)
+      └─ server-config.repository.test.ts (已完成，12 tests)
 ```
+
+**实际实现**：
+- 支持本地模式（.cove/server.json）和云端模式（/data/servers/{serverId}/server.json）
+- 提供 load(), save(), delete(), exists() 方法
+- 云端模式支持 listAll() 列出所有 Server
+- 完整的错误处理和目录自动创建
 
 #### 2.2 更新现有 Repository 支持多 Server（2 天）
 
