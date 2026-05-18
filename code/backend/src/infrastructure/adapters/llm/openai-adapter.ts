@@ -6,8 +6,8 @@ export class OpenAIAdapter implements LlmAdapter {
   private readonly model: string;
   private readonly defaultMaxTokens: number;
 
-  constructor(apiKey: string, model?: string, maxTokens?: number) {
-    this.client = new OpenAI({ apiKey });
+  constructor(apiKey: string, model?: string, maxTokens?: number, baseURL?: string) {
+    this.client = new OpenAI({ apiKey, baseURL });
     this.model = model || 'gpt-4o';
     this.defaultMaxTokens = maxTokens || 4096;
   }

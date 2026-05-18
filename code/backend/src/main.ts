@@ -235,8 +235,7 @@ function initializeDependencies() {
     channelRepository,
     eventBus,
     logger,
-    agentRepository,
-    adapterService
+    agentRepository
   );
 
   // Agent sub-services
@@ -248,8 +247,7 @@ function initializeDependencies() {
 
   const agentQueryService = new AgentQueryService(
     agentRepository,
-    agentRepository,
-    adapterService
+    agentRepository
   );
 
   const agentConfigService = new AgentConfigService(
@@ -370,7 +368,6 @@ function createStandaloneServer(deps: {
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
-    adapterService: deps.adapterService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,
