@@ -16,6 +16,7 @@ import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { WorkflowService } from '../../../application/services/workflow/workflow.service';
 import { ServerContext } from '../../../application/context/server-context';
+import { runWithContext } from '../../../application/context/server-context-store';
 
 // Zod Schemas
 const workflowStepSchema = z.object({
@@ -63,8 +64,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const workflow = await workflowService.createWorkflow(input, context);
+          return runWithContext(context, async () => {
+            const workflow = await workflowService.createWorkflow(input);
           return workflow.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -79,12 +82,13 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          let workflows: any[] = [];
+          return runWithContext(context, async () => {
+            let workflows: any[] = [];
 
           if (input?.status) {
-            workflows = await workflowService.getWorkflowsByStatus(input.status, context);
+            workflows = await workflowService.getWorkflowsByStatus(input.status);
           } else if (input?.projectId) {
-            workflows = await workflowService.getWorkflowsByProject(input.projectId, context);
+            workflows = await workflowService.getWorkflowsByProject(input.projectId);
           } else {
             workflows = [];
           }
@@ -93,6 +97,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
             workflows: workflows.map(w => w.toJSON()),
             total: workflows.length,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -104,8 +109,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const workflow = await workflowService.getWorkflowById(input.workflowId, context);
+          return runWithContext(context, async () => {
+            const workflow = await workflowService.getWorkflowById(input.workflowId);
           return workflow.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -120,8 +127,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const workflow = await workflowService.updateWorkflow(input.workflowId, input.data, context);
+          return runWithContext(context, async () => {
+            const workflow = await workflowService.updateWorkflow(input.workflowId, input.data);
           return workflow.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -144,8 +153,10 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          await workflowService.deleteWorkflow(input.workflowId, context);
+          return runWithContext(context, async () => {
+            await workflowService.deleteWorkflow(input.workflowId);
           return { workflowId: input.workflowId, deleted: true };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }

@@ -13,7 +13,7 @@ import {
 } from '../../interfaces';
 import { AgentNotFoundError, AgentNotAvailableError } from './agent.errors';
 import { TaskNotFoundError, TaskNotAssignableError } from '../task/task.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface AgentAssignTaskDTO {
   readonly taskId: string;
@@ -28,7 +28,8 @@ export class AgentTaskService {
     private readonly logger: ILogger
   ) {}
 
-  async assignTask(dto: AgentAssignTaskDTO, context: ServerContext): Promise<TaskEntity> {
+  async assignTask(dto: AgentAssignTaskDTO): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Assigning task to agent', { ...dto, serverId: context.serverId });
 
     const agent = await this.agentRepository.findById(dto.agentId);

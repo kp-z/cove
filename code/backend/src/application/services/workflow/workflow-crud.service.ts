@@ -12,7 +12,7 @@ import {
 } from '../../interfaces';
 import { WorkflowNotFoundError, WorkflowNotArchivedError } from './workflow.errors';
 import { TaskNotFoundError } from '../task/task.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface CreateWorkflowDTO {
   readonly name: string;
@@ -37,7 +37,8 @@ export class WorkflowCrudService {
     private readonly logger: ILogger
   ) {}
 
-  async createWorkflow(dto: CreateWorkflowDTO, context: ServerContext): Promise<WorkflowEntity> {
+  async createWorkflow(dto: CreateWorkflowDTO): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Creating new workflow', { name: dto.name });
 
     const workflowId = this.generateWorkflowId();
@@ -85,7 +86,8 @@ export class WorkflowCrudService {
     return workflow;
   }
 
-  async updateWorkflow(workflowId: string, dto: UpdateWorkflowDTO, context: ServerContext): Promise<WorkflowEntity> {
+  async updateWorkflow(workflowId: string, dto: UpdateWorkflowDTO): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Updating workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);

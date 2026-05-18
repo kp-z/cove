@@ -11,7 +11,6 @@ import { AgentQueryService } from './agent-query.service';
 import { AgentConfigService } from './agent-config.service';
 import { AgentTaskService, AgentAssignTaskDTO } from './agent-task.service';
 import { AgentResponseService } from './agent-response.service';
-import { ServerContext } from '../../context/server-context';
 
 export { CreateAgentDTO, UpdateAgentDTO, AgentAssignTaskDTO };
 
@@ -24,8 +23,8 @@ export class AgentService {
     private readonly responseService: AgentResponseService
   ) {}
 
-  async createAgent(dto: CreateAgentDTO, context: ServerContext): Promise<AgentEntity> {
-    return this.crudService.createAgent(dto, context);
+  async createAgent(dto: CreateAgentDTO): Promise<AgentEntity> {
+    return this.crudService.createAgent(dto);
   }
 
   async getAgentById(agentId: string): Promise<AgentEntity> {
@@ -48,40 +47,40 @@ export class AgentService {
     return this.queryService.getAvailableAgents();
   }
 
-  async updateAgent(agentId: string, dto: UpdateAgentDTO, context: ServerContext): Promise<AgentEntity> {
-    return this.crudService.updateAgent(agentId, dto, context);
+  async updateAgent(agentId: string, dto: UpdateAgentDTO): Promise<AgentEntity> {
+    return this.crudService.updateAgent(agentId, dto);
   }
 
-  async updateRuntimeConfig(agentId: string, config: AgentRuntimeConfig | Record<string, unknown>, context: ServerContext): Promise<unknown> {
-    return this.configService.updateRuntimeConfig(agentId, config, context);
+  async updateRuntimeConfig(agentId: string, config: AgentRuntimeConfig | Record<string, unknown>): Promise<unknown> {
+    return this.configService.updateRuntimeConfig(agentId, config);
   }
 
-  async updatePersona(agentId: string, persona: AgentPersona | Record<string, unknown>, context: ServerContext): Promise<unknown> {
-    return this.configService.updatePersona(agentId, persona, context);
+  async updatePersona(agentId: string, persona: AgentPersona | Record<string, unknown>): Promise<unknown> {
+    return this.configService.updatePersona(agentId, persona);
   }
 
-  async updateSkills(agentId: string, skills: AgentSkills, context: ServerContext): Promise<unknown> {
-    return this.configService.updateSkills(agentId, skills, context);
+  async updateSkills(agentId: string, skills: AgentSkills): Promise<unknown> {
+    return this.configService.updateSkills(agentId, skills);
   }
 
-  async updateTools(agentId: string, tools: AgentTools, context: ServerContext): Promise<unknown> {
-    return this.configService.updateTools(agentId, tools, context);
+  async updateTools(agentId: string, tools: AgentTools): Promise<unknown> {
+    return this.configService.updateTools(agentId, tools);
   }
 
-  async updateTriggers(agentId: string, triggers: AgentTriggers, context: ServerContext): Promise<unknown> {
-    return this.configService.updateTriggers(agentId, triggers, context);
+  async updateTriggers(agentId: string, triggers: AgentTriggers): Promise<unknown> {
+    return this.configService.updateTriggers(agentId, triggers);
   }
 
-  async assignTask(dto: AgentAssignTaskDTO, context: ServerContext): Promise<TaskEntity> {
-    return this.taskService.assignTask(dto, context);
+  async assignTask(dto: AgentAssignTaskDTO): Promise<TaskEntity> {
+    return this.taskService.assignTask(dto);
   }
 
   async deleteAgent(agentId: string): Promise<void> {
     return this.crudService.deleteAgent(agentId);
   }
 
-  async handleIncomingMessage(message: MessageEntity, context: ServerContext): Promise<void> {
-    return this.responseService.handleIncomingMessage(message, context);
+  async handleIncomingMessage(message: MessageEntity): Promise<void> {
+    return this.responseService.handleIncomingMessage(message);
   }
 
   async shouldAgentRespond(agent: AgentEntity, message: MessageEntity, channel: ChannelEntity): Promise<boolean> {

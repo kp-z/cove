@@ -5,7 +5,7 @@ import {
   ILogger,
 } from '../../interfaces';
 import { TaskNotFoundError, InvalidStatusTransitionError } from './task.service';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export class TaskStatusService {
   constructor(
@@ -14,7 +14,8 @@ export class TaskStatusService {
     private readonly logger: ILogger
   ) {}
 
-  async startTask(taskId: string, context: ServerContext): Promise<TaskEntity> {
+  async startTask(taskId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Starting task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.start();
@@ -23,7 +24,8 @@ export class TaskStatusService {
     return updated;
   }
 
-  async submitForReview(taskId: string, context: ServerContext): Promise<TaskEntity> {
+  async submitForReview(taskId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Submitting task for review', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.submitForReview();
@@ -32,7 +34,8 @@ export class TaskStatusService {
     return updated;
   }
 
-  async completeTask(taskId: string, context: ServerContext): Promise<TaskEntity> {
+  async completeTask(taskId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Completing task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.complete();
@@ -41,7 +44,8 @@ export class TaskStatusService {
     return updated;
   }
 
-  async blockTask(taskId: string, context: ServerContext): Promise<TaskEntity> {
+  async blockTask(taskId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Blocking task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.block();
@@ -50,7 +54,8 @@ export class TaskStatusService {
     return updated;
   }
 
-  async cancelTask(taskId: string, context: ServerContext): Promise<TaskEntity> {
+  async cancelTask(taskId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Cancelling task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.cancel();
@@ -59,7 +64,8 @@ export class TaskStatusService {
     return updated;
   }
 
-  async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string, context: ServerContext): Promise<TaskEntity> {
+  async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Updating task status', { taskId, status, actorId });
     const task = await this.findTask(taskId);
 

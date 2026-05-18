@@ -14,7 +14,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export class ChannelLifecycleService {
   constructor(
@@ -23,7 +23,8 @@ export class ChannelLifecycleService {
     private readonly logger: ILogger
   ) {}
 
-  async archiveChannel(channelId: string, context: ServerContext): Promise<ChannelEntity> {
+  async archiveChannel(channelId: string): Promise<ChannelEntity> {
+      const context = getServerContext();
     this.logger.info('Archiving channel', { channelId, serverId: context.serverId });
 
     const channel = await this.getChannelById(channelId);
@@ -46,7 +47,8 @@ export class ChannelLifecycleService {
     return archivedChannel;
   }
 
-  async activateChannel(channelId: string, context: ServerContext): Promise<ChannelEntity> {
+  async activateChannel(channelId: string): Promise<ChannelEntity> {
+      const context = getServerContext();
     this.logger.info('Activating channel', { channelId, serverId: context.serverId });
 
     const channel = await this.getChannelById(channelId);

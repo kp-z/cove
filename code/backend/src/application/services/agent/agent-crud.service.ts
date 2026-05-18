@@ -10,7 +10,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { AgentNotFoundError, AgentInUseError } from './agent.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface CreateAgentDTO {
   readonly name: string;
@@ -62,7 +62,8 @@ export class AgentCrudService {
     private readonly logger: ILogger
   ) {}
 
-  async createAgent(dto: CreateAgentDTO, context: ServerContext): Promise<AgentEntity> {
+  async createAgent(dto: CreateAgentDTO): Promise<AgentEntity> {
+    const context = getServerContext();
     this.logger.info('Creating new agent', { name: dto.name, serverId: context.serverId });
 
     const agentId = this.generateAgentId();
@@ -101,7 +102,8 @@ export class AgentCrudService {
     return agent;
   }
 
-  async updateAgent(agentId: string, dto: UpdateAgentDTO, context: ServerContext): Promise<AgentEntity> {
+  async updateAgent(agentId: string, dto: UpdateAgentDTO): Promise<AgentEntity> {
+    const context = getServerContext();
     this.logger.info('Updating agent', { agentId, serverId: context.serverId });
 
     const agent = await this.getAgentById(agentId);

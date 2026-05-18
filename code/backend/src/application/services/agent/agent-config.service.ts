@@ -9,7 +9,7 @@ import {
   IAgentConfigStore,
 } from '../../interfaces';
 import { AgentNotFoundError } from './agent.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export class AgentConfigService {
   constructor(
@@ -18,7 +18,8 @@ export class AgentConfigService {
     private readonly configStore?: IAgentConfigStore
   ) {}
 
-  async updateRuntimeConfig(agentId: string, config: AgentRuntimeConfig | Record<string, unknown>, context: ServerContext): Promise<unknown> {
+  async updateRuntimeConfig(agentId: string, config: AgentRuntimeConfig | Record<string, unknown>): Promise<unknown> {
+      const context = getServerContext();
     this.logger.info('Updating agent runtime config', { agentId, serverId: context.serverId });
     await this.getAgentById(agentId);
     if (this.configStore) {
@@ -30,7 +31,8 @@ export class AgentConfigService {
     return updated;
   }
 
-  async updatePersona(agentId: string, persona: AgentPersona | Record<string, unknown>, context: ServerContext): Promise<unknown> {
+  async updatePersona(agentId: string, persona: AgentPersona | Record<string, unknown>): Promise<unknown> {
+      const context = getServerContext();
     this.logger.info('Updating agent persona', { agentId, serverId: context.serverId });
     await this.getAgentById(agentId);
     if (this.configStore) {
@@ -42,7 +44,8 @@ export class AgentConfigService {
     return updated;
   }
 
-  async updateSkills(agentId: string, skills: AgentSkills, context: ServerContext): Promise<unknown> {
+  async updateSkills(agentId: string, skills: AgentSkills): Promise<unknown> {
+      const context = getServerContext();
     this.logger.info('Updating agent skills', { agentId, serverId: context.serverId });
     await this.getAgentById(agentId);
     if (this.configStore) {
@@ -55,7 +58,8 @@ export class AgentConfigService {
     return updated;
   }
 
-  async updateTools(agentId: string, tools: AgentTools, context: ServerContext): Promise<unknown> {
+  async updateTools(agentId: string, tools: AgentTools): Promise<unknown> {
+      const context = getServerContext();
     this.logger.info('Updating agent tools', { agentId, serverId: context.serverId });
     await this.getAgentById(agentId);
     if (this.configStore) {
@@ -68,7 +72,8 @@ export class AgentConfigService {
     return updated;
   }
 
-  async updateTriggers(agentId: string, triggers: AgentTriggers, context: ServerContext): Promise<unknown> {
+  async updateTriggers(agentId: string, triggers: AgentTriggers): Promise<unknown> {
+      const context = getServerContext();
     this.logger.info('Updating agent triggers', { agentId, serverId: context.serverId });
     await this.getAgentById(agentId);
     if (this.configStore) {

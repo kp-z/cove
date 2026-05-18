@@ -14,7 +14,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface AddMemberDTO {
   readonly channelId: string;
@@ -34,7 +34,8 @@ export class ChannelMemberService {
     private readonly logger: ILogger
   ) {}
 
-  async addMember(dto: AddMemberDTO, context: ServerContext): Promise<ChannelEntity> {
+  async addMember(dto: AddMemberDTO): Promise<ChannelEntity> {
+      const context = getServerContext();
     this.logger.info('Adding member to channel', { ...dto, serverId: context.serverId });
 
     const channel = await this.getChannelById(dto.channelId);
@@ -76,7 +77,8 @@ export class ChannelMemberService {
     return updatedChannel;
   }
 
-  async removeMember(dto: RemoveMemberDTO, context: ServerContext): Promise<ChannelEntity> {
+  async removeMember(dto: RemoveMemberDTO): Promise<ChannelEntity> {
+      const context = getServerContext();
     this.logger.info('Removing member from channel', { ...dto, serverId: context.serverId });
 
     const channel = await this.getChannelById(dto.channelId);

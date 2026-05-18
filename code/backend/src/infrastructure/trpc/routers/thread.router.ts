@@ -13,6 +13,7 @@ import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ThreadService } from '../../../application/services/thread/thread.service';
 import { ServerContext } from '../../../application/context/server-context';
+import { runWithContext } from '../../../application/context/server-context-store';
 
 // Zod Schemas
 const replyInThreadSchema = z.object({
@@ -30,14 +31,14 @@ export const threadRouter = (threadService: ThreadService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await threadService.replyInThread(
+          return runWithContext(context, async () => {
+            const message = await threadService.replyInThread(
             input.threadId,
             input.senderId,
             input.senderType,
-            input.content,
-            context
-          );
+            input.content);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -53,17 +54,17 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const messages = await threadService.listThreadMessages(
+          return runWithContext(context, async () => {
+            const messages = await threadService.listThreadMessages(
             input.threadId,
             input.cursor,
-            input.limit,
-            context
-          );
+            input.limit);
 
           return {
             messages: messages.map(m => m.toJSON()),
             total: messages.length,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -75,8 +76,10 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const thread = await threadService.getOrCreateThread(input.threadId, context);
+          return runWithContext(context, async () => {
+            const thread = await threadService.getOrCreateThread(input.threadId);
           return thread.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -88,12 +91,14 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const threads = await threadService.listChannelThreads(input.channelId, context);
+          return runWithContext(context, async () => {
+            const threads = await threadService.listChannelThreads(input.channelId);
 
           return {
             threads: threads.map(t => t.toJSON()),
             total: threads.length,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }

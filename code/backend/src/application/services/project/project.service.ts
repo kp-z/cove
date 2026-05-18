@@ -27,7 +27,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface CreateProjectDTO {
   readonly name: string;
@@ -51,7 +51,8 @@ export class ProjectService {
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger
   ) {}
-  async createProject(dto: CreateProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async createProject(dto: CreateProjectDTO): Promise<ProjectEntity> {
+    const context = getServerContext();
     this.logger.info('Creating new project', { name: dto.name, serverId: context.serverId });
 
     // 生成 Project ID
@@ -96,7 +97,7 @@ export class ProjectService {
   /**
    * 根据 ID 获取 Project
    */
-  async getProjectById(projectId: string, context: ServerContext): Promise<ProjectEntity> {
+  async getProjectById(projectId: string): Promise<ProjectEntity> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
@@ -107,28 +108,29 @@ export class ProjectService {
   /**
    * 获取所有 Projects
    */
-  async getAllProjects(context: ServerContext): Promise<ProjectEntity[]> {
+  async getAllProjects(): Promise<ProjectEntity[]> {
     return await this.projectRepository.findAll();
   }
 
   /**
    * 根据 Owner 获取 Projects
    */
-  async getProjectsByOwner(ownerId: string, context: ServerContext): Promise<ProjectEntity[]> {
+  async getProjectsByOwner(ownerId: string): Promise<ProjectEntity[]> {
     return await this.projectRepository.findByOwner(ownerId);
   }
 
   /**
    * 根据状态获取 Projects
    */
-  async getProjectsByStatus(status: ProjectStatus, context: ServerContext): Promise<ProjectEntity[]> {
+  async getProjectsByStatus(status: ProjectStatus): Promise<ProjectEntity[]> {
     return await this.projectRepository.findByStatus(status);
   }
 
   /**
    * 更新 Project
    */
-  async updateProject(projectId: string, dto: UpdateProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async updateProject(projectId: string, dto: UpdateProjectDTO): Promise<ProjectEntity> {
+    const context = getServerContext();
     this.logger.info('Updating project', { projectId, serverId: context.serverId });
 
     // 获取现有 Project
@@ -193,11 +195,12 @@ export class ProjectService {
   /**
    * 归档 Project
    */
-  async archiveProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
+  async archiveProject(projectId: string): Promise<ProjectEntity> {
+    const context = getServerContext();
     this.logger.info('Archiving project', { projectId, serverId: context.serverId });
 
     // 获取 Project
-    const project = await this.getProjectById(projectId, context);
+    const project = await this.getProjectById(projectId);
 
     // 归档（Domain 层业务规则）
     const archivedProject = project.archive();
@@ -223,11 +226,12 @@ export class ProjectService {
   /**
    * 激活 Project
    */
-  async activateProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
+  async activateProject(projectId: string): Promise<ProjectEntity> {
+    const context = getServerContext();
     this.logger.info('Activating project', { projectId, serverId: context.serverId });
 
     // 获取 Project
-    const project = await this.getProjectById(projectId, context);
+    const project = await this.getProjectById(projectId);
 
     // 激活（Domain 层业务规则）
     const activatedProject = project.activate();
@@ -253,11 +257,12 @@ export class ProjectService {
   /**
    * 删除 Project
    */
-  async deleteProject(projectId: string, context: ServerContext): Promise<void> {
+  async deleteProject(projectId: string): Promise<void> {
+    const context = getServerContext();
     this.logger.info('Deleting project', { projectId, serverId: context.serverId });
 
     // 获取 Project
-    const project = await this.getProjectById(projectId, context);
+    const project = await this.getProjectById(projectId);
 
     // 检查状态（只能删除已归档的 Project）
     if (project.status !== 'archived') {
@@ -283,8 +288,8 @@ export class ProjectService {
   /**
    * 获取 Project 的所有 Agents
    */
-  async getProjectAgents(projectId: string, context: ServerContext): Promise<AgentEntity[]> {
-    const project = await this.getProjectById(projectId, context);
+  async getProjectAgents(projectId: string): Promise<AgentEntity[]> {
+    const project = await this.getProjectById(projectId);
 
     const agents: AgentEntity[] = [];
     for (const agentId of project.agentIds) {
@@ -300,8 +305,8 @@ export class ProjectService {
   /**
    * 获取 Project 的所有 Channels
    */
-  async getProjectChannels(projectId: string, context: ServerContext): Promise<ChannelEntity[]> {
-    const project = await this.getProjectById(projectId, context);
+  async getProjectChannels(projectId: string): Promise<ChannelEntity[]> {
+    const project = await this.getProjectById(projectId);
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {

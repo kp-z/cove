@@ -10,7 +10,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export class WorkflowLifecycleService {
   constructor(
@@ -19,7 +19,8 @@ export class WorkflowLifecycleService {
     private readonly logger: ILogger
   ) {}
 
-  async activateWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
+  async activateWorkflow(workflowId: string): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Activating workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -45,7 +46,8 @@ export class WorkflowLifecycleService {
     return activatedWorkflow;
   }
 
-  async pauseWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
+  async pauseWorkflow(workflowId: string): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Pausing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -71,7 +73,8 @@ export class WorkflowLifecycleService {
     return pausedWorkflow;
   }
 
-  async resumeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
+  async resumeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Resuming workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -97,7 +100,8 @@ export class WorkflowLifecycleService {
     return resumedWorkflow;
   }
 
-  async completeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
+  async completeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Completing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -123,7 +127,8 @@ export class WorkflowLifecycleService {
     return completedWorkflow;
   }
 
-  async archiveWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
+  async archiveWorkflow(workflowId: string): Promise<WorkflowEntity> {
+      const context = getServerContext();
     this.logger.info('Archiving workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);

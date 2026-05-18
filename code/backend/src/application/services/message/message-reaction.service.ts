@@ -17,7 +17,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { MessageNotFoundError } from './message.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface AddReactionDTO {
   readonly messageId: string;
@@ -38,7 +38,8 @@ export class MessageReactionService {
     private readonly logger: ILogger
   ) {}
 
-  async addReaction(dto: AddReactionDTO, context: ServerContext): Promise<MessageEntity> {
+  async addReaction(dto: AddReactionDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Adding reaction to message', { ...dto, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);
@@ -65,7 +66,8 @@ export class MessageReactionService {
     return updatedMessage;
   }
 
-  async removeReaction(dto: RemoveReactionDTO, context: ServerContext): Promise<MessageEntity> {
+  async removeReaction(dto: RemoveReactionDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Removing reaction from message', { ...dto, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);

@@ -22,7 +22,7 @@ import {
   IMessageRepository,
   ILogger,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export class ThreadService {
   constructor(
@@ -31,7 +31,8 @@ export class ThreadService {
     private readonly logger: ILogger
   ) {}
 
-  async getOrCreateThread(rootMessageId: string, context: ServerContext): Promise<ThreadEntity> {
+  async getOrCreateThread(rootMessageId: string): Promise<ThreadEntity> {
+      const context = getServerContext();
     const existing = await this.threadRepository.findById(rootMessageId);
     if (existing) {
       return existing;
@@ -63,8 +64,8 @@ export class ThreadService {
     senderId: string,
     senderType: SenderType,
     content: string,
-    context: ServerContext,
   ): Promise<MessageEntity> {
+    const context = getServerContext();
     const rootMessage = await this.messageRepository.findById(rootMessageId);
     if (!rootMessage) {
       throw new RootMessageNotFoundError(rootMessageId);
@@ -74,7 +75,7 @@ export class ThreadService {
       throw new NestedThreadError(rootMessageId);
     }
 
-    const thread = await this.getOrCreateThread(rootMessageId, context);
+    const thread = await this.getOrCreateThread(rootMessageId);
 
     const messageId = this.generateMessageId();
     const msgShortId = messageId.split('-')[1]?.substring(0, 8) ?? 'unknown';

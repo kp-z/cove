@@ -18,6 +18,7 @@ import { router, publicProcedure } from '../trpc';
 import { TaskService } from '../../../application/services/task/task.service';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ServerContext } from '../../../application/context/server-context';
+import { runWithContext } from '../../../application/context/server-context-store';
 
 // Zod Schemas
 const createTaskSchema = z.object({
@@ -64,8 +65,10 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.createTask(input, context);
+          return runWithContext(context, async () => {
+            const task = await taskService.createTask(input);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -82,16 +85,17 @@ export const taskRouter = (taskService: TaskService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          let tasks: any[] = [];
+          return runWithContext(context, async () => {
+            let tasks: any[] = [];
 
           if (input?.channelId) {
-            tasks = await taskService.getTasksByChannel(input.channelId, context);
+            tasks = await taskService.getTasksByChannel(input.channelId);
           } else if (input?.status) {
-            tasks = await taskService.getTasksByStatus(input.status, context);
+            tasks = await taskService.getTasksByStatus(input.status);
           } else if (input?.priority) {
-            tasks = await taskService.getTasksByPriority(input.priority, context);
+            tasks = await taskService.getTasksByPriority(input.priority);
           } else if (input?.projectId) {
-            tasks = await taskService.getTasksByProject(input.projectId, context);
+            tasks = await taskService.getTasksByProject(input.projectId);
           } else {
             // Default: get all tasks (you may want to add a getAllTasks method)
             tasks = [];
@@ -101,6 +105,7 @@ export const taskRouter = (taskService: TaskService) =>
             tasks: tasks.map(t => t.toJSON()),
             total: tasks.length,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -112,8 +117,10 @@ export const taskRouter = (taskService: TaskService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.getTaskById(input.taskId, context);
+          return runWithContext(context, async () => {
+            const task = await taskService.getTaskById(input.taskId);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -128,8 +135,10 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.updateTask(input.taskId, input.data, context);
+          return runWithContext(context, async () => {
+            const task = await taskService.updateTask(input.taskId, input.data);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -141,8 +150,10 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          await taskService.deleteTask(input.taskId, context);
+          return runWithContext(context, async () => {
+            await taskService.deleteTask(input.taskId);
           return { taskId: input.taskId, deleted: true };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -154,13 +165,13 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.convertMessageToTask(
+          return runWithContext(context, async () => {
+            const task = await taskService.convertMessageToTask(
             input.messageId,
             input.title,
-            input.createdBy,
-            context
-          );
+            input.createdBy);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -172,12 +183,14 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.claimTask({
+          return runWithContext(context, async () => {
+            const task = await taskService.claimTask({
             taskId: input.taskId,
             assigneeId: input.assigneeId,
             assigneeType: input.assigneeType,
-          }, context);
+          });
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -192,8 +205,10 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.unclaimTask(input.taskId, input.userId, context);
+          return runWithContext(context, async () => {
+            const task = await taskService.unclaimTask(input.taskId, input.userId);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -205,13 +220,13 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const task = await taskService.updateTaskStatus(
+          return runWithContext(context, async () => {
+            const task = await taskService.updateTaskStatus(
             input.taskId,
             input.status,
-            input.actorId,
-            context
-          );
+            input.actorId);
           return task.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }

@@ -14,7 +14,6 @@ import { WorkflowEntity, WorkflowStatus, WorkflowStep } from '../../../domain/mo
 import { WorkflowCrudService, CreateWorkflowDTO, UpdateWorkflowDTO } from './workflow-crud.service';
 import { WorkflowQueryService } from './workflow-query.service';
 import { WorkflowLifecycleService } from './workflow-lifecycle.service';
-import { ServerContext } from '../../context/server-context';
 
 export class WorkflowService {
   constructor(
@@ -23,8 +22,8 @@ export class WorkflowService {
     private readonly lifecycleService: WorkflowLifecycleService
   ) {}
 
-  async createWorkflow(dto: CreateWorkflowDTO, context: ServerContext): Promise<WorkflowEntity> {
-    return this.crudService.createWorkflow(dto, context);
+  async createWorkflow(dto: CreateWorkflowDTO): Promise<WorkflowEntity> {
+    return this.crudService.createWorkflow(dto);
   }
 
   async getWorkflowById(workflowId: string): Promise<WorkflowEntity> {
@@ -47,28 +46,28 @@ export class WorkflowService {
     return this.queryService.getActiveWorkflows();
   }
 
-  async updateWorkflow(workflowId: string, dto: UpdateWorkflowDTO, context: ServerContext): Promise<WorkflowEntity> {
-    return this.crudService.updateWorkflow(workflowId, dto, context);
+  async updateWorkflow(workflowId: string, dto: UpdateWorkflowDTO): Promise<WorkflowEntity> {
+    return this.crudService.updateWorkflow(workflowId, dto);
   }
 
-  async activateWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
-    return this.lifecycleService.activateWorkflow(workflowId, context);
+  async activateWorkflow(workflowId: string): Promise<WorkflowEntity> {
+    return this.lifecycleService.activateWorkflow(workflowId);
   }
 
-  async pauseWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
-    return this.lifecycleService.pauseWorkflow(workflowId, context);
+  async pauseWorkflow(workflowId: string): Promise<WorkflowEntity> {
+    return this.lifecycleService.pauseWorkflow(workflowId);
   }
 
-  async resumeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
-    return this.lifecycleService.resumeWorkflow(workflowId, context);
+  async resumeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+    return this.lifecycleService.resumeWorkflow(workflowId);
   }
 
-  async completeWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
-    return this.lifecycleService.completeWorkflow(workflowId, context);
+  async completeWorkflow(workflowId: string): Promise<WorkflowEntity> {
+    return this.lifecycleService.completeWorkflow(workflowId);
   }
 
-  async archiveWorkflow(workflowId: string, context: ServerContext): Promise<WorkflowEntity> {
-    return this.lifecycleService.archiveWorkflow(workflowId, context);
+  async archiveWorkflow(workflowId: string): Promise<WorkflowEntity> {
+    return this.lifecycleService.archiveWorkflow(workflowId);
   }
 
   async deleteWorkflow(workflowId: string): Promise<void> {

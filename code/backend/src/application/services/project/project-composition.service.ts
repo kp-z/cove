@@ -12,7 +12,7 @@ import {
 import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
 import { ChannelNotFoundError } from '../channel/channel.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface AddAgentToProjectDTO {
   readonly projectId: string;
@@ -43,10 +43,11 @@ export class ProjectCompositionService {
     private readonly logger: ILogger
   ) {}
 
-  async addAgentToProject(dto: AddAgentToProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async addAgentToProject(dto: AddAgentToProjectDTO): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
+      const context = getServerContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -91,10 +92,11 @@ export class ProjectCompositionService {
   /**
    * 从 Project 移除 Agent
    */
-  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async removeAgentFromProject(dto: RemoveAgentFromProjectDTO): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
+      const context = getServerContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -133,10 +135,11 @@ export class ProjectCompositionService {
   /**
    * 添加 Channel 到 Project
    */
-  async addChannelToProject(dto: AddChannelToProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async addChannelToProject(dto: AddChannelToProjectDTO): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
+      const context = getServerContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -181,10 +184,11 @@ export class ProjectCompositionService {
   /**
    * 从 Project 移除 Channel
    */
-  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO, context: ServerContext): Promise<ProjectEntity> {
+  async removeChannelFromProject(dto: RemoveChannelFromProjectDTO): Promise<ProjectEntity> {
     // TODO: Fix logger call
 
     // 获取 Project
+      const context = getServerContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -223,7 +227,8 @@ export class ProjectCompositionService {
   /**
    * 归档 Project
    */
-  async archiveProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
+  async archiveProject(projectId: string): Promise<ProjectEntity> {
+      const context = getServerContext();
     this.logger.info('Archiving project', { projectId });
 
     // 获取 Project
@@ -256,7 +261,8 @@ export class ProjectCompositionService {
   /**
    * 激活 Project
    */
-  async activateProject(projectId: string, context: ServerContext): Promise<ProjectEntity> {
+  async activateProject(projectId: string): Promise<ProjectEntity> {
+      const context = getServerContext();
     this.logger.info('Activating project', { projectId });
 
     // 获取 Project

@@ -8,7 +8,7 @@ interface PageContentProps {
 
 export function PageContent({ children, className, padded = true }: PageContentProps) {
   return (
-    <div className={cn('flex-1 overflow-y-auto', padded && 'px-6 pb-6', className)}>
+    <div className={cn('flex-1 overflow-y-auto', padded && 'px-6 pt-4 pb-6', className)}>
       {children}
     </div>
   );

@@ -18,6 +18,7 @@ import { router, publicProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ServerContext } from '../../../application/context/server-context';
+import { runWithContext } from '../../../application/context/server-context-store';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -71,8 +72,10 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await messageService.sendMessage(input, context);
+          return runWithContext(context, async () => {
+            const message = await messageService.sendMessage(input);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -88,17 +91,17 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const result = await messageService.getMessagesByChannelCursor(
+          return runWithContext(context, async () => {
+            const result = await messageService.getMessagesByChannelCursor(
             input.channelId,
             input.cursor || null,
-            input.limit,
-            context
-          );
+            input.limit);
 
           return {
             messages: result.messages.map(m => m.toJSON()),
             nextCursor: result.nextCursor,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -110,8 +113,10 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await messageService.getMessageById(input.messageId, context);
+          return runWithContext(context, async () => {
+            const message = await messageService.getMessageById(input.messageId);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -123,8 +128,10 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await messageService.updateMessage(input, context);
+          return runWithContext(context, async () => {
+            const message = await messageService.updateMessage(input);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -136,8 +143,10 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          await messageService.deleteMessage(input, context);
+          return runWithContext(context, async () => {
+            await messageService.deleteMessage(input);
           return { messageId: input.messageId, deleted: true };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -149,8 +158,10 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await messageService.addReaction(input, context);
+          return runWithContext(context, async () => {
+            const message = await messageService.addReaction(input);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -162,8 +173,10 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const message = await messageService.removeReaction(input, context);
+          return runWithContext(context, async () => {
+            const message = await messageService.removeReaction(input);
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -178,16 +191,16 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const messages = await messageService.getMessagesByThread(
+          return runWithContext(context, async () => {
+            const messages = await messageService.getMessagesByThread(
             input.messageId,
-            input.limit,
-            context
-          );
+            input.limit);
 
           return {
             messages: messages.map(m => m.toJSON()),
             total: messages.length,
           };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -199,8 +212,9 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          // 获取 thread root 消息以获取 channelId
-          const threadRoot = await messageService.getMessageById(input.messageId, context);
+          return runWithContext(context, async () => {
+            // 获取 thread root 消息以获取 channelId
+          const threadRoot = await messageService.getMessageById(input.messageId);
 
           const message = await messageService.sendMessage({
             senderId: input.senderId,
@@ -210,9 +224,10 @@ export const messageRouter = (messageService: MessageService) =>
             threadId: input.messageId,
             attachments: input.attachments,
             mentions: input.mentions,
-          }, context);
+          });
 
           return message.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }

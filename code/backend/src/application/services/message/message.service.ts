@@ -16,7 +16,6 @@ import { MessageReaction } from '../../../domain/models/message/message.types';
 import { MessageCrudService, SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service.js';
 import { MessageQueryService } from './message-query.service.js';
 import { MessageReactionService, AddReactionDTO, RemoveReactionDTO } from './message-reaction.service.js';
-import { ServerContext } from '../../context/server-context';
 
 export { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, AddReactionDTO, RemoveReactionDTO };
 
@@ -27,8 +26,8 @@ export class MessageService {
     private readonly reactionService: MessageReactionService
   ) {}
 
-  async sendMessage(dto: SendMessageDTO, context: ServerContext): Promise<MessageEntity> {
-    return this.crudService.sendMessage(dto, context);
+  async sendMessage(dto: SendMessageDTO): Promise<MessageEntity> {
+    return this.crudService.sendMessage(dto);
   }
 
   async getMessageById(messageId: string): Promise<MessageEntity> {
@@ -55,20 +54,20 @@ export class MessageService {
     return this.queryService.getMessagesBySender(senderId);
   }
 
-  async updateMessage(dto: UpdateMessageDTO, context: ServerContext): Promise<MessageEntity> {
-    return this.crudService.updateMessage(dto, context);
+  async updateMessage(dto: UpdateMessageDTO): Promise<MessageEntity> {
+    return this.crudService.updateMessage(dto);
   }
 
-  async deleteMessage(dto: DeleteMessageDTO, context: ServerContext): Promise<MessageEntity> {
-    return this.crudService.deleteMessage(dto, context);
+  async deleteMessage(dto: DeleteMessageDTO): Promise<MessageEntity> {
+    return this.crudService.deleteMessage(dto);
   }
 
-  async addReaction(dto: AddReactionDTO, context: ServerContext): Promise<MessageEntity> {
-    return this.reactionService.addReaction(dto, context);
+  async addReaction(dto: AddReactionDTO): Promise<MessageEntity> {
+    return this.reactionService.addReaction(dto);
   }
 
-  async removeReaction(dto: RemoveReactionDTO, context: ServerContext): Promise<MessageEntity> {
-    return this.reactionService.removeReaction(dto, context);
+  async removeReaction(dto: RemoveReactionDTO): Promise<MessageEntity> {
+    return this.reactionService.removeReaction(dto);
   }
 
   async getMessageReactions(messageId: string): Promise<readonly MessageReaction[]> {

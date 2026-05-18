@@ -15,7 +15,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface CreateUserDTO {
   readonly username: string;
@@ -39,7 +39,8 @@ export class UserService {
     private readonly logger: ILogger
   ) {}
 
-  async createUser(dto: CreateUserDTO, context: ServerContext): Promise<UserEntity> {
+  async createUser(dto: CreateUserDTO): Promise<UserEntity> {
+      const context = getServerContext();
     this.logger.info('Creating new user', { username: dto.username, serverId: context.serverId });
 
     if (await this.userRepository.usernameExists(dto.username)) {
@@ -114,7 +115,8 @@ export class UserService {
     return await this.userRepository.findAll();
   }
 
-  async updateUser(userId: string, dto: UpdateUserDTO, context: ServerContext): Promise<UserEntity> {
+  async updateUser(userId: string, dto: UpdateUserDTO): Promise<UserEntity> {
+      const context = getServerContext();
     this.logger.info('Updating user', { userId, serverId: context.serverId });
 
     let user = await this.getUserById(userId);
@@ -152,7 +154,8 @@ export class UserService {
     return user;
   }
 
-  async updateUserRole(userId: string, role: UserRole, context: ServerContext): Promise<UserEntity> {
+  async updateUserRole(userId: string, role: UserRole): Promise<UserEntity> {
+      const context = getServerContext();
     this.logger.info('Updating user role', { userId, role, serverId: context.serverId });
 
     let user = await this.getUserById(userId);

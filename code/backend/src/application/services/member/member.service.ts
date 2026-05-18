@@ -25,7 +25,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface JoinChannelDTO {
   readonly channelId: string;
@@ -56,7 +56,8 @@ export class MemberService {
     private readonly logger: ILogger
   ) {}
 
-  async joinChannel(dto: JoinChannelDTO, context: ServerContext): Promise<MemberEntity> {
+  async joinChannel(dto: JoinChannelDTO): Promise<MemberEntity> {
+      const context = getServerContext();
     this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, serverId: context.serverId });
 
     const channelExists = await this.channelRepository.exists(dto.channelId);
@@ -123,7 +124,8 @@ export class MemberService {
     return member;
   }
 
-  async leaveChannel(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+  async leaveChannel(channelId: string, userId: string): Promise<MemberEntity> {
+      const context = getServerContext();
     this.logger.info('User leaving channel', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
@@ -164,7 +166,8 @@ export class MemberService {
     return await this.memberRepository.findByUser(userId);
   }
 
-  async updateMemberRole(dto: UpdateMemberRoleDTO, context: ServerContext): Promise<MemberEntity> {
+  async updateMemberRole(dto: UpdateMemberRoleDTO): Promise<MemberEntity> {
+      const context = getServerContext();
     this.logger.info('Updating member role', { memberId: dto.memberId, role: dto.role, serverId: context.serverId });
 
     let member = await this.getMemberById(dto.memberId);
@@ -190,7 +193,8 @@ export class MemberService {
     return member;
   }
 
-  async banMember(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+  async banMember(channelId: string, userId: string): Promise<MemberEntity> {
+      const context = getServerContext();
     this.logger.info('Banning member', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
@@ -215,7 +219,8 @@ export class MemberService {
     return bannedMember;
   }
 
-  async unbanMember(channelId: string, userId: string, context: ServerContext): Promise<MemberEntity> {
+  async unbanMember(channelId: string, userId: string): Promise<MemberEntity> {
+      const context = getServerContext();
     this.logger.info('Unbanning member', { channelId, userId, serverId: context.serverId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
@@ -240,7 +245,8 @@ export class MemberService {
     return unbannedMember;
   }
 
-  async updateNotificationSettings(dto: UpdateNotificationDTO, context: ServerContext): Promise<MemberEntity> {
+  async updateNotificationSettings(dto: UpdateNotificationDTO): Promise<MemberEntity> {
+      const context = getServerContext();
     let member = await this.getMemberById(dto.memberId);
 
     if (dto.muteUntil) {
@@ -256,7 +262,8 @@ export class MemberService {
     return member;
   }
 
-  async recordActivity(memberId: string, context: ServerContext): Promise<MemberEntity> {
+  async recordActivity(memberId: string): Promise<MemberEntity> {
+      const context = getServerContext();
     let member = await this.getMemberById(memberId);
     member = member.updateLastActive();
 

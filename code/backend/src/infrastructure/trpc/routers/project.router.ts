@@ -14,6 +14,7 @@ import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ProjectService } from '../../../application/services/project/project.service';
 import { ServerContext } from '../../../application/context/server-context';
+import { runWithContext } from '../../../application/context/server-context-store';
 
 // Zod Schemas
 const createProjectSchema = z.object({
@@ -35,8 +36,10 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const project = await projectService.createProject(input, context);
+          return runWithContext(context, async () => {
+            const project = await projectService.createProject(input);
           return project.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -47,12 +50,14 @@ export const projectRouter = (projectService: ProjectService) =>
       .query(async ({ ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const projects = await projectService.getAllProjects(context);
+          return runWithContext(context, async () => {
+            const projects = await projectService.getAllProjects();
 
-          return {
-            projects: projects.map(p => p.toJSON()),
-            total: projects.length,
-          };
+            return {
+              projects: projects.map(p => p.toJSON()),
+              total: projects.length,
+            };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -64,8 +69,10 @@ export const projectRouter = (projectService: ProjectService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const project = await projectService.getProjectById(input.projectId, context);
+          return runWithContext(context, async () => {
+            const project = await projectService.getProjectById(input.projectId);
           return project.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -80,8 +87,10 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          const project = await projectService.updateProject(input.projectId, input.data, context);
+          return runWithContext(context, async () => {
+            const project = await projectService.updateProject(input.projectId, input.data);
           return project.toJSON();
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
@@ -93,8 +102,10 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          await projectService.deleteProject(input.projectId, context);
+          return runWithContext(context, async () => {
+            await projectService.deleteProject(input.projectId);
           return { projectId: input.projectId, deleted: true };
+          });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }

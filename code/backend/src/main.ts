@@ -368,6 +368,7 @@ function createStandaloneServer(deps: {
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
+    adapterService: deps.adapterService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,

@@ -22,7 +22,7 @@ import {
   UnauthorizedMessageEditError,
   SendMessageDeniedError,
 } from './message.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface SendMessageDTO {
   readonly channelId: string;
@@ -53,7 +53,8 @@ export class MessageCrudService {
     private readonly logger: ILogger
   ) {}
 
-  async sendMessage(dto: SendMessageDTO, context: ServerContext): Promise<MessageEntity> {
+  async sendMessage(dto: SendMessageDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Sending message', { channelId: dto.channelId, senderId: dto.senderId, serverId: context.serverId });
 
     const result = await this.channelQueryService.canSendMessage(dto.channelId, dto.senderId);
@@ -124,7 +125,8 @@ export class MessageCrudService {
     return message;
   }
 
-  async updateMessage(dto: UpdateMessageDTO, context: ServerContext): Promise<MessageEntity> {
+  async updateMessage(dto: UpdateMessageDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Updating message', { messageId: dto.messageId, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);
@@ -154,7 +156,8 @@ export class MessageCrudService {
     return updatedMessage;
   }
 
-  async deleteMessage(dto: DeleteMessageDTO, context: ServerContext): Promise<MessageEntity> {
+  async deleteMessage(dto: DeleteMessageDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Deleting message', { messageId: dto.messageId, serverId: context.serverId });
 
     const message = await this.getMessageById(dto.messageId);

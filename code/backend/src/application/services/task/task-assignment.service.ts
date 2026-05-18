@@ -8,7 +8,7 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface AssignTaskDTO {
   readonly taskId: string;
@@ -40,8 +40,9 @@ export class TaskAssignmentService {
     private readonly logger: ILogger
   ) {}
 
-  async assignTask(dto: AssignTaskDTO, context: ServerContext): Promise<TaskEntity> {
+  async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
+      const context = getServerContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -71,8 +72,9 @@ export class TaskAssignmentService {
     return assigned;
   }
 
-  async claimTask(dto: ClaimTaskDTO, context: ServerContext): Promise<TaskEntity> {
+  async claimTask(dto: ClaimTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
+      const context = getServerContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -102,7 +104,8 @@ export class TaskAssignmentService {
     return claimed;
   }
 
-  async unclaimTask(taskId: string, userId: string, context: ServerContext): Promise<TaskEntity> {
+  async unclaimTask(taskId: string, userId: string): Promise<TaskEntity> {
+      const context = getServerContext();
     this.logger.info('Unclaiming task', { taskId, userId });
     const task = await this.findTask(taskId);
     const unclaimed = task.unclaim(userId);
@@ -113,8 +116,9 @@ export class TaskAssignmentService {
     return unclaimed;
   }
 
-  async addDependency(dto: AddDependencyDTO, context: ServerContext): Promise<TaskEntity> {
+  async addDependency(dto: AddDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
+      const context = getServerContext();
     const task = await this.findTask(dto.taskId);
     await this.findTask(dto.dependsOnTaskId);
     const updated = task.addDependency(dto.dependsOnTaskId);
@@ -127,8 +131,9 @@ export class TaskAssignmentService {
     return updated;
   }
 
-  async removeDependency(dto: RemoveDependencyDTO, context: ServerContext): Promise<TaskEntity> {
+  async removeDependency(dto: RemoveDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
+      const context = getServerContext();
     const task = await this.findTask(dto.taskId);
     const updated = task.removeDependency(dto.dependsOnTaskId);
     await this.taskRepository.update(updated, context.serverId);

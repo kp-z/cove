@@ -1,7 +1,7 @@
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { IChannelRepository, IMessageRepository, IEventBus, ILogger, DomainEvent } from '../../interfaces';
 import { ChannelNotFoundError, ChannelNotActiveError, MemberNotInChannelError } from './channel.errors';
-import { ServerContext } from '../../context/server-context';
+import { getServerContext } from '../../context/server-context-store';
 
 export interface ChannelSendMessageDTO {
   readonly channelId: string;
@@ -19,7 +19,8 @@ export class ChannelMessagingService {
     private readonly logger: ILogger
   ) {}
 
-  async sendMessage(dto: ChannelSendMessageDTO, context: ServerContext): Promise<MessageEntity> {
+  async sendMessage(dto: ChannelSendMessageDTO): Promise<MessageEntity> {
+      const context = getServerContext();
     this.logger.info('Sending message to channel', { channelId: dto.channelId });
     const channel = await this.channelRepository.findById(dto.channelId);
     if (!channel) throw new ChannelNotFoundError(dto.channelId);

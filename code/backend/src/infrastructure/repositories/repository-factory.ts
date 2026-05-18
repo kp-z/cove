@@ -110,7 +110,7 @@ export class RepositoryFactory {
    */
   private createStorageService(serverId: string): StorageService {
     const storageRoot = this.getStorageRoot(serverId);
-    return new StorageService(storageRoot, this.logger);
+    return new StorageService(storageRoot);
   }
 
   // ============================================
@@ -162,9 +162,10 @@ export class RepositoryFactory {
   getAgentRepository(serverId: string): HybridAgentRepository {
     if (!this.agentRepos.has(serverId)) {
       const storage = this.createStorageService(serverId);
+      const storageRoot = this.getStorageRoot(serverId);
       this.agentRepos.set(
         serverId,
-        new HybridAgentRepository(this.prisma, storage, this.logger)
+        new HybridAgentRepository(this.prisma, storage, this.logger, storageRoot)
       );
       this.logger.debug('Created AgentRepository', { serverId });
     }
