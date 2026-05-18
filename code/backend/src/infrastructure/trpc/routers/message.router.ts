@@ -133,7 +133,7 @@ export const messageRouter = (messageService: MessageService) =>
           return message.toJSON();
           });
         } catch (error: any) {
-          throw mapErrorToTRPC(error);
+          mapErrorToTRPC(error); // This function throws, no need to throw again
         }
       }),
 

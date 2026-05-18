@@ -41,7 +41,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   const { data: adaptersData } = useAdapters();
   const adapters = adaptersData?.adapters || [];
 
-  // Selected adapter ID
+  // Selected adapter ID (or 'new:type' for creating new adapter)
   const [selectedAdapterId, setSelectedAdapterId] = useState<string>(value?.adapter_id || '');
 
   // Current config values (editable)
@@ -50,8 +50,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   // Original adapter config (for comparison)
   const [originalConfig, setOriginalConfig] = useState<any>({});
 
-  // Get selected adapter
-  const selectedAdapter = adapters.find(a => a.id === selectedAdapterId);
+  // Parse selection: check if creating new adapter
+  const isCreatingNew = selectedAdapterId.startsWith('new:');
+  const newAdapterType = isCreatingNew ? selectedAdapterId.replace('new:', '') as 'anthropic-api' | 'openai-api' | 'claude-code-cli' : null;
+
+  // Get selected adapter (only if not creating new)
+  const selectedAdapter = !isCreatingNew ? adapters.find(a => a.id === selectedAdapterId) : null;
 
   // Group adapters by scope
   const sharedAdapters = adapters.filter(a => a.scope === 'shared');
@@ -63,13 +67,29 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
       const adapterConfig = (selectedAdapter as any).config || {};
       setConfig({ ...adapterConfig });
       setOriginalConfig({ ...adapterConfig });
+    } else if (isCreatingNew && newAdapterType) {
+      // Initialize with default config for new adapter
+      const defaultConfig = {
+        model: newAdapterType === 'anthropic-api' ? 'claude-3-5-sonnet-20241022' :
+               newAdapterType === 'openai-api' ? 'gpt-4-turbo' : '',
+        temperature: 0.7,
+        max_tokens: 4096,
+      };
+      setConfig(defaultConfig);
+      setOriginalConfig({});
     }
-  }, [selectedAdapter]);
+  }, [selectedAdapter, isCreatingNew, newAdapterType]);
 
   // Notify parent of changes
   useEffect(() => {
     if (!selectedAdapterId) {
       onChange({ adapter_id: undefined, overrides: undefined });
+      return;
+    }
+
+    if (isCreatingNew && newAdapterType) {
+      // Creating new adapter: send config with type
+      onChange({ adapter_id: undefined, overrides: { type: newAdapterType, ...config } });
       return;
     }
 
@@ -83,7 +103,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
       // Unchanged: reference existing adapter
       onChange({ adapter_id: selectedAdapterId, overrides: undefined });
     }
-  }, [selectedAdapterId, config, originalConfig]);
+  }, [selectedAdapterId, config, originalConfig, isCreatingNew, newAdapterType]);
 
   const handleAdapterChange = (adapterId: string) => {
     setSelectedAdapterId(adapterId);
@@ -93,7 +113,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
     setConfig((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  const adapterType = selectedAdapter?.type;
+  const adapterType = selectedAdapter?.type || newAdapterType;
 
   return (
     <GlassCard className="p-6">
@@ -111,6 +131,13 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
             className={SELECT_CLASS}
           >
             <option value="">-- Select an adapter --</option>
+
+            {/* Create New Options */}
+            <optgroup label="➕ Create New">
+              <option value="new:anthropic-api">Anthropic API</option>
+              <option value="new:openai-api">OpenAI API</option>
+              <option value="new:claude-code-cli">Claude Code CLI</option>
+            </optgroup>
 
             {sharedAdapters.length > 0 && (
               <optgroup label="🌐 Shared Adapters">
@@ -134,12 +161,19 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
           </select>
         </FormField>
 
-        {/* Configuration Fields (shown when adapter is selected) */}
-        {selectedAdapter && (
+        {/* Configuration Fields (shown when adapter is selected or creating new) */}
+        {(selectedAdapter || isCreatingNew) && (
           <div className="space-y-4 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              💡 Edit any field below. Changes will create a new private adapter on save.
-            </p>
+            {!isCreatingNew && (
+              <p className="text-sm text-muted-foreground">
+                💡 Edit any field below. Changes will create a new private adapter on save.
+              </p>
+            )}
+            {isCreatingNew && (
+              <p className="text-sm text-muted-foreground">
+                💡 Configure your new {newAdapterType} adapter below.
+              </p>
+            )}
 
             {/* Anthropic API Config */}
             {adapterType === 'anthropic-api' && (
@@ -300,7 +334,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
         )}
 
         {/* Selected Adapter Info */}
-        {selectedAdapter && (
+        {selectedAdapter && !isCreatingNew && (
           <div className="bg-muted/30 p-4 rounded-md text-sm">
             <div className="font-medium mb-2">Selected: {selectedAdapter.name}</div>
             <div className="text-muted-foreground space-y-1">

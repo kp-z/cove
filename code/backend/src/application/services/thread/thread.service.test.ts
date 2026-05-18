@@ -170,7 +170,14 @@ describe('ThreadService', () => {
       expect(result.isThreadRoot).toBe(false);
       expect(result.senderId).toBe('user-2');
       expect(result.content).toBe('Reply content');
-      expect(mockMessageRepository.save).toHaveBeenCalledWith(expect.any(MessageEntity));
+      expect(mockMessageRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          threadId: 'msg-1',
+          senderId: 'user-2',
+          content: 'Reply content',
+        }),
+        'test-server-id'
+      );
       expect(mockThreadRepository.update).toHaveBeenCalled();
     });
 
@@ -260,7 +267,8 @@ describe('ThreadService', () => {
         expect.objectContaining({
           participants: expect.arrayContaining(['user-1', 'user-2']),
           replyCount: 1,
-        })
+        }),
+        'test-server-id'
       );
     });
   });

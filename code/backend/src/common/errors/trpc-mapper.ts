@@ -18,20 +18,33 @@ const STATUS_TO_TRPC_CODE: Record<number, TRPCError['code']> = {
 /**
  * Maps application errors to tRPC errors.
  * Automatically converts AppError instances to appropriate tRPC error codes.
+ *
+ * IMPORTANT: This function creates and THROWS a TRPCError directly.
+ * Do NOT throw the result - just call this function in catch blocks.
  */
-export function mapErrorToTRPC(error: unknown): TRPCError {
+export function mapErrorToTRPC(error: unknown): never {
+  // Check if error has a statusCode property (duck typing for AppError)
+  if (error && typeof error === 'object' && 'statusCode' in error) {
+    const statusCode = (error as any).statusCode;
+    const message = error instanceof Error ? error.message : 'Unknown error';
+
+    throw new TRPCError({
+      code: STATUS_TO_TRPC_CODE[statusCode] || 'INTERNAL_SERVER_ERROR',
+      message,
+    });
+  }
+
+  // Also check instanceof for proper AppError instances
   if (error instanceof AppError) {
-    return new TRPCError({
+    throw new TRPCError({
       code: STATUS_TO_TRPC_CODE[error.statusCode] || 'INTERNAL_SERVER_ERROR',
       message: error.message,
-      cause: error,
     });
   }
 
   // Fallback for unknown errors
-  return new TRPCError({
+  throw new TRPCError({
     code: 'INTERNAL_SERVER_ERROR',
     message: error instanceof Error ? error.message : 'Unknown error',
-    cause: error,
   });
 }

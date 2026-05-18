@@ -6,14 +6,19 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('UserService', () => {
   let userService: UserService;
   let mockUserRepository: IUserRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
+
     mockUserRepository = {
       save: vi.fn(),
       update: vi.fn(),
@@ -57,13 +62,18 @@ describe('UserService', () => {
         email: 'test@example.com',
       };
 
-      const result = await userService.createUser(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await userService.createUser(dto);
+      });
 
       expect(result).toBeInstanceOf(UserEntity);
       expect(result.username).toBe(dto.username);
       expect(result.email).toBe(dto.email);
       expect(result.role).toBe('user');
-      expect(mockUserRepository.save).toHaveBeenCalledWith(expect.any(UserEntity));
+      expect(mockUserRepository.save).toHaveBeenCalledWith(
+        expect.any(Object),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'user.created',
@@ -83,7 +93,9 @@ describe('UserService', () => {
         role: 'admin',
       };
 
-      const result = await userService.createUser(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await userService.createUser(dto);
+      });
 
       expect(result.role).toBe('admin');
     });
@@ -132,7 +144,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(user);
 
-      const result = await userService.getUserById('user-1');
+      const result = await runWithContext(testContext, async () => {
+        return await userService.getUserById('user-1');
+      });
 
       expect(result).toBe(user);
     });
@@ -160,7 +174,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findByUsername).mockResolvedValue(user);
 
-      const result = await userService.getUserByUsername('testuser');
+      const result = await runWithContext(testContext, async () => {
+        return await userService.getUserByUsername('testuser');
+      });
 
       expect(result).toBe(user);
     });
@@ -188,7 +204,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(user);
 
-      const result = await userService.getUserByEmail('test@example.com');
+      const result = await runWithContext(testContext, async () => {
+        return await userService.getUserByEmail('test@example.com');
+      });
 
       expect(result).toBe(user);
     });
@@ -218,7 +236,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findByRole).mockResolvedValue(users);
 
-      const result = await userService.getUsersByRole('admin');
+      const result = await runWithContext(testContext, async () => {
+        return await userService.getUsersByRole('admin');
+      });
 
       expect(result).toEqual(users);
     });
@@ -240,7 +260,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findAll).mockResolvedValue(users);
 
-      const result = await userService.getAllUsers();
+      const result = await runWithContext(testContext, async () => {
+        return await userService.getAllUsers();
+      });
 
       expect(result).toEqual(users);
     });
@@ -266,7 +288,9 @@ describe('UserService', () => {
         email: 'new@example.com',
       };
 
-      const result = await userService.updateUser('user-1', dto);
+      const result = await runWithContext(testContext, async () => {
+        return await userService.updateUser('user-1', dto);
+      });
 
       expect(result.displayName).toBe('New Name');
       expect(result.email).toBe('new@example.com');
@@ -327,7 +351,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(user);
 
-      const result = await userService.updateUserRole('user-1', 'admin');
+      const result = await runWithContext(testContext, async () => {
+        return await userService.updateUserRole('user-1', 'admin');
+      });
 
       expect(result.role).toBe('admin');
       expect(mockUserRepository.update).toHaveBeenCalled();
@@ -353,7 +379,9 @@ describe('UserService', () => {
 
       vi.mocked(mockUserRepository.findById).mockResolvedValue(user);
 
-      await userService.deleteUser('user-1');
+      await runWithContext(testContext, async () => {
+        await userService.deleteUser('user-1');
+      });
 
       expect(mockUserRepository.delete).toHaveBeenCalledWith('user-1');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
@@ -384,7 +412,11 @@ describe('UserService', () => {
         email: 'test@example.com',
       };
 
-      await expect(userService.createUser(dto)).resolves.toBeDefined();
+      await expect(
+        runWithContext(testContext, async () => {
+          return await userService.createUser(dto);
+        })
+      ).resolves.toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish event',
         expect.any(Error),
