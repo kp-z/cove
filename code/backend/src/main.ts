@@ -28,6 +28,7 @@ import { HybridProjectRepository } from './infrastructure/repositories/hybrid-pr
 import { HybridWorkflowRepository } from './infrastructure/repositories/hybrid-workflow.repository';
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
+import { DatabaseInitializer } from './infrastructure/database/database-initializer';
 
 // Application Layer Services
 import { MessageService } from './application/services/message/message.service';
@@ -47,6 +48,7 @@ import { AgentConfigService } from './application/services/agent/agent-config.se
 import { AgentTaskService } from './application/services/agent/agent-task.service';
 import { AgentResponseService } from './application/services/agent/agent-response.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
+import { AdapterService } from './application/services/adapter/adapter.service';
 import { ThreadService } from './application/services/thread/thread.service';
 import { TaskService } from './application/services/task/task.service';
 import { TaskStatusService } from './application/services/task/task-status.service';
@@ -57,6 +59,10 @@ import { WorkflowService } from './application/services/workflow/workflow.servic
 import { WorkflowCrudService } from './application/services/workflow/workflow-crud.service';
 import { WorkflowQueryService } from './application/services/workflow/workflow-query.service';
 import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
+import { FileSystemAdapterConfigStore } from './infrastructure/persistence/file-system-adapter-config-store';
+import { FileLockManager } from './application/services/lock/file-lock-manager.service';
+import { AuditLogger } from './application/services/audit/audit-logger.service';
+import { FileSystemAuditLogStore } from './application/services/audit/file-system-audit-log-store';
 
 // Interfaces
 import { ILogger, LogContext, LogLevel } from './application/interfaces/index';
@@ -121,6 +127,14 @@ function initializeDependencies() {
 
   // Agent Runtime
   const agentRuntime = new MockAgentRuntime();
+
+  // Adapter Configuration Store and Service
+  const coveDir = path.join(projectRoot, '.cove');
+  const lockManager = new FileLockManager();
+  const auditLogStore = new FileSystemAuditLogStore(coveDir);
+  const auditLogger = new AuditLogger(auditLogStore);
+  const adapterConfigStore = new FileSystemAdapterConfigStore(coveDir, lockManager, auditLogger);
+  const adapterService = new AdapterService(adapterConfigStore);
 
   // Services (order matters — channelMessagingService first, used by channelService)
   const channelMessagingService = new ChannelMessagingService(
@@ -221,7 +235,8 @@ function initializeDependencies() {
     channelRepository,
     eventBus,
     logger,
-    agentRepository
+    agentRepository,
+    adapterService
   );
 
   // Agent sub-services
@@ -233,7 +248,8 @@ function initializeDependencies() {
 
   const agentQueryService = new AgentQueryService(
     agentRepository,
-    agentRepository
+    agentRepository,
+    adapterService
   );
 
   const agentConfigService = new AgentConfigService(
@@ -302,8 +318,15 @@ function initializeDependencies() {
     workflowLifecycleService
   );
 
-  // Wire up: message.sent → agent auto-response (fire-and-forget)
-  eventBus.subscribe('message.sent', (event) => {
+  /**
+   * Event Lifecycle:
+   * - message.created: Message entity created and persisted (human or agent)
+   * - message.sent: Message delivery completed (used by agent responses)
+   *
+   * Subscribe to message.created to trigger agent auto-response.
+   * Skip agent messages to prevent infinite loops.
+   */
+  eventBus.subscribe('message.created', (event) => {
     if (event.payload.senderType === 'agent') return;
     messageRepository.findById(event.payload.messageId as string).then(message => {
       if (message) agentService.handleIncomingMessage(message);
@@ -318,6 +341,7 @@ function initializeDependencies() {
     // Services for tRPC
     agentService,
     agentRuntimeService,
+    adapterService,
     channelService,
     messageService,
     taskService,
@@ -333,6 +357,7 @@ function createStandaloneServer(deps: {
   eventBus: InMemoryEventBus;
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
+  adapterService: AdapterService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -345,6 +370,7 @@ function createStandaloneServer(deps: {
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
+    adapterService: deps.adapterService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,
@@ -471,6 +497,21 @@ async function startServer() {
   const PORT = process.env.PORT || 3001;
 
   try {
+    // Initialize database before starting server
+    const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../../');
+    const databasePath = path.join(projectRoot, '.cove/database/cove.db');
+    const migrationsPath = path.join(__dirname, '../prisma/migrations');
+
+    const logger = new ConsoleLogger();
+    const dbInitializer = new DatabaseInitializer({
+      databasePath,
+      migrationsPath,
+      logger,
+      autoMigrate: process.env.AUTO_MIGRATE !== 'false', // Enable by default, disable with AUTO_MIGRATE=false
+    });
+
+    await dbInitializer.initialize();
+
     const deps = initializeDependencies();
 
     const { httpServer, appRouter } = createStandaloneServer(deps);
