@@ -96,6 +96,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
       const createData = {
         ...data,
         createdBy: user?.id || 'system',
+        members, // Include members in create mode
       };
 
       createChannel.mutate(createData, {
@@ -135,6 +136,21 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
   }
 
   function handleAddMember(memberId: string, memberType: 'human' | 'agent') {
+    // In create mode, just update local state
+    if (isCreateMode) {
+      setMembers([
+        ...members,
+        {
+          member_id: memberId,
+          member_type: memberType,
+          role: 'member',
+          joined_at: new Date().toISOString(),
+        },
+      ]);
+      return;
+    }
+
+    // In edit mode, call API
     if (!channel) return;
 
     addMember.mutate(
@@ -161,6 +177,13 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
   }
 
   function handleRemoveMember(memberId: string) {
+    // In create mode, just update local state
+    if (isCreateMode) {
+      setMembers(members.filter(m => m.member_id !== memberId));
+      return;
+    }
+
+    // In edit mode, call API
     if (!channel) return;
 
     removeMember.mutate(
@@ -367,36 +390,35 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
             colSpan: { default: 1, lg: 1 },
             content: (
               <div className="flex flex-col gap-6">
-                {/* Members Management - Only in Edit Mode */}
-                {!isCreateMode && (
-                  <GlassCard className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">👥 {t('edit.members.title')}</h3>
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Input
-                          value={memberSearchQuery}
-                          onChange={e => setMemberSearchQuery(e.target.value)}
-                          placeholder={t('edit.members.search')}
-                          className="flex-1"
-                        />
-                      </div>
+                {/* Members Management */}
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">👥 {t('edit.members.title')}</h3>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        value={memberSearchQuery}
+                        onChange={e => setMemberSearchQuery(e.target.value)}
+                        placeholder={t('edit.members.search')}
+                        className="flex-1"
+                      />
+                    </div>
 
-                      {/* Current Members */}
-                      <div className="space-y-2">
-                        <Label>{t('edit.members.current')}</Label>
-                        <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
-                          {members.length === 0 ? (
-                            <div className="p-4 text-sm text-muted-foreground text-center">
-                              {t('edit.members.noMembers')}
-                            </div>
-                          ) : (
-                            members.map(member => (
-                              <div key={member.member_id} className="flex items-center justify-between p-3">
-                                <div className="flex items-center gap-2">
-                                  <span>{member.member_type === 'human' ? '👤' : '🤖'}</span>
-                                  <span className="text-sm">{member.member_id}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {member.role}
+                    {/* Current Members */}
+                    <div className="space-y-2">
+                      <Label>{t('edit.members.current')}</Label>
+                      <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
+                        {members.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            {t('edit.members.noMembers')}
+                          </div>
+                        ) : (
+                          members.map(member => (
+                            <div key={member.member_id} className="flex items-center justify-between p-3">
+                              <div className="flex items-center gap-2">
+                                <span>{member.member_type === 'human' ? '👤' : '🤖'}</span>
+                                <span className="text-sm">{member.member_id}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {member.role}
                                   </Badge>
                                 </div>
                                 {member.role !== 'owner' && (
@@ -457,7 +479,6 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                       )}
                     </div>
                   </GlassCard>
-                )}
 
                 {/* Communication Rules */}
                 <GlassCard className="p-6">

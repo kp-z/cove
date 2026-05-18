@@ -96,7 +96,7 @@ export function ChannelPanel({
       }
     : null;
 
-  const messages: Message[] = (messageEntities ?? []).map(messageEntityToMessage);
+  const messages: Message[] = (messageEntities?.messages ?? []).map(messageEntityToMessage);
 
   const handleSendMessage = useCallback(async (content: string) => {
     sendMessage.mutate({
