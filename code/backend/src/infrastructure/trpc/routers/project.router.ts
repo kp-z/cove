@@ -36,7 +36,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const project = await projectService.createProject(input);
           return project.toJSON();
           });
@@ -50,7 +50,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .query(async ({ ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const projects = await projectService.getAllProjects();
 
             return {
@@ -69,7 +69,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const project = await projectService.getProjectById(input.projectId);
           return project.toJSON();
           });
@@ -87,7 +87,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const project = await projectService.updateProject(input.projectId, input.data);
           return project.toJSON();
           });
@@ -102,7 +102,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             await projectService.deleteProject(input.projectId);
           return { projectId: input.projectId, deleted: true };
           });

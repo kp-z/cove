@@ -14,6 +14,7 @@
  */
 
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';
@@ -72,7 +73,7 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await messageService.sendMessage(input);
           return message.toJSON();
           });
@@ -91,7 +92,7 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const result = await messageService.getMessagesByChannelCursor(
             input.channelId,
             input.cursor || null,
@@ -113,7 +114,7 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await messageService.getMessageById(input.messageId);
           return message.toJSON();
           });
@@ -128,12 +129,12 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await messageService.updateMessage(input);
-          return message.toJSON();
+            return message.toJSON();
           });
         } catch (error: any) {
-          mapErrorToTRPC(error); // This function throws, no need to throw again
+          throw mapErrorToTRPC(error);
         }
       }),
 
@@ -143,7 +144,7 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             await messageService.deleteMessage(input);
           return { messageId: input.messageId, deleted: true };
           });
@@ -158,7 +159,7 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await messageService.addReaction(input);
           return message.toJSON();
           });
@@ -173,7 +174,7 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await messageService.removeReaction(input);
           return message.toJSON();
           });
@@ -191,7 +192,7 @@ export const messageRouter = (messageService: MessageService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const messages = await messageService.getMessagesByThread(
             input.messageId,
             input.limit);
@@ -212,7 +213,7 @@ export const messageRouter = (messageService: MessageService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             // 获取 thread root 消息以获取 channelId
           const threadRoot = await messageService.getMessageById(input.messageId);
 

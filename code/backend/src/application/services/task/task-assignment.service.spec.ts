@@ -17,6 +17,8 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('TaskAssignmentService', () => {
   let service: TaskAssignmentService;
@@ -24,8 +26,10 @@ describe('TaskAssignmentService', () => {
   let mockAgentRepository: IAgentRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockTaskRepository = {
       findById: vi.fn(),
       update: vi.fn(),
@@ -70,7 +74,9 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      const result = await service.assignTask(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.assignTask(dto);
+      });
 
       expect(result).toBe(assignedTask);
       expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-123');
@@ -80,7 +86,7 @@ describe('TaskAssignmentService', () => {
           type: 'agent',
         })
       );
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask, 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.assigned',
@@ -101,11 +107,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'human',
       };
 
-      const result = await service.assignTask(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.assignTask(dto);
+      });
 
       expect(result).toBe(assignedTask);
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask, 'test-server-id');
     });
 
     it('should throw error when task not found', async () => {
@@ -117,7 +125,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      await expect(service.assignTask(dto)).rejects.toThrow(TaskNotFoundError);
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.assignTask(dto);
+
+
+      })).rejects.toThrow(TaskNotFoundError);
     });
 
     it('should throw error when task is not in todo status', async () => {
@@ -130,7 +144,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      await expect(service.assignTask(dto)).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.assignTask(dto);
+
+
+      })).rejects.toThrow(
         TaskNotAssignableError
       );
     });
@@ -146,7 +166,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      await expect(service.assignTask(dto)).rejects.toThrow(AgentNotFoundError);
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.assignTask(dto);
+
+
+      })).rejects.toThrow(AgentNotFoundError);
     });
   });
 
@@ -168,12 +194,14 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      const result = await service.claimTask(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.claimTask(dto);
+      });
 
       expect(result).toBe(claimedTask);
       expect(mockTask.assignTo).toHaveBeenCalled();
       expect(assignedTask.start).toHaveBeenCalled();
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(claimedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(claimedTask, 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.claimed',
@@ -191,7 +219,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'agent',
       };
 
-      await expect(service.claimTask(dto)).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.claimTask(dto);
+
+
+      })).rejects.toThrow(
         TaskNotAssignableError
       );
     });
@@ -205,11 +239,13 @@ describe('TaskAssignmentService', () => {
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(mockTask);
       vi.spyOn(mockTask, 'unclaim').mockReturnValue(unclaimedTask);
 
-      const result = await service.unclaimTask('task-123', 'user-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.unclaimTask('task-123', 'user-123');
+      });
 
       expect(result).toBe(unclaimedTask);
       expect(mockTask.unclaim).toHaveBeenCalledWith('user-123');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(unclaimedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(unclaimedTask, 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.unclaimed',
@@ -220,7 +256,13 @@ describe('TaskAssignmentService', () => {
     it('should throw error when task not found', async () => {
       vi.mocked(mockTaskRepository.findById).mockResolvedValue(null);
 
-      await expect(service.unclaimTask('nonexistent', 'user-123')).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.unclaimTask('nonexistent', 'user-123');
+
+
+      })).rejects.toThrow(
         TaskNotFoundError
       );
     });
@@ -242,13 +284,15 @@ describe('TaskAssignmentService', () => {
         dependsOnTaskId: 'task-456',
       };
 
-      const result = await service.addDependency(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.addDependency(dto);
+      });
 
       expect(result).toBe(updatedTask);
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-123');
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-456');
       expect(mockTask.addDependency).toHaveBeenCalledWith('task-456');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask, 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.dependency_added',
@@ -264,7 +308,13 @@ describe('TaskAssignmentService', () => {
         dependsOnTaskId: 'task-456',
       };
 
-      await expect(service.addDependency(dto)).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.addDependency(dto);
+
+
+      })).rejects.toThrow(
         TaskNotFoundError
       );
     });
@@ -280,7 +330,13 @@ describe('TaskAssignmentService', () => {
         dependsOnTaskId: 'nonexistent',
       };
 
-      await expect(service.addDependency(dto)).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.addDependency(dto);
+
+
+      })).rejects.toThrow(
         TaskNotFoundError
       );
     });
@@ -299,11 +355,13 @@ describe('TaskAssignmentService', () => {
         dependsOnTaskId: 'task-456',
       };
 
-      const result = await service.removeDependency(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.removeDependency(dto);
+      });
 
       expect(result).toBe(updatedTask);
       expect(mockTask.removeDependency).toHaveBeenCalledWith('task-456');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask);
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask, 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.dependency_removed',
@@ -319,7 +377,13 @@ describe('TaskAssignmentService', () => {
         dependsOnTaskId: 'task-456',
       };
 
-      await expect(service.removeDependency(dto)).rejects.toThrow(
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.removeDependency(dto);
+
+
+      })).rejects.toThrow(
         TaskNotFoundError
       );
     });
@@ -342,7 +406,13 @@ describe('TaskAssignmentService', () => {
         assigneeType: 'human',
       };
 
-      await expect(service.assignTask(dto)).resolves.toBeDefined();
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.assignTask(dto);
+
+
+      })).resolves.toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish event',
         expect.any(Error),

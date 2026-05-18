@@ -64,7 +64,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const workflow = await workflowService.createWorkflow(input);
           return workflow.toJSON();
           });
@@ -82,7 +82,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             let workflows: any[] = [];
 
           if (input?.status) {
@@ -109,7 +109,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const workflow = await workflowService.getWorkflowById(input.workflowId);
           return workflow.toJSON();
           });
@@ -127,7 +127,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const workflow = await workflowService.updateWorkflow(input.workflowId, input.data);
           return workflow.toJSON();
           });
@@ -153,7 +153,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             await workflowService.deleteWorkflow(input.workflowId);
           return { workflowId: input.workflowId, deleted: true };
           });

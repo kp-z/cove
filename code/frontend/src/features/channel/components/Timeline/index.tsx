@@ -79,17 +79,7 @@ export function Timeline({
     openThread,
   };
 
-  if (isLoading) return <PageLoader />;
-  if (error) return <PageError message={error.message || 'Failed to load timeline'} />;
-  if (nodes.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-gray-500 text-sm">No messages yet</p>
-      </div>
-    );
-  }
-
-  // 按日期分组
+  // 按日期分组（即使在 loading/error 状态也要计算，保持 hooks 调用一致）
   const groups = groupNodesByDate(nodes);
 
   // 展平所有节点（包含分组标题）
@@ -105,7 +95,7 @@ export function Timeline({
     });
   });
 
-  // 虚拟滚动
+  // 虚拟滚动 - 必须在所有条件判断之前调用（React Hooks 规则）
   const virtualizer = useVirtualizer({
     count: flatItems.length,
     getScrollElement: () => parentRef.current,
@@ -115,6 +105,17 @@ export function Timeline({
     },
     overscan: 5,
   });
+
+  // 条件渲染放在所有 hooks 之后
+  if (isLoading) return <PageLoader />;
+  if (error) return <PageError message={error.message || 'Failed to load timeline'} />;
+  if (nodes.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-gray-500 text-sm">No messages yet</p>
+      </div>
+    );
+  }
 
   return (
     <div ref={parentRef} className="h-full overflow-y-auto p-6">

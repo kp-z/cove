@@ -31,7 +31,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const message = await threadService.replyInThread(
             input.threadId,
             input.senderId,
@@ -54,7 +54,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const messages = await threadService.listThreadMessages(
             input.threadId,
             input.cursor,
@@ -76,7 +76,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const thread = await threadService.getOrCreateThread(input.threadId);
           return thread.toJSON();
           });
@@ -91,7 +91,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const threads = await threadService.listChannelThreads(input.channelId);
 
           return {

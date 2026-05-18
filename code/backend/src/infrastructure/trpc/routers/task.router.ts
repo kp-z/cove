@@ -65,7 +65,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.createTask(input);
           return task.toJSON();
           });
@@ -85,7 +85,7 @@ export const taskRouter = (taskService: TaskService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             let tasks: any[] = [];
 
           if (input?.channelId) {
@@ -117,7 +117,7 @@ export const taskRouter = (taskService: TaskService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.getTaskById(input.taskId);
           return task.toJSON();
           });
@@ -135,7 +135,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.updateTask(input.taskId, input.data);
           return task.toJSON();
           });
@@ -150,7 +150,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             await taskService.deleteTask(input.taskId);
           return { taskId: input.taskId, deleted: true };
           });
@@ -165,7 +165,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.convertMessageToTask(
             input.messageId,
             input.title,
@@ -183,7 +183,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.claimTask({
             taskId: input.taskId,
             assigneeId: input.assigneeId,
@@ -205,7 +205,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.unclaimTask(input.taskId, input.userId);
           return task.toJSON();
           });
@@ -220,7 +220,7 @@ export const taskRouter = (taskService: TaskService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const task = await taskService.updateTaskStatus(
             input.taskId,
             input.status,

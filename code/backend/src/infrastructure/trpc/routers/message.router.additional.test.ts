@@ -114,12 +114,9 @@ describe('messageRouter - Additional Coverage', () => {
 
   describe('update - additional error cases', () => {
     it('should throw NOT_FOUND when message not found', async () => {
-      const testError = new MessageNotFoundError('message-1');
-      console.log('Test: Created error:', testError);
-      console.log('Test: Error code:', testError.code);
-      console.log('Test: Error statusCode:', testError.statusCode);
-
-      vi.mocked(mockMessageService.updateMessage).mockRejectedValue(testError);
+      vi.mocked(mockMessageService.updateMessage).mockRejectedValue(
+        new MessageNotFoundError('message-1')
+      );
 
       const caller = router.createCaller(mockContext);
 
@@ -131,10 +128,6 @@ describe('messageRouter - Additional Coverage', () => {
         });
         expect.fail('Should have thrown an error');
       } catch (err: any) {
-        console.log('Test: Caught error:', err);
-        console.log('Test: Caught error code:', err.code);
-        console.log('Test: Caught error message:', err.message);
-        console.log('Test: Caught error data:', err.data);
         expect(err.code).toBe('NOT_FOUND');
       }
     });

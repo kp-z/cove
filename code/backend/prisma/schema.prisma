@@ -243,3 +243,44 @@ model Thread {
   @@index([channelId])
   @@index([rootMessageId])
 }
+
+// ============================================
+// 服务器和设备
+// ============================================
+
+model Server {
+  id          String   @id
+  name        String   @unique
+  displayName String
+  description String?
+  ownerId     String
+  status      String   // active, archived
+  visibility  String   // public, private
+  configPath  String   // 指向 .cove/storage/servers/{id}.json
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@index([name])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Device {
+  id          String   @id
+  serverId    String
+  name        String
+  displayName String?
+  type        String   // desktop, mobile, tablet, server, iot
+  status      String   // provisioning, online, offline, maintenance, decommissioned
+  platform    String?  // darwin, linux, windows, ios, android
+  configPath  String   // 指向 .cove/storage/devices/{id}.json
+  lastSeenAt  DateTime?
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@index([serverId])
+  @@index([name])
+  @@index([status])
+  @@index([type])
+  @@unique([serverId, name])
+}

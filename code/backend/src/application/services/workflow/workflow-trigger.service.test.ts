@@ -7,14 +7,18 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('WorkflowTriggerService', () => {
   let service: WorkflowTriggerService;
   let mockWorkflowRepository: IWorkflowRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockWorkflowRepository = {
       findById: vi.fn(),
       update: vi.fn(),
@@ -60,9 +64,11 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.addTrigger({
-        workflowId: 'wf-1',
-        trigger,
+      const result = await runWithContext(testContext, async () => {
+        return await service.addTrigger({
+          workflowId: 'wf-1',
+          trigger,
+        });
       });
 
       expect(result.triggers).toHaveLength(1);
@@ -85,7 +91,9 @@ describe('WorkflowTriggerService', () => {
       };
 
       await expect(
-        service.addTrigger({ workflowId: 'nonexistent', trigger })
+        runWithContext(testContext, async () => {
+          return await service.addTrigger({ workflowId: 'nonexistent', trigger });
+        })
       ).rejects.toThrow(WorkflowNotFoundError);
     });
   });
@@ -119,10 +127,12 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.updateTrigger({
-        workflowId: 'wf-1',
-        triggerIndex: 0,
-        trigger: updatedTrigger,
+      const result = await runWithContext(testContext, async () => {
+        return await service.updateTrigger({
+          workflowId: 'wf-1',
+          triggerIndex: 0,
+          trigger: updatedTrigger,
+        });
       });
 
       expect(result.triggers[0].type).toBe('scheduled');
@@ -157,9 +167,11 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.enableTrigger({
-        workflowId: 'wf-1',
-        triggerIndex: 0,
+      const result = await runWithContext(testContext, async () => {
+        return await service.enableTrigger({
+          workflowId: 'wf-1',
+          triggerIndex: 0,
+        });
       });
 
       expect(result.triggers[0].enabled).toBe(true);
@@ -194,9 +206,11 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.disableTrigger({
-        workflowId: 'wf-1',
-        triggerIndex: 0,
+      const result = await runWithContext(testContext, async () => {
+        return await service.disableTrigger({
+          workflowId: 'wf-1',
+          triggerIndex: 0,
+        });
       });
 
       expect(result.triggers[0].enabled).toBe(false);
@@ -229,7 +243,9 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.getWorkflowTriggers('wf-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getWorkflowTriggers('wf-1');
+      });
 
       expect(result).toHaveLength(2);
       expect(result).toEqual(triggers);
@@ -257,7 +273,9 @@ describe('WorkflowTriggerService', () => {
 
       vi.mocked(mockWorkflowRepository.findById).mockResolvedValue(workflow);
 
-      const result = await service.getEnabledTriggers('wf-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getEnabledTriggers('wf-1');
+      });
 
       expect(result).toHaveLength(2);
       expect(result.every(t => t.enabled)).toBe(true);
@@ -288,7 +306,9 @@ describe('WorkflowTriggerService', () => {
       vi.mocked(mockEventBus.publish).mockRejectedValue(new Error('Event bus error'));
 
       await expect(
-        service.addTrigger({ workflowId: 'wf-1', trigger })
+        runWithContext(testContext, async () => {
+          return await service.addTrigger({ workflowId: 'wf-1', trigger });
+        })
       ).resolves.toBeDefined();
 
       expect(mockLogger.error).toHaveBeenCalledWith(

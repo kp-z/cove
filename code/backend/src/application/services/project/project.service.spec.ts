@@ -16,6 +16,8 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
+import { ServerContext } from '../../context/server-context';
+import { runWithContext } from '../../context/server-context-store';
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -24,8 +26,10 @@ describe('ProjectService', () => {
   let mockChannelRepository: IChannelRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let testContext: ServerContext;
 
   beforeEach(() => {
+    testContext = ServerContext.create('test-server-id', 'test-user-id');
     mockProjectRepository = {
       save: vi.fn(),
       findById: vi.fn(),
@@ -73,14 +77,24 @@ describe('ProjectService', () => {
         tags: ['tag1', 'tag2'],
       };
 
-      const result = await service.createProject(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.createProject(dto);;
+      });
 
       expect(result).toBeInstanceOf(ProjectEntity);
       expect(result.name).toBe(dto.name);
       expect(result.description).toBe(dto.description);
       expect(result.ownerId).toBe(dto.ownerId);
       expect(result.status).toBe('active');
-      expect(mockProjectRepository.save).toHaveBeenCalledWith(result);
+      expect(mockProjectRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: dto.name,
+          description: dto.description,
+          ownerId: dto.ownerId,
+          status: 'active',
+        }),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.created',
@@ -95,7 +109,9 @@ describe('ProjectService', () => {
         ownerId: 'user-123',
       };
 
-      const result = await service.createProject(dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.createProject(dto);;
+      });
 
       expect(result.name).toBe(dto.name);
       expect(result.ownerId).toBe(dto.ownerId);
@@ -173,7 +189,9 @@ describe('ProjectService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
       const dto: UpdateProjectDTO = { name: 'New Name' };
-      const result = await service.updateProject('project-123', dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.updateProject('project-123', dto);;
+      });
 
       expect(result.name).toBe('New Name');
       expect(mockProjectRepository.update).toHaveBeenCalled();
@@ -189,7 +207,9 @@ describe('ProjectService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
       const dto: UpdateProjectDTO = { description: 'New Description' };
-      const result = await service.updateProject('project-123', dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.updateProject('project-123', dto);;
+      });
 
       expect(result.description).toBe('New Description');
       expect(mockProjectRepository.update).toHaveBeenCalled();
@@ -203,7 +223,9 @@ describe('ProjectService', () => {
         name: 'New Name',
         description: 'New Description',
       };
-      const result = await service.updateProject('project-123', dto);
+      const result = await runWithContext(testContext, async () => {
+        return await service.updateProject('project-123', dto);;
+      });
 
       expect(result.name).toBe('New Name');
       expect(result.description).toBe('New Description');
@@ -226,10 +248,17 @@ describe('ProjectService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
       vi.spyOn(mockProject, 'archive').mockReturnValue(archivedProject);
 
-      const result = await service.archiveProject('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.archiveProject('project-123');;
+      });
 
       expect(result.status).toBe('archived');
-      expect(mockProjectRepository.update).toHaveBeenCalledWith(archivedProject);
+      expect(mockProjectRepository.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'archived',
+        }),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.archived',
@@ -254,10 +283,17 @@ describe('ProjectService', () => {
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
       vi.spyOn(mockProject, 'activate').mockReturnValue(activatedProject);
 
-      const result = await service.activateProject('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.activateProject('project-123');;
+      });
 
       expect(result.status).toBe('active');
-      expect(mockProjectRepository.update).toHaveBeenCalledWith(activatedProject);
+      expect(mockProjectRepository.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'active',
+        }),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.activated',
@@ -271,7 +307,9 @@ describe('ProjectService', () => {
       const mockProject = createTestProject({ status: 'archived' });
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
-      await service.deleteProject('project-123');
+      await runWithContext(testContext, async () => {
+        return await service.deleteProject('project-123');;
+      });
 
       expect(mockProjectRepository.delete).toHaveBeenCalledWith('project-123');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
@@ -404,7 +442,13 @@ describe('ProjectService', () => {
         new Error('Event bus error')
       );
 
-      await expect(service.createProject(dto)).resolves.toBeDefined();
+      await expect(runWithContext(testContext, async () => {
+
+
+        return await service.createProject(dto);
+
+
+      })).resolves.toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to publish event',
         expect.any(Error),

@@ -42,7 +42,7 @@ export const userRouter = (userService: UserService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const user = await userService.createUser(input);
           return user.toJSON();
           });
@@ -59,7 +59,7 @@ export const userRouter = (userService: UserService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const users = input?.role
             ? await userService.getUsersByRole(input.role)
             : await userService.getAllUsers();
@@ -80,7 +80,7 @@ export const userRouter = (userService: UserService) =>
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const user = await userService.getUserById(input.userId);
           return user.toJSON();
           });
@@ -98,7 +98,7 @@ export const userRouter = (userService: UserService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             const user = await userService.updateUser(input.userId, input.data);
           return user.toJSON();
           });
@@ -113,7 +113,7 @@ export const userRouter = (userService: UserService) =>
       .mutation(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
-          return runWithContext(context, async () => {
+          return await runWithContext(context, async () => {
             await userService.deleteUser(input.userId);
           return { userId: input.userId, deleted: true };
           });
