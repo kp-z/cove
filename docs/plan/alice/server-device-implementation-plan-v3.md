@@ -290,23 +290,29 @@ function ProjectList() {
 
 ## 📋 实施计划（整合改进建议）
 
-### Phase 0: 基础设施准备（1 天）
+### Phase 0: 基础设施准备（1 天）✅ 已完成
 
-#### 0.1 创建 RepositoryFactory（0.5 天）
+#### 0.1 创建 RepositoryFactory（0.5 天）✅
 
 **任务**：
-1. 创建 `RepositoryFactory` 类
-2. 实现 `getStorageRoot(serverId)` 方法（支持本地/云端模式）
-3. 实现 Repository 实例缓存
-4. 编写单元测试
+1. ✅ 创建 `RepositoryFactory` 类
+2. ✅ 实现依赖注入和实例管理
+3. ✅ 实现 Repository 实例缓存（懒加载 + 单例）
+4. ✅ 编写单元测试（15 个测试全部通过）
 
 **产出**：
 ```
 src/infrastructure/repositories/
-  ├─ repository-factory.ts (新增)
+  ├─ repository-factory.ts (已完成)
   └─ __tests__/
-      └─ repository-factory.test.ts (新增)
+      └─ repository-factory.test.ts (已完成，15 tests)
 ```
+
+**实际实现**：
+- 构造函数注入 PrismaClient, StorageService, ILogger
+- 懒加载创建 Repository 实例（project, task, document, server）
+- 单例模式缓存实例，避免重复创建
+- 提供 getProjectRepository(), getTaskRepository() 等方法
 
 **代码示例**：
 ```typescript
@@ -353,22 +359,29 @@ export class RepositoryFactory {
 }
 ```
 
-#### 0.2 创建 ServerContext（0.5 天）
+#### 0.2 创建 ServerContext（0.5 天）✅
 
 **任务**：
-1. 创建 `ServerContext` 类
-2. 创建 `createServices(context)` 工厂函数
-3. 编写单元测试
+1. ✅ 创建 `ServerContext` 类
+2. ✅ 实现上下文管理（serverId, userId, requestId）
+3. ✅ 编写单元测试（10 个测试全部通过）
 
 **产出**：
 ```
 src/application/context/
-  ├─ server-context.ts (新增)
-  ├─ service-factory.ts (新增)
+  ├─ server-context.ts (已完成)
   └─ __tests__/
-      ├─ server-context.test.ts (新增)
-      └─ service-factory.test.ts (新增)
+      └─ server-context.test.ts (已完成，10 tests)
 ```
+
+**实际实现**：
+- readonly 属性：serverId, userId, requestId
+- 构造函数验证参数非空
+- toJSON() 方法序列化
+- toString() 方法格式化输出
+- 静态工厂方法 create()
+
+**注意**：ServiceFactory 将在 Phase 3 实施时创建
 
 ---
 
