@@ -24,5 +24,18 @@
     "pinSuccess": "Channel pinned",
     "unpinSuccess": "Channel unpinned",
     "pinError": "Failed to pin channel"
+  },
+  "editForm": {
+    "newChannel": "New Channel",
+    "subtitle": "Configure channel settings",
+    "basicInfo": "Basic Information",
+    "name": "Name",
+    "namePlaceholder": "Enter channel name",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter channel description",
+    "private": "Private Channel",
+    "privateDescription": "Only invited members can access this channel",
+    "tags": "Tags",
+    "tagPlaceholder": "Add tags (press Enter)"
   }
 }

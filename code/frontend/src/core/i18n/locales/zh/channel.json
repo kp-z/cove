@@ -24,5 +24,18 @@
     "pinSuccess": "已置顶频道",
     "unpinSuccess": "已取消置顶",
     "pinError": "置顶失败"
+  },
+  "editForm": {
+    "newChannel": "新建频道",
+    "subtitle": "配置频道设置",
+    "basicInfo": "基本信息",
+    "name": "名称",
+    "namePlaceholder": "输入频道名称",
+    "description": "描述",
+    "descriptionPlaceholder": "输入频道描述",
+    "private": "私有频道",
+    "privateDescription": "只有受邀成员可以访问此频道",
+    "tags": "标签",
+    "tagPlaceholder": "添加标签（按 Enter）"
   }
 }

@@ -1,15 +1,21 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Plus } from 'lucide-react';
 import { useChannelNavigation } from '../hooks/useChannelNavigation';
 import { useChannelPanelStore } from '../stores/channelStore';
 import { useResizableRight } from '../hooks/useResizableRight';
 import { ChannelList } from './ChannelList';
 import { Timeline } from './Timeline';
 import { useTimelineNodes } from './Timeline/hooks/useNodeRegistry';
+import { Button } from '@/shared/components/ui/button';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 
 export default function ChannelPage() {
+  const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const { channelId, threadId, selectChannel, selectThread } = useChannelNavigation();
   const { openChannel } = useChannelPanelStore();
 
@@ -57,6 +63,12 @@ export default function ChannelPage() {
       <PageHeader
         title="Channels"
         subtitle="Collaborate with your team"
+        actions={
+          <Button size="sm" onClick={() => navigate('/channels/new')}>
+            <Plus size={14} />
+            {t('actions.new')}
+          </Button>
+        }
       />
 
       <PageContent padded={false} className="flex h-full">

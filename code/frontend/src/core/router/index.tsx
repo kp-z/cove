@@ -4,6 +4,7 @@ import { lazy } from 'react';
 
 const DashboardPage = lazy(() => import('@/features/dashboard/components/DashboardPage'));
 const ChannelPage = lazy(() => import('@/features/channel/components/ChannelPage'));
+const ChannelEditPage = lazy(() => import('@/features/channel/components/ChannelEditPage'));
 const AgentPage = lazy(() => import('@/features/agent/components/AgentPage'));
 const AgentEditPage = lazy(() => import('@/features/agent/components/AgentEditPage'));
 const OKRPage = lazy(() => import('@/features/okr/components/OKRPage'));
@@ -30,6 +31,18 @@ export const router = createBrowserRouter([
       {
         path: 'channel',
         element: <ChannelPage />,
+      },
+      {
+        path: 'channels',
+        element: <ChannelPage />,
+      },
+      {
+        path: 'channels/new',
+        element: <ChannelEditPage />,
+      },
+      {
+        path: 'channels/:id/edit',
+        element: <ChannelEditPage />,
       },
       {
         path: 'channel/:channelId',
