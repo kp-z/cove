@@ -238,6 +238,10 @@ replace_in_file() {
         s/ServerMemberEntityProps/RealmMemberEntityProps/g;
         s/ServerMemberEntityJSON/RealmMemberEntityJSON/g;
 
+        # Router 相关替换
+        s/serverRouter/realmRouter/g;
+        s/serverService/realmService/g;
+
         # 字段名替换
         s/serverId/realmId/g;
         s/server_id/realm_id/g;
@@ -245,6 +249,7 @@ replace_in_file() {
         s/server_name/realm_name/g;
         s/serverMemberId/realmMemberId/g;
         s/server_member_id/realm_member_id/g;
+        s/serverMemberships/realmMemberships/g;
 
         # 目录路径替换
         s/\/server\//\/realm\//g;
@@ -275,6 +280,14 @@ replace_in_file() {
         # 存储路径替换
         s/storage\/servers/storage\/realms/g;
         s/\.cove\/storage\/servers/\.cove\/storage\/realms/g;
+
+        # 错误码替换
+        s/SERVER_NOT_FOUND/REALM_NOT_FOUND/g;
+        s/SERVER_NAME_EXISTS/REALM_NAME_EXISTS/g;
+        s/SERVER_NOT_ACTIVE/REALM_NOT_ACTIVE/g;
+        s/SERVER_ALREADY_ARCHIVED/REALM_ALREADY_ARCHIVED/g;
+        s/SERVER_NOT_ARCHIVED/REALM_NOT_ARCHIVED/g;
+        s/UNAUTHORIZED_SERVER_ACCESS/UNAUTHORIZED_REALM_ACCESS/g;
 
         # Prisma 特定替换
         s/model Server/model Realm/g;
