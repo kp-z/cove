@@ -12,7 +12,7 @@ import { TaskAssignmentService } from './task-assignment.service';
 import type { AssignTaskDTO, ClaimTaskDTO, AddDependencyDTO, RemoveDependencyDTO } from './task-assignment.service';
 import { TaskNotFoundError, TaskNotDeletableError } from './task.errors';
 import { MessageNotFoundError } from '../message/message.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export { TaskNotFoundError } from './task.errors';
 
@@ -47,7 +47,7 @@ export class TaskService {
   ) {}
 
   async createTask(dto: CreateTaskDTO): Promise<TaskEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Creating new task', { title: dto.title });
 
     const taskId = this.generateTaskId();
@@ -68,7 +68,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task, context.serverId);
+    await this.taskRepository.save(task, context.realmId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',
@@ -109,7 +109,7 @@ export class TaskService {
   }
 
   async updateTask(taskId: string, dto: UpdateTaskDTO): Promise<TaskEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Updating task', { taskId });
     const task = await this.getTaskById(taskId);
 
@@ -121,7 +121,7 @@ export class TaskService {
       priority: dto.priority ?? json.priority,
     });
 
-    await this.taskRepository.update(updated, context.serverId);
+    await this.taskRepository.update(updated, context.realmId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.updated',
@@ -154,7 +154,7 @@ export class TaskService {
   }
 
   async convertMessageToTask(messageId: string, title: string, createdBy: string): Promise<TaskEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Converting message to task', { messageId, title });
 
     if (!this.messageRepository) {
@@ -182,7 +182,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task, context.serverId);
+    await this.taskRepository.save(task, context.realmId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',

@@ -53,16 +53,16 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   /**
    * 保存实体（数据库 + 文件）
    */
-  protected async saveEntity(entity: TEntity, serverId: string): Promise<void> {
+  protected async saveEntity(entity: TEntity, realmId: string): Promise<void> {
     const entityId = this.getEntityId(entity);
     const entityType = this.getEntityType();
 
     try {
-      // 1. 保存内容到文件（添加 _server_id）
+      // 1. 保存内容到文件（添加 _realm_id）
       const content = this.toStorage(entity);
       const contentWithServerId = {
         ...content,
-        _server_id: serverId,
+        _realm_id: realmId,
       };
       const contentPath = await this.storage.saveJsonAtomic(
         entityType,
@@ -74,7 +74,7 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
       const dbRecord = this.toDatabase(entity);
       await this.saveToDatabase(dbRecord, contentPath);
 
-      this.logger.debug(`Saved ${entityType} ${entityId}`, { entityId, serverId });
+      this.logger.debug(`Saved ${entityType} ${entityId}`, { entityId, realmId });
     } catch (error: any) {
       this.logger.error(`Failed to save ${entityType} ${entityId}`, error);
       throw error;
@@ -84,16 +84,16 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   /**
    * 更新实体（数据库 + 文件）
    */
-  protected async updateEntity(entity: TEntity, serverId: string): Promise<void> {
+  protected async updateEntity(entity: TEntity, realmId: string): Promise<void> {
     const entityId = this.getEntityId(entity);
     const entityType = this.getEntityType();
 
     try {
-      // 1. 更新文件内容（添加 _server_id）
+      // 1. 更新文件内容（添加 _realm_id）
       const content = this.toStorage(entity);
       const contentWithServerId = {
         ...content,
-        _server_id: serverId,
+        _realm_id: realmId,
       };
       const contentPath = await this.storage.saveJsonAtomic(
         entityType,
@@ -105,7 +105,7 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
       const dbRecord = this.toDatabase(entity);
       await this.updateInDatabase(entityId, dbRecord, contentPath);
 
-      this.logger.debug(`Updated ${entityType} ${entityId}`, { entityId, serverId });
+      this.logger.debug(`Updated ${entityType} ${entityId}`, { entityId, realmId });
     } catch (error: any) {
       this.logger.error(`Failed to update ${entityType} ${entityId}`, error);
       throw error;
@@ -152,8 +152,8 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
       const contentPath = this.getContentPath(dbRecord);
       const contentWithServerId = await this.storage.loadJson(contentPath);
 
-      // 3. 移除 _server_id（Entity 层不需要）
-      const { _server_id, ...content } = contentWithServerId;
+      // 3. 移除 _realm_id（Entity 层不需要）
+      const { _realm_id, ...content } = contentWithServerId;
 
       // 4. 组装领域实体
       const entity = this.toDomain(dbRecord, content as TContent);
@@ -189,8 +189,8 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
           const contentPath = this.getContentPath(record);
           const contentWithServerId = await this.storage.loadJson(contentPath);
 
-          // 移除 _server_id（Entity 层不需要）
-          const { _server_id, ...content } = contentWithServerId;
+          // 移除 _realm_id（Entity 层不需要）
+          const { _realm_id, ...content } = contentWithServerId;
 
           return this.toDomain(record, content as TContent);
         })

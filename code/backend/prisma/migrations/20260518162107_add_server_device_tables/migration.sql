@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Server" (
+CREATE TABLE "Realm" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "displayName" TEXT NOT NULL,
@@ -28,16 +28,16 @@ CREATE TABLE "Device" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Server_name_key" ON "Server"("name");
+CREATE UNIQUE INDEX "Realm_name_key" ON "Server"("name");
 
 -- CreateIndex
-CREATE INDEX "Server_name_idx" ON "Server"("name");
+CREATE INDEX "Realm_name_idx" ON "Server"("name");
 
 -- CreateIndex
-CREATE INDEX "Server_ownerId_idx" ON "Server"("ownerId");
+CREATE INDEX "Realm_ownerId_idx" ON "Server"("ownerId");
 
 -- CreateIndex
-CREATE INDEX "Server_status_idx" ON "Server"("status");
+CREATE INDEX "Realm_status_idx" ON "Server"("status");
 
 -- CreateIndex
 CREATE INDEX "Device_serverId_idx" ON "Device"("serverId");

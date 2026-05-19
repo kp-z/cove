@@ -66,16 +66,16 @@ export interface ITaskRepository {
   /**
    * 保存新 Task
    * @param task - Task 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  save(task: TaskEntity, serverId: string): Promise<void>;
+  save(task: TaskEntity, realmId: string): Promise<void>;
 
   /**
    * 更新 Task
    * @param task - Task 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  update(task: TaskEntity, serverId: string): Promise<void>;
+  update(task: TaskEntity, realmId: string): Promise<void>;
 
   /**
    * 删除 Task

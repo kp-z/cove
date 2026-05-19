@@ -50,16 +50,16 @@ export interface IWorkflowRepository {
   /**
    * 保存新 Workflow
    * @param workflow - Workflow 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  save(workflow: WorkflowEntity, serverId: string): Promise<void>;
+  save(workflow: WorkflowEntity, realmId: string): Promise<void>;
 
   /**
    * 更新 Workflow
    * @param workflow - Workflow 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  update(workflow: WorkflowEntity, serverId: string): Promise<void>;
+  update(workflow: WorkflowEntity, realmId: string): Promise<void>;
 
   /**
    * 删除 Workflow

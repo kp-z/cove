@@ -55,10 +55,10 @@ describe('HybridDeviceRepository', () => {
   });
 
   describe('findById', () => {
-    it('should find device by id and serverId', async () => {
+    it('should find device by id and realmId', async () => {
       const dbRecord = {
         id: 'device-1',
-        serverId: 'server-1',
+        realmId: 'server-1',
         name: 'test-device',
         displayName: 'Test Device',
         type: 'physical',
@@ -84,7 +84,7 @@ describe('HybridDeviceRepository', () => {
       expect(result?.device_id).toBe('device-1');
       expect(result?.name).toBe('test-device');
       expect(mockPrisma.device.findFirst).toHaveBeenCalledWith({
-        where: { id: 'device-1', serverId: 'server-1' },
+        where: { id: 'device-1', realmId: 'server-1' },
       });
     });
 
@@ -102,7 +102,7 @@ describe('HybridDeviceRepository', () => {
       const dbRecords = [
         {
           id: 'device-1',
-          serverId: 'server-1',
+          realmId: 'server-1',
           name: 'device-1',
           displayName: 'Device 1',
           type: 'physical',
@@ -115,7 +115,7 @@ describe('HybridDeviceRepository', () => {
         },
         {
           id: 'device-2',
-          serverId: 'server-1',
+          realmId: 'server-1',
           name: 'device-2',
           displayName: 'Device 2',
           type: 'virtual',
@@ -144,7 +144,7 @@ describe('HybridDeviceRepository', () => {
       const dbRecords = [
         {
           id: 'device-1',
-          serverId: 'server-1',
+          realmId: 'server-1',
           name: 'device-1',
           displayName: 'Device 1',
           type: 'physical',
@@ -165,7 +165,7 @@ describe('HybridDeviceRepository', () => {
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('online');
       expect(mockPrisma.device.findMany).toHaveBeenCalledWith({
-        where: { serverId: 'server-1', status: 'online' },
+        where: { realmId: 'server-1', status: 'online' },
       });
     });
   });
@@ -175,7 +175,7 @@ describe('HybridDeviceRepository', () => {
       const dbRecords = [
         {
           id: 'device-1',
-          serverId: 'server-1',
+          realmId: 'server-1',
           name: 'device-1',
           displayName: 'Device 1',
           type: 'physical',
@@ -196,7 +196,7 @@ describe('HybridDeviceRepository', () => {
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('physical');
       expect(mockPrisma.device.findMany).toHaveBeenCalledWith({
-        where: { serverId: 'server-1', type: 'physical' },
+        where: { realmId: 'server-1', type: 'physical' },
       });
     });
   });
@@ -209,7 +209,7 @@ describe('HybridDeviceRepository', () => {
 
       expect(result).toBe(true);
       expect(mockPrisma.device.count).toHaveBeenCalledWith({
-        where: { id: 'device-1', serverId: 'server-1' },
+        where: { id: 'device-1', realmId: 'server-1' },
       });
     });
 
@@ -226,7 +226,7 @@ describe('HybridDeviceRepository', () => {
     it('should save device to database and storage', async () => {
       const device = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'server-1',
+        realm_id: 'server-1',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',
@@ -251,7 +251,7 @@ describe('HybridDeviceRepository', () => {
     it('should update device in database and storage', async () => {
       const device = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'server-1',
+        realm_id: 'server-1',
         name: 'test-device',
         display_name: 'Updated Device',
         type: 'physical',

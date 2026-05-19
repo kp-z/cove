@@ -10,11 +10,12 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure, protectedProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
+import { router, protectedProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { UserService } from '../../../application/services/user/user.service';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 import { requireRole, requireOwnerOrAdmin } from '../middleware/auth.middleware';
 
 // Zod Schemas
@@ -43,7 +44,7 @@ export const userRouter = (userService: UserService) =>
       .input(createUserSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.createUser(input);
           return user.toJSON();
@@ -62,7 +63,7 @@ export const userRouter = (userService: UserService) =>
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const params = {
               page: input?.page || 1,
@@ -90,7 +91,7 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({ userId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.getUserById(input.userId);
           return user.toJSON();
@@ -109,7 +110,19 @@ export const userRouter = (userService: UserService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          // Check if user is trying to modify their own data or is an admin/owner
+          const userRole = ctx.userRole as 'owner' | 'admin' | 'member';
+          const isOwnData = input.userId === ctx.userId;
+          const isAdminOrOwner = userRole === 'owner' || userRole === 'admin';
+
+          if (!isOwnData && !isAdminOrOwner) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'You can only modify your own data',
+            });
+          }
+
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.updateUser(input.userId, input.data);
           return user.toJSON();
@@ -125,7 +138,7 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({ userId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await userService.deleteUser(input.userId);
           return { userId: input.userId, deleted: true };
@@ -141,7 +154,7 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({ userId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.activateUser(input.userId);
             return user.toJSON();
@@ -157,7 +170,7 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({ userId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.suspendUser(input.userId);
             return user.toJSON();
@@ -173,7 +186,7 @@ export const userRouter = (userService: UserService) =>
       .input(z.object({ userId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const user = await userService.unlockUser(input.userId);
             return user.toJSON();

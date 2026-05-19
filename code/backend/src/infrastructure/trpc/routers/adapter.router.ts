@@ -280,7 +280,9 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
 
           const startTime = Date.now();
 
-          switch (adapter.type) {
+          const adapterType = adapter.type;
+
+          switch (adapterType) {
             case 'anthropic-api':
             case 'openai-api': {
               const config = adapter.config as any;
@@ -353,7 +355,7 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
             }
 
             default:
-              throw new Error(`Unsupported adapter type: ${adapter.type}`);
+              throw new Error(`Unsupported adapter type: ${adapterType}`);
           }
         } catch (error: any) {
           return {

@@ -14,8 +14,8 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotDeletableError } from './task.errors';
 import { MessageNotFoundError } from '../message/message.errors';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('TaskService', () => {
   let taskService: TaskService;
@@ -26,10 +26,10 @@ describe('TaskService', () => {
   let mockLogger: ILogger;
   let taskStatusService: TaskStatusService;
   let taskAssignmentService: TaskAssignmentService;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
 
     mockTaskRepository = {
       save: vi.fn(),

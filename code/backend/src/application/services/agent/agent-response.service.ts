@@ -15,7 +15,7 @@ import type { ChatMessage } from '../../../infrastructure/adapters/llm/index';
 import { AgentResponseGenerationError } from './agent.errors';
 import { AdapterService } from '../adapter/adapter.service';
 import { LlmAdapterFactory } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class AgentResponseService {
   constructor(
@@ -29,11 +29,11 @@ export class AgentResponseService {
   ) {}
 
   async handleIncomingMessage(message: MessageEntity): Promise<void> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Handling incoming message', {
       messageId: message.messageId,
       channelId: message.channelId,
-      serverId: context.serverId,
+      realmId: context.realmId,
     });
 
     const channel = await this.channelRepository.findById(message.channelId);
@@ -157,7 +157,7 @@ export class AgentResponseService {
     originalMessage: MessageEntity,
     channel: ChannelEntity
   ): Promise<void> {
-    const context = getServerContext();
+    const context = getRealmContext();
     const responseContent = await this.generateAgentResponse(agent, originalMessage, channel);
 
     const responseMessage = MessageEntity.create({
@@ -185,7 +185,7 @@ export class AgentResponseService {
       meta: { client: 'agent-runtime', isPinned: false, isImportant: false },
     });
 
-    await this.messageRepository.save(responseMessage, context.serverId);
+    await this.messageRepository.save(responseMessage, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

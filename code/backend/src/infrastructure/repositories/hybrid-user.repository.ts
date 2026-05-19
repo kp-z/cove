@@ -148,12 +148,12 @@ export class HybridUserRepository
     };
   }
 
-  async save(user: UserEntity, serverId: string): Promise<void> {
-    await this.saveEntity(user, serverId);
+  async save(user: UserEntity, realmId: string): Promise<void> {
+    await this.saveEntity(user, realmId);
   }
 
-  async update(user: UserEntity, serverId: string): Promise<void> {
-    await this.updateEntity(user, serverId);
+  async update(user: UserEntity, realmId: string): Promise<void> {
+    await this.updateEntity(user, realmId);
   }
 
   async delete(userId: string): Promise<void> {

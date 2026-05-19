@@ -142,12 +142,12 @@ export class HybridTaskRepository
     return entities.filter(e => e.krId === krId);
   }
 
-  async save(task: TaskEntity, serverId: string): Promise<void> {
-    await this.saveEntity(task, serverId);
+  async save(task: TaskEntity, realmId: string): Promise<void> {
+    await this.saveEntity(task, realmId);
   }
 
-  async update(task: TaskEntity, serverId: string): Promise<void> {
-    await this.updateEntity(task, serverId);
+  async update(task: TaskEntity, realmId: string): Promise<void> {
+    await this.updateEntity(task, realmId);
   }
 
   async delete(taskId: string): Promise<void> {

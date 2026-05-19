@@ -22,7 +22,7 @@ import {
   IMessageRepository,
   ILogger,
 } from '../../interfaces';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class ThreadService {
   constructor(
@@ -32,7 +32,7 @@ export class ThreadService {
   ) {}
 
   async getOrCreateThread(rootMessageId: string): Promise<ThreadEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     const existing = await this.threadRepository.findById(rootMessageId);
     if (existing) {
       return existing;
@@ -52,7 +52,7 @@ export class ThreadService {
       createdAt: new Date(),
     });
 
-    await this.threadRepository.save(thread, context.serverId);
+    await this.threadRepository.save(thread, context.realmId);
 
     this.logger.info('Thread created', { threadId: rootMessageId, channelId: rootMessage.channelId });
 
@@ -65,7 +65,7 @@ export class ThreadService {
     senderType: SenderType,
     content: string,
   ): Promise<MessageEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     const rootMessage = await this.messageRepository.findById(rootMessageId);
     if (!rootMessage) {
       throw new RootMessageNotFoundError(rootMessageId);
@@ -110,10 +110,10 @@ export class ThreadService {
       },
     });
 
-    await this.messageRepository.save(message, context.serverId);
+    await this.messageRepository.save(message, context.realmId);
 
     const updatedThread = thread.addReply().addParticipant(senderId);
-    await this.threadRepository.update(updatedThread, context.serverId);
+    await this.threadRepository.update(updatedThread, context.realmId);
 
     this.logger.info('Thread reply sent', { threadId: rootMessageId, messageId });
 

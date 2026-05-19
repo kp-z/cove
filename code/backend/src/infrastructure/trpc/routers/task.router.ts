@@ -17,8 +17,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { TaskService } from '../../../application/services/task/task.service';
 import { mapErrorToTRPC } from '../../../common/errors';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const createTaskSchema = z.object({
@@ -64,7 +64,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(createTaskSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.createTask(input);
           return task.toJSON();
@@ -84,7 +84,7 @@ export const taskRouter = (taskService: TaskService) =>
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             let tasks: any[] = [];
 
@@ -116,7 +116,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(z.object({ taskId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.getTaskById(input.taskId);
           return task.toJSON();
@@ -134,7 +134,7 @@ export const taskRouter = (taskService: TaskService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.updateTask(input.taskId, input.data);
           return task.toJSON();
@@ -149,7 +149,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(z.object({ taskId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await taskService.deleteTask(input.taskId);
           return { taskId: input.taskId, deleted: true };
@@ -164,7 +164,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(convertMessageToTaskSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.convertMessageToTask(
             input.messageId,
@@ -182,7 +182,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(claimTaskSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.claimTask({
             taskId: input.taskId,
@@ -204,7 +204,7 @@ export const taskRouter = (taskService: TaskService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.unclaimTask(input.taskId, input.userId);
           return task.toJSON();
@@ -219,7 +219,7 @@ export const taskRouter = (taskService: TaskService) =>
       .input(updateStatusSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.updateTaskStatus(
             input.taskId,

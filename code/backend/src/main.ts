@@ -26,8 +26,8 @@ import { HybridMessageRepository } from './infrastructure/repositories/hybrid-me
 import { HybridUserRepository } from './infrastructure/repositories/hybrid-user.repository';
 import { HybridProjectRepository } from './infrastructure/repositories/hybrid-project.repository';
 import { HybridWorkflowRepository } from './infrastructure/repositories/hybrid-workflow.repository';
-import { HybridServerRepository } from './infrastructure/repositories/hybrid-server.repository';
-import { HybridServerMemberRepository } from './infrastructure/repositories/hybrid-server-member.repository';
+import { HybridRealmRepository } from './infrastructure/repositories/hybrid-realm.repository';
+import { HybridRealmMemberRepository } from './infrastructure/repositories/hybrid-realm-member.repository';
 import { HybridDeviceRepository } from './infrastructure/repositories/hybrid-device.repository';
 import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-audit-log.repository';
 import { StorageService } from './infrastructure/storage/storage.service';
@@ -63,7 +63,7 @@ import { WorkflowService } from './application/services/workflow/workflow.servic
 import { WorkflowCrudService } from './application/services/workflow/workflow-crud.service';
 import { WorkflowQueryService } from './application/services/workflow/workflow-query.service';
 import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
-import { ServerService } from './application/services/server/server.service';
+import { RealmService } from './application/services/realm/realm.service';
 import { DeviceService } from './application/services/device/device.service';
 import { AuthService } from './application/services/auth/auth.service';
 import { AuditService } from './application/services/audit/audit.service';
@@ -129,8 +129,8 @@ function initializeDependencies() {
   const userRepository = new HybridUserRepository(prisma, storageService, logger);
   const projectRepository = new HybridProjectRepository(prisma, storageService, logger);
   const workflowRepository = new HybridWorkflowRepository(prisma, storageService, logger);
-  const serverRepository = new HybridServerRepository(prisma, storageService, logger);
-  const serverMemberRepository = new HybridServerMemberRepository(prisma, logger, 'default');
+  const serverRepository = new HybridRealmRepository(prisma, storageService, logger);
+  const serverMemberRepository = new HybridRealmMemberRepository(prisma, storageService, logger, 'default');
   const deviceRepository = new HybridDeviceRepository(prisma, storageService, logger);
   const auditLogRepository = new HybridAuditLogRepository(prisma);
 
@@ -332,7 +332,7 @@ function initializeDependencies() {
     workflowLifecycleService
   );
 
-  const serverService = new ServerService(
+  const realmService = new RealmService(
     serverRepository,
     serverMemberRepository,
     eventBus,
@@ -384,7 +384,7 @@ function initializeDependencies() {
     userService,
     projectService,
     workflowService,
-    serverService,
+    realmService,
     deviceService,
   };
 }
@@ -396,6 +396,7 @@ function createStandaloneServer(deps: {
   agentRuntimeService: AgentRuntimeService;
   adapterService: AdapterService;
   authService: AuthService;
+  auditService: AuditService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -403,7 +404,7 @@ function createStandaloneServer(deps: {
   userService: UserService;
   projectService: ProjectService;
   workflowService: WorkflowService;
-  serverService: ServerService;
+  realmService: RealmService;
   deviceService: DeviceService;
 }) {
   // Create app router
@@ -412,6 +413,7 @@ function createStandaloneServer(deps: {
     agentRuntimeService: deps.agentRuntimeService,
     adapterService: deps.adapterService,
     authService: deps.authService,
+    auditService: deps.auditService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,
@@ -419,7 +421,7 @@ function createStandaloneServer(deps: {
     userService: deps.userService,
     projectService: deps.projectService,
     workflowService: deps.workflowService,
-    serverService: deps.serverService,
+    realmService: deps.realmService,
     deviceService: deps.deviceService,
     eventBus: deps.eventBus,
   });

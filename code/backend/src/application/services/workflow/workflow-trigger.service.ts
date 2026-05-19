@@ -1,7 +1,7 @@
 import { WorkflowEntity, WorkflowTrigger } from '../../../domain/models/workflow/workflow.entity';
 import { IWorkflowRepository, IEventBus, ILogger } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AddTriggerDTO {
   readonly workflowId: string;
@@ -32,11 +32,11 @@ export class WorkflowTriggerService {
   ) {}
 
   async addTrigger(dto: AddTriggerDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Adding trigger to workflow', { workflowId: dto.workflowId });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.addTrigger(dto.trigger);
-    await this.workflowRepository.update(updated, context.serverId);
+    await this.workflowRepository.update(updated, context.realmId);
     await this.publishEvent('workflow.trigger_added', dto.workflowId, {
       workflowId: dto.workflowId, trigger: dto.trigger,
     });
@@ -44,11 +44,11 @@ export class WorkflowTriggerService {
   }
 
   async updateTrigger(dto: UpdateTriggerDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Updating trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.updateTrigger(dto.triggerIndex, dto.trigger);
-    await this.workflowRepository.update(updated, context.serverId);
+    await this.workflowRepository.update(updated, context.realmId);
     await this.publishEvent('workflow.trigger_updated', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex, trigger: dto.trigger,
     });
@@ -56,11 +56,11 @@ export class WorkflowTriggerService {
   }
 
   async enableTrigger(dto: EnableTriggerDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Enabling trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.enableTrigger(dto.triggerIndex);
-    await this.workflowRepository.update(updated, context.serverId);
+    await this.workflowRepository.update(updated, context.realmId);
     await this.publishEvent('workflow.trigger_enabled', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex,
     });
@@ -68,11 +68,11 @@ export class WorkflowTriggerService {
   }
 
   async disableTrigger(dto: DisableTriggerDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Disabling trigger', { workflowId: dto.workflowId, triggerIndex: dto.triggerIndex });
     const workflow = await this.findWorkflow(dto.workflowId);
     const updated = workflow.disableTrigger(dto.triggerIndex);
-    await this.workflowRepository.update(updated, context.serverId);
+    await this.workflowRepository.update(updated, context.realmId);
     await this.publishEvent('workflow.trigger_disabled', dto.workflowId, {
       workflowId: dto.workflowId, triggerIndex: dto.triggerIndex,
     });

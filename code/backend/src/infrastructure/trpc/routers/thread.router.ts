@@ -12,8 +12,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ThreadService } from '../../../application/services/thread/thread.service';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const replyInThreadSchema = z.object({
@@ -30,7 +30,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .input(replyInThreadSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await threadService.replyInThread(
             input.threadId,
@@ -53,7 +53,7 @@ export const threadRouter = (threadService: ThreadService) =>
       }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const messages = await threadService.listThreadMessages(
             input.threadId,
@@ -75,7 +75,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .input(z.object({ threadId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const thread = await threadService.getOrCreateThread(input.threadId);
           return thread.toJSON();
@@ -90,7 +90,7 @@ export const threadRouter = (threadService: ThreadService) =>
       .input(z.object({ channelId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const threads = await threadService.listChannelThreads(input.channelId);
 

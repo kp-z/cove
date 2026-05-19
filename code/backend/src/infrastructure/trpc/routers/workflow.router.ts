@@ -15,8 +15,8 @@ import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { WorkflowService } from '../../../application/services/workflow/workflow.service';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const workflowStepSchema = z.object({
@@ -63,7 +63,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .input(createWorkflowSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const workflow = await workflowService.createWorkflow(input);
           return workflow.toJSON();
@@ -81,7 +81,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             let workflows: any[] = [];
 
@@ -108,7 +108,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .input(z.object({ workflowId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const workflow = await workflowService.getWorkflowById(input.workflowId);
           return workflow.toJSON();
@@ -126,7 +126,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const workflow = await workflowService.updateWorkflow(input.workflowId, input.data);
           return workflow.toJSON();
@@ -152,7 +152,7 @@ export const workflowRouter = (workflowService: WorkflowService) =>
       .input(z.object({ workflowId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await workflowService.deleteWorkflow(input.workflowId);
           return { workflowId: input.workflowId, deleted: true };

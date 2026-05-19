@@ -26,7 +26,7 @@ describe('messageRouter - Additional Coverage', () => {
 
 
     mockContext = {
-      serverId: 'test-server-id',
+      realmId: 'test-server-id',
       userId: 'test-user-id',
       logger: {
         info: vi.fn(),

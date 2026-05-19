@@ -8,7 +8,7 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AssignTaskDTO {
   readonly taskId: string;
@@ -42,7 +42,7 @@ export class TaskAssignmentService {
 
   async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getServerContext();
+      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -61,7 +61,7 @@ export class TaskAssignmentService {
     });
 
     const assigned = task.assignTo(assignee);
-    await this.taskRepository.update(assigned, context.serverId);
+    await this.taskRepository.update(assigned, context.realmId);
 
     await this.publishEvent('task.assigned', dto.taskId, {
       taskId: dto.taskId,
@@ -74,7 +74,7 @@ export class TaskAssignmentService {
 
   async claimTask(dto: ClaimTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getServerContext();
+      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -93,7 +93,7 @@ export class TaskAssignmentService {
     });
 
     const claimed = task.assignTo(assignee).start();
-    await this.taskRepository.update(claimed, context.serverId);
+    await this.taskRepository.update(claimed, context.realmId);
 
     await this.publishEvent('task.claimed', dto.taskId, {
       taskId: dto.taskId,
@@ -105,11 +105,11 @@ export class TaskAssignmentService {
   }
 
   async unclaimTask(taskId: string, userId: string): Promise<TaskEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Unclaiming task', { taskId, userId });
     const task = await this.findTask(taskId);
     const unclaimed = task.unclaim(userId);
-    await this.taskRepository.update(unclaimed, context.serverId);
+    await this.taskRepository.update(unclaimed, context.realmId);
 
     await this.publishEvent('task.unclaimed', taskId, { taskId, userId });
 
@@ -118,11 +118,11 @@ export class TaskAssignmentService {
 
   async addDependency(dto: AddDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getServerContext();
+      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
     await this.findTask(dto.dependsOnTaskId);
     const updated = task.addDependency(dto.dependsOnTaskId);
-    await this.taskRepository.update(updated, context.serverId);
+    await this.taskRepository.update(updated, context.realmId);
 
     await this.publishEvent('task.dependency_added', dto.taskId, {
       taskId: dto.taskId, dependsOnTaskId: dto.dependsOnTaskId,
@@ -133,10 +133,10 @@ export class TaskAssignmentService {
 
   async removeDependency(dto: RemoveDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getServerContext();
+      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
     const updated = task.removeDependency(dto.dependsOnTaskId);
-    await this.taskRepository.update(updated, context.serverId);
+    await this.taskRepository.update(updated, context.realmId);
 
     await this.publishEvent('task.dependency_removed', dto.taskId, {
       taskId: dto.taskId, dependsOnTaskId: dto.dependsOnTaskId,

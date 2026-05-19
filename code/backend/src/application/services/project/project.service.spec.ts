@@ -16,8 +16,8 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -26,10 +26,10 @@ describe('ProjectService', () => {
   let mockChannelRepository: IChannelRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
     mockProjectRepository = {
       save: vi.fn(),
       findById: vi.fn(),

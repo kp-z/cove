@@ -12,7 +12,7 @@ import {
 } from '../../interfaces';
 import { WorkflowNotFoundError, WorkflowNotArchivedError } from './workflow.errors';
 import { TaskNotFoundError } from '../task/task.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface CreateWorkflowDTO {
   readonly name: string;
@@ -38,7 +38,7 @@ export class WorkflowCrudService {
   ) {}
 
   async createWorkflow(dto: CreateWorkflowDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Creating new workflow', { name: dto.name });
 
     const workflowId = this.generateWorkflowId();
@@ -65,7 +65,7 @@ export class WorkflowCrudService {
       },
     });
 
-    await this.workflowRepository.save(workflow, context.serverId);
+    await this.workflowRepository.save(workflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -87,7 +87,7 @@ export class WorkflowCrudService {
   }
 
   async updateWorkflow(workflowId: string, dto: UpdateWorkflowDTO): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Updating workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -105,7 +105,7 @@ export class WorkflowCrudService {
       updatedWorkflow = updatedWorkflow.updateDescription(dto.description);
     }
 
-    await this.workflowRepository.update(updatedWorkflow, context.serverId);
+    await this.workflowRepository.update(updatedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

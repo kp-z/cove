@@ -42,8 +42,9 @@ export const requireRole = (allowedRoles: UserRole[]) => {
 /**
  * 要求是资源所有者或管理员
  * 用于只能操作自己数据的场景（如修改个人信息）
+ * 注意：此中间件只验证用户已登录，具体的所有权检查需要在 procedure 中进行
  */
-export const requireOwnerOrAdmin = middleware(async ({ ctx, next, rawInput }) => {
+export const requireOwnerOrAdmin = middleware(async ({ ctx, next }) => {
   if (!ctx.userId) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
@@ -51,22 +52,5 @@ export const requireOwnerOrAdmin = middleware(async ({ ctx, next, rawInput }) =>
     });
   }
 
-  const input = rawInput as any;
-  const targetUserId = input?.userId;
-
-  // 如果是操作自己的数据，允许
-  if (targetUserId === ctx.userId) {
-    return next({ ctx });
-  }
-
-  // 如果是管理员或所有者，允许
-  const userRole = ctx.userRole as UserRole;
-  if (userRole === 'owner' || userRole === 'admin') {
-    return next({ ctx });
-  }
-
-  throw new TRPCError({
-    code: 'FORBIDDEN',
-    message: 'You can only modify your own data',
-  });
+  return next({ ctx });
 });

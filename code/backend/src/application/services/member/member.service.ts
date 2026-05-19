@@ -25,7 +25,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface JoinChannelDTO {
   readonly channelId: string;
@@ -57,8 +57,8 @@ export class MemberService {
   ) {}
 
   async joinChannel(dto: JoinChannelDTO): Promise<MemberEntity> {
-      const context = getServerContext();
-    this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, realmId: context.realmId });
 
     const channelExists = await this.channelRepository.exists(dto.channelId);
     if (!channelExists) {
@@ -104,7 +104,7 @@ export class MemberService {
       },
     });
 
-    await this.memberRepository.save(member, context.serverId);
+    await this.memberRepository.save(member, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -125,13 +125,13 @@ export class MemberService {
   }
 
   async leaveChannel(channelId: string, userId: string): Promise<MemberEntity> {
-      const context = getServerContext();
-    this.logger.info('User leaving channel', { channelId, userId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('User leaving channel', { channelId, userId, realmId: context.realmId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const updatedMember = member.leave();
 
-    await this.memberRepository.update(updatedMember, context.serverId);
+    await this.memberRepository.update(updatedMember, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -167,13 +167,13 @@ export class MemberService {
   }
 
   async updateMemberRole(dto: UpdateMemberRoleDTO): Promise<MemberEntity> {
-      const context = getServerContext();
-    this.logger.info('Updating member role', { memberId: dto.memberId, role: dto.role, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Updating member role', { memberId: dto.memberId, role: dto.role, realmId: context.realmId });
 
     let member = await this.getMemberById(dto.memberId);
     member = member.updateRole(dto.role);
 
-    await this.memberRepository.update(member, context.serverId);
+    await this.memberRepository.update(member, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -194,13 +194,13 @@ export class MemberService {
   }
 
   async banMember(channelId: string, userId: string): Promise<MemberEntity> {
-      const context = getServerContext();
-    this.logger.info('Banning member', { channelId, userId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Banning member', { channelId, userId, realmId: context.realmId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const bannedMember = member.ban();
 
-    await this.memberRepository.update(bannedMember, context.serverId);
+    await this.memberRepository.update(bannedMember, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -220,13 +220,13 @@ export class MemberService {
   }
 
   async unbanMember(channelId: string, userId: string): Promise<MemberEntity> {
-      const context = getServerContext();
-    this.logger.info('Unbanning member', { channelId, userId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Unbanning member', { channelId, userId, realmId: context.realmId });
 
     const member = await this.findByChannelAndUser(channelId, userId);
     const unbannedMember = member.unban();
 
-    await this.memberRepository.update(unbannedMember, context.serverId);
+    await this.memberRepository.update(unbannedMember, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -246,7 +246,7 @@ export class MemberService {
   }
 
   async updateNotificationSettings(dto: UpdateNotificationDTO): Promise<MemberEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     let member = await this.getMemberById(dto.memberId);
 
     if (dto.muteUntil) {
@@ -258,16 +258,16 @@ export class MemberService {
       });
     }
 
-    await this.memberRepository.update(member, context.serverId);
+    await this.memberRepository.update(member, context.realmId);
     return member;
   }
 
   async recordActivity(memberId: string): Promise<MemberEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     let member = await this.getMemberById(memberId);
     member = member.updateLastActive();
 
-    await this.memberRepository.update(member, context.serverId);
+    await this.memberRepository.update(member, context.realmId);
     return member;
   }
 

@@ -11,6 +11,7 @@ export type AuditAction =
   | 'user.unlock'
   | 'user.login'
   | 'user.logout'
+  | 'user.register'
   | 'user.password_change'
   | 'user.password_reset'
   | 'channel.create'

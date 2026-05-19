@@ -14,7 +14,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class ChannelLifecycleService {
   constructor(
@@ -24,14 +24,14 @@ export class ChannelLifecycleService {
   ) {}
 
   async archiveChannel(channelId: string): Promise<ChannelEntity> {
-      const context = getServerContext();
-    this.logger.info('Archiving channel', { channelId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Archiving channel', { channelId, realmId: context.realmId });
 
     const channel = await this.getChannelById(channelId);
 
     const archivedChannel = channel.archive();
 
-    await this.channelRepository.update(archivedChannel, context.serverId);
+    await this.channelRepository.update(archivedChannel, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -48,14 +48,14 @@ export class ChannelLifecycleService {
   }
 
   async activateChannel(channelId: string): Promise<ChannelEntity> {
-      const context = getServerContext();
-    this.logger.info('Activating channel', { channelId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Activating channel', { channelId, realmId: context.realmId });
 
     const channel = await this.getChannelById(channelId);
 
     const activatedChannel = channel.activate();
 
-    await this.channelRepository.update(activatedChannel, context.serverId);
+    await this.channelRepository.update(activatedChannel, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

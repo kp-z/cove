@@ -26,13 +26,13 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface CreateDeviceDTO {
   readonly name: string;
   readonly displayName?: string;
   readonly description?: string;
-  readonly serverId: string;
+  readonly realmId: string;
   readonly type: DeviceType;
   readonly provider?: string;
   readonly specs: DeviceSpecs;
@@ -78,11 +78,11 @@ export class DeviceService {
   ) {}
 
   async createDevice(dto: CreateDeviceDTO): Promise<DeviceEntity> {
-    const context = getServerContext();
-    this.logger.info('Creating new device', { name: dto.name, serverId: dto.serverId });
+    const context = getRealmContext();
+    this.logger.info('Creating new device', { name: dto.name, realmId: dto.realmId });
 
     // Check if device name already exists for this server
-    const existing = await this.deviceRepository.findByServer(dto.serverId);
+    const existing = await this.deviceRepository.findByServer(dto.realmId);
     if (existing.some(d => d.name === dto.name)) {
       throw new DeviceNameAlreadyExistsError(dto.name, context.userId);
     }
@@ -94,7 +94,7 @@ export class DeviceService {
       name: dto.name,
       display_name: dto.displayName,
       description: dto.description,
-      server_id: dto.serverId,
+      realm_id: dto.realmId,
       type: dto.type,
       provider: dto.provider,
       specs: dto.specs,
@@ -106,7 +106,7 @@ export class DeviceService {
       meta: {},
     });
 
-    await this.deviceRepository.save(device, context.serverId);
+    await this.deviceRepository.save(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -117,7 +117,7 @@ export class DeviceService {
       payload: {
         deviceId,
         name: dto.name,
-        serverId: dto.serverId,
+        realmId: dto.realmId,
         type: dto.type,
       },
     });
@@ -134,16 +134,16 @@ export class DeviceService {
     return device;
   }
 
-  async getDevicesByServer(serverId: string): Promise<DeviceEntity[]> {
-    return await this.deviceRepository.findByServer(serverId);
+  async getDevicesByServer(realmId: string): Promise<DeviceEntity[]> {
+    return await this.deviceRepository.findByServer(realmId);
   }
 
   async getDevicesByStatus(status: DeviceStatus): Promise<DeviceEntity[]> {
     return await this.deviceRepository.findByStatus(status);
   }
 
-  async getDevicesByServerAndStatus(serverId: string, status: DeviceStatus): Promise<DeviceEntity[]> {
-    return await this.deviceRepository.findByServerAndStatus(serverId, status);
+  async getDevicesByServerAndStatus(realmId: string, status: DeviceStatus): Promise<DeviceEntity[]> {
+    return await this.deviceRepository.findByServerAndStatus(realmId, status);
   }
 
   async getAllDevices(): Promise<DeviceEntity[]> {
@@ -151,14 +151,14 @@ export class DeviceService {
   }
 
   async updateDevice(deviceId: string, dto: UpdateDeviceDTO): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Updating device', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
 
     if (dto.name !== undefined) {
       // Check if new name already exists for this server
-      const existing = await this.deviceRepository.findByServer(device.server_id);
+      const existing = await this.deviceRepository.findByServer(device.realm_id);
       const duplicateDevice = existing.find(d => d.name === dto.name && d.device_id !== deviceId);
       if (duplicateDevice) {
         throw new DeviceNameAlreadyExistsError(dto.name, context.userId);
@@ -182,7 +182,7 @@ export class DeviceService {
       });
     }
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -198,7 +198,7 @@ export class DeviceService {
   }
 
   async updateDeviceSpecs(deviceId: string, dto: UpdateDeviceSpecsDTO): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Updating device specs', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -212,7 +212,7 @@ export class DeviceService {
 
     device = device.updateSpecs(specsUpdate);
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -228,7 +228,7 @@ export class DeviceService {
   }
 
   async updateDeviceNetwork(deviceId: string, dto: UpdateDeviceNetworkDTO): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Updating device network', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -243,7 +243,7 @@ export class DeviceService {
 
     device = device.updateNetwork(networkUpdate);
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -259,7 +259,7 @@ export class DeviceService {
   }
 
   async updateDeviceLocation(deviceId: string, dto: UpdateDeviceLocationDTO): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Updating device location', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -273,7 +273,7 @@ export class DeviceService {
 
     device = device.updateLocation(locationUpdate);
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -289,13 +289,13 @@ export class DeviceService {
   }
 
   async markDeviceOnline(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Marking device online', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.markOnline();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -311,13 +311,13 @@ export class DeviceService {
   }
 
   async markDeviceOffline(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Marking device offline', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.markOffline();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -333,13 +333,13 @@ export class DeviceService {
   }
 
   async enterDeviceMaintenance(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Entering device maintenance', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.enterMaintenance();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -355,13 +355,13 @@ export class DeviceService {
   }
 
   async exitDeviceMaintenance(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Exiting device maintenance', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.exitMaintenance();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -377,13 +377,13 @@ export class DeviceService {
   }
 
   async reportDeviceError(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Reporting device error', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.reportError();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -399,13 +399,13 @@ export class DeviceService {
   }
 
   async decommissionDevice(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
     this.logger.info('Decommissioning device', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
     device = device.decommission();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -421,19 +421,19 @@ export class DeviceService {
   }
 
   async updateDeviceHeartbeat(deviceId: string): Promise<DeviceEntity> {
-    const context = getServerContext();
+    const context = getRealmContext();
 
     let device = await this.getDeviceById(deviceId);
     device = device.updateHeartbeat();
 
-    await this.deviceRepository.update(device, context.serverId);
+    await this.deviceRepository.update(device, context.realmId);
 
     // No event for heartbeat updates (too frequent)
     return device;
   }
 
   async deleteDevice(deviceId: string): Promise<void> {
-    getServerContext(); // Validate context exists
+    getRealmContext(); // Validate context exists
     this.logger.info('Deleting device', { deviceId });
 
     const device = await this.getDeviceById(deviceId);
@@ -446,7 +446,7 @@ export class DeviceService {
       aggregateId: deviceId,
       aggregateType: 'Device',
       occurredAt: new Date(),
-      payload: { deviceId, serverId: device.server_id },
+      payload: { deviceId, realmId: device.realm_id },
     });
 
     this.logger.info('Device deleted successfully', { deviceId });

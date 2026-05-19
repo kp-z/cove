@@ -14,7 +14,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AddMemberDTO {
   readonly channelId: string;
@@ -35,8 +35,8 @@ export class ChannelMemberService {
   ) {}
 
   async addMember(dto: AddMemberDTO): Promise<ChannelEntity> {
-      const context = getServerContext();
-    this.logger.info('Adding member to channel', { ...dto, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Adding member to channel', { ...dto, realmId: context.realmId });
 
     const channel = await this.getChannelById(dto.channelId);
 
@@ -58,7 +58,7 @@ export class ChannelMemberService {
       updatedChannel = updatedChannel.addAgent(dto.memberId);
     }
 
-    await this.channelRepository.update(updatedChannel, context.serverId);
+    await this.channelRepository.update(updatedChannel, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -78,8 +78,8 @@ export class ChannelMemberService {
   }
 
   async removeMember(dto: RemoveMemberDTO): Promise<ChannelEntity> {
-      const context = getServerContext();
-    this.logger.info('Removing member from channel', { ...dto, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Removing member from channel', { ...dto, realmId: context.realmId });
 
     const channel = await this.getChannelById(dto.channelId);
 
@@ -90,7 +90,7 @@ export class ChannelMemberService {
 
     const updatedChannel = channel.removeMember(dto.memberId);
 
-    await this.channelRepository.update(updatedChannel, context.serverId);
+    await this.channelRepository.update(updatedChannel, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

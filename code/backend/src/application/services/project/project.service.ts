@@ -27,7 +27,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface CreateProjectDTO {
   readonly name: string;
@@ -52,8 +52,8 @@ export class ProjectService {
     private readonly logger: ILogger
   ) {}
   async createProject(dto: CreateProjectDTO): Promise<ProjectEntity> {
-    const context = getServerContext();
-    this.logger.info('Creating new project', { name: dto.name, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Creating new project', { name: dto.name, realmId: context.realmId });
 
     // 生成 Project ID
     const projectId = this.generateProjectId();
@@ -73,7 +73,7 @@ export class ProjectService {
     });
 
     // 保存到数据库
-    await this.projectRepository.save(project, context.serverId);
+    await this.projectRepository.save(project, context.realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -130,8 +130,8 @@ export class ProjectService {
    * 更新 Project
    */
   async updateProject(projectId: string, dto: UpdateProjectDTO): Promise<ProjectEntity> {
-    const context = getServerContext();
-    this.logger.info('Updating project', { projectId, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Updating project', { projectId, realmId: context.realmId });
 
     // 获取现有 Project
     const project = await this.getProjectById(projectId);
@@ -172,7 +172,7 @@ export class ProjectService {
     }
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.serverId);
+    await this.projectRepository.update(updatedProject, context.realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -196,8 +196,8 @@ export class ProjectService {
    * 归档 Project
    */
   async archiveProject(projectId: string): Promise<ProjectEntity> {
-    const context = getServerContext();
-    this.logger.info('Archiving project', { projectId, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Archiving project', { projectId, realmId: context.realmId });
 
     // 获取 Project
     const project = await this.getProjectById(projectId);
@@ -206,7 +206,7 @@ export class ProjectService {
     const archivedProject = project.archive();
 
     // 保存更新
-    await this.projectRepository.update(archivedProject, context.serverId);
+    await this.projectRepository.update(archivedProject, context.realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -227,8 +227,8 @@ export class ProjectService {
    * 激活 Project
    */
   async activateProject(projectId: string): Promise<ProjectEntity> {
-    const context = getServerContext();
-    this.logger.info('Activating project', { projectId, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Activating project', { projectId, realmId: context.realmId });
 
     // 获取 Project
     const project = await this.getProjectById(projectId);
@@ -237,7 +237,7 @@ export class ProjectService {
     const activatedProject = project.activate();
 
     // 保存更新
-    await this.projectRepository.update(activatedProject, context.serverId);
+    await this.projectRepository.update(activatedProject, context.realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -258,8 +258,8 @@ export class ProjectService {
    * 删除 Project
    */
   async deleteProject(projectId: string): Promise<void> {
-    const context = getServerContext();
-    this.logger.info('Deleting project', { projectId, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Deleting project', { projectId, realmId: context.realmId });
 
     // 获取 Project
     const project = await this.getProjectById(projectId);

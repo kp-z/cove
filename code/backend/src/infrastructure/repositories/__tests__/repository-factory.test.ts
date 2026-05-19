@@ -62,19 +62,19 @@ describe('RepositoryFactory', () => {
     });
 
     it('应该创建并缓存 ProjectRepository', () => {
-      const serverId = 'server-001';
-      const repo1 = factory.getProjectRepository(serverId);
-      const repo2 = factory.getProjectRepository(serverId);
+      const realmId = 'server-001';
+      const repo1 = factory.getProjectRepository(realmId);
+      const repo2 = factory.getProjectRepository(realmId);
 
       expect(repo1).toBeDefined();
       expect(repo1).toBe(repo2); // 应该返回同一个实例
       expect(mockLogger.debug).toHaveBeenCalledTimes(1); // 只创建一次
       expect(mockLogger.debug).toHaveBeenCalledWith('Created ProjectRepository', {
-        serverId,
+        realmId,
       });
     });
 
-    it('应该为不同的 serverId 创建不同的实例', () => {
+    it('应该为不同的 realmId 创建不同的实例', () => {
       const repo1 = factory.getProjectRepository('server-001');
       const repo2 = factory.getProjectRepository('server-002');
 
@@ -91,9 +91,9 @@ describe('RepositoryFactory', () => {
     });
 
     it('应该创建并缓存 ChannelRepository', () => {
-      const serverId = 'server-001';
-      const repo1 = factory.getChannelRepository(serverId);
-      const repo2 = factory.getChannelRepository(serverId);
+      const realmId = 'server-001';
+      const repo1 = factory.getChannelRepository(realmId);
+      const repo2 = factory.getChannelRepository(realmId);
 
       expect(repo1).toBeDefined();
       expect(repo1).toBe(repo2);
@@ -107,9 +107,9 @@ describe('RepositoryFactory', () => {
     });
 
     it('应该创建并缓存 AgentRepository', () => {
-      const serverId = 'server-001';
-      const repo1 = factory.getAgentRepository(serverId);
-      const repo2 = factory.getAgentRepository(serverId);
+      const realmId = 'server-001';
+      const repo1 = factory.getAgentRepository(realmId);
+      const repo2 = factory.getAgentRepository(realmId);
 
       expect(repo1).toBeDefined();
       expect(repo1).toBe(repo2);
@@ -123,9 +123,9 @@ describe('RepositoryFactory', () => {
     });
 
     it('应该创建并缓存 MessageRepository', () => {
-      const serverId = 'server-001';
-      const repo1 = factory.getMessageRepository(serverId);
-      const repo2 = factory.getMessageRepository(serverId);
+      const realmId = 'server-001';
+      const repo1 = factory.getMessageRepository(realmId);
+      const repo2 = factory.getMessageRepository(realmId);
 
       expect(repo1).toBeDefined();
       expect(repo1).toBe(repo2);
@@ -154,23 +154,23 @@ describe('RepositoryFactory', () => {
     });
 
     it('应该清除指定 Server 的缓存', () => {
-      const serverId = 'server-001';
+      const realmId = 'server-001';
 
       // 创建一些 Repository
-      factory.getProjectRepository(serverId);
-      factory.getChannelRepository(serverId);
+      factory.getProjectRepository(realmId);
+      factory.getChannelRepository(realmId);
 
       // 清除缓存
-      factory.clearCache(serverId);
+      factory.clearCache(realmId);
 
       expect(mockLogger.info).toHaveBeenCalledWith('Cleared repository cache', {
-        serverId,
+        realmId,
       });
 
       // 再次获取应该创建新实例
-      factory.getProjectRepository(serverId);
+      factory.getProjectRepository(realmId);
       expect(mockLogger.debug).toHaveBeenCalledWith('Created ProjectRepository', {
-        serverId,
+        realmId,
       });
     });
 

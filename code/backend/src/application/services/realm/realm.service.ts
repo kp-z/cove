@@ -1,0 +1,580 @@
+/**
+ * RealmService - Server 管理业务逻辑
+ *
+ * 职责：
+ * - 创建和管理服务器
+ * - 服务器查询
+ * - 服务器状态管理（激活、暂停、归档）
+ * - 服务器设置和限制管理
+ */
+
+import {
+  RealmEntity,
+  RealmStatus,
+  RealmVisibility,
+  ServerSettings,
+  ServerLimits,
+} from '../../../domain/models/realm/realm.entity';
+import {
+  RealmMemberEntity,
+  ServerRole,
+  MemberStatus,
+} from '../../../domain/models/realm-member/realm-member.entity';
+import {
+  RealmNotFoundError,
+  ServerNameAlreadyExistsError,
+  ServerNotActiveError,
+  ServerAlreadyArchivedError,
+  ServerNotArchivedError,
+  UnauthorizedServerAccessError,
+} from './realm.errors';
+import {
+  IRealmRepository,
+  IRealmMemberRepository,
+  IEventBus,
+  ILogger,
+  DomainEvent,
+} from '../../interfaces';
+import { getRealmContext } from '../../context/realm-context-store';
+
+export interface CreateRealmDTO {
+  readonly name: string;
+  readonly displayName: string;
+  readonly description?: string;
+  readonly ownerId: string;
+  readonly visibility?: RealmVisibility;
+  readonly settings?: Partial<ServerSettings>;
+  readonly limits?: Partial<ServerLimits>;
+}
+
+export interface UpdateRealmDTO {
+  readonly name?: string;
+  readonly displayName?: string;
+  readonly description?: string;
+  readonly visibility?: RealmVisibility;
+}
+
+export interface UpdateServerSettingsDTO {
+  readonly allowPublicChannels?: boolean;
+  readonly allowPrivateChannels?: boolean;
+  readonly allowDM?: boolean;
+  readonly requireApproval?: boolean;
+  readonly defaultMemberRole?: 'member' | 'guest';
+}
+
+export interface UpdateServerLimitsDTO {
+  readonly maxMembers?: number;
+  readonly maxProjects?: number;
+  readonly maxChannels?: number;
+  readonly maxAgents?: number;
+  readonly maxStorageGb?: number;
+}
+
+export class RealmService {
+  constructor(
+    private readonly serverRepository: IRealmRepository,
+    private readonly serverMemberRepository: IRealmMemberRepository,
+    private readonly eventBus: IEventBus,
+    private readonly logger: ILogger
+  ) {}
+
+  async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
+    getRealmContext(); // Validate context exists
+    this.logger.info('Creating new realm', { name: dto.name, ownerId: dto.ownerId });
+
+    // Check if server name already exists
+    const existing = await this.serverRepository.find();
+    if (existing.some(s => s.name === dto.name)) {
+      throw new ServerNameAlreadyExistsError(dto.name);
+    }
+
+    const realmId = this.generateServerId();
+
+    // Default settings
+    const defaultSettings: ServerSettings = {
+      allow_public_channels: true,
+      allow_private_channels: true,
+      allow_dm: true,
+      require_approval: false,
+      default_member_role: 'member',
+      ...dto.settings,
+    };
+
+    // Default limits
+    const defaultLimits: ServerLimits = {
+      max_members: 100,
+      max_projects: 50,
+      max_channels: 100,
+      max_agents: 10,
+      max_storage_gb: 10,
+      ...dto.limits,
+    };
+
+    const server = RealmEntity.create({
+      realm_id: realmId,
+      name: dto.name,
+      display_name: dto.displayName,
+      description: dto.description,
+      owner_id: dto.ownerId,
+      status: 'active',
+      visibility: dto.visibility || 'private',
+      settings: defaultSettings,
+      limits: defaultLimits,
+      created_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+
+    await this.serverRepository.save(server, realmId);
+
+    // Auto-add owner as member
+    const ownerMember = RealmMemberEntity.create({
+      member_id: this.generateMemberId(),
+      realm_id: realmId,
+      user_id: dto.ownerId,
+      role: 'owner',
+      status: 'active',
+      joined_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+
+    await this.serverMemberRepository.save(ownerMember, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.created',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: {
+        realmId,
+        name: dto.name,
+        ownerId: dto.ownerId,
+      },
+    });
+
+    this.logger.info('Realm created successfully', { realmId });
+    return server;
+  }
+
+  async getRealmById(realmId: string): Promise<RealmEntity> {
+    const servers = await this.serverRepository.find({ id: realmId });
+    if (servers.length === 0) {
+      throw new RealmNotFoundError(realmId);
+    }
+    return servers[0]!;
+  }
+
+  async queryServers(filters?: { ownerId?: string; status?: RealmStatus }): Promise<RealmEntity[]> {
+    return await this.serverRepository.find(filters);
+  }
+
+  async updateRealm(realmId: string, dto: UpdateRealmDTO): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Updating realm', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    if (dto.name !== undefined) {
+      // Check if new name already exists
+      const existing = await this.serverRepository.find();
+      if (existing.some(s => s.name === dto.name && s.realm_id !== realmId)) {
+        throw new ServerNameAlreadyExistsError(dto.name);
+      }
+      server = server.updateName(dto.name);
+    }
+
+    if (dto.displayName !== undefined) {
+      server = server.updateDisplayName(dto.displayName);
+    }
+
+    if (dto.description !== undefined) {
+      server = server.updateDescription(dto.description);
+    }
+
+    if (dto.visibility !== undefined) {
+      server = server.updateVisibility(dto.visibility);
+    }
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.updated',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId, changes: dto },
+    });
+
+    this.logger.info('Realm updated successfully', { realmId });
+    return server;
+  }
+
+  async updateRealmSettings(realmId: string, dto: UpdateServerSettingsDTO): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Updating realm settings', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    const settingsUpdate: Partial<ServerSettings> = {
+      ...(dto.allowPublicChannels !== undefined && { allow_public_channels: dto.allowPublicChannels }),
+      ...(dto.allowPrivateChannels !== undefined && { allow_private_channels: dto.allowPrivateChannels }),
+      ...(dto.allowDM !== undefined && { allow_dm: dto.allowDM }),
+      ...(dto.requireApproval !== undefined && { require_approval: dto.requireApproval }),
+      ...(dto.defaultMemberRole !== undefined && { default_member_role: dto.defaultMemberRole }),
+    };
+
+    server = server.updateSettings(settingsUpdate);
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.settings_updated',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId, settings: dto },
+    });
+
+    this.logger.info('Server settings updated successfully', { realmId });
+    return server;
+  }
+
+  async updateRealmLimits(realmId: string, dto: UpdateServerLimitsDTO): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Updating realm limits', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    const limitsUpdate: Partial<ServerLimits> = {
+      ...(dto.maxMembers !== undefined && { max_members: dto.maxMembers }),
+      ...(dto.maxProjects !== undefined && { max_projects: dto.maxProjects }),
+      ...(dto.maxChannels !== undefined && { max_channels: dto.maxChannels }),
+      ...(dto.maxAgents !== undefined && { max_agents: dto.maxAgents }),
+      ...(dto.maxStorageGb !== undefined && { max_storage_gb: dto.maxStorageGb }),
+    };
+
+    server = server.updateLimits(limitsUpdate);
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.limits_updated',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId, limits: dto },
+    });
+
+    this.logger.info('Server limits updated successfully', { realmId });
+    return server;
+  }
+
+  async suspendServer(realmId: string): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Suspending server', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    if (!server.isActive()) {
+      throw new ServerNotActiveError(realmId);
+    }
+
+    server = server.suspend();
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.suspended',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId },
+    });
+
+    this.logger.info('Server suspended successfully', { realmId });
+    return server;
+  }
+
+  async activateServer(realmId: string): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Activating realm', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    if (!server.isSuspended()) {
+      throw new Error('Only suspended realms can be activated');
+    }
+
+    server = server.activate();
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.activated',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId },
+    });
+
+    this.logger.info('Realm activated successfully', { realmId });
+    return server;
+  }
+
+  async archiveRealm(realmId: string): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Archiving realm', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    if (server.isArchived()) {
+      throw new ServerAlreadyArchivedError(realmId);
+    }
+
+    server = server.archive();
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.archived',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId },
+    });
+
+    this.logger.info('Realm archived successfully', { realmId });
+    return server;
+  }
+
+  async unarchiveRealm(realmId: string): Promise<RealmEntity> {
+    const context = getRealmContext();
+    this.logger.info('Unarchiving server', { realmId });
+
+    let server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    if (!server.isArchived()) {
+      throw new ServerNotArchivedError(realmId);
+    }
+
+    server = server.unarchive();
+
+    await this.serverRepository.update(server, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.unarchived',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId },
+    });
+
+    this.logger.info('Server unarchived successfully', { realmId });
+    return server;
+  }
+
+  async deleteRealm(realmId: string): Promise<void> {
+    const context = getRealmContext();
+    this.logger.info('Deleting realm', { realmId });
+
+    const server = await this.getRealmById(realmId);
+
+    // Check authorization
+    if (server.owner_id !== context.userId) {
+      throw new UnauthorizedServerAccessError(realmId, context.userId);
+    }
+
+    await this.serverRepository.delete(realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server.deleted',
+      aggregateId: realmId,
+      aggregateType: 'Server',
+      occurredAt: new Date(),
+      payload: { realmId },
+    });
+
+    this.logger.info('Realm deleted successfully', { realmId });
+  }
+
+  private generateServerId(): string {
+    return `server-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  private generateMemberId(): string {
+    return `member-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  private generateEventId(): string {
+    return `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  private async publishEvent(event: DomainEvent): Promise<void> {
+    try {
+      await this.eventBus.publish(event);
+    } catch (error) {
+      this.logger.error('Failed to publish event', error as Error, {
+        eventType: event.eventType,
+        aggregateId: event.aggregateId,
+      });
+    }
+  }
+
+  // ============================================
+  // Realm Member Management
+  // ============================================
+
+  async addServerMember(realmId: string, userId: string, role: ServerRole): Promise<RealmMemberEntity> {
+    this.logger.info('Adding member to server', { realmId, userId, role });
+
+    // Check if server exists
+    await this.getRealmById(realmId);
+
+    // Check if user is already a member
+    const existing = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+    if (existing) {
+      throw new Error(`User ${userId} is already a member of server ${realmId}`);
+    }
+
+    const member = RealmMemberEntity.create({
+      member_id: this.generateMemberId(),
+      realm_id: realmId,
+      user_id: userId,
+      role,
+      status: 'active',
+      joined_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+
+    await this.serverMemberRepository.save(member, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server_member.added',
+      aggregateId: member.memberId,
+      aggregateType: 'ServerMember',
+      occurredAt: new Date(),
+      payload: { realmId, userId, role },
+    });
+
+    this.logger.info('Member added to server successfully', { realmId, userId });
+    return member;
+  }
+
+  async removeServerMember(realmId: string, userId: string): Promise<void> {
+    this.logger.info('Removing member from server', { realmId, userId });
+
+    const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+    if (!member) {
+      throw new Error(`Member not found: ${userId} in server ${realmId}`);
+    }
+
+    // Cannot remove owner
+    if (member.role === 'owner') {
+      throw new Error('Cannot remove server owner. Transfer ownership first.');
+    }
+
+    const updatedMember = member.leave();
+    await this.serverMemberRepository.update(updatedMember, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server_member.removed',
+      aggregateId: member.memberId,
+      aggregateType: 'ServerMember',
+      occurredAt: new Date(),
+      payload: { realmId, userId },
+    });
+
+    this.logger.info('Member removed from server successfully', { realmId, userId });
+  }
+
+  async updateRealmMemberRole(realmId: string, userId: string, newRole: ServerRole): Promise<RealmMemberEntity> {
+    this.logger.info('Updating member role', { realmId, userId, newRole });
+
+    const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+    if (!member) {
+      throw new Error(`Member not found: ${userId} in server ${realmId}`);
+    }
+
+    // Cannot modify owner role
+    if (member.role === 'owner') {
+      throw new Error('Cannot modify owner role. Transfer ownership first.');
+    }
+
+    const updatedMember = member.updateRole(newRole);
+    await this.serverMemberRepository.update(updatedMember, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'server_member.role_changed',
+      aggregateId: member.memberId,
+      aggregateType: 'ServerMember',
+      occurredAt: new Date(),
+      payload: { realmId, userId, oldRole: member.role, newRole },
+    });
+
+    this.logger.info('Member role updated successfully', { realmId, userId, newRole });
+    return updatedMember;
+  }
+
+  async getServerMembers(realmId: string, filters?: { role?: ServerRole; status?: MemberStatus }): Promise<RealmMemberEntity[]> {
+    if (filters?.role) {
+      return await this.serverMemberRepository.findByRole(realmId, filters.role);
+    }
+    if (filters?.status) {
+      return await this.serverMemberRepository.findByStatus(realmId, filters.status);
+    }
+    return await this.serverMemberRepository.findByServer(realmId);
+  }
+
+  async getServerMember(realmId: string, userId: string): Promise<RealmMemberEntity | null> {
+    return await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+  }
+}

@@ -7,18 +7,18 @@ import {
   IEventBus,
   ILogger,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('WorkflowTriggerService', () => {
   let service: WorkflowTriggerService;
   let mockWorkflowRepository: IWorkflowRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
     mockWorkflowRepository = {
       findById: vi.fn(),
       update: vi.fn(),

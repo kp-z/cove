@@ -7,7 +7,7 @@ describe('DeviceEntity', () => {
     name: 'prod-server-01',
     display_name: 'Production Server 01',
     description: 'Main production server',
-    server_id: 'server-001',
+    realm_id: 'server-001',
     type: 'physical' as DeviceType,
     provider: 'on-premise',
     specs: {
@@ -48,7 +48,7 @@ describe('DeviceEntity', () => {
       expect(device.name).toBe(validProps.name);
       expect(device.display_name).toBe(validProps.display_name);
       expect(device.description).toBe(validProps.description);
-      expect(device.server_id).toBe(validProps.server_id);
+      expect(device.realm_id).toBe(validProps.realm_id);
       expect(device.type).toBe(validProps.type);
       expect(device.provider).toBe(validProps.provider);
       expect(device.specs).toEqual(validProps.specs);
@@ -65,7 +65,7 @@ describe('DeviceEntity', () => {
       const minimalProps = {
         device_id: 'device-002',
         name: 'dev-server',
-        server_id: 'server-001',
+        realm_id: 'server-001',
         type: 'virtual' as DeviceType,
         specs: {
           cpu_cores: 4,
@@ -112,9 +112,9 @@ describe('DeviceEntity', () => {
       ).toThrow('Device display name cannot exceed 200 characters');
     });
 
-    it('should throw error for invalid server_id', () => {
+    it('should throw error for invalid realm_id', () => {
       expect(() =>
-        DeviceEntity.create({ ...validProps, server_id: '' })
+        DeviceEntity.create({ ...validProps, realm_id: '' })
       ).toThrow('Server ID cannot be empty');
     });
 
@@ -360,7 +360,7 @@ describe('DeviceEntity', () => {
         name: validProps.name,
         display_name: validProps.display_name,
         description: validProps.description,
-        server_id: validProps.server_id,
+        realm_id: validProps.realm_id,
         type: validProps.type,
         provider: validProps.provider,
         specs: validProps.specs,
@@ -378,7 +378,7 @@ describe('DeviceEntity', () => {
       const minimalProps = {
         device_id: 'device-003',
         name: 'minimal-device',
-        server_id: 'server-001',
+        realm_id: 'server-001',
         type: 'container' as DeviceType,
         specs: {
           cpu_cores: 2,

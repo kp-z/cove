@@ -14,7 +14,7 @@ describe('deviceRouter', () => {
   let caller: any;
 
   const mockContext = {
-    serverId: 'test-server',
+    realmId: 'test-server',
     userId: 'test-user',
   };
 
@@ -56,7 +56,7 @@ describe('deviceRouter', () => {
 
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: input.name,
         display_name: input.displayName,
         description: input.description,
@@ -83,7 +83,7 @@ describe('deviceRouter', () => {
       const mockDevices = [
         DeviceEntity.create({
           device_id: 'device-1',
-          server_id: 'test-server',
+          realm_id: 'test-server',
           name: 'device-1',
           display_name: 'Device 1',
           type: 'physical',
@@ -94,7 +94,7 @@ describe('deviceRouter', () => {
         }),
         DeviceEntity.create({
           device_id: 'device-2',
-          server_id: 'test-server',
+          realm_id: 'test-server',
           name: 'device-2',
           display_name: 'Device 2',
           type: 'virtual',
@@ -118,7 +118,7 @@ describe('deviceRouter', () => {
       const mockDevices = [
         DeviceEntity.create({
           device_id: 'device-1',
-          server_id: 'test-server',
+          realm_id: 'test-server',
           name: 'device-1',
           display_name: 'Device 1',
           type: 'physical',
@@ -141,7 +141,7 @@ describe('deviceRouter', () => {
       const mockDevices = [
         DeviceEntity.create({
           device_id: 'device-1',
-          server_id: 'test-server',
+          realm_id: 'test-server',
           name: 'device-1',
           display_name: 'Device 1',
           type: 'physical',
@@ -165,7 +165,7 @@ describe('deviceRouter', () => {
     it('should get device by id', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',
@@ -194,7 +194,7 @@ describe('deviceRouter', () => {
     it('should update device', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Updated Device',
         type: 'physical',
@@ -220,7 +220,7 @@ describe('deviceRouter', () => {
     it('should mark device online', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',
@@ -243,7 +243,7 @@ describe('deviceRouter', () => {
     it('should mark device offline', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',
@@ -266,7 +266,7 @@ describe('deviceRouter', () => {
     it('should mark device in maintenance', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',
@@ -289,7 +289,7 @@ describe('deviceRouter', () => {
     it('should decommission device', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
-        server_id: 'test-server',
+        realm_id: 'test-server',
         name: 'test-device',
         display_name: 'Test Device',
         type: 'physical',

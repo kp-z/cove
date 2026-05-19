@@ -17,8 +17,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { DeviceService } from '../../../application/services/device/device.service';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const deviceSpecsSchema = z.object({
@@ -71,12 +71,12 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(registerDeviceSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const serverId = ctx.serverId || 'default-server';
-          const context = ServerContext.create(serverId, ctx.userId || 'system');
+          const realmId = ctx.realmId || 'default-server';
+          const context = RealmContext.create(realmId, ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.createDevice({
               ...input,
-              serverId
+              realmId
             });
             return device.toJSON();
           });
@@ -92,13 +92,13 @@ export const deviceRouter = (deviceService: DeviceService) =>
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             let devices;
             if (input?.status) {
               devices = await deviceService.getDevicesByStatus(input.status);
             } else {
-              devices = await deviceService.getDevicesByServer(context.serverId);
+              devices = await deviceService.getDevicesByServer(context.realmId);
             }
 
             return {
@@ -116,7 +116,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.getDeviceById(input.deviceId);
             return device.toJSON();
@@ -134,7 +134,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.updateDevice(input.deviceId, input.data);
             return device.toJSON();
@@ -149,7 +149,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.markDeviceOnline(input.deviceId);
             return device.toJSON();
@@ -164,7 +164,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.markDeviceOffline(input.deviceId);
             return device.toJSON();
@@ -179,7 +179,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.enterDeviceMaintenance(input.deviceId);
             return device.toJSON();
@@ -194,7 +194,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.decommissionDevice(input.deviceId);
             return device.toJSON();
@@ -209,7 +209,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(z.object({ deviceId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await deviceService.deleteDevice(input.deviceId);
             return { success: true };

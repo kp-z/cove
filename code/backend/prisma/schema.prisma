@@ -32,7 +32,7 @@ model User {
 
   ownedProjects Project[] @relation("ProjectOwner")
   members       Member[]
-  serverMemberships ServerMember[]
+  realmMemberships RealmMember[]
 
   @@index([username])
   @@index([email])
@@ -254,7 +254,7 @@ model Thread {
 // 服务器和设备
 // ============================================
 
-model Server {
+model Realm {
   id          String   @id
   name        String   @unique
   displayName String
@@ -262,20 +262,20 @@ model Server {
   ownerId     String
   status      String   // active, archived
   visibility  String   // public, private
-  configPath  String   // 指向 .cove/storage/servers/{id}.json
+  configPath  String   // 指向 .cove/storage/realms/{id}.json
   createdAt   DateTime
   updatedAt   DateTime
 
-  members     ServerMember[]
+  members     RealmMember[]
 
   @@index([name])
   @@index([ownerId])
   @@index([status])
 }
 
-model ServerMember {
+model RealmMember {
   id                String   @id
-  serverId          String   @map("server_id")
+  realmId          String   @map("realm_id")
   userId            String   @map("user_id")
   role              String   // owner | admin | member | guest
   customPermissions String?  @map("custom_permissions") // JSON array
@@ -284,11 +284,11 @@ model ServerMember {
   updatedAt         DateTime @map("updated_at")
   meta              String?  // JSON object
 
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([serverId, userId])
-  @@index([serverId])
+  @@unique([realmId, userId])
+  @@index([realmId])
   @@index([userId])
   @@index([role])
   @@index([status])
@@ -297,7 +297,7 @@ model ServerMember {
 
 model Device {
   id          String   @id
-  serverId    String
+  realmId    String
   name        String
   displayName String?
   type        String   // desktop, mobile, tablet, server, iot
@@ -308,11 +308,11 @@ model Device {
   createdAt   DateTime
   updatedAt   DateTime
 
-  @@index([serverId])
+  @@index([realmId])
   @@index([name])
   @@index([status])
   @@index([type])
-  @@unique([serverId, name])
+  @@unique([realmId, name])
 }
 
 // ============================================

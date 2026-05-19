@@ -19,10 +19,10 @@ export interface IDeviceRepository {
 
   /**
    * 根据 Server ID 查找所有 Device
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    * @returns Device 实体数组
    */
-  findByServer(serverId: string): Promise<DeviceEntity[]>;
+  findByServer(realmId: string): Promise<DeviceEntity[]>;
 
   /**
    * 根据状态查找 Device
@@ -33,11 +33,11 @@ export interface IDeviceRepository {
 
   /**
    * 根据 Server ID 和状态查找 Device
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    * @param status - Device 状态
    * @returns Device 实体数组
    */
-  findByServerAndStatus(serverId: string, status: DeviceStatus): Promise<DeviceEntity[]>;
+  findByServerAndStatus(realmId: string, status: DeviceStatus): Promise<DeviceEntity[]>;
 
   /**
    * 查找所有 Device
@@ -48,16 +48,16 @@ export interface IDeviceRepository {
   /**
    * 保存新 Device
    * @param device - Device 实体
-   * @param serverId - Server ID（用于数据隔离）
+   * @param realmId - Server ID（用于数据隔离）
    */
-  save(device: DeviceEntity, serverId: string): Promise<void>;
+  save(device: DeviceEntity, realmId: string): Promise<void>;
 
   /**
    * 更新 Device
    * @param device - Device 实体
-   * @param serverId - Server ID（用于数据隔离）
+   * @param realmId - Server ID（用于数据隔离）
    */
-  update(device: DeviceEntity, serverId: string): Promise<void>;
+  update(device: DeviceEntity, realmId: string): Promise<void>;
 
   /**
    * 删除 Device

@@ -13,8 +13,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { ProjectService } from '../../../application/services/project/project.service';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const createProjectSchema = z.object({
@@ -35,7 +35,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .input(createProjectSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const project = await projectService.createProject(input);
           return project.toJSON();
@@ -49,7 +49,7 @@ export const projectRouter = (projectService: ProjectService) =>
     list: publicProcedure
       .query(async ({ ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const projects = await projectService.getAllProjects();
 
@@ -68,7 +68,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .input(z.object({ projectId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const project = await projectService.getProjectById(input.projectId);
           return project.toJSON();
@@ -86,7 +86,7 @@ export const projectRouter = (projectService: ProjectService) =>
       }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const project = await projectService.updateProject(input.projectId, input.data);
           return project.toJSON();
@@ -101,7 +101,7 @@ export const projectRouter = (projectService: ProjectService) =>
       .input(z.object({ projectId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await projectService.deleteProject(input.projectId);
           return { projectId: input.projectId, deleted: true };

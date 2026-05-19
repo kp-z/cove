@@ -1,7 +1,7 @@
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { IChannelRepository, IMessageRepository, IEventBus, ILogger, DomainEvent } from '../../interfaces';
 import { ChannelNotFoundError, ChannelNotActiveError, MemberNotInChannelError } from './channel.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface ChannelSendMessageDTO {
   readonly channelId: string;
@@ -20,7 +20,7 @@ export class ChannelMessagingService {
   ) {}
 
   async sendMessage(dto: ChannelSendMessageDTO): Promise<MessageEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Sending message to channel', { channelId: dto.channelId });
     const channel = await this.channelRepository.findById(dto.channelId);
     if (!channel) throw new ChannelNotFoundError(dto.channelId);
@@ -56,7 +56,7 @@ export class ChannelMessagingService {
       meta: { client: 'server', isPinned: false, isImportant: false },
     });
 
-    await this.messageRepository.save(message, context.serverId);
+    await this.messageRepository.save(message, context.realmId);
     await this.publishEvent({
       eventId: `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       eventType: 'message.sent',

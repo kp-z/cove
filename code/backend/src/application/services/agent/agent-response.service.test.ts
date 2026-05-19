@@ -3,8 +3,8 @@ import { AgentResponseService } from './agent-response.service';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 import { AgentEntity } from '../../../domain/models/agent/agent.entity';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 // Test helper functions
 function createTestAgent(overrides: Partial<any> = {}): AgentEntity {
@@ -92,10 +92,10 @@ describe('AgentResponseService', () => {
   let mockChannelRepository: any;
   let mockEventBus: any;
   let mockLogger: any;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
     mockAgentRepository = {
       findById: vi.fn(),
       findByStatus: vi.fn(),

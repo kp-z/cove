@@ -2,18 +2,18 @@
  * HybridDeviceRepository - Device 混合持久化实现
  *
  * 混合策略：
- * - 数据库：存储索引字段（id, serverId, name, type, status）
+ * - 数据库：存储索引字段（id, realmId, name, type, status）
  * - 文件系统：存储完整的 Device 实体 JSON
  */
 
 import { HybridRepository } from './hybrid-repository.base';
 import { DeviceEntity, DeviceType, DeviceStatus } from '../../domain/models/device/device.entity';
 import { IDeviceRepository } from '../../application/interfaces/repositories/device.repository.interface';
-import { getServerContext } from '../../application/context/server-context-store';
+import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface DeviceDbRecord {
   id: string;
-  serverId: string;
+  realmId: string;
   name: string;
   displayName: string | null;
   type: string;
@@ -66,7 +66,7 @@ export class HybridDeviceRepository
   toDomain(dbRecord: DeviceDbRecord, content: DeviceContent): DeviceEntity {
     return DeviceEntity.create({
       device_id: dbRecord.id,
-      server_id: dbRecord.serverId,
+      realm_id: dbRecord.realmId,
       name: dbRecord.name,
       display_name: dbRecord.displayName || undefined,
       description: content.description,
@@ -86,7 +86,7 @@ export class HybridDeviceRepository
   toDatabase(entity: DeviceEntity): DeviceDbRecord {
     return {
       id: entity.device_id,
-      serverId: entity.server_id,
+      realmId: entity.realm_id,
       name: entity.name,
       displayName: entity.display_name || null,
       type: entity.type,
@@ -117,55 +117,55 @@ export class HybridDeviceRepository
   // --- IDeviceRepository ---
 
   async findById(deviceId: string): Promise<DeviceEntity | null> {
-    const context = getServerContext();
+    const context = getRealmContext();
     const record = await this.prisma.device.findFirst({
-      where: { id: deviceId, serverId: context.serverId },
+      where: { id: deviceId, realmId: context.realmId },
     });
     if (!record) return null;
     const content = await this.storage.loadJson(record.configPath);
     return this.toDomain(record as unknown as DeviceDbRecord, content);
   }
 
-  async findByServer(serverId: string): Promise<DeviceEntity[]> {
+  async findByServer(realmId: string): Promise<DeviceEntity[]> {
     const records = await this.prisma.device.findMany({
-      where: { serverId },
+      where: { realmId },
     });
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
   async findByStatus(status: DeviceStatus): Promise<DeviceEntity[]> {
-    const context = getServerContext();
+    const context = getRealmContext();
     const records = await this.prisma.device.findMany({
-      where: { serverId: context.serverId, status },
+      where: { realmId: context.realmId, status },
     });
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
-  async findByServerAndStatus(serverId: string, status: DeviceStatus): Promise<DeviceEntity[]> {
+  async findByServerAndStatus(realmId: string, status: DeviceStatus): Promise<DeviceEntity[]> {
     const records = await this.prisma.device.findMany({
-      where: { serverId, status },
+      where: { realmId, status },
     });
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
-  async findByType(type: DeviceType, serverId: string): Promise<DeviceEntity[]> {
+  async findByType(type: DeviceType, realmId: string): Promise<DeviceEntity[]> {
     const records = await this.prisma.device.findMany({
-      where: { serverId, type },
+      where: { realmId, type },
     });
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
   async findAll(): Promise<DeviceEntity[]> {
-    const context = getServerContext();
-    return this.findByServer(context.serverId);
+    const context = getRealmContext();
+    return this.findByServer(context.realmId);
   }
 
-  async save(device: DeviceEntity, serverId: string): Promise<void> {
-    await this.saveEntity(device, serverId);
+  async save(device: DeviceEntity, realmId: string): Promise<void> {
+    await this.saveEntity(device, realmId);
   }
 
-  async update(device: DeviceEntity, serverId: string): Promise<void> {
-    await this.updateEntity(device, serverId);
+  async update(device: DeviceEntity, realmId: string): Promise<void> {
+    await this.updateEntity(device, realmId);
   }
 
   async delete(deviceId: string): Promise<void> {
@@ -173,9 +173,9 @@ export class HybridDeviceRepository
   }
 
   async exists(deviceId: string): Promise<boolean> {
-    const context = getServerContext();
+    const context = getRealmContext();
     const count = await this.prisma.device.count({
-      where: { id: deviceId, serverId: context.serverId },
+      where: { id: deviceId, realmId: context.realmId },
     });
     return count > 0;
   }
@@ -193,7 +193,7 @@ export class HybridDeviceRepository
     await this.prisma.device.create({
       data: {
         id: dbRecord.id,
-        serverId: dbRecord.serverId,
+        realmId: dbRecord.realmId,
         name: dbRecord.name,
         displayName: dbRecord.displayName,
         type: dbRecord.type,

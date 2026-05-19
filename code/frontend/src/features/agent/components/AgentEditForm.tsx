@@ -10,7 +10,7 @@ import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { useServer } from '@/lib/trpc/hooks/server.hooks';
+import { useServer } from '@/lib/trpc/hooks/realm.hooks';
 import type { Agent, AgentScope } from '../types/agent.types';
 import { RuntimeAdapterConfig } from './RuntimeAdapterConfig';
 import type { AdapterConfig } from '../types/adapter.types';

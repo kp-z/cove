@@ -6,18 +6,18 @@ import {
   DeviceNameAlreadyExistsError,
 } from './device.errors';
 import { IDeviceRepository, IEventBus, ILogger } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('DeviceService', () => {
   let service: DeviceService;
   let mockDeviceRepository: IDeviceRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'user-123');
+    testContext = RealmContext.create('test-server-id', 'user-123');
 
     mockDeviceRepository = {
       findById: vi.fn(),
@@ -57,7 +57,7 @@ describe('DeviceService', () => {
         name: 'test-device',
         displayName: 'Test Device',
         description: 'A test device',
-        serverId: 'server-123',
+        realmId: 'server-123',
         type: 'physical',
         provider: 'on-premise',
         specs,
@@ -72,12 +72,12 @@ describe('DeviceService', () => {
       expect(result).toBeInstanceOf(DeviceEntity);
       expect(result.name).toBe(dto.name);
       expect(result.display_name).toBe(dto.displayName);
-      expect(result.server_id).toBe(dto.serverId);
+      expect(result.realm_id).toBe(dto.realmId);
       expect(result.type).toBe(dto.type);
       expect(result.status).toBe('provisioning');
       expect(mockDeviceRepository.save).toHaveBeenCalledWith(
         expect.any(DeviceEntity),
-        testContext.serverId
+        testContext.realmId
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -95,12 +95,12 @@ describe('DeviceService', () => {
 
       const dto: CreateDeviceDTO = {
         name: 'existing-device',
-        serverId: 'server-123',
+        realmId: 'server-123',
         type: 'physical',
         specs,
       };
 
-      const existingDevice = createTestDevice({ name: 'existing-device', server_id: 'server-123' });
+      const existingDevice = createTestDevice({ name: 'existing-device', realm_id: 'server-123' });
       vi.mocked(mockDeviceRepository.findByServer).mockResolvedValue([existingDevice]);
 
       await expect(
@@ -182,7 +182,7 @@ describe('DeviceService', () => {
       expect(result.display_name).toBe(dto.displayName);
       expect(mockDeviceRepository.update).toHaveBeenCalledWith(
         expect.any(DeviceEntity),
-        testContext.serverId
+        testContext.realmId
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -192,8 +192,8 @@ describe('DeviceService', () => {
     });
 
     it('should throw error when new name already exists', async () => {
-      const device = createTestDevice({ device_id: 'device-123', name: 'old-name', server_id: 'server-123' });
-      const existingDevice = createTestDevice({ device_id: 'device-456', name: 'existing-name', server_id: 'server-123' });
+      const device = createTestDevice({ device_id: 'device-123', name: 'old-name', realm_id: 'server-123' });
+      const existingDevice = createTestDevice({ device_id: 'device-456', name: 'existing-name', realm_id: 'server-123' });
       const dto: UpdateDeviceDTO = {
         name: 'existing-name',
       };
@@ -442,7 +442,7 @@ function createTestDevice(overrides?: Partial<any>): DeviceEntity {
     name: 'test-device',
     display_name: 'Test Device',
     description: 'A test device',
-    server_id: 'server-123',
+    realm_id: 'server-123',
     type: 'physical',
     provider: 'on-premise',
     specs: {

@@ -11,7 +11,7 @@ import { userRouter } from './user.router';
 import { workflowRouter } from './workflow.router';
 import { projectRouter } from './project.router';
 import { createSubscriptionRouter } from './subscription.router';
-import { serverRouter } from './server.router';
+import { realmRouter } from './realm.router';
 import { deviceRouter } from './device.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
@@ -26,7 +26,7 @@ import type { ThreadService } from '../../../application/services/thread/thread.
 import type { UserService } from '../../../application/services/user/user.service';
 import type { WorkflowService } from '../../../application/services/workflow/workflow.service';
 import type { ProjectService } from '../../../application/services/project/project.service';
-import type { ServerService } from '../../../application/services/server/server.service';
+import type { RealmService } from '../../../application/services/realm/realm.service';
 import type { DeviceService } from '../../../application/services/device/device.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 
@@ -43,7 +43,7 @@ export interface RouterDependencies {
   userService: UserService;
   workflowService: WorkflowService;
   projectService: ProjectService;
-  serverService: ServerService;
+  realmService: RealmService;
   deviceService: DeviceService;
   eventBus: IEventBus;
 }
@@ -100,8 +100,8 @@ export function createAppRouter(deps: RouterDependencies) {
     // Project router
     project: projectRouter(deps.projectService),
 
-    // Server router
-    server: serverRouter(deps.serverService),
+    // Realm router
+    server: realmRouter(deps.realmService),
 
     // Device router
     device: deviceRouter(deps.deviceService),

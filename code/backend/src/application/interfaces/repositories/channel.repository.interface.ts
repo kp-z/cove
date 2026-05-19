@@ -44,16 +44,16 @@ export interface IChannelRepository {
   /**
    * 保存新 Channel
    * @param channel - Channel 实体
-   * @param serverId - Server ID（用于多 Server 数据隔离）
+   * @param realmId - Server ID（用于多 Server 数据隔离）
    */
-  save(channel: ChannelEntity, serverId: string): Promise<void>;
+  save(channel: ChannelEntity, realmId: string): Promise<void>;
 
   /**
    * 更新 Channel
    * @param channel - Channel 实体
-   * @param serverId - Server ID（用于多 Server 数据隔离）
+   * @param realmId - Server ID（用于多 Server 数据隔离）
    */
-  update(channel: ChannelEntity, serverId: string): Promise<void>;
+  update(channel: ChannelEntity, realmId: string): Promise<void>;
 
   /**
    * 删除 Channel

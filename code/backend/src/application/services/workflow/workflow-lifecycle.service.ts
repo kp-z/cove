@@ -10,7 +10,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class WorkflowLifecycleService {
   constructor(
@@ -20,7 +20,7 @@ export class WorkflowLifecycleService {
   ) {}
 
   async activateWorkflow(workflowId: string): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Activating workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -30,7 +30,7 @@ export class WorkflowLifecycleService {
 
     const activatedWorkflow = workflow.activate();
 
-    await this.workflowRepository.update(activatedWorkflow, context.serverId);
+    await this.workflowRepository.update(activatedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -47,7 +47,7 @@ export class WorkflowLifecycleService {
   }
 
   async pauseWorkflow(workflowId: string): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Pausing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -57,7 +57,7 @@ export class WorkflowLifecycleService {
 
     const pausedWorkflow = workflow.pause();
 
-    await this.workflowRepository.update(pausedWorkflow, context.serverId);
+    await this.workflowRepository.update(pausedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -74,7 +74,7 @@ export class WorkflowLifecycleService {
   }
 
   async resumeWorkflow(workflowId: string): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Resuming workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -84,7 +84,7 @@ export class WorkflowLifecycleService {
 
     const resumedWorkflow = workflow.resume();
 
-    await this.workflowRepository.update(resumedWorkflow, context.serverId);
+    await this.workflowRepository.update(resumedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -101,7 +101,7 @@ export class WorkflowLifecycleService {
   }
 
   async completeWorkflow(workflowId: string): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Completing workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -111,7 +111,7 @@ export class WorkflowLifecycleService {
 
     const completedWorkflow = workflow.complete();
 
-    await this.workflowRepository.update(completedWorkflow, context.serverId);
+    await this.workflowRepository.update(completedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -128,7 +128,7 @@ export class WorkflowLifecycleService {
   }
 
   async archiveWorkflow(workflowId: string): Promise<WorkflowEntity> {
-      const context = getServerContext();
+      const context = getRealmContext();
     this.logger.info('Archiving workflow', { workflowId });
 
     const workflow = await this.workflowRepository.findById(workflowId);
@@ -138,7 +138,7 @@ export class WorkflowLifecycleService {
 
     const archivedWorkflow = workflow.archive();
 
-    await this.workflowRepository.update(archivedWorkflow, context.serverId);
+    await this.workflowRepository.update(archivedWorkflow, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

@@ -5,7 +5,7 @@
  * - 管理物理设备的资源配置（CPU、内存、存储、GPU）
  * - 管理设备的网络配置
  * - 跟踪设备状态和健康状况
- * - 关联到 Server（工作空间）
+ * - 关联到 Realm（工作空间）
  */
 
 export type DeviceType = 'physical' | 'virtual' | 'container' | 'cloud';
@@ -39,7 +39,7 @@ export interface DeviceEntityProps {
   name: string;
   display_name?: string;
   description?: string;
-  server_id: string;
+  realm_id: string;
   type: DeviceType;
   provider?: string; // e.g., 'aws', 'gcp', 'azure', 'on-premise'
   specs: DeviceSpecs;
@@ -57,7 +57,7 @@ export interface DeviceEntityJSON {
   name: string;
   display_name?: string;
   description?: string;
-  server_id: string;
+  realm_id: string;
   type: DeviceType;
   provider?: string;
   specs: DeviceSpecs;
@@ -88,7 +88,7 @@ export class DeviceEntity {
       name: json.name,
       display_name: json.display_name,
       description: json.description,
-      server_id: json.server_id,
+      realm_id: json.realm_id,
       type: json.type,
       provider: json.provider,
       specs: json.specs,
@@ -121,8 +121,8 @@ export class DeviceEntity {
       throw new Error('Device display name cannot exceed 200 characters');
     }
 
-    // Validate server_id
-    if (!this.props.server_id || this.props.server_id.trim() === '') {
+    // Validate realm_id
+    if (!this.props.realm_id || this.props.realm_id.trim() === '') {
       throw new Error('Server ID cannot be empty');
     }
 
@@ -157,7 +157,7 @@ export class DeviceEntity {
   get name(): string { return this.props.name; }
   get display_name(): string | undefined { return this.props.display_name; }
   get description(): string | undefined { return this.props.description; }
-  get server_id(): string { return this.props.server_id; }
+  get realm_id(): string { return this.props.realm_id; }
   get type(): DeviceType { return this.props.type; }
   get provider(): string | undefined { return this.props.provider; }
   get specs(): DeviceSpecs { return this.props.specs; }
@@ -310,7 +310,7 @@ export class DeviceEntity {
       name: this.props.name,
       display_name: this.props.display_name,
       description: this.props.description,
-      server_id: this.props.server_id,
+      realm_id: this.props.realm_id,
       type: this.props.type,
       provider: this.props.provider,
       specs: this.props.specs,

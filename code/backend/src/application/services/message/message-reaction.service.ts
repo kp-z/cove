@@ -17,7 +17,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { MessageNotFoundError } from './message.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AddReactionDTO {
   readonly messageId: string;
@@ -39,14 +39,14 @@ export class MessageReactionService {
   ) {}
 
   async addReaction(dto: AddReactionDTO): Promise<MessageEntity> {
-      const context = getServerContext();
-    this.logger.info('Adding reaction to message', { ...dto, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Adding reaction to message', { ...dto, realmId: context.realmId });
 
     const message = await this.getMessageById(dto.messageId);
 
     const updatedMessage = message.addReaction(dto.emoji, dto.userId);
 
-    await this.messageRepository.update(updatedMessage, context.serverId);
+    await this.messageRepository.update(updatedMessage, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -67,14 +67,14 @@ export class MessageReactionService {
   }
 
   async removeReaction(dto: RemoveReactionDTO): Promise<MessageEntity> {
-      const context = getServerContext();
-    this.logger.info('Removing reaction from message', { ...dto, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Removing reaction from message', { ...dto, realmId: context.realmId });
 
     const message = await this.getMessageById(dto.messageId);
 
     const updatedMessage = message.removeReaction(dto.emoji, dto.userId);
 
-    await this.messageRepository.update(updatedMessage, context.serverId);
+    await this.messageRepository.update(updatedMessage, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

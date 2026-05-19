@@ -65,16 +65,16 @@ export interface IUserRepository {
   /**
    * 保存新 User
    * @param user - User 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  save(user: UserEntity, serverId: string): Promise<void>;
+  save(user: UserEntity, realmId: string): Promise<void>;
 
   /**
    * 更新 User
    * @param user - User 实体
-   * @param serverId - Server ID
+   * @param realmId - Server ID
    */
-  update(user: UserEntity, serverId: string): Promise<void>;
+  update(user: UserEntity, realmId: string): Promise<void>;
 
   /**
    * 删除 User

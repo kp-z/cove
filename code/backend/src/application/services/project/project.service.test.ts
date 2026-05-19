@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectService } from './project.service';
 import { ProjectRepository } from '../../../infrastructure/database/repositories/project.repository';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('ProjectService', () => {
   let projectService: ProjectService;
@@ -11,10 +11,10 @@ describe('ProjectService', () => {
   let mockChannelRepository: any;
   let mockEventBus: any;
   let mockLogger: any;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
 
     mockProjectRepository = {
       findById: vi.fn(),

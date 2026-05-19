@@ -17,8 +17,8 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('TaskAssignmentService', () => {
   let service: TaskAssignmentService;
@@ -26,10 +26,10 @@ describe('TaskAssignmentService', () => {
   let mockAgentRepository: IAgentRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
     mockTaskRepository = {
       findById: vi.fn(),
       update: vi.fn(),

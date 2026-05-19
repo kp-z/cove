@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useAdapters, useCreateAdapter, useUpdateAdapter, useDeleteAdapter, useTestConnection } from '@/lib/trpc/hooks'
-import { useServer, useUpdateServer } from '@/lib/trpc/hooks/server.hooks'
+import { useServer, useUpdateServer } from '@/lib/trpc/hooks/realm.hooks'
 import { useAuthStore } from '@/core/auth/authStore'
 import { Button } from '@/shared/components/ui/button'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
@@ -25,7 +25,7 @@ export function AdaptersPanel() {
 
   // Use 'default-server' as the server ID (matches backend context default)
   const { data: server } = useServer('default-server')
-  const updateServer = useUpdateServer()
+  const updateRealm = useUpdateServer()
 
   // CRUD hooks
   const createAdapter = useCreateAdapter()
@@ -51,8 +51,8 @@ export function AdaptersPanel() {
   const handleDefaultChange = (adapterId: string) => {
     if (!server) return
 
-    updateServer.mutate({
-      serverId: server.server_id,
+    updateRealm.mutate({
+      realmId: server.realm_id,
       data: {
         settings: {
           default_adapter_id: adapterId || undefined,

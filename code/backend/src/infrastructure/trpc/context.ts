@@ -4,7 +4,7 @@ import type { ILogger } from '../../application/interfaces/logger.interface';
 import type { AuthService } from '../../application/services/auth/auth.service';
 
 export interface Context {
-  serverId?: string;
+  realmId?: string;
   userId?: string;
   userType?: 'human' | 'agent';
   userRole?: string;
@@ -31,7 +31,7 @@ export function createContext(opts: CreateContextOptions) {
       res.writeHead(204);
       res.end();
       return {
-        serverId: undefined,
+        realmId: undefined,
         userId: undefined,
         userType: 'human',
         logger: opts.logger,
@@ -41,7 +41,7 @@ export function createContext(opts: CreateContextOptions) {
     }
 
     // Extract server ID from headers
-    const serverId = req.headers['x-server-id'] as string | undefined;
+    const realmId = req.headers['x-server-id'] as string | undefined;
 
     // Try to authenticate via JWT token first
     const authHeader = req.headers['authorization'] as string | undefined;
@@ -50,7 +50,7 @@ export function createContext(opts: CreateContextOptions) {
       try {
         const payload = await opts.authService.verifyToken(token);
         return {
-          serverId,
+          realmId,
           userId: payload.userId,
           userType: 'human',
           userRole: payload.role,
@@ -69,7 +69,7 @@ export function createContext(opts: CreateContextOptions) {
     const userType = req.headers['x-user-type'] as 'human' | 'agent' | undefined;
 
     return {
-      serverId,
+      realmId,
       userId,
       userType: userType || 'human',
       logger: opts.logger,

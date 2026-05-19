@@ -10,7 +10,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { AgentNotFoundError, AgentInUseError } from './agent.errors';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface CreateAgentDTO {
   readonly name: string;
@@ -63,8 +63,8 @@ export class AgentCrudService {
   ) {}
 
   async createAgent(dto: CreateAgentDTO): Promise<AgentEntity> {
-    const context = getServerContext();
-    this.logger.info('Creating new agent', { name: dto.name, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Creating new agent', { name: dto.name, realmId: context.realmId });
 
     const agentId = this.generateAgentId();
 
@@ -82,7 +82,7 @@ export class AgentCrudService {
       createdAt: new Date(),
     });
 
-    await this.agentRepository.save(agent, context.serverId);
+    await this.agentRepository.save(agent, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -103,8 +103,8 @@ export class AgentCrudService {
   }
 
   async updateAgent(agentId: string, dto: UpdateAgentDTO): Promise<AgentEntity> {
-    const context = getServerContext();
-    this.logger.info('Updating agent', { agentId, serverId: context.serverId });
+    const context = getRealmContext();
+    this.logger.info('Updating agent', { agentId, realmId: context.realmId });
 
     const agent = await this.getAgentById(agentId);
 
@@ -170,7 +170,7 @@ export class AgentCrudService {
       createdAt: agent.createdAt,
     });
 
-    await this.agentRepository.update(updatedAgent, context.serverId);
+    await this.agentRepository.update(updatedAgent, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

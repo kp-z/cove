@@ -130,12 +130,12 @@ export class HybridWorkflowRepository
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
   }
 
-  async save(workflow: WorkflowEntity, serverId: string): Promise<void> {
-    await this.saveEntity(workflow, serverId);
+  async save(workflow: WorkflowEntity, realmId: string): Promise<void> {
+    await this.saveEntity(workflow, realmId);
   }
 
-  async update(workflow: WorkflowEntity, serverId: string): Promise<void> {
-    await this.updateEntity(workflow, serverId);
+  async update(workflow: WorkflowEntity, realmId: string): Promise<void> {
+    await this.updateEntity(workflow, realmId);
   }
 
   async delete(workflowId: string): Promise<void> {

@@ -17,8 +17,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';
-import { ServerContext } from '../../../application/context/server-context';
-import { runWithContext } from '../../../application/context/server-context-store';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -71,7 +71,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(sendMessageSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.sendMessage(input);
           return message.toJSON();
@@ -90,7 +90,7 @@ export const messageRouter = (messageService: MessageService) =>
       }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const result = await messageService.getMessagesByChannelCursor(
             input.channelId,
@@ -112,7 +112,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(z.object({ messageId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.getMessageById(input.messageId);
           return message.toJSON();
@@ -127,7 +127,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(updateMessageSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.updateMessage(input);
             return message.toJSON();
@@ -142,7 +142,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(deleteMessageSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             await messageService.deleteMessage(input);
           return { messageId: input.messageId, deleted: true };
@@ -157,7 +157,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(reactionSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.addReaction(input);
           return message.toJSON();
@@ -172,7 +172,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(reactionSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.removeReaction(input);
           return message.toJSON();
@@ -190,7 +190,7 @@ export const messageRouter = (messageService: MessageService) =>
       }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const messages = await messageService.getMessagesByThread(
             input.messageId,
@@ -211,7 +211,7 @@ export const messageRouter = (messageService: MessageService) =>
       .input(replyToThreadSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             // 获取 thread root 消息以获取 channelId
           const threadRoot = await messageService.getMessageById(input.messageId);

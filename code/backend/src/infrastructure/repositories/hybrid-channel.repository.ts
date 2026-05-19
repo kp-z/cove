@@ -144,12 +144,12 @@ export class HybridChannelRepository
     return this.loadEntities(records as unknown as ChannelDbRecord[]);
   }
 
-  async save(channel: ChannelEntity, serverId: string): Promise<void> {
-    await this.saveEntity(channel, serverId);
+  async save(channel: ChannelEntity, realmId: string): Promise<void> {
+    await this.saveEntity(channel, realmId);
   }
 
-  async update(channel: ChannelEntity, serverId: string): Promise<void> {
-    await this.updateEntity(channel, serverId);
+  async update(channel: ChannelEntity, realmId: string): Promise<void> {
+    await this.updateEntity(channel, realmId);
   }
 
   async delete(channelId: string): Promise<void> {

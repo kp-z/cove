@@ -16,7 +16,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { PaginationParams, PaginatedResult } from '../../interfaces/repositories/user.repository.interface';
-import { getServerContext } from '../../context/server-context-store';
+import { getRealmContext } from '../../context/realm-context-store';
 import { AuditService } from '../audit/audit.service';
 
 export interface CreateUserDTO {
@@ -43,8 +43,8 @@ export class UserService {
   ) {}
 
   async createUser(dto: CreateUserDTO): Promise<UserEntity> {
-      const context = getServerContext();
-    this.logger.info('Creating new user', { username: dto.username, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Creating new user', { username: dto.username, realmId: context.realmId });
 
     if (await this.userRepository.usernameExists(dto.username)) {
       throw new UsernameAlreadyExistsError(dto.username);
@@ -67,7 +67,7 @@ export class UserService {
       createdAt: new Date(),
     });
 
-    await this.userRepository.save(user, context.serverId);
+    await this.userRepository.save(user, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -137,8 +137,8 @@ export class UserService {
   }
 
   async updateUser(userId: string, dto: UpdateUserDTO): Promise<UserEntity> {
-      const context = getServerContext();
-    this.logger.info('Updating user', { userId, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Updating user', { userId, realmId: context.realmId });
 
     let user = await this.getUserById(userId);
     const before = { displayName: user.displayName, email: user.email };
@@ -161,7 +161,7 @@ export class UserService {
       user = user.updatePreference(dto.preference);
     }
 
-    await this.userRepository.update(user, context.serverId);
+    await this.userRepository.update(user, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -191,13 +191,13 @@ export class UserService {
   }
 
   async updateUserRole(userId: string, role: UserRole): Promise<UserEntity> {
-      const context = getServerContext();
-    this.logger.info('Updating user role', { userId, role, serverId: context.serverId });
+      const context = getRealmContext();
+    this.logger.info('Updating user role', { userId, role, realmId: context.realmId });
 
     let user = await this.getUserById(userId);
     user = user.updateRole(role);
 
-    await this.userRepository.update(user, context.serverId);
+    await this.userRepository.update(user, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -218,8 +218,8 @@ export class UserService {
     const user = await this.getUserById(userId);
     const deletedUser = user.softDelete();
 
-    const context = getServerContext();
-    await this.userRepository.update(deletedUser, context.serverId);
+    const context = getRealmContext();
+    await this.userRepository.update(deletedUser, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -252,8 +252,8 @@ export class UserService {
     const user = await this.getUserById(userId);
     const activatedUser = user.activate();
 
-    const context = getServerContext();
-    await this.userRepository.update(activatedUser, context.serverId);
+    const context = getRealmContext();
+    await this.userRepository.update(activatedUser, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -288,8 +288,8 @@ export class UserService {
     const user = await this.getUserById(userId);
     const suspendedUser = user.suspend();
 
-    const context = getServerContext();
-    await this.userRepository.update(suspendedUser, context.serverId);
+    const context = getRealmContext();
+    await this.userRepository.update(suspendedUser, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -324,8 +324,8 @@ export class UserService {
     const user = await this.getUserById(userId);
     const unlockedUser = user.unlockAccount();
 
-    const context = getServerContext();
-    await this.userRepository.update(unlockedUser, context.serverId);
+    const context = getRealmContext();
+    await this.userRepository.update(unlockedUser, context.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

@@ -82,12 +82,12 @@ export class HybridThreadRepository
     return this.findEntityById(record.id);
   }
 
-  async save(thread: ThreadEntity, serverId: string): Promise<void> {
-    await this.saveEntity(thread, serverId);
+  async save(thread: ThreadEntity, realmId: string): Promise<void> {
+    await this.saveEntity(thread, realmId);
   }
 
-  async update(thread: ThreadEntity, serverId: string): Promise<void> {
-    await this.updateEntity(thread, serverId);
+  async update(thread: ThreadEntity, realmId: string): Promise<void> {
+    await this.updateEntity(thread, realmId);
   }
 
   async delete(threadId: string): Promise<void> {

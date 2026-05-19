@@ -108,12 +108,12 @@ export class HybridProjectRepository
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
-  async save(project: ProjectEntity, serverId: string): Promise<void> {
-    await this.saveEntity(project, serverId);
+  async save(project: ProjectEntity, realmId: string): Promise<void> {
+    await this.saveEntity(project, realmId);
   }
 
-  async update(project: ProjectEntity, serverId: string): Promise<void> {
-    await this.updateEntity(project, serverId);
+  async update(project: ProjectEntity, realmId: string): Promise<void> {
+    await this.updateEntity(project, realmId);
   }
 
   async delete(projectId: string): Promise<void> {

@@ -7,18 +7,18 @@ import {
   IMessageRepository,
   ILogger,
 } from '../../interfaces';
-import { ServerContext } from '../../context/server-context';
-import { runWithContext } from '../../context/server-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('ThreadService', () => {
   let threadService: ThreadService;
   let mockThreadRepository: IThreadRepository;
   let mockMessageRepository: IMessageRepository;
   let mockLogger: ILogger;
-  let testContext: ServerContext;
+  let testContext: RealmContext;
 
   beforeEach(() => {
-    testContext = ServerContext.create('test-server-id', 'test-user-id');
+    testContext = RealmContext.create('test-server-id', 'test-user-id');
 
     mockThreadRepository = {
       save: vi.fn(),

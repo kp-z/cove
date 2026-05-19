@@ -8,4 +8,4 @@ export * from './thread.hooks';
 export * from './user.hooks';
 export * from './workflow.hooks';
 export * from './project.hooks';
-export * from './server.hooks';
+export * from './realm.hooks';
