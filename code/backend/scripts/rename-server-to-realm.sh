@@ -226,6 +226,8 @@ replace_in_file() {
         s/UpdateServerDTO/UpdateRealmDTO/g;
         s/ServerEntityProps/RealmEntityProps/g;
         s/ServerEntityJSON/RealmEntityJSON/g;
+        s/ServerStatus/RealmStatus/g;
+        s/ServerVisibility/RealmVisibility/g;
 
         # 复合词替换 - ServerMember
         s/ServerMemberEntity/RealmMemberEntity/g;
@@ -238,6 +240,10 @@ replace_in_file() {
         s/ServerMemberEntityProps/RealmMemberEntityProps/g;
         s/ServerMemberEntityJSON/RealmMemberEntityJSON/g;
 
+        # 常量名替换
+        s/VALID_SERVER_STATUSES/VALID_REALM_STATUSES/g;
+        s/VALID_SERVER_VISIBILITIES/VALID_REALM_VISIBILITIES/g;
+
         # 方法名替换（必须在字段名替换之前）
         s/createServer/createRealm/g;
         s/getServerById/getRealmById/g;
@@ -249,6 +255,7 @@ replace_in_file() {
         s/unarchiveServer/unarchiveRealm/g;
         s/deleteServer/deleteRealm/g;
         s/getServerContext/getRealmContext/g;
+        s/runWithServerContext/runWithRealmContext/g;
 
         # Router 相关替换
         s/serverRouter/realmRouter/g;
@@ -285,12 +292,65 @@ replace_in_file() {
         s/hybrid-server/hybrid-realm/g;
         s/hybrid-server-member/hybrid-realm-member/g;
 
+        # 测试描述文本替换（describe/it）
+        s/describe\('"'"'ServerContext/describe('"'"'RealmContext/g;
+        s/describe\('"'"'ServerService/describe('"'"'RealmService/g;
+        s/describe\('"'"'ServerEntity/describe('"'"'RealmEntity/g;
+        s/describe\('"'"'ServerMemberService/describe('"'"'RealmMemberService/g;
+        s/describe\('"'"'ServerMemberEntity/describe('"'"'RealmMemberEntity/g;
+        s/describe\('"'"'server\.router/describe('"'"'realm.router/g;
+        s/it\('"'"'应该成功创建 ServerContext/it('"'"'应该成功创建 RealmContext/g;
+        s/it\('"'"'应该通过工厂方法创建 ServerContext/it('"'"'应该通过工厂方法创建 RealmContext/g;
+        s/it\('"'"'should create a new server/it('"'"'should create a new realm/g;
+        s/it\('"'"'should get server by id/it('"'"'should get realm by id/g;
+        s/it\('"'"'should update server/it('"'"'should update realm/g;
+        s/it\('"'"'should archive server/it('"'"'should archive realm/g;
+        s/it\('"'"'should activate server/it('"'"'should activate realm/g;
+        s/it\('"'"'should delete server/it('"'"'should delete realm/g;
+        s/it\('"'"'should query servers/it('"'"'should query realms/g;
+
+        # 错误消息文本替换
+        s/Invalid server status/Invalid realm status/g;
+        s/Invalid server visibility/Invalid realm visibility/g;
+        s/Server not found/Realm not found/g;
+        s/Server name already exists/Realm name already exists/g;
+        s/Server is not active/Realm is not active/g;
+        s/Server is already archived/Realm is already archived/g;
+        s/Server is not archived/Realm is not archived/g;
+        s/Only suspended servers can be activated/Only suspended realms can be activated/g;
+        s/Only active servers can be archived/Only active realms can be archived/g;
+        s/Unauthorized server access/Unauthorized realm access/g;
+        s/Cannot delete server/Cannot delete realm/g;
+
+        # 日志消息文本替换
+        s/Creating new server/Creating new realm/g;
+        s/Server created successfully/Realm created successfully/g;
+        s/Updating server/Updating realm/g;
+        s/Server updated successfully/Realm updated successfully/g;
+        s/Archiving server/Archiving realm/g;
+        s/Server archived successfully/Realm archived successfully/g;
+        s/Activating server/Activating realm/g;
+        s/Server activated successfully/Realm activated successfully/g;
+        s/Deleting server/Deleting realm/g;
+        s/Server deleted successfully/Realm deleted successfully/g;
+        s/Querying servers/Querying realms/g;
+        s/Found \d+ servers/Found $& realms/g;
+
         # 注释中的替换
         s/Server（工作空间）/Realm（工作空间）/g;
         s/Server 实体/Realm 实体/g;
         s/Server 服务/Realm 服务/g;
         s/ServerMember 实体/RealmMember 实体/g;
         s/ServerMember 服务/RealmMember 服务/g;
+        s/\/\/ Server/\/\/ Realm/g;
+        s/\/\*\* Server /\/\*\* Realm /g;
+        s/\* Server /\* Realm /g;
+        s/Query servers/Query realms/g;
+        s/Create a server/Create a realm/g;
+        s/Update a server/Update a realm/g;
+        s/Delete a server/Delete a realm/g;
+        s/Archive a server/Archive a realm/g;
+        s/Activate a server/Activate a realm/g;
 
         # 存储路径替换
         s/storage\/servers/storage\/realms/g;
@@ -348,6 +408,55 @@ rename_directory() {
     log_info "已重命名目录: $old_path -> $new_path"
 }
 
+# 替换 SQL 迁移文件
+replace_in_sql_file() {
+    local file=$1
+    local dry_run=$2
+
+    # 检查文件是否包含需要替换的内容
+    if ! grep -q -E "(Server|server_members)" "$file" 2>/dev/null; then
+        return
+    fi
+
+    FILES_TO_MODIFY=$((FILES_TO_MODIFY + 1))
+
+    if [ "$dry_run" = true ]; then
+        echo "  [MODIFY SQL] $file"
+        return
+    fi
+
+    # 执行 SQL 文件的替换
+    perl -i -pe '
+        # SQL 表名替换
+        s/CREATE TABLE "Server"/CREATE TABLE "Realm"/g;
+        s/ALTER TABLE "Server"/ALTER TABLE "Realm"/g;
+        s/DROP TABLE "Server"/DROP TABLE "Realm"/g;
+        s/CREATE TABLE "server_members"/CREATE TABLE "realm_members"/g;
+        s/ALTER TABLE "server_members"/ALTER TABLE "realm_members"/g;
+        s/DROP TABLE "server_members"/DROP TABLE "realm_members"/g;
+
+        # SQL 索引名替换
+        s/CREATE INDEX "Server_/CREATE INDEX "Realm_/g;
+        s/CREATE UNIQUE INDEX "Server_/CREATE UNIQUE INDEX "Realm_/g;
+        s/DROP INDEX "Server_/DROP INDEX "Realm_/g;
+
+        # SQL 列名替换
+        s/"server_id"/"realm_id"/g;
+        s/"server_name"/"realm_name"/g;
+        s/"server_member_id"/"realm_member_id"/g;
+
+        # SQL 外键约束名替换
+        s/server_members_server_id_fkey/realm_members_realm_id_fkey/g;
+        s/Server_owner_id_fkey/Realm_owner_id_fkey/g;
+
+        # SQL REFERENCES 替换
+        s/REFERENCES "Server"/REFERENCES "Realm"/g;
+        s/REFERENCES "server_members"/REFERENCES "realm_members"/g;
+    ' "$file"
+
+    log_info "已修改 SQL: $file"
+}
+
 # 扫描并替换文件内容
 scan_and_replace() {
     local dry_run=$1
@@ -362,6 +471,14 @@ scan_and_replace() {
     # 处理 Prisma Schema
     if [ -f "$PROJECT_ROOT/prisma/schema.prisma" ]; then
         replace_in_file "$PROJECT_ROOT/prisma/schema.prisma" "$dry_run"
+    fi
+
+    # 处理 SQL 迁移文件
+    if [ -d "$PROJECT_ROOT/prisma/migrations" ]; then
+        log_info "处理 SQL 迁移文件..."
+        find "$PROJECT_ROOT/prisma/migrations" -type f -name "*.sql" | while read -r file; do
+            replace_in_sql_file "$file" "$dry_run"
+        done
     fi
 
     # 处理前端代码（如果存在）
