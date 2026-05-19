@@ -35,14 +35,29 @@
   "auth": {
     "username": "Username",
     "password": "Password",
+    "email": "Email",
+    "displayName": "Display Name",
+    "confirmPassword": "Confirm Password",
     "usernamePlaceholder": "Enter your username",
     "passwordPlaceholder": "Enter your password",
+    "emailPlaceholder": "Enter your email",
+    "displayNamePlaceholder": "Enter your display name",
+    "confirmPasswordPlaceholder": "Confirm your password",
     "rememberMe": "Remember me",
     "signIn": "Sign In",
+    "signUp": "Sign Up",
     "signingIn": "Signing in...",
+    "signingUp": "Signing up...",
     "invalidCredentials": "Invalid username or password",
     "accountDisabled": "Your account has been disabled. Please contact an administrator.",
     "sessionExpired": "Your session has expired. Please sign in again.",
-    "unknownError": "An unexpected error occurred. Please try again."
+    "unknownError": "An unexpected error occurred. Please try again.",
+    "passwordMismatch": "Passwords do not match",
+    "invalidUsernameFormat": "Username can only contain letters, numbers, and underscores",
+    "usernameExists": "Username already exists",
+    "emailExists": "Email already exists",
+    "registrationFailed": "Registration failed. Please try again.",
+    "usernameRequirements": "3-20 characters, letters, numbers, and underscores only",
+    "passwordRequirements": "At least 8 characters"
   }
 }
