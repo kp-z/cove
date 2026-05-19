@@ -43,6 +43,34 @@
       "description": "启用或禁用 UI 动画"
     }
   },
+  "account": {
+    "title": "账户",
+    "profile": {
+      "title": "个人资料",
+      "description": "管理您的账户信息",
+      "username": "用户名",
+      "usernameDescription": "您的唯一用户名（无法更改）",
+      "displayName": "显示名称",
+      "displayNameDescription": "您在其他人面前显示的名称",
+      "displayNamePlaceholder": "请输入显示名称",
+      "email": "邮箱",
+      "emailDescription": "您的邮箱地址",
+      "avatar": "头像",
+      "avatarDescription": "上传个人头像",
+      "uploadAvatar": "上传图片"
+    },
+    "preferences": {
+      "title": "偏好设置",
+      "description": "自定义您的账户偏好",
+      "language": "语言",
+      "languageDescription": "选择您的首选语言",
+      "role": "角色",
+      "roleDescription": "您的账户角色和权限"
+    },
+    "saveChanges": "保存更改",
+    "saving": "保存中...",
+    "cancel": "取消"
+  },
   "adapters": {
     "title": "适配器设置",
     "add": "添加",

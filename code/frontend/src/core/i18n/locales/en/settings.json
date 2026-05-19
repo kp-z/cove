@@ -43,6 +43,34 @@
       "description": "Enable or disable UI animations"
     }
   },
+  "account": {
+    "title": "Account",
+    "profile": {
+      "title": "Profile",
+      "description": "Manage your account information",
+      "username": "Username",
+      "usernameDescription": "Your unique username (cannot be changed)",
+      "displayName": "Display Name",
+      "displayNameDescription": "Your name as it appears to others",
+      "displayNamePlaceholder": "Enter your display name",
+      "email": "Email",
+      "emailDescription": "Your email address",
+      "avatar": "Avatar",
+      "avatarDescription": "Upload a profile picture",
+      "uploadAvatar": "Upload Image"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Customize your account preferences",
+      "language": "Language",
+      "languageDescription": "Select your preferred language",
+      "role": "Role",
+      "roleDescription": "Your account role and permissions"
+    },
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "cancel": "Cancel"
+  },
   "adapters": {
     "title": "Adapter Settings",
     "add": "Add",
