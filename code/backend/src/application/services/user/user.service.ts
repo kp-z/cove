@@ -15,7 +15,9 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
+import { PaginationParams, PaginatedResult } from '../../interfaces/repositories/user.repository.interface';
 import { getServerContext } from '../../context/server-context-store';
+import { AuditService } from '../audit/audit.service';
 
 export interface CreateUserDTO {
   readonly username: string;
@@ -36,7 +38,8 @@ export class UserService {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
+    private readonly auditService: AuditService
   ) {}
 
   async createUser(dto: CreateUserDTO): Promise<UserEntity> {
@@ -79,6 +82,19 @@ export class UserService {
       },
     });
 
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.create',
+        'user',
+        userId,
+        {
+          after: { username: dto.username, email: dto.email, role: user.role },
+        }
+      );
+    }
+
     this.logger.info('User created successfully', { userId });
     return user;
   }
@@ -115,11 +131,17 @@ export class UserService {
     return await this.userRepository.findAll();
   }
 
+  async getUsersPaginated(params: PaginationParams): Promise<PaginatedResult<UserEntity>> {
+    this.logger.info('Getting users paginated', { page: params.page, limit: params.limit, role: params.role });
+    return await this.userRepository.findPaginated(params);
+  }
+
   async updateUser(userId: string, dto: UpdateUserDTO): Promise<UserEntity> {
       const context = getServerContext();
     this.logger.info('Updating user', { userId, serverId: context.serverId });
 
     let user = await this.getUserById(userId);
+    const before = { displayName: user.displayName, email: user.email };
 
     if (dto.displayName !== undefined) {
       user = user.updateDisplayName(dto.displayName);
@@ -150,6 +172,20 @@ export class UserService {
       payload: { userId, changes: dto },
     });
 
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.update',
+        'user',
+        userId,
+        {
+          before,
+          after: { displayName: user.displayName, email: user.email },
+        }
+      );
+    }
+
     this.logger.info('User updated successfully', { userId });
     return user;
   }
@@ -177,10 +213,13 @@ export class UserService {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    this.logger.info('Deleting user', { userId });
+    this.logger.info('Deleting user (soft delete)', { userId });
 
-    await this.getUserById(userId);
-    await this.userRepository.delete(userId);
+    const user = await this.getUserById(userId);
+    const deletedUser = user.softDelete();
+
+    const context = getServerContext();
+    await this.userRepository.update(deletedUser, context.serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -191,7 +230,128 @@ export class UserService {
       payload: { userId },
     });
 
-    this.logger.info('User deleted successfully', { userId });
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.delete',
+        'user',
+        userId,
+        {
+          before: { username: user.username, status: user.status },
+        }
+      );
+    }
+
+    this.logger.info('User soft deleted successfully', { userId });
+  }
+
+  async activateUser(userId: string): Promise<UserEntity> {
+    this.logger.info('Activating user', { userId });
+
+    const user = await this.getUserById(userId);
+    const activatedUser = user.activate();
+
+    const context = getServerContext();
+    await this.userRepository.update(activatedUser, context.serverId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'user.activated',
+      aggregateId: userId,
+      aggregateType: 'User',
+      occurredAt: new Date(),
+      payload: { userId },
+    });
+
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.activate',
+        'user',
+        userId,
+        {
+          before: { status: user.status },
+          after: { status: activatedUser.status },
+        }
+      );
+    }
+
+    this.logger.info('User activated successfully', { userId });
+    return activatedUser;
+  }
+
+  async suspendUser(userId: string): Promise<UserEntity> {
+    this.logger.info('Suspending user', { userId });
+
+    const user = await this.getUserById(userId);
+    const suspendedUser = user.suspend();
+
+    const context = getServerContext();
+    await this.userRepository.update(suspendedUser, context.serverId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'user.suspended',
+      aggregateId: userId,
+      aggregateType: 'User',
+      occurredAt: new Date(),
+      payload: { userId },
+    });
+
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.suspend',
+        'user',
+        userId,
+        {
+          before: { status: user.status },
+          after: { status: suspendedUser.status },
+        }
+      );
+    }
+
+    this.logger.info('User suspended successfully', { userId });
+    return suspendedUser;
+  }
+
+  async unlockUser(userId: string): Promise<UserEntity> {
+    this.logger.info('Unlocking user', { userId });
+
+    const user = await this.getUserById(userId);
+    const unlockedUser = user.unlockAccount();
+
+    const context = getServerContext();
+    await this.userRepository.update(unlockedUser, context.serverId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'user.unlocked',
+      aggregateId: userId,
+      aggregateType: 'User',
+      occurredAt: new Date(),
+      payload: { userId },
+    });
+
+    // Audit log
+    if (context.userId) {
+      await this.auditService.log(
+        context.userId,
+        'user.unlock',
+        'user',
+        userId,
+        {
+          before: { locked: user.isLocked() },
+          after: { locked: unlockedUser.isLocked() },
+        }
+      );
+    }
+
+    this.logger.info('User unlocked successfully', { userId });
+    return unlockedUser;
   }
 
   private generateUserId(): string {

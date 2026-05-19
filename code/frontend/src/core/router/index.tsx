@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '@/shared/components/layout/MainLayout';
+import { AuthGuard } from '@/core/auth/AuthGuard';
 import { lazy } from 'react';
 
 // Lazy load page components
@@ -35,7 +36,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <AuthGuard>
+        <MainLayout />
+      </AuthGuard>
+    ),
     children: [
       {
         index: true,

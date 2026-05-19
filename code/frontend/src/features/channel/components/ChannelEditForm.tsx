@@ -294,7 +294,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>{t('edit.form.type')}</Label>
-                        <select className={selectCls} value={type} onChange={e => setType(e.target.value as any)}>
+                        <select className={selectCls} value={type} onChange={e => setType(e.target.value as 'public' | 'private' | 'dm')}>
                           <option value="public">{t('edit.form.typePublic')}</option>
                           <option value="private">{t('edit.form.typePrivate')}</option>
                           <option value="dm">{t('edit.form.typeDM')}</option>
@@ -302,7 +302,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                       </div>
                       <div>
                         <Label>{t('edit.form.status')}</Label>
-                        <select className={selectCls} value={status} onChange={e => setStatus(e.target.value as any)}>
+                        <select className={selectCls} value={status} onChange={e => setStatus(e.target.value as 'active' | 'archived')}>
                           <option value="active">{t('edit.form.statusActive')}</option>
                           <option value="archived">{t('edit.form.statusArchived')}</option>
                         </select>

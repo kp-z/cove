@@ -2,13 +2,14 @@
  * HybridDeviceRepository - Device 混合持久化实现
  *
  * 混合策略：
- * - 数据库：存储索引字段（id, serverId, name, type, status, platform）
+ * - 数据库：存储索引字段（id, serverId, name, type, status）
  * - 文件系统：存储完整的 Device 实体 JSON
  */
 
 import { HybridRepository } from './hybrid-repository.base';
 import { DeviceEntity, DeviceType, DeviceStatus } from '../../domain/models/device/device.entity';
 import { IDeviceRepository } from '../../application/interfaces/repositories/device.repository.interface';
+import { getServerContext } from '../../application/context/server-context-store';
 
 interface DeviceDbRecord {
   id: string;
@@ -90,7 +91,7 @@ export class HybridDeviceRepository
       displayName: entity.display_name || null,
       type: entity.type,
       status: entity.status,
-      platform: entity.platform || null,
+      platform: null, // Platform field removed from entity
       configPath: '',
       lastSeenAt: entity.last_seen_at || null,
       createdAt: entity.created_at,
@@ -115,9 +116,10 @@ export class HybridDeviceRepository
 
   // --- IDeviceRepository ---
 
-  async findById(deviceId: string, serverId: string): Promise<DeviceEntity | null> {
+  async findById(deviceId: string): Promise<DeviceEntity | null> {
+    const context = getServerContext();
     const record = await this.prisma.device.findFirst({
-      where: { id: deviceId, serverId },
+      where: { id: deviceId, serverId: context.serverId },
     });
     if (!record) return null;
     const content = await this.storage.loadJson(record.configPath);
@@ -131,7 +133,15 @@ export class HybridDeviceRepository
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
-  async findByStatus(status: DeviceStatus, serverId: string): Promise<DeviceEntity[]> {
+  async findByStatus(status: DeviceStatus): Promise<DeviceEntity[]> {
+    const context = getServerContext();
+    const records = await this.prisma.device.findMany({
+      where: { serverId: context.serverId, status },
+    });
+    return this.loadEntities(records as unknown as DeviceDbRecord[]);
+  }
+
+  async findByServerAndStatus(serverId: string, status: DeviceStatus): Promise<DeviceEntity[]> {
     const records = await this.prisma.device.findMany({
       where: { serverId, status },
     });
@@ -145,8 +155,9 @@ export class HybridDeviceRepository
     return this.loadEntities(records as unknown as DeviceDbRecord[]);
   }
 
-  async findAll(serverId: string): Promise<DeviceEntity[]> {
-    return this.findByServer(serverId);
+  async findAll(): Promise<DeviceEntity[]> {
+    const context = getServerContext();
+    return this.findByServer(context.serverId);
   }
 
   async save(device: DeviceEntity, serverId: string): Promise<void> {
@@ -157,18 +168,26 @@ export class HybridDeviceRepository
     await this.updateEntity(device, serverId);
   }
 
-  async delete(deviceId: string, serverId: string): Promise<void> {
+  async delete(deviceId: string): Promise<void> {
     await this.deleteEntity(deviceId);
   }
 
-  async exists(deviceId: string, serverId: string): Promise<boolean> {
+  async exists(deviceId: string): Promise<boolean> {
+    const context = getServerContext();
     const count = await this.prisma.device.count({
-      where: { id: deviceId, serverId },
+      where: { id: deviceId, serverId: context.serverId },
     });
     return count > 0;
   }
 
   // --- Database operations (required by HybridRepository) ---
+
+  protected async findInDatabase(entityId: string): Promise<DeviceDbRecord | null> {
+    const record = await this.prisma.device.findUnique({
+      where: { id: entityId },
+    });
+    return record as unknown as DeviceDbRecord | null;
+  }
 
   protected async saveToDatabase(dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
     await this.prisma.device.create({
@@ -188,9 +207,9 @@ export class HybridDeviceRepository
     });
   }
 
-  protected async updateInDatabase(dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
+  protected async updateInDatabase(entityId: string, dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
     await this.prisma.device.update({
-      where: { id: dbRecord.id },
+      where: { id: entityId },
       data: {
         name: dbRecord.name,
         displayName: dbRecord.displayName,

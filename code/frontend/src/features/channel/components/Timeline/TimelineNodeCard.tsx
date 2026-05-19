@@ -55,7 +55,7 @@ export function TimelineNodeCard({
   const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.gray;
 
   return (
-    <div className="relative flex items-start gap-4 group">
+    <div className="relative grid grid-cols-[auto_1fr_auto] items-start gap-4 group">
       {/* Timeline line */}
       {!isLast && (
         <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-gray-700" />
@@ -79,9 +79,9 @@ export function TimelineNodeCard({
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.2 }}
-        className={`flex-1 text-left p-3 rounded-lg transition-all border ${colors.card}`}
+        className={`text-left p-3 rounded-lg transition-all border ${colors.card}`}
       >
-        <div className="flex items-start gap-2 mb-2">
+        <div className="flex items-start gap-2">
           <div className={colors.icon}>{icon}</div>
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-medium line-clamp-2 ${isActive ? 'text-white' : 'text-gray-300'}`}>
@@ -92,11 +92,12 @@ export function TimelineNodeCard({
             )}
           </div>
         </div>
-
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span>{timestamp}</span>
-        </div>
       </motion.button>
+
+      {/* Timestamp on the right */}
+      <div className="text-xs text-gray-500 pt-3 whitespace-nowrap">
+        {timestamp}
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export function useAdapters() {
  * Get adapter by ID
  */
 export function useAdapter(id: string, enabled = true) {
-  return trpc.adapter.getById.useQuery({ id }, { enabled });
+  return trpc.adapter.getById.useQuery({ adapterId: id }, { enabled });
 }
 
 /**
@@ -44,7 +44,7 @@ export function useUpdateAdapter() {
   const utils = trpc.useUtils();
   return trpc.adapter.update.useMutation({
     onSuccess: (_, variables) => {
-      utils.adapter.getById.invalidate({ id: variables.id });
+      utils.adapter.getById.invalidate({ adapterId: variables.adapterId });
       utils.adapter.list.invalidate();
     },
   });
@@ -60,4 +60,73 @@ export function useDeleteAdapter() {
       utils.adapter.list.invalidate();
     },
   });
+}
+
+/**
+ * Get all adapter type metadata
+ */
+export function useAdapterTypes() {
+  return trpc.adapter.getAdapterTypes.useQuery(undefined, {
+    staleTime: 60 * 60 * 1000, // 1 hour
+    cacheTime: 24 * 60 * 60 * 1000, // 24 hours
+  });
+}
+
+/**
+ * Get single adapter type metadata
+ */
+export function useAdapterType(type: 'anthropic-api' | 'openai-api' | 'claude-code-cli') {
+  return trpc.adapter.getAdapterType.useQuery(
+    { type },
+    {
+      staleTime: 60 * 60 * 1000, // 1 hour
+    }
+  );
+}
+
+/**
+ * Get available models for an adapter
+ */
+export function useAdapterModels(adapterId: string | undefined, enabled = true) {
+  return trpc.adapter.getAvailableModels.useQuery(
+    { adapterId: adapterId! },
+    {
+      enabled: enabled && !!adapterId,
+      staleTime: 15 * 60 * 1000, // 15 minutes
+      retry: 1,
+      // Don't throw on error - we'll fall back to default models
+      useErrorBoundary: false,
+    }
+  );
+}
+
+/**
+ * Discover models with temporary config (for creating new adapters)
+ */
+export function useDiscoverModels(
+  config: {
+    adapterType: 'anthropic-api' | 'openai-api' | 'claude-code-cli';
+    baseURL?: string;
+    apiKey?: string;
+    customHeaders?: Record<string, string>;
+  } | null,
+  enabled = true
+) {
+  return trpc.adapter.discoverModels.useQuery(
+    config!,
+    {
+      enabled: enabled && !!config && !!config.apiKey,
+      staleTime: 15 * 60 * 1000, // 15 minutes
+      retry: 1,
+      // Don't throw on error - we'll fall back to default models
+      useErrorBoundary: false,
+    }
+  );
+}
+
+/**
+ * Test adapter connection
+ */
+export function useTestConnection() {
+  return trpc.adapter.testConnection.useMutation();
 }

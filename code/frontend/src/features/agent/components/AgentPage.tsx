@@ -30,7 +30,8 @@ export default function AgentPage() {
   const deleteAgent = useDeleteAgent();
 
   // Backend returns { agents: [...], total: number }
-  const agents = data?.agents || [];
+  // Wrap in useMemo to prevent dependency changes in other useMemo hooks
+  const agents = useMemo(() => data?.agents || [], [data?.agents]);
 
   const scopeFilterItems: { key: ScopeFilter; label: string; icon: JSX.Element }[] = [
     { key: 'built-in', label: t('scope.builtIn'), icon: <Settings size={20} /> },

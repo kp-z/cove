@@ -14,7 +14,6 @@
  */
 
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';

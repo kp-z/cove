@@ -4,6 +4,7 @@ import { AppearancePanel } from '../panels/AppearancePanel'
 import { NotificationsPanel } from '../panels/NotificationsPanel'
 import { AccountPanel } from '../panels/AccountPanel'
 import { SecurityPanel } from '../panels/SecurityPanel'
+import { AdaptersPanel } from '../panels/AdaptersPanel'
 
 interface SettingsPanelProps {
   activeCategory: string
@@ -25,6 +26,7 @@ export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
           {activeCategory === 'notifications' && <NotificationsPanel />}
           {activeCategory === 'account' && <AccountPanel />}
           {activeCategory === 'security' && <SecurityPanel />}
+          {activeCategory === 'adapters' && <AdaptersPanel />}
         </motion.div>
       </AnimatePresence>
     </div>

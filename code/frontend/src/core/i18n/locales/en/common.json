@@ -31,5 +31,18 @@
     "subtitle": "Sign in to continue",
     "greeting": "Welcome back! Here's what's happening.",
     "firstTime": "Get started by creating your first channel or agent"
+  },
+  "auth": {
+    "username": "Username",
+    "password": "Password",
+    "usernamePlaceholder": "Enter your username",
+    "passwordPlaceholder": "Enter your password",
+    "rememberMe": "Remember me",
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "invalidCredentials": "Invalid username or password",
+    "accountDisabled": "Your account has been disabled. Please contact an administrator.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "unknownError": "An unexpected error occurred. Please try again."
   }
 }

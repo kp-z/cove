@@ -1,6 +1,5 @@
-import { useState, type KeyboardEvent } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Save, X, Plus, Check, Settings, FileText, FolderOpen, Tag, Cpu, User, Wrench, Zap } from 'lucide-react';
+import { useState, type KeyboardEvent, useMemo } from 'react';
+import { Save, X, Plus, Check, Settings, FileText, FolderOpen, Tag, User, Wrench, Zap } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -11,6 +10,7 @@ import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
+import { useServer } from '@/lib/trpc/hooks/server.hooks';
 import type { Agent, AgentScope } from '../types/agent.types';
 import { RuntimeAdapterConfig } from './RuntimeAdapterConfig';
 import type { AdapterConfig } from '../types/adapter.types';
@@ -23,15 +23,6 @@ interface AgentEditFormProps {
 // ============================================================================
 // Constants
 // ============================================================================
-
-const MODEL_OPTIONS = [
-  { value: 'claude-3-opus', label: 'Claude 3 Opus' },
-  { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet' },
-  { value: 'claude-3-haiku', label: 'Claude 3 Haiku' },
-  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { value: 'gpt-4', label: 'GPT-4' },
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-] as const;
 
 const SCOPE_OPTIONS: { value: AgentScope; label: string }[] = [
   { value: 'user', label: 'User' },
@@ -116,10 +107,13 @@ function TagInput({ label, tags, onAdd, onRemove, placeholder = 'Press Enter to 
 // ============================================================================
 
 export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
-  const { t } = useTranslation('agent');
   const isCreateMode = !agent;
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
+
+  // Fetch server settings to get default adapter
+  const { data: server } = useServer('default-server', { enabled: isCreateMode });
+  const defaultAdapterId = server?.settings?.default_adapter_id;
 
   // Basic Info
   const [displayName, setDisplayName] = useState(agent?.display_name ?? '');
@@ -134,13 +128,19 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const [tags, setTags] = useState<string[]>(agent?.tags ? [...agent.tags] : []);
 
   // Runtime Config - Adapter Configuration (two-part: adapter_id + overrides)
+  // Use useMemo to compute initial adapter_id to avoid useEffect dependency issues
+  const initialAdapterId = useMemo(() => {
+    return agent?.runtime_config?.adapter_id ?? (isCreateMode ? defaultAdapterId : undefined);
+  }, [agent?.runtime_config?.adapter_id, isCreateMode, defaultAdapterId]);
+
   const [runtimeConfig, setRuntimeConfig] = useState<{
     adapter_id?: string;
     overrides?: Partial<AdapterConfig['config']>;
   }>({
-    adapter_id: agent?.runtime_config?.adapter_id,
+    adapter_id: initialAdapterId,
     overrides: agent?.runtime_config?.overrides,
   });
+
   const [systemPrompt, setSystemPrompt] = useState(agent?.runtime_config?.systemPrompt ?? '');
 
   // Persona

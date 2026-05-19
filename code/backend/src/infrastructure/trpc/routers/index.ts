@@ -1,6 +1,8 @@
 import { router, procedure } from '../trpc';
 import { createAgentRouter } from './agent.router';
 import { createAdapterRouter } from './adapter.router';
+import { createAuthRouter } from './auth.router';
+import { createAuditRouter } from './audit.router';
 import { channelRouter } from './channel.router';
 import { messageRouter } from './message.router';
 import { taskRouter } from './task.router';
@@ -9,9 +11,14 @@ import { userRouter } from './user.router';
 import { workflowRouter } from './workflow.router';
 import { projectRouter } from './project.router';
 import { createSubscriptionRouter } from './subscription.router';
+import { serverRouter } from './server.router';
+import { deviceRouter } from './device.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import type { AdapterService } from '../../../application/services/adapter/adapter.service';
+import { AdapterMetadataService } from '../../../application/services/adapter/adapter-metadata.service';
+import type { AuthService } from '../../../application/services/auth/auth.service';
+import type { AuditService } from '../../../application/services/audit/audit.service';
 import type { ChannelService } from '../../../application/services/channel/channel.service';
 import type { MessageService } from '../../../application/services/message/message.service';
 import type { TaskService } from '../../../application/services/task/task.service';
@@ -19,12 +26,16 @@ import type { ThreadService } from '../../../application/services/thread/thread.
 import type { UserService } from '../../../application/services/user/user.service';
 import type { WorkflowService } from '../../../application/services/workflow/workflow.service';
 import type { ProjectService } from '../../../application/services/project/project.service';
+import type { ServerService } from '../../../application/services/server/server.service';
+import type { DeviceService } from '../../../application/services/device/device.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 
 export interface RouterDependencies {
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
   adapterService: AdapterService;
+  authService: AuthService;
+  auditService: AuditService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -32,10 +43,15 @@ export interface RouterDependencies {
   userService: UserService;
   workflowService: WorkflowService;
   projectService: ProjectService;
+  serverService: ServerService;
+  deviceService: DeviceService;
   eventBus: IEventBus;
 }
 
 export function createAppRouter(deps: RouterDependencies) {
+  // Initialize adapter metadata service
+  const adapterMetadataService = new AdapterMetadataService();
+
   return router({
     // Health check
     health: router({
@@ -43,6 +59,12 @@ export function createAppRouter(deps: RouterDependencies) {
         return { status: 'ok', timestamp: new Date().toISOString() };
       }),
     }),
+
+    // Auth router
+    auth: createAuthRouter(deps.authService),
+
+    // Audit router
+    audit: createAuditRouter(deps.auditService),
 
     // Agent router
     agent: createAgentRouter({
@@ -54,6 +76,7 @@ export function createAppRouter(deps: RouterDependencies) {
     // Adapter router
     adapter: createAdapterRouter({
       adapterService: deps.adapterService,
+      adapterMetadataService,
     }),
 
     // Channel router
@@ -76,6 +99,12 @@ export function createAppRouter(deps: RouterDependencies) {
 
     // Project router
     project: projectRouter(deps.projectService),
+
+    // Server router
+    server: serverRouter(deps.serverService),
+
+    // Device router
+    device: deviceRouter(deps.deviceService),
 
     // Subscription router
     subscription: createSubscriptionRouter({

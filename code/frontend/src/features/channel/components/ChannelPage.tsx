@@ -8,6 +8,7 @@ import { useResizableRight } from '../hooks/useResizableRight';
 import { ChannelList } from './ChannelList';
 import { Timeline } from './Timeline';
 import { useTimelineNodes } from './Timeline/hooks/useNodeRegistry';
+import type { TimelineNode } from './Timeline/NodeRegistry';
 import { Button } from '@/shared/components/ui/button';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
@@ -41,7 +42,7 @@ export default function ChannelPage() {
   }, [channelId, openChannel]);
 
   // 处理节点点击事件
-  const handleNodeClick = (node: any) => {
+  const handleNodeClick = (node: TimelineNode) => {
     if (node.type === 'message') {
       // 跳转到消息（打开 ChannelPanel）
       if (channelId) {

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Check, Settings } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +33,6 @@ function PinnedChannelItem({
 }: PinnedChannelItemProps) {
   const { t } = useTranslation('channel');
 
-  // Check if channel name is an emoji
   const isEmoji = /^[\p{Emoji}]+$/u.test(channel.name);
   const initial = isEmoji ? channel.name : channel.name.charAt(0).toUpperCase();
 
@@ -47,7 +46,7 @@ function PinnedChannelItem({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                w-10 h-10 rounded-lg flex items-center justify-center
+                w-10 h-10 rounded-full flex items-center justify-center
                 font-semibold text-white cursor-pointer transition-all
                 ${isEmoji ? 'bg-white/5 text-2xl' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-sm'}
                 ${isActive
@@ -106,6 +105,7 @@ function PinnedChannelItem({
                 hover:bg-gray-700 focus:bg-gray-700
               "
             >
+              <Check className="w-4 h-4" />
               <span>{t('list.markAsRead')}</span>
             </ContextMenu.Item>
           )}
@@ -121,6 +121,7 @@ function PinnedChannelItem({
                   hover:bg-gray-700 focus:bg-gray-700
                 "
               >
+                <Settings className="w-4 h-4" />
                 <span>{t('list.channelSettings')}</span>
               </ContextMenu.Item>
             </>
@@ -143,14 +144,8 @@ export function PinnedChannels({
 
   return (
     <Tooltip.Provider>
-      <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-700/50">
-        {/* Header */}
-        <div className="flex items-center justify-center mb-2">
-          <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
-        </div>
-
-        {/* Pinned channels - vertical layout */}
-        <div className="flex flex-col items-center gap-1.5">
+      <div className="p-2">
+        <div className="grid grid-cols-[repeat(auto-fill,40px)] gap-1.5">
           {channels.map((channel) => (
             <PinnedChannelItem
               key={channel.channel_id}

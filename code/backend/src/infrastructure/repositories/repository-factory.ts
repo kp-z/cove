@@ -19,6 +19,7 @@ import { HybridChannelRepository } from './hybrid-channel.repository';
 import { HybridAgentRepository } from './hybrid-agent.repository';
 import { HybridMessageRepository } from './hybrid-message.repository';
 import { HybridUserRepository } from './hybrid-user.repository';
+import { HybridServerMemberRepository } from './hybrid-server-member.repository';
 
 /**
  * 存储模式
@@ -66,6 +67,7 @@ export class RepositoryFactory {
   private agentRepos = new Map<string, HybridAgentRepository>();
   private messageRepos = new Map<string, HybridMessageRepository>();
   private userRepos = new Map<string, HybridUserRepository>();
+  private serverMemberRepos = new Map<string, HybridServerMemberRepository>();
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -213,6 +215,24 @@ export class RepositoryFactory {
     return this.userRepos.get(key)!;
   }
 
+  /**
+   * 获取 ServerMemberRepository
+   *
+   * @param serverId - Server ID
+   * @returns ServerMemberRepository 实例
+   */
+  getServerMemberRepository(serverId: string): HybridServerMemberRepository {
+    if (!this.serverMemberRepos.has(serverId)) {
+      const storage = this.createStorageService(serverId);
+      this.serverMemberRepos.set(
+        serverId,
+        new HybridServerMemberRepository(this.prisma, this.logger, serverId)
+      );
+      this.logger.debug('Created ServerMemberRepository', { serverId });
+    }
+    return this.serverMemberRepos.get(serverId)!;
+  }
+
   // ============================================
   // 缓存管理
   // ============================================
@@ -228,6 +248,7 @@ export class RepositoryFactory {
       this.channelRepos.delete(serverId);
       this.agentRepos.delete(serverId);
       this.messageRepos.delete(serverId);
+      this.serverMemberRepos.delete(serverId);
       this.logger.info('Cleared repository cache', { serverId });
     } else {
       this.projectRepos.clear();
@@ -235,6 +256,7 @@ export class RepositoryFactory {
       this.agentRepos.clear();
       this.messageRepos.clear();
       this.userRepos.clear();
+      this.serverMemberRepos.clear();
       this.logger.info('Cleared all repository caches');
     }
   }
@@ -250,6 +272,7 @@ export class RepositoryFactory {
     agentRepos: number;
     messageRepos: number;
     userRepos: number;
+    serverMemberRepos: number;
     total: number;
   } {
     return {
@@ -258,12 +281,14 @@ export class RepositoryFactory {
       agentRepos: this.agentRepos.size,
       messageRepos: this.messageRepos.size,
       userRepos: this.userRepos.size,
+      serverMemberRepos: this.serverMemberRepos.size,
       total:
         this.projectRepos.size +
         this.channelRepos.size +
         this.agentRepos.size +
         this.messageRepos.size +
-        this.userRepos.size,
+        this.userRepos.size +
+        this.serverMemberRepos.size,
     };
   }
 }

@@ -19,10 +19,6 @@ import {
 import {
   DeviceNotFoundError,
   DeviceNameAlreadyExistsError,
-  DeviceNotActiveError,
-  DeviceAlreadyRevokedError,
-  DeviceNotRevokedError,
-  UnauthorizedDeviceAccessError,
 } from './device.errors';
 import {
   IDeviceRepository,
@@ -437,7 +433,7 @@ export class DeviceService {
   }
 
   async deleteDevice(deviceId: string): Promise<void> {
-    const context = getServerContext();
+    getServerContext(); // Validate context exists
     this.logger.info('Deleting device', { deviceId });
 
     const device = await this.getDeviceById(deviceId);
@@ -470,7 +466,9 @@ export class DeviceService {
     try {
       await this.eventBus.publish(event);
     } catch (error) {
-      this.logger.error('Failed to publish event', { event, error });
+      this.logger.error('Failed to publish event', error as Error, {
+        eventType: event.constructor.name
+      });
       // Don't throw - event publishing failure shouldn't break the operation
     }
   }

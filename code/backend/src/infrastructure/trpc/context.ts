@@ -1,11 +1,13 @@
 import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { ILogger } from '../../application/interfaces/logger.interface';
+import type { AuthService } from '../../application/services/auth/auth.service';
 
 export interface Context {
   serverId?: string;
   userId?: string;
   userType?: 'human' | 'agent';
+  userRole?: string;
   logger: ILogger;
   req: IncomingMessage;
   res: ServerResponse;
@@ -13,10 +15,11 @@ export interface Context {
 
 export interface CreateContextOptions {
   logger: ILogger;
+  authService: AuthService;
 }
 
 export function createContext(opts: CreateContextOptions) {
-  return ({ req, res }: CreateHTTPContextOptions): Context => {
+  return async ({ req, res }: CreateHTTPContextOptions): Promise<Context> => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -37,8 +40,31 @@ export function createContext(opts: CreateContextOptions) {
       };
     }
 
-    // Extract user info from headers
+    // Extract server ID from headers
     const serverId = req.headers['x-server-id'] as string | undefined;
+
+    // Try to authenticate via JWT token first
+    const authHeader = req.headers['authorization'] as string | undefined;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const payload = await opts.authService.verifyToken(token);
+        return {
+          serverId,
+          userId: payload.userId,
+          userType: 'human',
+          userRole: payload.role,
+          logger: opts.logger,
+          req,
+          res,
+        };
+      } catch (_error) {
+        // Token invalid, fall through to legacy headers
+        opts.logger.debug('JWT verification failed, falling back to legacy headers');
+      }
+    }
+
+    // Fallback: Extract user info from legacy headers (for backward compatibility)
     const userId = req.headers['x-user-id'] as string | undefined;
     const userType = req.headers['x-user-type'] as 'human' | 'agent' | undefined;
 

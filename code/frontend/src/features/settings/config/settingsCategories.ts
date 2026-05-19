@@ -1,4 +1,4 @@
-import { Settings, Palette, Bell, User, Shield, type LucideIcon } from 'lucide-react'
+import { Settings, Palette, Bell, User, Shield, Cpu, type LucideIcon } from 'lucide-react'
 
 export interface SettingsCategory {
   id: string
@@ -31,5 +31,10 @@ export const settingsCategories: SettingsCategory[] = [
     id: 'security',
     name: 'Security',
     icon: Shield,
+  },
+  {
+    id: 'adapters',
+    name: 'Adapters',
+    icon: Cpu,
   },
 ]

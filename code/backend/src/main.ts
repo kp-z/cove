@@ -26,6 +26,10 @@ import { HybridMessageRepository } from './infrastructure/repositories/hybrid-me
 import { HybridUserRepository } from './infrastructure/repositories/hybrid-user.repository';
 import { HybridProjectRepository } from './infrastructure/repositories/hybrid-project.repository';
 import { HybridWorkflowRepository } from './infrastructure/repositories/hybrid-workflow.repository';
+import { HybridServerRepository } from './infrastructure/repositories/hybrid-server.repository';
+import { HybridServerMemberRepository } from './infrastructure/repositories/hybrid-server-member.repository';
+import { HybridDeviceRepository } from './infrastructure/repositories/hybrid-device.repository';
+import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-audit-log.repository';
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
 import { DatabaseInitializer } from './infrastructure/database/database-initializer';
@@ -59,6 +63,10 @@ import { WorkflowService } from './application/services/workflow/workflow.servic
 import { WorkflowCrudService } from './application/services/workflow/workflow-crud.service';
 import { WorkflowQueryService } from './application/services/workflow/workflow-query.service';
 import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
+import { ServerService } from './application/services/server/server.service';
+import { DeviceService } from './application/services/device/device.service';
+import { AuthService } from './application/services/auth/auth.service';
+import { AuditService } from './application/services/audit/audit.service';
 import { FileSystemAdapterConfigStore } from './infrastructure/persistence/file-system-adapter-config-store';
 import { FileLockManager } from './application/services/lock/file-lock-manager.service';
 import { AuditLogger } from './application/services/audit/audit-logger.service';
@@ -121,9 +129,16 @@ function initializeDependencies() {
   const userRepository = new HybridUserRepository(prisma, storageService, logger);
   const projectRepository = new HybridProjectRepository(prisma, storageService, logger);
   const workflowRepository = new HybridWorkflowRepository(prisma, storageService, logger);
+  const serverRepository = new HybridServerRepository(prisma, storageService, logger);
+  const serverMemberRepository = new HybridServerMemberRepository(prisma, logger, 'default');
+  const deviceRepository = new HybridDeviceRepository(prisma, storageService, logger);
+  const auditLogRepository = new HybridAuditLogRepository(prisma);
 
   // EventBus
   const eventBus = new InMemoryEventBus();
+
+  // Audit Service
+  const auditService = new AuditService(auditLogRepository);
 
   // Agent Runtime
   const agentRuntime = new MockAgentRuntime();
@@ -281,7 +296,8 @@ function initializeDependencies() {
   const userService = new UserService(
     userRepository,
     eventBus,
-    logger
+    logger,
+    auditService
   );
 
   const projectService = new ProjectService(
@@ -316,6 +332,25 @@ function initializeDependencies() {
     workflowLifecycleService
   );
 
+  const serverService = new ServerService(
+    serverRepository,
+    serverMemberRepository,
+    eventBus,
+    logger
+  );
+
+  const deviceService = new DeviceService(
+    deviceRepository,
+    eventBus,
+    logger
+  );
+
+  const authService = new AuthService(
+    userRepository,
+    logger,
+    auditService
+  );
+
   /**
    * Event Lifecycle:
    * - message.created: Message entity created and persisted (human or agent)
@@ -340,6 +375,8 @@ function initializeDependencies() {
     agentService,
     agentRuntimeService,
     adapterService,
+    authService,
+    auditService,
     channelService,
     messageService,
     taskService,
@@ -347,6 +384,8 @@ function initializeDependencies() {
     userService,
     projectService,
     workflowService,
+    serverService,
+    deviceService,
   };
 }
 
@@ -356,6 +395,7 @@ function createStandaloneServer(deps: {
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
   adapterService: AdapterService;
+  authService: AuthService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -363,12 +403,15 @@ function createStandaloneServer(deps: {
   userService: UserService;
   projectService: ProjectService;
   workflowService: WorkflowService;
+  serverService: ServerService;
+  deviceService: DeviceService;
 }) {
   // Create app router
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
     adapterService: deps.adapterService,
+    authService: deps.authService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,
@@ -376,13 +419,15 @@ function createStandaloneServer(deps: {
     userService: deps.userService,
     projectService: deps.projectService,
     workflowService: deps.workflowService,
+    serverService: deps.serverService,
+    deviceService: deps.deviceService,
     eventBus: deps.eventBus,
   });
 
   // Create tRPC HTTP handler
   const trpcHandler = createHTTPHandler({
     router: appRouter,
-    createContext: createContext({ logger: deps.logger }),
+    createContext: createContext({ logger: deps.logger, authService: deps.authService }),
   });
 
   // Create HTTP server with custom request handler
@@ -518,6 +563,9 @@ async function startServer() {
     await dbInitializer.initialize();
 
     const deps = initializeDependencies();
+
+    // Create initial admin account if none exists
+    await deps.authService.ensureInitialAdmin();
 
     const { httpServer, appRouter } = createStandaloneServer(deps);
 

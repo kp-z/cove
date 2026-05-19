@@ -35,7 +35,7 @@ vi.mock('react-i18next', () => ({
 
 // Mock avatar utils
 vi.mock('../utils/avatar', () => ({
-  getAgentAvatarUrl: (id: string, name: string) => `https://avatar.example.com/${id}`,
+  getAgentAvatarUrl: (id: string) => `https://avatar.example.com/${id}`,
   getAgentInitials: (name: string) => name.slice(0, 2).toUpperCase(),
 }));
 

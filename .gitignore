@@ -59,6 +59,10 @@ pip-delete-this-directory.txt
 Thumbs.db
 .DS_Store
 
+# Editor metadata
+.obsidian/
+*.backup
+
 # Cove Data Directory
 /.cove/database/*.db
 /.cove/database/*.db-shm

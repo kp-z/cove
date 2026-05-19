@@ -7,6 +7,7 @@ interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
   className?: string;
+  targetMessageId?: string | null;
 }
 
 function formatTimestamp(date: Date, t: TFunction): string {
@@ -133,16 +134,30 @@ function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped:
   );
 }
 
-export function MessageList({ messages, isLoading, className = '' }: MessageListProps) {
+export function MessageList({ messages, isLoading, className = '', targetMessageId }: MessageListProps) {
   const { t } = useTranslation('channel');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 自动滚动到底部
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && !targetMessageId) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, targetMessageId]);
+
+  // 滚动到特定消息
+  useEffect(() => {
+    if (targetMessageId && messages.length > 0) {
+      const messageElement = document.getElementById(`message-${targetMessageId}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 添加高亮效果
+        messageElement.classList.add('highlight-message');
+        setTimeout(() => messageElement.classList.remove('highlight-message'), 2000);
+      }
+    }
+  }, [targetMessageId, messages]);
 
   return (
     <div
@@ -173,7 +188,9 @@ export function MessageList({ messages, isLoading, className = '' }: MessageList
         return (
           <React.Fragment key={message.message_id}>
             {showDateSeparator && <DateSeparator date={message.timestamp} />}
-            <MessageBubble message={message} isGrouped={isGrouped} t={t} />
+            <div id={`message-${message.message_id}`} className="transition-all duration-300">
+              <MessageBubble message={message} isGrouped={isGrouped} t={t} />
+            </div>
           </React.Fragment>
         );
       })}

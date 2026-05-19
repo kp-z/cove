@@ -6,6 +6,7 @@ export * from './switch'
 export * from './badge'
 export * from './card'
 export * from './textarea'
+export * from './dialog'
 
 // 动画组件
 export * from './animations'

@@ -30,6 +30,7 @@ export interface ServerSettings {
   readonly allow_dm: boolean;
   readonly require_approval: boolean;
   readonly default_member_role: MemberRole;
+  readonly default_adapter_id?: string;
 }
 
 /**
@@ -82,6 +83,7 @@ export interface ServerEntityJSON {
     readonly allow_dm: boolean;
     readonly require_approval: boolean;
     readonly default_member_role: MemberRole;
+    readonly default_adapter_id?: string;
   };
   readonly limits: {
     readonly max_members: number;

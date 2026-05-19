@@ -158,4 +158,118 @@ export const serverRouter = (serverService: ServerService) =>
           throw mapErrorToTRPC(error);
         }
       }),
+
+    // ============================================
+    // Server Member Management
+    // ============================================
+
+    // 添加成员
+    addMember: publicProcedure
+      .input(z.object({
+        serverId: z.string(),
+        userId: z.string(),
+        role: z.enum(['admin', 'member', 'guest']),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(input.serverId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const member = await serverService.addServerMember(
+              input.serverId,
+              input.userId,
+              input.role
+            );
+            return member.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 移除成员
+    removeMember: publicProcedure
+      .input(z.object({
+        serverId: z.string(),
+        userId: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(input.serverId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            await serverService.removeServerMember(input.serverId, input.userId);
+            return { success: true };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 更新成员角色
+    updateMemberRole: publicProcedure
+      .input(z.object({
+        serverId: z.string(),
+        userId: z.string(),
+        role: z.enum(['admin', 'member', 'guest']),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(input.serverId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const member = await serverService.updateServerMemberRole(
+              input.serverId,
+              input.userId,
+              input.role
+            );
+            return member.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 获取成员列表
+    getMembers: publicProcedure
+      .input(z.object({
+        serverId: z.string(),
+        role: z.enum(['owner', 'admin', 'member', 'guest']).optional(),
+        status: z.enum(['active', 'suspended', 'left']).optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(input.serverId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const members = await serverService.getServerMembers(input.serverId, {
+              role: input.role,
+              status: input.status,
+            });
+            return {
+              members: members.map(m => m.toJSON()),
+              total: members.length,
+            };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 获取单个成员
+    getMember: publicProcedure
+      .input(z.object({
+        serverId: z.string(),
+        userId: z.string(),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(input.serverId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const member = await serverService.getServerMember(input.serverId, input.userId);
+            if (!member) {
+              throw new Error('Member not found');
+            }
+            return member.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
   });

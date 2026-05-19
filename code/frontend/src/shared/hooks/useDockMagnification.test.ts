@@ -10,7 +10,7 @@ vi.mock('framer-motion', () => ({
     set: vi.fn(),
   })),
   useSpring: vi.fn((value) => value),
-  useTransform: vi.fn((value, input, output) => value),
+  useTransform: vi.fn((value) => value),
 }));
 
 describe('useDockMagnification', () => {

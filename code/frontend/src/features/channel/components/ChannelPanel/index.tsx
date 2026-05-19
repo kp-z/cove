@@ -57,6 +57,7 @@ interface Message {
 interface ChannelPanelProps {
   channel_id: string;
   thread_id?: string | null;
+  message_id?: string | null;
   onClose?: () => void;
   className?: string;
 }
@@ -76,6 +77,7 @@ function messageEntityToMessage(entity: MessageEntity): Message {
 export function ChannelPanel({
   channel_id,
   thread_id: initialThreadId,
+  message_id,
   className = '',
 }: ChannelPanelProps) {
   const { t } = useTranslation('channel');
@@ -215,6 +217,7 @@ export function ChannelPanel({
       <MessageList
         messages={messages}
         isLoading={messagesLoading}
+        targetMessageId={message_id}
       />
       <Composer
         threadId={activeThreadId || channel_id}

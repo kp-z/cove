@@ -170,12 +170,10 @@ export function ChannelTabs({
   return (
     <div className={`relative border-b border-white/10 ${className}`}>
       <div className="flex items-stretch gap-2 px-2 py-1">
-        {(leftActions || true) && (
-          <div className="shrink-0 flex items-center gap-1">
-            {leftActions}
-            <NewThreadButton onClick={onNewThread} />
-          </div>
-        )}
+        <div className="shrink-0 flex items-center gap-1">
+          {leftActions}
+          <NewThreadButton onClick={onNewThread} />
+        </div>
 
         <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-hide">
           <ChannelTab

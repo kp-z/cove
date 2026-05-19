@@ -14,11 +14,6 @@ test.describe('Channel Operations', () => {
     // 等待 Channels 列表加载
     await page.waitForTimeout(1000);
 
-    // 检查是否有 Channel 列表项
-    const channelItems = page.locator('[data-testid="channel-item"]')
-      .or(page.locator('.channel-item'))
-      .or(page.getByRole('listitem'));
-
     // 验证页面内容显示
     const pageContent = page.locator('body');
     await expect(pageContent).toBeVisible();
@@ -80,11 +75,6 @@ test.describe('Channel Operations', () => {
     if (itemCount > 0) {
       await channelItems.first().click();
       await page.waitForTimeout(500);
-
-      // 检查消息区域是否显示
-      const messageArea = page.locator('[data-testid="message-list"]')
-        .or(page.locator('.message-list'))
-        .or(page.locator('[role="log"]'));
 
       // 验证消息区域存在（可能为空）
       const pageContent = page.locator('body');

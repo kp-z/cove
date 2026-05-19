@@ -11,9 +11,13 @@
  * - Entity 是不可变的（更新返回新实例）
  */
 
+import bcrypt from 'bcrypt';
+
 export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
+export type UserStatus = 'active' | 'suspended' | 'deleted';
 
 const VALID_ROLES: readonly UserRole[] = ['owner', 'admin', 'user', 'visitor'];
+const VALID_STATUSES: readonly UserStatus[] = ['active', 'suspended', 'deleted'];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface UserPreference {
@@ -26,9 +30,14 @@ export interface UserEntityProps {
   readonly displayName: string;
   readonly email: string;
   readonly role: UserRole;
+  readonly status?: UserStatus;
   readonly avatar?: string;
   readonly permissions?: readonly string[];
   readonly preference?: UserPreference;
+  readonly passwordHash?: string;  // 密码哈希（可选，向后兼容）
+  readonly lastLoginAt?: Date;
+  readonly failedLoginAttempts?: number;
+  readonly lockedUntil?: Date;
   readonly createdAt: Date;
 }
 
@@ -38,9 +47,13 @@ export interface UserEntityJSON {
   readonly display_name: string;
   readonly email: string;
   readonly role: UserRole;
+  readonly status: UserStatus;
   readonly avatar?: string;
   readonly permissions: readonly string[];
   readonly preference?: UserPreference;
+  readonly last_login_at?: string;
+  readonly failed_login_attempts: number;
+  readonly locked_until?: string;
   readonly created_at: string;
 }
 
@@ -50,6 +63,8 @@ export class UserEntity {
   }
 
   static create(props: UserEntityProps): UserEntity {
+    // Validate username format
+    UserEntity.validateUsername(props.username);
     return new UserEntity(props);
   }
 
@@ -60,9 +75,13 @@ export class UserEntity {
       displayName: json.display_name,
       email: json.email,
       role: json.role,
+      status: json.status,
       avatar: json.avatar,
       permissions: json.permissions,
       preference: json.preference,
+      lastLoginAt: json.last_login_at ? new Date(json.last_login_at) : undefined,
+      failedLoginAttempts: json.failed_login_attempts,
+      lockedUntil: json.locked_until ? new Date(json.locked_until) : undefined,
       createdAt: new Date(json.created_at),
     });
   }
@@ -80,6 +99,9 @@ export class UserEntity {
     if (!VALID_ROLES.includes(this.props.role)) {
       throw new Error(`Invalid role: ${this.props.role}. Must be one of: ${VALID_ROLES.join(', ')}`);
     }
+    if (this.props.status && !VALID_STATUSES.includes(this.props.status)) {
+      throw new Error(`Invalid status: ${this.props.status}. Must be one of: ${VALID_STATUSES.join(', ')}`);
+    }
   }
 
   // --- Getters ---
@@ -89,10 +111,25 @@ export class UserEntity {
   get displayName(): string { return this.props.displayName; }
   get email(): string { return this.props.email; }
   get role(): UserRole { return this.props.role; }
+  get status(): UserStatus { return this.props.status ?? 'active'; }
   get avatar(): string | undefined { return this.props.avatar; }
   get permissions(): readonly string[] { return this.props.permissions ?? []; }
   get preference(): UserPreference { return this.props.preference ?? {}; }
+  get passwordHash(): string | undefined { return this.props.passwordHash; }
+  get lastLoginAt(): Date | undefined { return this.props.lastLoginAt; }
+  get failedLoginAttempts(): number { return this.props.failedLoginAttempts ?? 0; }
+  get lockedUntil(): Date | undefined { return this.props.lockedUntil; }
   get createdAt(): Date { return this.props.createdAt; }
+
+  // --- Status checks ---
+
+  isActive(): boolean { return this.status === 'active'; }
+  isSuspended(): boolean { return this.status === 'suspended'; }
+  isDeleted(): boolean { return this.status === 'deleted'; }
+  isLocked(): boolean {
+    if (!this.props.lockedUntil) return false;
+    return this.props.lockedUntil > new Date();
+  }
 
   // --- Role checks ---
 
@@ -122,6 +159,81 @@ export class UserEntity {
     return UserEntity.create({ ...this.props, preference });
   }
 
+  updateStatus(status: UserStatus): UserEntity {
+    return UserEntity.create({ ...this.props, status });
+  }
+
+  updateLastLoginAt(lastLoginAt: Date): UserEntity {
+    return UserEntity.create({ ...this.props, lastLoginAt, failedLoginAttempts: 0 });
+  }
+
+  incrementFailedLoginAttempts(): UserEntity {
+    const attempts = this.failedLoginAttempts + 1;
+    return UserEntity.create({ ...this.props, failedLoginAttempts: attempts });
+  }
+
+  lockAccount(durationMinutes: number): UserEntity {
+    const lockedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+    return UserEntity.create({ ...this.props, lockedUntil });
+  }
+
+  unlockAccount(): UserEntity {
+    return UserEntity.create({ ...this.props, lockedUntil: undefined, failedLoginAttempts: 0 });
+  }
+
+  activate(): UserEntity {
+    return UserEntity.create({ ...this.props, status: 'active' });
+  }
+
+  suspend(): UserEntity {
+    return UserEntity.create({ ...this.props, status: 'suspended' });
+  }
+
+  softDelete(): UserEntity {
+    return UserEntity.create({ ...this.props, status: 'deleted' });
+  }
+
+  // --- Username validation ---
+
+  static validateUsername(username: string): void {
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      throw new Error('Username must be 3-20 characters and contain only letters, numbers, and underscores');
+    }
+  }
+
+  // --- Password management ---
+
+  static validatePasswordComplexity(password: string): void {
+    if (!password || password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+      throw new Error('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      throw new Error('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      throw new Error('Password must contain at least one number');
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      throw new Error('Password must contain at least one special character');
+    }
+  }
+
+  async setPassword(plainPassword: string): Promise<UserEntity> {
+    UserEntity.validatePasswordComplexity(plainPassword);
+    const hash = await bcrypt.hash(plainPassword, 10);
+    return UserEntity.create({ ...this.props, passwordHash: hash });
+  }
+
+  async verifyPassword(plainPassword: string): Promise<boolean> {
+    if (!this.props.passwordHash) {
+      return false;
+    }
+    return await bcrypt.compare(plainPassword, this.props.passwordHash);
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: UserEntity): boolean {
@@ -137,9 +249,13 @@ export class UserEntity {
       display_name: this.props.displayName,
       email: this.props.email,
       role: this.props.role,
+      status: this.status,
       avatar: this.props.avatar,
       permissions: this.permissions,
       preference: this.preference,
+      last_login_at: this.props.lastLoginAt?.toISOString(),
+      failed_login_attempts: this.failedLoginAttempts,
+      locked_until: this.props.lockedUntil?.toISOString(),
       created_at: this.props.createdAt.toISOString(),
     };
   }

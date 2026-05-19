@@ -10,11 +10,12 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure } from '../trpc';
+import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { UserService } from '../../../application/services/user/user.service';
 import { ServerContext } from '../../../application/context/server-context';
 import { runWithContext } from '../../../application/context/server-context-store';
+import { requireRole, requireOwnerOrAdmin } from '../middleware/auth.middleware';
 
 // Zod Schemas
 const createUserSchema = z.object({
@@ -36,8 +37,9 @@ const updateUserSchema = z.object({
 
 export const userRouter = (userService: UserService) =>
   router({
-    // 创建用户
-    create: publicProcedure
+    // 创建用户 - 仅管理员和所有者
+    create: protectedProcedure
+      .use(requireRole(['admin', 'owner']))
       .input(createUserSchema)
       .mutation(async ({ input, ctx }) => {
         try {
@@ -51,31 +53,40 @@ export const userRouter = (userService: UserService) =>
         }
       }),
 
-    // 获取用户列表
-    list: publicProcedure
+    // 获取用户列表 - 需要认证
+    list: protectedProcedure
       .input(z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(20),
         role: z.enum(['owner', 'admin', 'user', 'visitor']).optional(),
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const users = input?.role
-            ? await userService.getUsersByRole(input.role)
-            : await userService.getAllUsers();
+            const params = {
+              page: input?.page || 1,
+              limit: input?.limit || 20,
+              role: input?.role,
+            };
 
-          return {
-            users: users.map(u => u.toJSON()),
-            total: users.length,
-          };
+            const result = await userService.getUsersPaginated(params);
+
+            return {
+              users: result.items.map(u => u.toJSON()),
+              total: result.total,
+              page: result.page,
+              limit: result.limit,
+              totalPages: result.totalPages,
+            };
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
       }),
 
-    // 获取单个用户
-    getById: publicProcedure
+    // 获取单个用户 - 需要认证
+    getById: protectedProcedure
       .input(z.object({ userId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
@@ -89,8 +100,9 @@ export const userRouter = (userService: UserService) =>
         }
       }),
 
-    // 更新用户
-    update: publicProcedure
+    // 更新用户 - 只能修改自己或管理员修改他人
+    update: protectedProcedure
+      .use(requireOwnerOrAdmin)
       .input(z.object({
         userId: z.string(),
         data: updateUserSchema,
@@ -107,8 +119,9 @@ export const userRouter = (userService: UserService) =>
         }
       }),
 
-    // 删除用户
-    delete: publicProcedure
+    // 删除用户 - 仅所有者（软删除）
+    delete: protectedProcedure
+      .use(requireRole(['owner']))
       .input(z.object({ userId: z.string() }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -116,6 +129,54 @@ export const userRouter = (userService: UserService) =>
           return await runWithContext(context, async () => {
             await userService.deleteUser(input.userId);
           return { userId: input.userId, deleted: true };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 激活用户 - 仅管理员和所有者
+    activate: protectedProcedure
+      .use(requireRole(['admin', 'owner']))
+      .input(z.object({ userId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const user = await userService.activateUser(input.userId);
+            return user.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 停用用户 - 仅管理员和所有者
+    suspend: protectedProcedure
+      .use(requireRole(['admin', 'owner']))
+      .input(z.object({ userId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const user = await userService.suspendUser(input.userId);
+            return user.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 解锁用户 - 仅管理员和所有者
+    unlock: protectedProcedure
+      .use(requireRole(['admin', 'owner']))
+      .input(z.object({ userId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const user = await userService.unlockUser(input.userId);
+            return user.toJSON();
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);

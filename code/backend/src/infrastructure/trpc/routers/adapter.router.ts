@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import type { AdapterService } from '../../../application/services/adapter/adapter.service';
+import { AdapterMetadataService } from '../../../application/services/adapter/adapter-metadata.service';
 import {
   adapterConfigSchema,
   anthropicConfigSchema,
@@ -46,6 +47,7 @@ const listByScopeSchema = z.object({
 
 interface AdapterRouterDeps {
   adapterService: AdapterService;
+  adapterMetadataService: AdapterMetadataService;
 }
 
 export function createAdapterRouter(deps: AdapterRouterDeps) {
@@ -189,15 +191,178 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
           const baseURL = config.base_url;
           const customHeaders = config.custom_headers;
 
+          // Resolve API key for OpenAI
+          let apiKey: string | undefined;
+          if (adapter.type === 'openai-api') {
+            if (config.api_key) {
+              apiKey = config.api_key;
+            } else if (config.api_key_ref) {
+              apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
+            }
+          }
+
           const result = await getAvailableModels(
             adapter.type,
             baseURL,
-            customHeaders
+            customHeaders,
+            apiKey
           );
 
           return result;
         } catch (error: any) {
           throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Discover models with temporary config (for creating new adapters)
+    discoverModels: publicProcedure
+      .input(
+        z.object({
+          adapterType: z.enum(['anthropic-api', 'openai-api', 'claude-code-cli']),
+          baseURL: z.string().optional(),
+          apiKey: z.string().optional(),
+          customHeaders: z.record(z.string()).optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        try {
+          const { adapterType, baseURL, apiKey, customHeaders } = input;
+
+          // Only support model discovery for anthropic-api and openai-api
+          if (adapterType !== 'anthropic-api' && adapterType !== 'openai-api') {
+            throw new Error(`Model discovery not supported for adapter type: ${adapterType}`);
+          }
+
+          const result = await getAvailableModels(
+            adapterType,
+            baseURL,
+            customHeaders,
+            apiKey
+          );
+
+          return result;
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Get all adapter type metadata
+    getAdapterTypes: publicProcedure.query(async () => {
+      return deps.adapterMetadataService.getAdapterTypes();
+    }),
+
+    // Get single adapter type metadata
+    getAdapterType: publicProcedure
+      .input(
+        z.object({
+          type: z.enum(['anthropic-api', 'openai-api', 'claude-code-cli']),
+        })
+      )
+      .query(async ({ input }) => {
+        const metadata = deps.adapterMetadataService.getAdapterType(input.type);
+        if (!metadata) {
+          throw new Error(`Unknown adapter type: ${input.type}`);
+        }
+        return metadata;
+      }),
+
+    // Test adapter connection
+    testConnection: publicProcedure
+      .input(z.object({ adapterId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const actorId = ctx.userId || 'system';
+          const adapter = await deps.adapterService.getById(input.adapterId, actorId);
+
+          if (!adapter) {
+            throw new Error('Adapter not found');
+          }
+
+          const startTime = Date.now();
+
+          switch (adapter.type) {
+            case 'anthropic-api':
+            case 'openai-api': {
+              const config = adapter.config as any;
+              const baseURL = config.base_url;
+              const customHeaders = config.custom_headers;
+
+              let apiKey: string | undefined;
+              if (adapter.type === 'openai-api') {
+                if (config.api_key) {
+                  apiKey = config.api_key;
+                } else if (config.api_key_ref) {
+                  apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
+                }
+              }
+
+              const result = await getAvailableModels(
+                adapter.type,
+                baseURL,
+                customHeaders,
+                apiKey
+              );
+
+              const latency = Date.now() - startTime;
+
+              return {
+                success: true,
+                message: 'Connection successful',
+                details: {
+                  provider: result.provider,
+                  modelCount: result.models.length,
+                  latency,
+                },
+              };
+            }
+
+            case 'claude-code-cli': {
+              const config = adapter.config as any;
+              const cliPath = config.cli_path || 'claude';
+              const fs = await import('fs/promises');
+              const path = await import('path');
+
+              try {
+                if (!path.isAbsolute(cliPath)) {
+                  const { execSync } = await import('child_process');
+                  try {
+                    const isWindows = process.platform === 'win32';
+                    const command = isWindows ? `where ${cliPath}` : `which ${cliPath}`;
+                    const fullPath = execSync(command, { encoding: 'utf-8' }).trim();
+                    await fs.access(fullPath, fs.constants.X_OK);
+                  } catch {
+                    throw new Error(`CLI executable not found in PATH: ${cliPath}`);
+                  }
+                } else {
+                  await fs.access(cliPath, fs.constants.X_OK);
+                }
+
+                const latency = Date.now() - startTime;
+
+                return {
+                  success: true,
+                  message: 'CLI path is valid and executable',
+                  details: {
+                    provider: 'claude-code-cli',
+                    latency,
+                  },
+                };
+              } catch (error: any) {
+                throw new Error(`CLI path validation failed: ${error.message}`);
+              }
+            }
+
+            default:
+              throw new Error(`Unsupported adapter type: ${adapter.type}`);
+          }
+        } catch (error: any) {
+          return {
+            success: false,
+            message: error.message || 'Connection test failed',
+            details: {
+              error: error.message,
+            },
+          };
         }
       }),
   });

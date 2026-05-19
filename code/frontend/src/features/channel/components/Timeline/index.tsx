@@ -6,11 +6,12 @@
  */
 
 import { useState, useMemo } from 'react';
-import { MessageSquare, Image as ImageIcon, File, AlertCircle, Clock } from 'lucide-react';
+import { MessageSquare, Image as ImageIcon, File, AlertCircle } from 'lucide-react';
 import { TimelineFilter, type TimelineFilterOptions } from './TimelineFilter';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimestamp } from './utils/formatTimestamp';
+import { useChannelPanelStore } from '../../stores/channelStore';
 
 export interface TimelineNode {
   id: string;
@@ -53,15 +54,6 @@ function getNodeIcon(type: TimelineNode['type']) {
   }
 }
 
-/**
- * 截断文本到指定行数
- */
-function truncateText(text: string | undefined, maxLength: number = 100): string {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-}
-
 export function Timeline({
   channelId,
   nodes,
@@ -72,7 +64,31 @@ export function Timeline({
 }: TimelineProps) {
   const [filters, setFilters] = useState<TimelineFilterOptions>({
     messageTypes: ['all'],
+    timeRange: { type: 'all' },
   });
+
+  const { openChannel } = useChannelPanelStore();
+
+  // 处理节点点击
+  const handleNodeClick = (node: TimelineNode) => {
+    // 从 metadata 中提取 message_id 或 thread_id
+    const messageId = node.metadata?.message_id as string | undefined;
+    const threadId = node.metadata?.thread_id as string | undefined;
+
+    if (messageId) {
+      // 导航到消息
+      openChannel(channelId, { message_id: messageId });
+    } else if (threadId) {
+      // 导航到线程
+      openChannel(channelId, { thread_id: threadId });
+    } else {
+      // 默认打开 channel
+      openChannel(channelId);
+    }
+
+    // 调用原有的 onNodeClick 回调
+    onNodeClick?.(node);
+  };
 
   // 筛选节点
   const filteredNodes = useMemo(() => {
@@ -90,6 +106,39 @@ export function Timeline({
         node.title.toLowerCase().includes(searchLower) ||
         node.content.toLowerCase().includes(searchLower)
       );
+    }
+
+    // 按时间范围筛选
+    if (filters.timeRange.type !== 'all') {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (filters.timeRange.type) {
+        case '24h':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'custom':
+          startDate = filters.timeRange.startDate || new Date(0);
+          break;
+        default:
+          startDate = new Date(0);
+      }
+
+      result = result.filter(node => {
+        const nodeDate = new Date(node.timestamp);
+        const afterStart = nodeDate >= startDate;
+        const beforeEnd =
+          filters.timeRange.type === 'custom' && filters.timeRange.endDate
+            ? nodeDate <= filters.timeRange.endDate
+            : true;
+        return afterStart && beforeEnd;
+      });
     }
 
     return result;
@@ -119,38 +168,23 @@ export function Timeline({
         </div>
       ) : (
         <div className="relative">
-          {/* 垂直时间线 */}
-          <div className="absolute left-[120px] top-0 bottom-0 w-px bg-border" />
-
           {/* 时间轴节点 */}
-          <div className="space-y-6">
-            {filteredNodes.map((node, index) => {
+          <div className="space-y-3">
+            {filteredNodes.map((node) => {
               const Icon = getNodeIcon(node.type);
               const isActive = selectedNodeId === node.id;
-              const isLast = index === filteredNodes.length - 1;
 
               return (
                 <div
                   key={node.id}
-                  className="relative flex items-start gap-4 group"
-                  onClick={() => onNodeClick?.(node)}
+                  className="relative grid grid-cols-[auto_1fr] items-start gap-4 group"
+                  onClick={() => handleNodeClick(node)}
                 >
-                  {/* 左侧：时间戳 */}
-                  <div className="w-[100px] flex-shrink-0 text-right">
-                    <div className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                      <Clock size={12} />
-                      {formatDistanceToNow(new Date(node.timestamp), { addSuffix: true })}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(node.timestamp).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 中间：时间线节点 */}
+                  {/* 左侧：时间线节点 */}
                   <div className="relative flex-shrink-0 z-10">
+                    {/* 垂直连接线 - 始终渲染，延伸到下一个节点 */}
+                    <div className="absolute left-[15px] top-8 h-[calc(100%+12px)] w-px bg-border" />
+
                     <div
                       className={`
                         w-8 h-8 rounded-full border-2 flex items-center justify-center
@@ -168,7 +202,7 @@ export function Timeline({
                   {/* 右侧：内容卡片 */}
                   <div
                     className={`
-                      flex-1 p-4 rounded-lg border cursor-pointer
+                      p-3 rounded-lg border cursor-pointer
                       transition-all duration-200
                       ${isActive
                         ? 'bg-primary/5 border-primary shadow-sm'
@@ -178,7 +212,7 @@ export function Timeline({
                   >
                     {/* 作者信息 */}
                     {node.author && (
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-1">
                         {node.author.avatar && (
                           <img
                             src={node.author.avatar}
@@ -193,18 +227,18 @@ export function Timeline({
                     )}
 
                     {/* 标题 */}
-                    <h4 className="text-sm font-semibold text-foreground mb-1 line-clamp-1">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">
                       {node.title}
                     </h4>
 
-                    {/* 内容（最多两行） */}
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {truncateText(node.content)}
+                    {/* 内容 - 完整显示 */}
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {node.content}
                     </p>
 
                     {/* 图片缩略图 */}
                     {node.thumbnail && (
-                      <div className="mt-3">
+                      <div className="mb-2">
                         <img
                           src={node.thumbnail}
                           alt="Thumbnail"
@@ -212,6 +246,11 @@ export function Timeline({
                         />
                       </div>
                     )}
+
+                    {/* 时间戳 - 弱化显示 */}
+                    <div className="text-[10px] text-muted-foreground/50 pt-1">
+                      {formatTimestamp(node.timestamp)}
+                    </div>
                   </div>
                 </div>
               );

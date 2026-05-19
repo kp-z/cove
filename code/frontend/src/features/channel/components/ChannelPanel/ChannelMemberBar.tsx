@@ -221,7 +221,6 @@ export interface ChannelMemberBarProps {
 
 // ── 主组件 ──
 export function ChannelMemberBar({
-  channelId,
   className = ''
 }: ChannelMemberBarProps) {
   const [expanded, setExpanded] = useState(false);

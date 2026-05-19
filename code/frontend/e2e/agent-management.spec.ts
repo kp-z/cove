@@ -18,11 +18,6 @@ test.describe('Agent Management', () => {
     // 等待 Agents 列表加载
     await page.waitForTimeout(1000);
 
-    // 检查是否有 Agent 卡片或列表项
-    const agentCards = page.locator('[data-testid="agent-card"]')
-      .or(page.locator('.agent-card'))
-      .or(page.getByRole('article'));
-
     // 验证至少有一些内容显示（可能是空状态或实际的 agents）
     const pageContent = page.locator('body');
     await expect(pageContent).toBeVisible();

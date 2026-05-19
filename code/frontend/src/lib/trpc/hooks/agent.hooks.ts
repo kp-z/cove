@@ -12,7 +12,6 @@ export const agentKeys = {
 export function useAgents(filters?: AgentFilters) {
   return trpc.agent.list.useQuery(undefined, {
     queryKey: agentKeys.list(filters),
-    select: (data) => data.agents,
   });
 }
 

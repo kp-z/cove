@@ -7,6 +7,7 @@ import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useCurrentUser } from '@/core/auth';
 import type { ChannelEntity } from '../../api/client';
 
 interface ChannelListProps {
@@ -17,11 +18,10 @@ interface ChannelListProps {
 export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListProps) {
   const { t } = useTranslation('channel');
   const { data, isLoading, error } = useChannels();
+  const { userId } = useCurrentUser();
 
-  // TODO: Get current user ID from auth context
-  // For now, using hardcoded user ID
-  const currentUserId = 'user-kp';
-  const { pinnedChannels: pinnedChannelIds, togglePin, isPinned } = useChannelPin(currentUserId);
+  // Use current user ID from auth store
+  const { pinnedChannels: pinnedChannelIds, togglePin, isPinned } = useChannelPin(userId || '');
 
   if (isLoading) return <PageLoader />;
   if (error) return <PageError message="Failed to load channels" />;
@@ -53,37 +53,25 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
     const willPin = !isPinned(channel.channel_id);
 
     try {
-      console.log('Toggling pin for channel:', {
-        channelId: channel.channel_id,
-        name: channel.name,
-        currentPinState: isPinned(channel.channel_id),
-        newPinState: willPin,
-      });
-
       await togglePin(channel.channel_id);
 
       toast.success(willPin ? t('list.pinSuccess') : t('list.unpinSuccess'));
-      console.log('Pin toggle successful');
     } catch (error) {
-      console.error('Failed to toggle pin:', error);
       const errorMessage = error instanceof Error ? error.message : t('list.pinError');
       toast.error(errorMessage);
     }
   };
 
-  const handleMarkAsRead = async (channel: ChannelEntity) => {
+  const handleMarkAsRead = async () => {
     // TODO: Implement mark as read functionality
-    console.log('Mark as read:', channel.channel_id);
   };
 
-  const handleOpenSettings = (channel: ChannelEntity) => {
+  const handleOpenSettings = () => {
     // TODO: Implement open settings functionality
-    console.log('Open settings:', channel.channel_id);
   };
 
-  const handleLeaveChannel = async (channel: ChannelEntity) => {
+  const handleLeaveChannel = async () => {
     // TODO: Implement leave channel functionality
-    console.log('Leave channel:', channel.channel_id);
   };
 
   return (

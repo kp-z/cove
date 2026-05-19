@@ -80,7 +80,7 @@ describe('GlassCard', () => {
   });
 
   it('should render content in relative z-10 container', () => {
-    const { container } = render(
+    render(
       <GlassCard>
         <div data-testid="content">Content</div>
       </GlassCard>

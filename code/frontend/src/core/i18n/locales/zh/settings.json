@@ -42,5 +42,28 @@
       "label": "显示动画",
       "description": "启用或禁用 UI 动画"
     }
+  },
+  "adapters": {
+    "title": "适配器设置",
+    "add": "添加",
+    "edit": "编辑",
+    "delete": "删除",
+    "defaultAdapter": {
+      "label": "默认适配器",
+      "description": "选择新建 Agent 时的默认适配器",
+      "none": "无（每个 Agent 单独选择）"
+    },
+    "types": {
+      "anthropic-api": "Anthropic API",
+      "openai-api": "OpenAI API",
+      "claude-code-cli": "Claude Code CLI"
+    },
+    "card": {
+      "readOnly": "只读"
+    },
+    "deleteConfirm": {
+      "title": "删除适配器",
+      "message": "确定要删除此适配器吗？此操作无法撤销。"
+    }
   }
 }

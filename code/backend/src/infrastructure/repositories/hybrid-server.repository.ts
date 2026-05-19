@@ -7,7 +7,7 @@
  */
 
 import { HybridRepository } from './hybrid-repository.base';
-import { ServerEntity, ServerStatus, ServerVisibility } from '../../domain/models/server/server.entity';
+import { ServerEntity, ServerStatus, ServerVisibility, ServerSettings, ServerLimits } from '../../domain/models/server/server.entity';
 import { IServerRepository } from '../../application/interfaces/repositories/server.repository.interface';
 
 interface ServerDbRecord {
@@ -24,8 +24,13 @@ interface ServerDbRecord {
 }
 
 interface ServerContent {
-  settings?: Record<string, any>;
-  features?: string[];
+  settings: ServerSettings;
+  limits: ServerLimits;
+  meta?: {
+    readonly tags?: readonly string[];
+    readonly icon?: string;
+    readonly banner?: string;
+  };
 }
 
 export class HybridServerRepository
@@ -50,7 +55,8 @@ export class HybridServerRepository
       status: dbRecord.status as ServerStatus,
       visibility: dbRecord.visibility as ServerVisibility,
       settings: content.settings,
-      features: content.features,
+      limits: content.limits,
+      meta: content.meta || {},
       created_at: dbRecord.createdAt,
       updated_at: dbRecord.updatedAt,
     });
@@ -74,7 +80,8 @@ export class HybridServerRepository
   toStorage(entity: ServerEntity): ServerContent {
     return {
       settings: entity.settings,
-      features: entity.features,
+      limits: entity.limits,
+      meta: entity.meta,
     };
   }
 
@@ -142,6 +149,13 @@ export class HybridServerRepository
 
   // --- Database operations (required by HybridRepository) ---
 
+  protected async findInDatabase(entityId: string): Promise<ServerDbRecord | null> {
+    const record = await this.prisma.server.findUnique({
+      where: { id: entityId },
+    });
+    return record as unknown as ServerDbRecord | null;
+  }
+
   protected async saveToDatabase(dbRecord: ServerDbRecord, contentPath: string): Promise<void> {
     await this.prisma.server.create({
       data: {
@@ -159,9 +173,9 @@ export class HybridServerRepository
     });
   }
 
-  protected async updateInDatabase(dbRecord: ServerDbRecord, contentPath: string): Promise<void> {
+  protected async updateInDatabase(entityId: string, dbRecord: ServerDbRecord, contentPath: string): Promise<void> {
     await this.prisma.server.update({
-      where: { id: dbRecord.id },
+      where: { id: entityId },
       data: {
         name: dbRecord.name,
         displayName: dbRecord.displayName,

@@ -8,6 +8,7 @@ import { useMemo } from 'react';
 import { useMessages } from '@/lib/trpc/hooks/message.hooks';
 import { useChannelThreads } from '@/lib/trpc/hooks/thread.hooks';
 import type { TimelineNode } from '../NodeRegistry';
+import type { Message, Thread } from '@/lib/trpc-types';
 
 export interface UseTimelineNodesOptions {
   channelId: string;
@@ -35,7 +36,7 @@ export function useTimelineNodes({ channelId, limit = 50 }: UseTimelineNodesOpti
 
     // 转换 messages 为节点
     if (messagesResponse?.messages) {
-      messagesResponse.messages.forEach((message: any) => {
+      messagesResponse.messages.forEach((message: Message) => {
         timelineNodes.push({
           type: 'message',
           id: message.message_id,
@@ -55,7 +56,7 @@ export function useTimelineNodes({ channelId, limit = 50 }: UseTimelineNodesOpti
 
     // 转换 threads 为节点
     if (threadsResponse?.threads) {
-      threadsResponse.threads.forEach((thread: any) => {
+      threadsResponse.threads.forEach((thread: Thread) => {
         timelineNodes.push({
           type: 'thread',
           id: thread.thread_id || thread.parent_message_id,

@@ -11,7 +11,7 @@ import { ChannelPanel } from '@/features/channel/components/ChannelPanel';
 import { useResizable } from '@/features/channel/hooks/useResizable';
 
 function ChannelPanelWrapper() {
-  const { channel_id: channelId, mode } = useChannelPanelStore();
+  const { channel_id: channelId, thread_id: threadId, message_id: messageId, mode } = useChannelPanelStore();
   const { width: panelWidth, onDragStart } = useResizable({
     defaultWidth: 500,
     minWidth: 400,
@@ -25,7 +25,7 @@ function ChannelPanelWrapper() {
 
   const panelContent = (
     <div className="flex-1 overflow-hidden">
-      <ChannelPanel channel_id={channelId} thread_id={null} />
+      <ChannelPanel channel_id={channelId} thread_id={threadId} message_id={messageId} />
     </div>
   );
 

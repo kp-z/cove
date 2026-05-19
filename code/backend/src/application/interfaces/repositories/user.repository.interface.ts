@@ -6,6 +6,20 @@
 
 import { UserEntity, UserRole } from '../../../domain/models/user/user.entity';
 
+export interface PaginationParams {
+  page: number;
+  limit: number;
+  role?: UserRole;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface IUserRepository {
   /**
    * 根据 ID 查找 User
@@ -40,6 +54,13 @@ export interface IUserRepository {
    * @returns User 实体数组
    */
   findAll(): Promise<UserEntity[]>;
+
+  /**
+   * 分页查找 Users
+   * @param params - 分页参数
+   * @returns 分页结果
+   */
+  findPaginated(params: PaginationParams): Promise<PaginatedResult<UserEntity>>;
 
   /**
    * 保存新 User

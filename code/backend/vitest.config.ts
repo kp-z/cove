@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: ['./tests/setup.ts'],
     include: ['**/*.test.ts', '**/*.spec.ts'],
     exclude: [
       'node_modules/**',
@@ -18,7 +18,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
-        'test/',
+        'tests/',
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/types.ts',

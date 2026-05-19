@@ -7,8 +7,8 @@
  */
 
 import { HybridRepository } from './hybrid-repository.base';
-import { UserEntity, UserRole } from '../../domain/models/user/user.entity';
-import { IUserRepository } from '../../application/interfaces/repositories/user.repository.interface';
+import { UserEntity, UserRole, UserStatus } from '../../domain/models/user/user.entity';
+import { IUserRepository, PaginationParams, PaginatedResult } from '../../application/interfaces/repositories/user.repository.interface';
 
 interface UserDbRecord {
   id: string;
@@ -18,6 +18,10 @@ interface UserDbRecord {
   role: string;
   status: string;
   profilePath: string;
+  passwordHash: string | null;
+  lastLoginAt: Date | null;
+  failedLoginAttempts: number;
+  lockedUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,9 +48,14 @@ export class HybridUserRepository
       email: dbRecord.email,
       displayName: dbRecord.displayName,
       role: dbRecord.role as UserRole,
+      status: dbRecord.status as UserStatus,
       avatar: content.avatar,
       permissions: content.permissions,
       preference: content.preference,
+      passwordHash: dbRecord.passwordHash || undefined,
+      lastLoginAt: dbRecord.lastLoginAt || undefined,
+      failedLoginAttempts: dbRecord.failedLoginAttempts,
+      lockedUntil: dbRecord.lockedUntil || undefined,
       createdAt: dbRecord.createdAt,
     });
   }
@@ -58,8 +67,12 @@ export class HybridUserRepository
       email: entity.email,
       displayName: entity.displayName,
       role: entity.role,
-      status: 'active',
+      status: entity.status,
       profilePath: '',
+      passwordHash: entity.passwordHash || null,
+      lastLoginAt: entity.lastLoginAt || null,
+      failedLoginAttempts: entity.failedLoginAttempts,
+      lockedUntil: entity.lockedUntil || null,
       createdAt: entity.createdAt,
       updatedAt: new Date(),
     };
@@ -107,6 +120,34 @@ export class HybridUserRepository
     return this.loadEntities(records as unknown as UserDbRecord[]);
   }
 
+  async findPaginated(params: PaginationParams): Promise<PaginatedResult<UserEntity>> {
+    const { page, limit, role } = params;
+    const skip = (page - 1) * limit;
+
+    const where = role ? { role } : {};
+
+    const [records, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const items = await this.loadEntities(records as unknown as UserDbRecord[]);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
   async save(user: UserEntity, serverId: string): Promise<void> {
     await this.saveEntity(user, serverId);
   }
@@ -146,6 +187,10 @@ export class HybridUserRepository
         role: dbRecord.role,
         status: dbRecord.status,
         profilePath: contentPath,
+        passwordHash: dbRecord.passwordHash,
+        lastLoginAt: dbRecord.lastLoginAt,
+        failedLoginAttempts: dbRecord.failedLoginAttempts,
+        lockedUntil: dbRecord.lockedUntil,
         createdAt: dbRecord.createdAt,
         updatedAt: dbRecord.updatedAt,
       },
@@ -162,6 +207,10 @@ export class HybridUserRepository
         role: dbRecord.role,
         status: dbRecord.status,
         profilePath: contentPath,
+        passwordHash: dbRecord.passwordHash,
+        lastLoginAt: dbRecord.lastLoginAt,
+        failedLoginAttempts: dbRecord.failedLoginAttempts,
+        lockedUntil: dbRecord.lockedUntil,
         updatedAt: dbRecord.updatedAt,
       },
     });

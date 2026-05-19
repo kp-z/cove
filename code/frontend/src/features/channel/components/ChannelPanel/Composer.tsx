@@ -10,10 +10,8 @@ import {
   X,
   File,
   Wrench,
-  Image as ImageIcon,
   Maximize2,
   Minimize2,
-  Zap,
 } from 'lucide-react';
 
 type ComposerMode = 'normal' | 'code' | 'markdown';

@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 /**
  * 时间轴节点基础接口
  */
-export interface TimelineNode<T = any> {
+export interface TimelineNode<T = unknown> {
   type: string;           // 节点类型：'message' | 'thread' | 'event' | ...
   id: string;             // 唯一标识
   timestamp: string;      // ISO 8601 时间戳
@@ -31,7 +31,7 @@ export interface NodeContext {
 /**
  * 节点渲染器接口
  */
-export interface NodeRenderer<T = any> {
+export interface NodeRenderer<T = unknown> {
   type: string;
   render: (node: TimelineNode<T>, context: NodeContext) => ReactNode;
   icon?: React.ComponentType<{ className?: string }>;
@@ -49,7 +49,7 @@ export class NodeRegistry {
    */
   register(renderer: NodeRenderer): void {
     if (this.renderers.has(renderer.type)) {
-      console.warn(`NodeRenderer for type "${renderer.type}" is already registered. Overwriting.`);
+      // Silently overwrite existing renderer
     }
     this.renderers.set(renderer.type, renderer);
   }

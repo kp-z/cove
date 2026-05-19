@@ -42,5 +42,28 @@
       "label": "Show Animations",
       "description": "Enable or disable UI animations"
     }
+  },
+  "adapters": {
+    "title": "Adapter Settings",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "defaultAdapter": {
+      "label": "Default Adapter",
+      "description": "Choose the default adapter for new agents",
+      "none": "None (select per agent)"
+    },
+    "types": {
+      "anthropic-api": "Anthropic API",
+      "openai-api": "OpenAI API",
+      "claude-code-cli": "Claude Code CLI"
+    },
+    "card": {
+      "readOnly": "Read-only"
+    },
+    "deleteConfirm": {
+      "title": "Delete Adapter",
+      "message": "Are you sure you want to delete this adapter? This action cannot be undone."
+    }
   }
 }

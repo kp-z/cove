@@ -181,3 +181,18 @@ body {
     @apply font-sans;
   }
 }
+
+/* 高亮消息动画 */
+@keyframes highlight-pulse {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+}
+
+.highlight-message {
+  animation: highlight-pulse 2s ease-in-out;
+  border-radius: 0.5rem;
+}

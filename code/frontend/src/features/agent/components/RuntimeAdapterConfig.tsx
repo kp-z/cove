@@ -1,95 +1,79 @@
 /**
- * Runtime Adapter Configuration Component (Simplified)
+ * Runtime Adapter Configuration Component
  *
- * Single dropdown to select adapter, then show all editable fields.
- * Save logic automatically determines whether to reference or create new adapter.
+ * Select an existing adapter and optionally override its configuration.
+ * Changes will create a new private adapter on save.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Cpu } from 'lucide-react';
 import { GlassCard } from '@/shared/components/ui/GlassCard';
 import { FormField } from '@/shared/components/form/FormField';
-import { useAdapters } from '@/lib/trpc/hooks';
+import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 
 const INPUT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50';
 const SELECT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50';
 
-// Predefined model lists
-const ANTHROPIC_MODELS = [
-  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-  { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-  { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
-  { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
-];
-
-const OPENAI_MODELS = [
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-  { value: 'gpt-4', label: 'GPT-4' },
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-];
+type AdapterConfig = Record<string, unknown>;
 
 interface RuntimeAdapterConfigProps {
   value?: {
     adapter_id?: string;
-    overrides?: any;
+    overrides?: AdapterConfig;
   };
-  onChange: (value: { adapter_id?: string; overrides?: any }) => void;
+  onChange: (value: { adapter_id?: string; overrides?: AdapterConfig }) => void;
 }
 
 export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigProps) {
-  const { data: adaptersData } = useAdapters();
+  const { data: adaptersData, isLoading: adaptersLoading, error: adaptersError } = useAdapters();
   const adapters = adaptersData?.adapters || [];
 
-  // Selected adapter ID (or 'new:type' for creating new adapter)
   const [selectedAdapterId, setSelectedAdapterId] = useState<string>(value?.adapter_id || '');
 
-  // Current config values (editable)
-  const [config, setConfig] = useState<any>({});
+  // Get selected adapter
+  const selectedAdapter = adapters.find(a => a.id === selectedAdapterId);
+  const adapterType = selectedAdapter?.type;
 
-  // Original adapter config (for comparison)
-  const [originalConfig, setOriginalConfig] = useState<any>({});
+  // Compute config from selected adapter
+  const adapterConfig = useMemo(() => {
+    if (selectedAdapter) {
+      const config = (selectedAdapter as { config?: AdapterConfig }).config;
+      return config ? { ...config } : {};
+    }
+    return {};
+  }, [selectedAdapter]);
 
-  // Parse selection: check if creating new adapter
-  const isCreatingNew = selectedAdapterId.startsWith('new:');
-  const newAdapterType = isCreatingNew ? selectedAdapterId.replace('new:', '') as 'anthropic-api' | 'openai-api' | 'claude-code-cli' : null;
+  const [config, setConfig] = useState<AdapterConfig>(() => adapterConfig);
+  const [originalConfig] = useState<AdapterConfig>(() => adapterConfig);
 
-  // Get selected adapter (only if not creating new)
-  const selectedAdapter = !isCreatingNew ? adapters.find(a => a.id === selectedAdapterId) : null;
+  // Use key to force remount when adapter changes instead of useEffect
+  const componentKey = selectedAdapterId || 'no-adapter';
+
+  // Discover models for the selected adapter
+  const {
+    data: discoveredModels,
+    isLoading: modelsLoading,
+  } = useAdapterModels(selectedAdapter?.id, !!selectedAdapter);
+
+  // Use discovered models if available, otherwise empty
+  const availableModels = useMemo(() => {
+    if (discoveredModels?.models && discoveredModels.models.length > 0) {
+      return discoveredModels.models.map(m => ({
+        value: m.id,
+        label: m.display_name || m.id,
+      }));
+    }
+    return [];
+  }, [discoveredModels]);
 
   // Group adapters by scope
   const sharedAdapters = adapters.filter(a => a.scope === 'shared');
   const privateAdapters = adapters.filter(a => a.scope === 'private');
 
-  // Initialize config when adapter is selected
-  useEffect(() => {
-    if (selectedAdapter) {
-      const adapterConfig = (selectedAdapter as any).config || {};
-      setConfig({ ...adapterConfig });
-      setOriginalConfig({ ...adapterConfig });
-    } else if (isCreatingNew && newAdapterType) {
-      // Initialize with default config for new adapter
-      const defaultConfig = {
-        model: newAdapterType === 'anthropic-api' ? 'claude-3-5-sonnet-20241022' :
-               newAdapterType === 'openai-api' ? 'gpt-4-turbo' : '',
-        temperature: 0.7,
-        max_tokens: 4096,
-      };
-      setConfig(defaultConfig);
-      setOriginalConfig({});
-    }
-  }, [selectedAdapter, isCreatingNew, newAdapterType]);
-
   // Notify parent of changes
   useEffect(() => {
     if (!selectedAdapterId) {
       onChange({ adapter_id: undefined, overrides: undefined });
-      return;
-    }
-
-    if (isCreatingNew && newAdapterType) {
-      // Creating new adapter: send config with type
-      onChange({ adapter_id: undefined, overrides: { type: newAdapterType, ...config } });
       return;
     }
 
@@ -103,20 +87,18 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
       // Unchanged: reference existing adapter
       onChange({ adapter_id: selectedAdapterId, overrides: undefined });
     }
-  }, [selectedAdapterId, config, originalConfig, isCreatingNew, newAdapterType]);
+  }, [selectedAdapterId, config, originalConfig, onChange]);
 
   const handleAdapterChange = (adapterId: string) => {
     setSelectedAdapterId(adapterId);
   };
 
-  const handleConfigChange = (key: string, value: any) => {
-    setConfig((prev: any) => ({ ...prev, [key]: value }));
+  const handleConfigChange = (key: string, value: unknown) => {
+    setConfig((prev: AdapterConfig) => ({ ...prev, [key]: value }));
   };
 
-  const adapterType = selectedAdapter?.type || newAdapterType;
-
   return (
-    <GlassCard className="p-6">
+    <GlassCard className="p-6" key={componentKey}>
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Cpu size={20} />
         Runtime Configuration
@@ -124,20 +106,16 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
       <div className="space-y-4">
         {/* Adapter Selection */}
-        <FormField label="Select Adapter" hint="Choose an adapter configuration as starting point">
+        <FormField label="Select Adapter" hint="Choose an adapter configuration">
           <select
             value={selectedAdapterId}
             onChange={e => handleAdapterChange(e.target.value)}
             className={SELECT_CLASS}
+            disabled={adaptersLoading}
           >
-            <option value="">-- Select an adapter --</option>
-
-            {/* Create New Options */}
-            <optgroup label="➕ Create New">
-              <option value="new:anthropic-api">Anthropic API</option>
-              <option value="new:openai-api">OpenAI API</option>
-              <option value="new:claude-code-cli">Claude Code CLI</option>
-            </optgroup>
+            <option value="">
+              {adaptersLoading ? 'Loading adapters...' : '-- Select an adapter --'}
+            </option>
 
             {sharedAdapters.length > 0 && (
               <optgroup label="🌐 Shared Adapters">
@@ -159,21 +137,26 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
               </optgroup>
             )}
           </select>
+
+          {adaptersError && (
+            <p className="text-sm text-red-500 mt-1">
+              Failed to load adapters
+            </p>
+          )}
+
+          {!adaptersLoading && !adaptersError && adapters.length === 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              No adapters found. Create one in Settings first.
+            </p>
+          )}
         </FormField>
 
-        {/* Configuration Fields (shown when adapter is selected or creating new) */}
-        {(selectedAdapter || isCreatingNew) && (
+        {/* Configuration Fields (shown when adapter is selected) */}
+        {selectedAdapter && (
           <div className="space-y-4 pt-4 border-t border-border">
-            {!isCreatingNew && (
-              <p className="text-sm text-muted-foreground">
-                💡 Edit any field below. Changes will create a new private adapter on save.
-              </p>
-            )}
-            {isCreatingNew && (
-              <p className="text-sm text-muted-foreground">
-                💡 Configure your new {newAdapterType} adapter below.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              💡 Edit any field below. Changes will create a new private adapter on save.
+            </p>
 
             {/* Anthropic API Config */}
             {adapterType === 'anthropic-api' && (
@@ -183,9 +166,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
                     value={config.model || ''}
                     onChange={e => handleConfigChange('model', e.target.value)}
                     className={SELECT_CLASS}
+                    disabled={modelsLoading}
                   >
-                    <option value="">-- Select model --</option>
-                    {ANTHROPIC_MODELS.map(m => (
+                    <option value="">
+                      {modelsLoading ? 'Loading...' : '-- Select model --'}
+                    </option>
+                    {availableModels.map(m => (
                       <option key={m.value} value={m.value}>{m.label}</option>
                     ))}
                   </select>
@@ -211,42 +197,43 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
                   />
                 </FormField>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Temperature" hint="0.0 - 1.0">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="1"
-                      value={config.temperature ?? 0.7}
-                      onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                      className={INPUT_CLASS}
-                    />
-                  </FormField>
+                <FormField label="Temperature" hint="0.0 - 1.0">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="1"
+                    value={config.temperature ?? 0.7}
+                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
+                    className={INPUT_CLASS}
+                  />
+                </FormField>
 
-                  <FormField label="Max Tokens" hint="Maximum response length">
-                    <input
-                      type="number"
-                      value={config.max_tokens ?? 4096}
-                      onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-                      className={INPUT_CLASS}
-                    />
-                  </FormField>
-                </div>
+                <FormField label="Max Tokens" hint="Maximum response length">
+                  <input
+                    type="number"
+                    value={config.max_tokens ?? 4096}
+                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
+                    className={INPUT_CLASS}
+                  />
+                </FormField>
               </>
             )}
 
             {/* OpenAI API Config */}
             {adapterType === 'openai-api' && (
               <>
-                <FormField label="Model" hint="Select GPT model">
+                <FormField label="Model" hint="Select OpenAI model">
                   <select
                     value={config.model || ''}
                     onChange={e => handleConfigChange('model', e.target.value)}
                     className={SELECT_CLASS}
+                    disabled={modelsLoading}
                   >
-                    <option value="">-- Select model --</option>
-                    {OPENAI_MODELS.map(m => (
+                    <option value="">
+                      {modelsLoading ? 'Loading...' : '-- Select model --'}
+                    </option>
+                    {availableModels.map(m => (
                       <option key={m.value} value={m.value}>{m.label}</option>
                     ))}
                   </select>
@@ -262,7 +249,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
                   />
                 </FormField>
 
-                <FormField label="Base URL" hint="Optional custom API endpoint (e.g., Azure OpenAI)">
+                <FormField label="Base URL" hint="Optional custom API endpoint">
                   <input
                     type="text"
                     value={config.base_url || ''}
@@ -272,45 +259,33 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
                   />
                 </FormField>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField label="Temperature" hint="0.0 - 2.0">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="2"
-                      value={config.temperature ?? 0.7}
-                      onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                      className={INPUT_CLASS}
-                    />
-                  </FormField>
+                <FormField label="Temperature" hint="0.0 - 2.0">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={config.temperature ?? 0.7}
+                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
+                    className={INPUT_CLASS}
+                  />
+                </FormField>
 
-                  <FormField label="Max Tokens" hint="Maximum response length">
-                    <input
-                      type="number"
-                      value={config.max_tokens ?? 4096}
-                      onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-                      className={INPUT_CLASS}
-                    />
-                  </FormField>
-                </div>
+                <FormField label="Max Tokens" hint="Maximum response length">
+                  <input
+                    type="number"
+                    value={config.max_tokens ?? 4096}
+                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
+                    className={INPUT_CLASS}
+                  />
+                </FormField>
               </>
             )}
 
             {/* Claude Code CLI Config */}
             {adapterType === 'claude-code-cli' && (
               <>
-                <FormField label="CLI Path" hint="Path to Claude Code CLI executable">
-                  <input
-                    type="text"
-                    value={config.cli_path || ''}
-                    onChange={e => handleConfigChange('cli_path', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="/usr/local/bin/claude"
-                  />
-                </FormField>
-
-                <FormField label="Model" hint="Optional model override">
+                <FormField label="Model" hint="Claude model to use">
                   <input
                     type="text"
                     value={config.model || ''}
@@ -320,28 +295,28 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
                   />
                 </FormField>
 
-                <FormField label="Context Window" hint="Maximum context tokens">
+                <FormField label="Temperature" hint="0.0 - 1.0">
                   <input
                     type="number"
-                    value={config.context_window ?? 200000}
-                    onChange={e => handleConfigChange('context_window', parseInt(e.target.value))}
+                    step="0.1"
+                    min="0"
+                    max="1"
+                    value={config.temperature ?? 0.7}
+                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
+                    className={INPUT_CLASS}
+                  />
+                </FormField>
+
+                <FormField label="Max Tokens" hint="Maximum response length">
+                  <input
+                    type="number"
+                    value={config.max_tokens ?? 4096}
+                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
                     className={INPUT_CLASS}
                   />
                 </FormField>
               </>
             )}
-          </div>
-        )}
-
-        {/* Selected Adapter Info */}
-        {selectedAdapter && !isCreatingNew && (
-          <div className="bg-muted/30 p-4 rounded-md text-sm">
-            <div className="font-medium mb-2">Selected: {selectedAdapter.name}</div>
-            <div className="text-muted-foreground space-y-1">
-              <div>Type: {selectedAdapter.type}</div>
-              <div>Scope: {selectedAdapter.scope}</div>
-              {selectedAdapter.description && <div>Description: {selectedAdapter.description}</div>}
-            </div>
           </div>
         )}
       </div>

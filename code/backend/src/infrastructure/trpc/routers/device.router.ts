@@ -71,9 +71,13 @@ export const deviceRouter = (deviceService: DeviceService) =>
       .input(registerDeviceSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
+          const serverId = ctx.serverId || 'default-server';
+          const context = ServerContext.create(serverId, ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const device = await deviceService.registerDevice(input);
+            const device = await deviceService.createDevice({
+              ...input,
+              serverId
+            });
             return device.toJSON();
           });
         } catch (error: any) {
@@ -85,7 +89,6 @@ export const deviceRouter = (deviceService: DeviceService) =>
     list: publicProcedure
       .input(z.object({
         status: z.enum(['provisioning', 'online', 'offline', 'maintenance', 'error', 'decommissioned']).optional(),
-        type: z.enum(['physical', 'virtual', 'container', 'cloud']).optional(),
       }).optional())
       .query(async ({ input, ctx }) => {
         try {
@@ -94,14 +97,12 @@ export const deviceRouter = (deviceService: DeviceService) =>
             let devices;
             if (input?.status) {
               devices = await deviceService.getDevicesByStatus(input.status);
-            } else if (input?.type) {
-              devices = await deviceService.getDevicesByType(input.type);
             } else {
-              devices = await deviceService.getDevicesByServer();
+              devices = await deviceService.getDevicesByServer(context.serverId);
             }
 
             return {
-              devices: devices.map(d => d.toJSON()),
+              devices: devices.map((d: any) => d.toJSON()),
               total: devices.length,
             };
           });
@@ -150,7 +151,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const device = await deviceService.markOnline(input.deviceId);
+            const device = await deviceService.markDeviceOnline(input.deviceId);
             return device.toJSON();
           });
         } catch (error: any) {
@@ -165,7 +166,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const device = await deviceService.markOffline(input.deviceId);
+            const device = await deviceService.markDeviceOffline(input.deviceId);
             return device.toJSON();
           });
         } catch (error: any) {
@@ -180,7 +181,7 @@ export const deviceRouter = (deviceService: DeviceService) =>
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const device = await deviceService.markMaintenance(input.deviceId);
+            const device = await deviceService.enterDeviceMaintenance(input.deviceId);
             return device.toJSON();
           });
         } catch (error: any) {
