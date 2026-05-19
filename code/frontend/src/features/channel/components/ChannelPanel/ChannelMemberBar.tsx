@@ -145,7 +145,8 @@ function StackedAvatars({
   agents: Agent[];
   max?: number;
 }) {
-  if (agents.length === 0) return null;
+  // 防御性检查：确保 agents 是数组
+  if (!Array.isArray(agents) || agents.length === 0) return null;
 
   const visible = agents.slice(0, max);
   const overflow = agents.length - max;
@@ -234,7 +235,9 @@ export function ChannelMemberBar({
   // TODO: 根据实际业务逻辑过滤 agents
   const channelAgents = Array.isArray(agentsResponse)
     ? agentsResponse
-    : (agentsResponse?.agents || []);
+    : Array.isArray(agentsResponse?.agents)
+    ? agentsResponse.agents
+    : [];
   const primaryAgent = channelAgents[0] || null;
 
   // 加载态
