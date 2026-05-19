@@ -18,6 +18,7 @@ export interface IServerMemberRepository {
   // 查询
   findByServer(serverId: string): Promise<ServerMemberEntity[]>;
   findByRole(serverId: string, role: ServerRole): Promise<ServerMemberEntity[]>;
+  findByStatus(serverId: string, status: MemberStatus): Promise<ServerMemberEntity[]>;
 
   // 检查
   existsByServerAndUser(serverId: string, userId: string): Promise<boolean>;

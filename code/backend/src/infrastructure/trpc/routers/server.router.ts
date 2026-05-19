@@ -62,14 +62,7 @@ export const serverRouter = (serverService: ServerService) =>
         try {
           const context = ServerContext.create(ctx.serverId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            let servers;
-            if (input?.ownerId) {
-              servers = await serverService.getServersByOwner(input.ownerId);
-            } else if (input?.status) {
-              servers = await serverService.getServersByStatus(input.status);
-            } else {
-              servers = await serverService.getAllServers();
-            }
+            const servers = await serverService.queryServers(input);
 
             return {
               servers: servers.map(s => s.toJSON()),

@@ -16,6 +16,7 @@ import { runWithContext } from '../../context/server-context-store';
 describe('ServerService', () => {
   let service: ServerService;
   let mockServerRepository: IServerRepository;
+  let mockServerMemberRepository: any;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
   let testContext: ServerContext;
@@ -24,14 +25,21 @@ describe('ServerService', () => {
     testContext = ServerContext.create('test-server-id', 'owner-123');
 
     mockServerRepository = {
-      findById: vi.fn(),
-      findByOwner: vi.fn(),
-      findByStatus: vi.fn(),
-      findAll: vi.fn(),
+      find: vi.fn(),
+      findByName: vi.fn(),
       save: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       exists: vi.fn(),
+    } as any;
+
+    mockServerMemberRepository = {
+      save: vi.fn(),
+      update: vi.fn(),
+      findByServerAndUser: vi.fn(),
+      findByServer: vi.fn(),
+      findByRole: vi.fn(),
+      findByStatus: vi.fn(),
     } as any;
 
     mockEventBus = {
@@ -45,7 +53,7 @@ describe('ServerService', () => {
       debug: vi.fn(),
     } as any;
 
-    service = new ServerService(mockServerRepository, mockEventBus, mockLogger);
+    service = new ServerService(mockServerRepository, mockServerMemberRepository, mockEventBus, mockLogger);
   });
 
   describe('createServer', () => {
@@ -58,7 +66,7 @@ describe('ServerService', () => {
         visibility: 'private',
       };
 
-      vi.mocked(mockServerRepository.findAll).mockResolvedValue([]);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
 
       const result = await runWithContext(testContext, async () => {
         return await service.createServer(dto);
@@ -95,7 +103,7 @@ describe('ServerService', () => {
       };
 
       const existingServer = createTestServer({ name: 'existing-server' });
-      vi.mocked(mockServerRepository.findAll).mockResolvedValue([existingServer]);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([existingServer]);
 
       await expect(
         runWithContext(testContext, async () => {
@@ -111,7 +119,7 @@ describe('ServerService', () => {
         ownerId: 'owner-123',
       };
 
-      vi.mocked(mockServerRepository.findAll).mockResolvedValue([]);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
 
       const result = await runWithContext(testContext, async () => {
         return await service.createServer(dto);
@@ -133,18 +141,18 @@ describe('ServerService', () => {
   describe('getServerById', () => {
     it('should return server when found', async () => {
       const mockServer = createTestServer();
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
       const result = await runWithContext(testContext, async () => {
         return await service.getServerById('server-123');
       });
 
       expect(result).toBe(mockServer);
-      expect(mockServerRepository.findById).toHaveBeenCalledWith('server-123');
+      expect(mockServerRepository.find).toHaveBeenCalledWith({ id: 'server-123' });
     });
 
     it('should throw error when server not found', async () => {
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(null);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
 
       await expect(
         runWithContext(testContext, async () => {
@@ -154,17 +162,41 @@ describe('ServerService', () => {
     });
   });
 
-  describe('getServersByOwner', () => {
+  describe('queryServers', () => {
     it('should return servers by owner', async () => {
       const mockServers = [createTestServer(), createTestServer()];
-      vi.mocked(mockServerRepository.findByOwner).mockResolvedValue(mockServers);
+      vi.mocked(mockServerRepository.find).mockResolvedValue(mockServers);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.getServersByOwner('owner-123');
+        return await service.queryServers({ ownerId: 'owner-123' });
       });
 
       expect(result).toEqual(mockServers);
-      expect(mockServerRepository.findByOwner).toHaveBeenCalledWith('owner-123');
+      expect(mockServerRepository.find).toHaveBeenCalledWith({ ownerId: 'owner-123' });
+    });
+
+    it('should return servers by status', async () => {
+      const mockServers = [createTestServer()];
+      vi.mocked(mockServerRepository.find).mockResolvedValue(mockServers);
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.queryServers({ status: 'active' });
+      });
+
+      expect(result).toEqual(mockServers);
+      expect(mockServerRepository.find).toHaveBeenCalledWith({ status: 'active' });
+    });
+
+    it('should return all servers when no filters', async () => {
+      const mockServers = [createTestServer(), createTestServer()];
+      vi.mocked(mockServerRepository.find).mockResolvedValue(mockServers);
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.queryServers();
+      });
+
+      expect(result).toEqual(mockServers);
+      expect(mockServerRepository.find).toHaveBeenCalledWith(undefined);
     });
   });
 
@@ -173,8 +205,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ owner_id: 'owner-123' });
       const updatedServer = createTestServer({ name: 'updated-name', owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
-      vi.mocked(mockServerRepository.findAll).mockResolvedValue([]);
+      vi.mocked(mockServerRepository.find).mockResolvedValueOnce([mockServer]).mockResolvedValueOnce([]);
       vi.spyOn(mockServer, 'updateName').mockReturnValue(updatedServer);
 
       const dto: UpdateServerDTO = {
@@ -192,7 +223,7 @@ describe('ServerService', () => {
 
     it('should throw error when user is not owner', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
       const dto: UpdateServerDTO = {
         name: 'updated-name',
@@ -209,8 +240,9 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ server_id: 'server-123', owner_id: 'owner-123' });
       const existingServer = createTestServer({ server_id: 'server-456', name: 'existing-name' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
-      vi.mocked(mockServerRepository.findAll).mockResolvedValue([existingServer]);
+      vi.mocked(mockServerRepository.find)
+        .mockResolvedValueOnce([mockServer])  // First call: getServerById
+        .mockResolvedValueOnce([existingServer]);  // Second call: check name exists
 
       const dto: UpdateServerDTO = {
         name: 'existing-name',
@@ -229,7 +261,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ owner_id: 'owner-123' });
       const updatedServer = createTestServer({ owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'updateSettings').mockReturnValue(updatedServer);
 
       const dto: UpdateServerSettingsDTO = {
@@ -251,7 +283,7 @@ describe('ServerService', () => {
 
     it('should throw error when user is not owner', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
       const dto: UpdateServerSettingsDTO = {
         allowPublicChannels: false,
@@ -270,7 +302,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ owner_id: 'owner-123' });
       const updatedServer = createTestServer({ owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'updateLimits').mockReturnValue(updatedServer);
 
       const dto: UpdateServerLimitsDTO = {
@@ -296,7 +328,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ status: 'active', owner_id: 'owner-123' });
       const suspendedServer = createTestServer({ status: 'suspended', owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'suspend').mockReturnValue(suspendedServer);
       vi.spyOn(mockServer, 'isActive').mockReturnValue(true);
 
@@ -311,7 +343,7 @@ describe('ServerService', () => {
 
     it('should throw error when server is not active', async () => {
       const mockServer = createTestServer({ status: 'suspended', owner_id: 'owner-123' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'isActive').mockReturnValue(false);
 
       await expect(
@@ -327,7 +359,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ status: 'suspended', owner_id: 'owner-123' });
       const activatedServer = createTestServer({ status: 'active', owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'activate').mockReturnValue(activatedServer);
       vi.spyOn(mockServer, 'isSuspended').mockReturnValue(true);
 
@@ -346,7 +378,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ status: 'active', owner_id: 'owner-123' });
       const archivedServer = createTestServer({ status: 'archived', owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'archive').mockReturnValue(archivedServer);
       vi.spyOn(mockServer, 'isArchived').mockReturnValue(false);
 
@@ -361,7 +393,7 @@ describe('ServerService', () => {
 
     it('should throw error when server is already archived', async () => {
       const mockServer = createTestServer({ status: 'archived', owner_id: 'owner-123' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'isArchived').mockReturnValue(true);
 
       await expect(
@@ -377,7 +409,7 @@ describe('ServerService', () => {
       const mockServer = createTestServer({ status: 'archived', owner_id: 'owner-123' });
       const unarchivedServer = createTestServer({ status: 'active', owner_id: 'owner-123' });
 
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'unarchive').mockReturnValue(unarchivedServer);
       vi.spyOn(mockServer, 'isArchived').mockReturnValue(true);
 
@@ -392,7 +424,7 @@ describe('ServerService', () => {
 
     it('should throw error when server is not archived', async () => {
       const mockServer = createTestServer({ status: 'active', owner_id: 'owner-123' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'isArchived').mockReturnValue(false);
 
       await expect(
@@ -406,7 +438,7 @@ describe('ServerService', () => {
   describe('deleteServer', () => {
     it('should delete server successfully', async () => {
       const mockServer = createTestServer({ owner_id: 'owner-123' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
       await runWithContext(testContext, async () => {
         return await service.deleteServer('server-123');
@@ -422,7 +454,7 @@ describe('ServerService', () => {
 
     it('should throw error when user is not owner', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
-      vi.mocked(mockServerRepository.findById).mockResolvedValue(mockServer);
+      vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
       await expect(
         runWithContext(testContext, async () => {

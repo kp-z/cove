@@ -91,13 +91,28 @@ export class HybridServerRepository
 
   // --- IServerRepository ---
 
-  async findById(serverId: string): Promise<ServerEntity | null> {
-    const record = await this.prisma.server.findUnique({
-      where: { id: serverId },
-    });
-    if (!record) return null;
-    const content = await this.storage.loadJson(record.configPath);
-    return this.toDomain(record as unknown as ServerDbRecord, content);
+  async find(filters?: { id?: string; ownerId?: string; status?: ServerStatus }): Promise<ServerEntity[]> {
+    // 如果查询单个 ID，直接返回单个结果（或空数组）
+    if (filters?.id) {
+      const record = await this.prisma.server.findUnique({
+        where: { id: filters.id },
+      });
+      if (!record) return [];
+      const content = await this.storage.loadJson(record.configPath);
+      return [this.toDomain(record as unknown as ServerDbRecord, content)];
+    }
+
+    // 构建查询条件
+    const where: any = {};
+    if (filters?.ownerId) {
+      where.ownerId = filters.ownerId;
+    }
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    const records = await this.prisma.server.findMany({ where });
+    return this.loadEntities(records as unknown as ServerDbRecord[]);
   }
 
   async findByName(name: string): Promise<ServerEntity | null> {
@@ -107,25 +122,6 @@ export class HybridServerRepository
     if (!record) return null;
     const content = await this.storage.loadJson(record.configPath);
     return this.toDomain(record as unknown as ServerDbRecord, content);
-  }
-
-  async findByOwner(ownerId: string): Promise<ServerEntity[]> {
-    const records = await this.prisma.server.findMany({
-      where: { ownerId },
-    });
-    return this.loadEntities(records as unknown as ServerDbRecord[]);
-  }
-
-  async findByStatus(status: ServerStatus): Promise<ServerEntity[]> {
-    const records = await this.prisma.server.findMany({
-      where: { status },
-    });
-    return this.loadEntities(records as unknown as ServerDbRecord[]);
-  }
-
-  async findAll(): Promise<ServerEntity[]> {
-    const records = await this.prisma.server.findMany();
-    return this.loadEntities(records as unknown as ServerDbRecord[]);
   }
 
   async save(server: ServerEntity, serverId: string): Promise<void> {

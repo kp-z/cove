@@ -83,7 +83,7 @@ export class ServerService {
     this.logger.info('Creating new server', { name: dto.name, ownerId: dto.ownerId });
 
     // Check if server name already exists
-    const existing = await this.serverRepository.findAll();
+    const existing = await this.serverRepository.find();
     if (existing.some(s => s.name === dto.name)) {
       throw new ServerNameAlreadyExistsError(dto.name);
     }
@@ -139,7 +139,7 @@ export class ServerService {
       meta: {},
     });
 
-    await this.serverMemberRepository.save(ownerMember);
+    await this.serverMemberRepository.save(ownerMember, serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -159,23 +159,15 @@ export class ServerService {
   }
 
   async getServerById(serverId: string): Promise<ServerEntity> {
-    const server = await this.serverRepository.findById(serverId);
-    if (!server) {
+    const servers = await this.serverRepository.find({ id: serverId });
+    if (servers.length === 0) {
       throw new ServerNotFoundError(serverId);
     }
-    return server;
+    return servers[0]!;
   }
 
-  async getServersByOwner(ownerId: string): Promise<ServerEntity[]> {
-    return await this.serverRepository.findByOwner(ownerId);
-  }
-
-  async getServersByStatus(status: ServerStatus): Promise<ServerEntity[]> {
-    return await this.serverRepository.findByStatus(status);
-  }
-
-  async getAllServers(): Promise<ServerEntity[]> {
-    return await this.serverRepository.findAll();
+  async queryServers(filters?: { ownerId?: string; status?: ServerStatus }): Promise<ServerEntity[]> {
+    return await this.serverRepository.find(filters);
   }
 
   async updateServer(serverId: string, dto: UpdateServerDTO): Promise<ServerEntity> {
@@ -191,7 +183,7 @@ export class ServerService {
 
     if (dto.name !== undefined) {
       // Check if new name already exists
-      const existing = await this.serverRepository.findAll();
+      const existing = await this.serverRepository.find();
       if (existing.some(s => s.name === dto.name && s.server_id !== serverId)) {
         throw new ServerNameAlreadyExistsError(dto.name);
       }
@@ -500,7 +492,7 @@ export class ServerService {
       meta: {},
     });
 
-    await this.serverMemberRepository.save(member);
+    await this.serverMemberRepository.save(member, serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -529,7 +521,7 @@ export class ServerService {
     }
 
     const updatedMember = member.leave();
-    await this.serverMemberRepository.update(updatedMember);
+    await this.serverMemberRepository.update(updatedMember, serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -557,7 +549,7 @@ export class ServerService {
     }
 
     const updatedMember = member.updateRole(newRole);
-    await this.serverMemberRepository.update(updatedMember);
+    await this.serverMemberRepository.update(updatedMember, serverId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

@@ -42,9 +42,7 @@ describe('serverRouter', () => {
     mockServerService = {
       createServer: vi.fn(),
       getServerById: vi.fn(),
-      getServersByOwner: vi.fn(),
-      getServersByStatus: vi.fn(),
-      getAllServers: vi.fn(),
+      queryServers: vi.fn(),
       updateServer: vi.fn(),
       archiveServer: vi.fn(),
       activateServer: vi.fn(),
@@ -120,13 +118,13 @@ describe('serverRouter', () => {
         }),
       ];
 
-      mockServerService.getAllServers.mockResolvedValue(mockServers);
+      mockServerService.queryServers.mockResolvedValue(mockServers);
 
       const result = await caller.list();
 
       expect(result.servers).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(mockServerService.getAllServers).toHaveBeenCalled();
+      expect(mockServerService.queryServers).toHaveBeenCalledWith(undefined);
     });
 
     it('should list servers by owner', async () => {
@@ -146,12 +144,12 @@ describe('serverRouter', () => {
         }),
       ];
 
-      mockServerService.getServersByOwner.mockResolvedValue(mockServers);
+      mockServerService.queryServers.mockResolvedValue(mockServers);
 
       const result = await caller.list({ ownerId: 'user-1' });
 
       expect(result.servers).toHaveLength(1);
-      expect(mockServerService.getServersByOwner).toHaveBeenCalledWith('user-1');
+      expect(mockServerService.queryServers).toHaveBeenCalledWith({ ownerId: 'user-1' });
     });
 
     it('should list servers by status', async () => {
@@ -171,12 +169,12 @@ describe('serverRouter', () => {
         }),
       ];
 
-      mockServerService.getServersByStatus.mockResolvedValue(mockServers);
+      mockServerService.queryServers.mockResolvedValue(mockServers);
 
       const result = await caller.list({ status: 'active' });
 
       expect(result.servers).toHaveLength(1);
-      expect(mockServerService.getServersByStatus).toHaveBeenCalledWith('active');
+      expect(mockServerService.queryServers).toHaveBeenCalledWith({ status: 'active' });
     });
   });
 

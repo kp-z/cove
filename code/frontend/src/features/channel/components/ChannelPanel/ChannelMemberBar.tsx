@@ -224,7 +224,7 @@ export function ChannelMemberBar({
   className = ''
 }: ChannelMemberBarProps) {
   const [expanded, setExpanded] = useState(false);
-  const { data: agents, isLoading } = useAgents();
+  const { data: agentsResponse, isLoading } = useAgents();
 
   const handleToggleExpand = useCallback(() => {
     setExpanded(prev => !prev);
@@ -232,7 +232,9 @@ export function ChannelMemberBar({
 
   // 过滤与当前频道相关的 agents
   // TODO: 根据实际业务逻辑过滤 agents
-  const channelAgents = agents || [];
+  const channelAgents = Array.isArray(agentsResponse)
+    ? agentsResponse
+    : (agentsResponse?.agents || []);
   const primaryAgent = channelAgents[0] || null;
 
   // 加载态
