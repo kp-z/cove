@@ -238,9 +238,24 @@ replace_in_file() {
         s/ServerMemberEntityProps/RealmMemberEntityProps/g;
         s/ServerMemberEntityJSON/RealmMemberEntityJSON/g;
 
+        # 方法名替换（必须在字段名替换之前）
+        s/createServer/createRealm/g;
+        s/getServerById/getRealmById/g;
+        s/getServersByOwner/getRealmsByOwner/g;
+        s/getServersByStatus/getRealmsByStatus/g;
+        s/getAllServers/getAllRealms/g;
+        s/updateServer/updateRealm/g;
+        s/archiveServer/archiveRealm/g;
+        s/unarchiveServer/unarchiveRealm/g;
+        s/deleteServer/deleteRealm/g;
+        s/getServerContext/getRealmContext/g;
+
         # Router 相关替换
         s/serverRouter/realmRouter/g;
         s/serverService/realmService/g;
+
+        # 返回对象字段名
+        s/servers:/realms:/g;
 
         # 字段名替换
         s/serverId/realmId/g;

@@ -17,7 +17,7 @@ import {
 
 export function AccountPanel() {
   const { t, i18n } = useTranslation('settings');
-  const user = useCurrentUser();
+  const { user } = useCurrentUser();
   const updateUser = useUpdateUser();
   const { updateUser: updateAuthUser } = useAuthStore();
 
