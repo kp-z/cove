@@ -13,7 +13,7 @@ import type { NodeRenderer, TimelineNode, NodeContext } from '../NodeRegistry';
  */
 export interface ThreadNodeData {
   thread_id: string;
-  root_message_id: string;
+  parent_message_id: string;
   title?: string;
   reply_count: number;
   last_reply_at?: string;

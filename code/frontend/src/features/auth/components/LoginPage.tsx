@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Loader2, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TRPCClientError } from '@trpc/client';
@@ -11,7 +11,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Switch } from '@/shared/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { AnimatedBorder, LoginHeroThree } from '@/shared/components/ui/animations';
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
@@ -22,24 +21,22 @@ export default function LoginPage() {
   const location = useLocation();
   const { isAuthenticated, rememberMe: storedRememberMe } = useAuthStore();
 
-  // 登录表单状态 - 使用 lazy initialization 从 localStorage 读取记住的用户名
-  const [loginUsername, setLoginUsername] = useState(() => {
+  // 视图模式：'login' 或 'register'
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+
+  // 统一表单状态
+  const [username, setUsername] = useState(() => {
     return localStorage.getItem(REMEMBERED_USERNAME_KEY) || '';
   });
-  const [loginPassword, setLoginPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMeLocal] = useState(() => {
     const rememberedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
     return rememberedUsername ? true : storedRememberMe;
   });
-  const [loginError, setLoginError] = useState('');
-
-  // 注册表单状态
-  const [registerUsername, setRegisterUsername] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerDisplayName, setRegisterDisplayName] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [registerError, setRegisterError] = useState('');
+  const [error, setError] = useState('');
 
   const loginMutation = useLogin();
   const registerMutation = useRegister();
@@ -50,88 +47,93 @@ export default function LoginPage() {
     return <Navigate to={from} replace />;
   }
 
-  function handleLoginSubmit(e: React.FormEvent) {
+  // 切换模式时清空错误和密码
+  function toggleMode() {
+    setMode(mode === 'login' ? 'register' : 'login');
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoginError('');
+    setError('');
 
-    // 保存 rememberMe 状态到 store
-    useAuthStore.setState({ rememberMe });
+    if (mode === 'login') {
+      // 登录逻辑
+      useAuthStore.setState({ rememberMe });
 
-    // 如果勾选了"记住我"，保存用户名到 localStorage
-    if (rememberMe) {
-      localStorage.setItem(REMEMBERED_USERNAME_KEY, loginUsername);
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, username);
+      } else {
+        localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+      }
+
+      loginMutation.mutate(
+        { username, password },
+        {
+          onSuccess: () => {
+            navigate(from, { replace: true });
+          },
+          onError: (err) => {
+            if (err instanceof TRPCClientError) {
+              const code = err.data?.code;
+              if (code === 'UNAUTHORIZED') {
+                setError(t('auth.invalidCredentials'));
+              } else if (code === 'FORBIDDEN') {
+                setError(t('auth.accountDisabled'));
+              } else {
+                setError(t('auth.unknownError'));
+              }
+            } else {
+              setError(t('auth.unknownError'));
+            }
+          },
+        }
+      );
     } else {
-      localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-    }
-
-    loginMutation.mutate(
-      { username: loginUsername, password: loginPassword },
-      {
-        onSuccess: () => {
-          navigate(from, { replace: true });
-        },
-        onError: (err) => {
-          if (err instanceof TRPCClientError) {
-            const code = err.data?.code;
-            if (code === 'UNAUTHORIZED') {
-              setLoginError(t('auth.invalidCredentials'));
-            } else if (code === 'FORBIDDEN') {
-              setLoginError(t('auth.accountDisabled'));
-            } else {
-              setLoginError(t('auth.unknownError'));
-            }
-          } else {
-            setLoginError(t('auth.unknownError'));
-          }
-        },
+      // 注册逻辑
+      if (password !== confirmPassword) {
+        setError(t('auth.passwordMismatch'));
+        return;
       }
-    );
+
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        setError(t('auth.invalidUsernameFormat'));
+        return;
+      }
+
+      registerMutation.mutate(
+        {
+          username,
+          email,
+          displayName,
+          password,
+        },
+        {
+          onSuccess: () => {
+            navigate(from, { replace: true });
+          },
+          onError: (err) => {
+            if (err instanceof TRPCClientError) {
+              const message = err.message;
+              if (message.includes('already exists') || message.includes('duplicate')) {
+                setError(t('auth.usernameExists'));
+              } else if (message.includes('email')) {
+                setError(t('auth.emailExists'));
+              } else {
+                setError(message || t('auth.registrationFailed'));
+              }
+            } else {
+              setError(t('auth.registrationFailed'));
+            }
+          },
+        }
+      );
+    }
   }
 
-  function handleRegisterSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setRegisterError('');
-
-    // 验证密码匹配
-    if (registerPassword !== registerConfirmPassword) {
-      setRegisterError(t('auth.passwordMismatch'));
-      return;
-    }
-
-    // 验证用户名格式
-    if (!/^[a-zA-Z0-9_]+$/.test(registerUsername)) {
-      setRegisterError(t('auth.invalidUsernameFormat'));
-      return;
-    }
-
-    registerMutation.mutate(
-      {
-        username: registerUsername,
-        email: registerEmail,
-        displayName: registerDisplayName,
-        password: registerPassword,
-      },
-      {
-        onSuccess: () => {
-          navigate(from, { replace: true });
-        },
-        onError: (err) => {
-          if (err instanceof TRPCClientError) {
-            const message = err.message;
-            if (message.includes('already exists') || message.includes('duplicate')) {
-              setRegisterError(t('auth.usernameExists'));
-            } else if (message.includes('email')) {
-              setRegisterError(t('auth.emailExists'));
-            } else {
-              setRegisterError(message || t('auth.registrationFailed'));
-            }
-          } else {
-            setRegisterError(t('auth.registrationFailed'));
-          }
-        },
-      }
-    );
-  }
+  const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
     <div className="fixed inset-0 bg-gray-950">
@@ -150,6 +152,7 @@ export default function LoginPage() {
             <AnimatedBorder />
 
             <div className="p-8">
+              {/* Header */}
               <div className="flex items-center gap-4 mb-8">
                 <img
                   src={branding.logo.svg}
@@ -158,214 +161,183 @@ export default function LoginPage() {
                 />
                 <div>
                   <h1 className="text-2xl font-bold mb-1">{branding.app.slogan}</h1>
-                  <p className="text-muted-foreground text-sm">{t('welcome.subtitle')}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {mode === 'login' ? t('welcome.subtitle') : t('auth.createAccount')}
+                  </p>
                 </div>
               </div>
 
-              <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="login">{t('auth.signIn')}</TabsTrigger>
-                  <TabsTrigger value="register">{t('auth.signUp')}</TabsTrigger>
-                </TabsList>
-
-                {/* 登录表单 */}
-                <TabsContent value="login">
-                  <motion.form
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="space-y-4"
-                    onSubmit={handleLoginSubmit}
+              {/* Form */}
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400"
                   >
-                    {loginError && (
-                      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-                        {loginError}
-                      </div>
-                    )}
+                    {error}
+                  </motion.div>
+                )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="login-username">{t('auth.username')}</Label>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={mode}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    {/* Username */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="username" className="text-sm">{t('auth.username')}</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          id="login-username"
+                          id="username"
                           type="text"
                           placeholder={t('auth.usernamePlaceholder')}
-                          value={loginUsername}
-                          onChange={(e) => setLoginUsername(e.target.value)}
-                          className="pl-10"
-                          autoComplete="username"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="login-password">{t('auth.password')}</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="login-password"
-                          type="password"
-                          placeholder={t('auth.passwordPlaceholder')}
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          className="pl-10"
-                          autoComplete="current-password"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="remember"
-                        checked={rememberMe}
-                        onCheckedChange={setRememberMeLocal}
-                      />
-                      <Label htmlFor="remember" className="text-sm">
-                        {t('auth.rememberMe')}
-                      </Label>
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                      {loginMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          {t('auth.signingIn')}
-                        </>
-                      ) : (
-                        t('auth.signIn')
-                      )}
-                    </Button>
-                  </motion.form>
-                </TabsContent>
-
-                {/* 注册表单 */}
-                <TabsContent value="register">
-                  <motion.form
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="space-y-4"
-                    onSubmit={handleRegisterSubmit}
-                  >
-                    {registerError && (
-                      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-                        {registerError}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-username">{t('auth.username')}</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="register-username"
-                          type="text"
-                          placeholder={t('auth.usernamePlaceholder')}
-                          value={registerUsername}
-                          onChange={(e) => setRegisterUsername(e.target.value)}
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
                           className="pl-10"
                           autoComplete="username"
                           minLength={3}
                           maxLength={20}
-                          pattern="[a-zA-Z0-9_]+"
-                          title={t('auth.usernameRequirements')}
+                          pattern={mode === 'register' ? '[a-zA-Z0-9_]+' : undefined}
                           required
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('auth.usernameRequirements')}
-                      </p>
+                      {mode === 'register' && (
+                        <p className="text-xs text-muted-foreground">
+                          {t('auth.usernameRequirements')}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="register-email">{t('auth.email')}</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="register-email"
-                          type="email"
-                          placeholder={t('auth.emailPlaceholder')}
-                          value={registerEmail}
-                          onChange={(e) => setRegisterEmail(e.target.value)}
-                          className="pl-10"
-                          autoComplete="email"
-                          required
-                        />
+                    {/* Email (注册时显示) */}
+                    {mode === 'register' && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-sm">{t('auth.email')}</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder={t('auth.emailPlaceholder')}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            autoComplete="email"
+                            required
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="register-displayName">{t('auth.displayName')}</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="register-displayName"
-                          type="text"
-                          placeholder={t('auth.displayNamePlaceholder')}
-                          value={registerDisplayName}
-                          onChange={(e) => setRegisterDisplayName(e.target.value)}
-                          className="pl-10"
-                          autoComplete="name"
-                          required
-                        />
+                    {/* Display Name (注册时显示) */}
+                    {mode === 'register' && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="displayName" className="text-sm">{t('auth.displayName')}</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="displayName"
+                            type="text"
+                            placeholder={t('auth.displayNamePlaceholder')}
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            className="pl-10"
+                            autoComplete="name"
+                            required
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="register-password">{t('auth.password')}</Label>
+                    {/* Password */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="password" className="text-sm">{t('auth.password')}</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          id="register-password"
+                          id="password"
                           type="password"
                           placeholder={t('auth.passwordPlaceholder')}
-                          value={registerPassword}
-                          onChange={(e) => setRegisterPassword(e.target.value)}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                           className="pl-10"
-                          autoComplete="new-password"
+                          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                           minLength={8}
                           required
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('auth.passwordRequirements')}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-confirmPassword">{t('auth.confirmPassword')}</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="register-confirmPassword"
-                          type="password"
-                          placeholder={t('auth.confirmPasswordPlaceholder')}
-                          value={registerConfirmPassword}
-                          onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                          className="pl-10"
-                          autoComplete="new-password"
-                          minLength={8}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-                      {registerMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          {t('auth.signingUp')}
-                        </>
-                      ) : (
-                        t('auth.signUp')
+                      {mode === 'register' && (
+                        <p className="text-xs text-muted-foreground">
+                          {t('auth.passwordRequirements')}
+                        </p>
                       )}
-                    </Button>
-                  </motion.form>
-                </TabsContent>
-              </Tabs>
+                    </div>
+
+                    {/* Confirm Password (注册时显示) */}
+                    {mode === 'register' && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="confirmPassword" className="text-sm">{t('auth.confirmPassword')}</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="confirmPassword"
+                            type="password"
+                            placeholder={t('auth.confirmPasswordPlaceholder')}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="pl-10"
+                            autoComplete="new-password"
+                            minLength={8}
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Remember Me (登录时显示) */}
+                    {mode === 'login' && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Switch
+                          id="remember"
+                          checked={rememberMe}
+                          onCheckedChange={setRememberMeLocal}
+                        />
+                        <Label htmlFor="remember" className="text-sm">
+                          {t('auth.rememberMe')}
+                        </Label>
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Submit Button */}
+                <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      {mode === 'login' ? t('auth.signingIn') : t('auth.signingUp')}
+                    </>
+                  ) : (
+                    mode === 'login' ? t('auth.signIn') : t('auth.signUp')
+                  )}
+                </Button>
+
+                {/* Toggle Mode Button */}
+                <div className="text-center pt-4">
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </motion.div>

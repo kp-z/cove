@@ -7,7 +7,7 @@ import { useChannelPanelStore } from '../stores/channelStore';
 import { useResizableRight } from '../hooks/useResizableRight';
 import { ChannelList } from './ChannelList';
 import { Timeline } from './Timeline';
-import { useTimelineNodes } from './Timeline/hooks/useNodeRegistry';
+import { useTimelineNodes } from './Timeline/hooks/useTimelineNodes';
 import type { TimelineNode } from './Timeline/NodeRegistry';
 import { Button } from '@/shared/components/ui/button';
 import { PageShell } from '@/shared/components/layout/PageShell';

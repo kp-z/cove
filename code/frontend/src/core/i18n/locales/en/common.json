@@ -58,6 +58,9 @@
     "emailExists": "Email already exists",
     "registrationFailed": "Registration failed. Please try again.",
     "usernameRequirements": "3-20 characters, letters, numbers, and underscores only",
-    "passwordRequirements": "At least 8 characters"
+    "passwordRequirements": "At least 8 characters",
+    "createAccount": "Create your account",
+    "noAccount": "Don't have an account? Sign up",
+    "hasAccount": "Already have an account? Sign in"
   }
 }

@@ -58,6 +58,9 @@
     "emailExists": "邮箱已被注册",
     "registrationFailed": "注册失败，请重试。",
     "usernameRequirements": "3-20个字符，仅限字母、数字和下划线",
-    "passwordRequirements": "至少8个字符"
+    "passwordRequirements": "至少8个字符",
+    "createAccount": "创建您的账户",
+    "noAccount": "没有账号？立即注册",
+    "hasAccount": "已有账号？立即登录"
   }
 }

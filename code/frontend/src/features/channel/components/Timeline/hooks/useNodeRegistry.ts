@@ -33,5 +33,3 @@ export function useNodeRegistry() {
     getRegisteredTypes: () => nodeRegistry.getRegisteredTypes(),
   };
 }
-
-export { useTimelineNodes } from './useTimelineNodes';
