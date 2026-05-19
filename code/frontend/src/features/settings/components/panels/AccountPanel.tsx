@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Upload, Check } from 'lucide-react';
 import { SettingsSection, SettingsItem } from '../common/SettingsItem';
@@ -7,7 +7,6 @@ import { useUpdateUser } from '@/lib/trpc/hooks/user.hooks';
 import { useAuthStore } from '@/core/auth/authStore';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
-import { Label } from '@/shared/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -22,27 +21,18 @@ export function AccountPanel() {
   const updateUser = useUpdateUser();
   const { updateUser: updateAuthUser } = useAuthStore();
 
-  // 表单状态
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [email, setEmail] = useState(user?.email || '');
+  // 表单状态 - 使用 lazy initialization
+  const [displayName, setDisplayName] = useState(() => user?.displayName || '');
+  const [email, setEmail] = useState(() => user?.email || '');
   const [language, setLanguage] = useState(i18n.language);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  // 同步用户数据
-  useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName);
-      setEmail(user.email);
-    }
-  }, [user]);
 
   // 检测是否有修改
-  useEffect(() => {
-    const changed =
+  const hasChanges = useMemo(() => {
+    return (
       displayName !== user?.displayName ||
       email !== user?.email ||
-      language !== i18n.language;
-    setHasChanges(changed);
+      language !== i18n.language
+    );
   }, [displayName, email, language, user, i18n.language]);
 
   // 保存个人资料
@@ -61,17 +51,23 @@ export function AccountPanel() {
         onSuccess: () => {
           // 更新本地 auth store
           updateAuthUser({ displayName, email });
-          setHasChanges(false);
         },
       }
     );
+  }
+
+  // 重置表单
+  function handleReset() {
+    if (user) {
+      setDisplayName(user.displayName);
+      setEmail(user.email);
+    }
   }
 
   // 切换语言
   function handleLanguageChange(newLanguage: string) {
     setLanguage(newLanguage);
     i18n.changeLanguage(newLanguage);
-    setHasChanges(false);
   }
 
   if (!user) {
@@ -170,11 +166,7 @@ export function AccountPanel() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setDisplayName(user.displayName);
-                setEmail(user.email);
-                setHasChanges(false);
-              }}
+              onClick={handleReset}
             >
               {t('account.cancel')}
             </Button>
