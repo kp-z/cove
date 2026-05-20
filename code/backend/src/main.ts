@@ -68,6 +68,8 @@ import { RealmService } from './application/services/realm/realm.service';
 import { DeviceService } from './application/services/device/device.service';
 import { AuthService } from './application/services/auth/auth.service';
 import { AuditService } from './application/services/audit/audit.service';
+import { AvatarService } from './application/services/avatar/avatar.service';
+import { StorageService as FileStorageService } from './application/services/storage/storage.service';
 import { FileSystemAdapterConfigStore } from './infrastructure/persistence/file-system-adapter-config-store';
 import { FileLockManager } from './application/services/lock/file-lock-manager.service';
 import { AuditLogger } from './application/services/audit/audit-logger.service';
@@ -150,6 +152,16 @@ function initializeDependencies() {
   const auditLogger = new AuditLogger(auditLogStore);
   const adapterConfigStore = new FileSystemAdapterConfigStore(coveDir, lockManager, auditLogger);
   const adapterService = new AdapterService(adapterConfigStore);
+
+  // Storage and Avatar Services
+  const fileStorageService = new FileStorageService(
+    {
+      storageRoot: coveRoot,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+    },
+    logger
+  );
+  const avatarService = new AvatarService(fileStorageService, logger);
 
   // Services (order matters — channelMessagingService first, used by channelService)
   const channelMessagingService = new ChannelMessagingService(
@@ -379,6 +391,7 @@ function initializeDependencies() {
     adapterService,
     authService,
     auditService,
+    avatarService,
     channelService,
     messageService,
     taskService,
@@ -399,6 +412,7 @@ function createStandaloneServer(deps: {
   adapterService: AdapterService;
   authService: AuthService;
   auditService: AuditService;
+  avatarService: AvatarService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -416,6 +430,7 @@ function createStandaloneServer(deps: {
     adapterService: deps.adapterService,
     authService: deps.authService,
     auditService: deps.auditService,
+    avatarService: deps.avatarService,
     channelService: deps.channelService,
     messageService: deps.messageService,
     taskService: deps.taskService,

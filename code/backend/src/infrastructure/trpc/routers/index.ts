@@ -3,6 +3,7 @@ import { createAgentRouter } from './agent.router';
 import { createAdapterRouter } from './adapter.router';
 import { createAuthRouter } from './auth.router';
 import { createAuditRouter } from './audit.router';
+import { createAvatarRouter } from './avatar.router';
 import { channelRouter } from './channel.router';
 import { messageRouter } from './message.router';
 import { taskRouter } from './task.router';
@@ -19,6 +20,7 @@ import type { AdapterService } from '../../../application/services/adapter/adapt
 import { AdapterMetadataService } from '../../../application/services/adapter/adapter-metadata.service';
 import type { AuthService } from '../../../application/services/auth/auth.service';
 import type { AuditService } from '../../../application/services/audit/audit.service';
+import type { AvatarService } from '../../../application/services/avatar/avatar.service';
 import type { ChannelService } from '../../../application/services/channel/channel.service';
 import type { MessageService } from '../../../application/services/message/message.service';
 import type { TaskService } from '../../../application/services/task/task.service';
@@ -36,6 +38,7 @@ export interface RouterDependencies {
   adapterService: AdapterService;
   authService: AuthService;
   auditService: AuditService;
+  avatarService: AvatarService;
   channelService: ChannelService;
   messageService: MessageService;
   taskService: TaskService;
@@ -65,6 +68,9 @@ export function createAppRouter(deps: RouterDependencies) {
 
     // Audit router
     audit: createAuditRouter(deps.auditService),
+
+    // Avatar router
+    avatar: createAvatarRouter(deps.avatarService),
 
     // Agent router
     agent: createAgentRouter({

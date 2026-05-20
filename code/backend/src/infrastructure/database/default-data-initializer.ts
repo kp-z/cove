@@ -109,17 +109,6 @@ export class DefaultDataInitializer {
    * 确保默认 Realm (Nexus) 存在
    */
   private async ensureDefaultRealm(): Promise<void> {
-    const existingRealm = await this.prisma.realm.findUnique({
-      where: { id: this.DEFAULT_REALM.id },
-    });
-
-    if (existingRealm) {
-      this.logger.debug('Default realm already exists', { realmId: this.DEFAULT_REALM.id });
-      return;
-    }
-
-    this.logger.info('Creating default realm (Nexus)...');
-
     const now = new Date();
 
     // Realm settings and limits (stored as JSON in database)
@@ -145,8 +134,18 @@ export class DefaultDataInitializer {
       icon: '🌐',
     };
 
-    await this.prisma.realm.create({
-      data: {
+    await this.prisma.realm.upsert({
+      where: { id: this.DEFAULT_REALM.id },
+      update: {
+        displayName: this.DEFAULT_REALM.displayName,
+        description: this.DEFAULT_REALM.description,
+        avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
+        avatarType: 'dicebear',
+        avatarSeed: 'nexus-realm',
+        avatarStyle: 'shapes',
+        updatedAt: now,
+      },
+      create: {
         id: this.DEFAULT_REALM.id,
         name: this.DEFAULT_REALM.name,
         displayName: this.DEFAULT_REALM.displayName,
@@ -157,12 +156,16 @@ export class DefaultDataInitializer {
         settings: JSON.stringify(settings),
         limits: JSON.stringify(limits),
         meta: JSON.stringify(meta),
+        avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
+        avatarType: 'dicebear',
+        avatarSeed: 'nexus-realm',
+        avatarStyle: 'shapes',
         createdAt: now,
         updatedAt: now,
       },
     });
 
-    this.logger.info('Default realm created', { realmId: this.DEFAULT_REALM.id });
+    this.logger.debug('Default realm already exists', { realmId: this.DEFAULT_REALM.id });
   }
 
   /**
@@ -232,6 +235,17 @@ export class DefaultDataInitializer {
       });
 
       if (existingChannel) {
+        // Update avatar fields for existing channels
+        await this.prisma.channel.update({
+          where: { id: channelConfig.id },
+          data: {
+            avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
+            avatarType: 'dicebear',
+            avatarSeed: channelConfig.name,
+            avatarStyle: 'initials',
+            updatedAt: now,
+          },
+        });
         this.logger.debug('Channel already exists', { channelId: channelConfig.id });
         continue;
       }
@@ -272,6 +286,10 @@ export class DefaultDataInitializer {
           metaTags: JSON.stringify([]),
           createdById: 'system',
           createdByType: 'system',
+          avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
+          avatarType: 'dicebear',
+          avatarSeed: channelConfig.name,
+          avatarStyle: 'initials',
           memberCount: memberData.length,
           messageCount: 0,
           createdAt: now,

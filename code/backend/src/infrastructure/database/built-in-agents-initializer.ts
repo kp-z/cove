@@ -64,6 +64,10 @@ export class BuiltInAgentsInitializer {
       update: {
         displayName: config.displayName,
         status: 'idle',
+        avatarUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${config.name}-agent`,
+        avatarType: 'dicebear',
+        avatarSeed: `${config.name}-agent`,
+        avatarStyle: 'bottts',
         // Don't update scope - keep it as built-in
       },
       create: {
@@ -74,6 +78,10 @@ export class BuiltInAgentsInitializer {
         scope: 'built-in', // Mark as built-in
         projectIds: '[]',
         configPath: `storage/agents/${config.id}`, // Point to the agent directory
+        avatarUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${config.name}-agent`,
+        avatarType: 'dicebear',
+        avatarSeed: `${config.name}-agent`,
+        avatarStyle: 'bottts',
         createdBy: 'system',
         createdAt: new Date(),
       },
@@ -84,6 +92,10 @@ export class BuiltInAgentsInitializer {
     // 2. Create agent directory structure
     const agentDir = path.join(this.storageRoot, 'storage', 'agents', config.id);
     await fs.mkdir(agentDir, { recursive: true });
+    await fs.mkdir(path.join(agentDir, 'memory'), { recursive: true });
+    await fs.mkdir(path.join(agentDir, 'config'), { recursive: true });
+    await fs.mkdir(path.join(agentDir, 'workspace'), { recursive: true });
+    await fs.mkdir(path.join(agentDir, 'assets'), { recursive: true });
 
     // 3. Create persona.yaml
     const personaPath = path.join(agentDir, 'persona.yaml');
@@ -93,7 +105,26 @@ export class BuiltInAgentsInitializer {
       'utf-8'
     );
 
-    // 4. Create agent.json metadata
+    // 4. Create agent.md
+    const agentMdPath = path.join(agentDir, 'agent.md');
+    const agentMdContent = `# ${config.displayName}
+
+**Name**: ${config.name}
+**Role**: ${config.role}
+**Description**: ${config.description}
+
+## Capabilities
+${config.capabilities.map(cap => `- ${cap}`).join('\n')}
+
+## Tags
+${config.tags.join(', ')}
+
+---
+*This is a built-in agent managed by the system.*
+`;
+    await fs.writeFile(agentMdPath, agentMdContent, 'utf-8');
+
+    // 5. Create agent.json metadata
     const metadataPath = path.join(this.storageRoot, 'storage', 'agents', `${config.id}.json`);
     const metadata = {
       description: config.description,
@@ -109,7 +140,7 @@ export class BuiltInAgentsInitializer {
       'utf-8'
     );
 
-    // 5. Create runtime.yaml if it doesn't exist (don't overwrite user customizations)
+    // 6. Create runtime.yaml if it doesn't exist (don't overwrite user customizations)
     const runtimePath = path.join(agentDir, 'runtime.yaml');
     try {
       await fs.access(runtimePath);

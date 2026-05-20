@@ -27,6 +27,10 @@ model User {
   lastLoginAt   DateTime? // 最后登录时间
   failedLoginAttempts Int @default(0) // 登录失败次数
   lockedUntil   DateTime? // 账号锁定到期时间
+  avatarUrl     String?  // 头像 URL（上传的文件路径或外部 URL）
+  avatarType    String   @default("dicebear") // uploaded | dicebear | default
+  avatarSeed    String?  // DiceBear 种子（用于生成一致的头像）
+  avatarStyle   String?  @default("avataaars") // DiceBear 风格
   createdAt     DateTime
   updatedAt     DateTime
 
@@ -83,6 +87,10 @@ model Channel {
   metaCategory  String?  // 频道分类
   createdById   String   @default("system") // 创建者 ID
   createdByType String   @default("system") // 创建者类型 (user | agent | system)
+  avatarUrl     String?  // 头像 URL（上传的文件路径或外部 URL）
+  avatarType    String   @default("dicebear") // uploaded | dicebear | default
+  avatarSeed    String?  // DiceBear 种子（用于生成一致的头像）
+  avatarStyle   String?  @default("initials") // DiceBear 风格
   messageCount  Int      @default(0)
   memberCount   Int      @default(0)
   createdAt     DateTime
@@ -212,6 +220,10 @@ model Agent {
   scope       String   @default("user") // built-in | user | project | admin
   projectIds  String   @default("[]") // JSON array of project IDs
   configPath  String   // 指向 .cove/storage/agents/{id}.json
+  avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
+  avatarType  String   @default("dicebear") // uploaded | dicebear | default
+  avatarSeed  String?  // DiceBear 种子（用于生成一致的头像）
+  avatarStyle String?  @default("bottts") // DiceBear 风格
   createdBy   String   @default("system")
   createdAt   DateTime
 
@@ -275,6 +287,10 @@ model Realm {
   settings    String   // JSON: { allow_invites, require_approval, default_channel_id }
   limits      String   // JSON: { max_members, max_channels, max_agents }
   meta        String?  // JSON: { tags, icon, banner }
+  avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
+  avatarType  String   @default("dicebear") // uploaded | dicebear | default
+  avatarSeed  String?  // DiceBear 种子（用于生成一致的头像）
+  avatarStyle String?  @default("shapes") // DiceBear 风格
   createdAt   DateTime
   updatedAt   DateTime
 
