@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Capsule } from '@/shared/components/ui/Capsule';
-import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 export interface TokenUsageData {
   model?: string;
@@ -124,28 +123,20 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
   );
 
   return (
-    <CapsuleTooltip
-      content={
-        <div className="min-w-[210px]">
-          {tooltipBody}
+    <Capsule interactive={false}>
+      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+      <span className="text-[12px] font-medium text-white/80 leading-none">
+        {displayModelStr ?? '-- / --'}
+      </span>
+      {hasData && (
+        <div className="w-9 h-[2px] rounded-full bg-white/[0.10] overflow-hidden flex-shrink-0">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r ${fillClass} transition-[width] duration-500`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+          />
         </div>
-      }
-    >
-      <Capsule interactive={false}>
-        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
-        <span className="text-[12px] font-medium text-white/80 leading-none">
-          {displayModelStr ?? '-- / --'}
-        </span>
-        {hasData && (
-          <div className="w-9 h-[2px] rounded-full bg-white/[0.10] overflow-hidden flex-shrink-0">
-            <div
-              className={`h-full rounded-full bg-gradient-to-r ${fillClass} transition-[width] duration-500`}
-              style={{ width: `${Math.min(pct, 100)}%` }}
-            />
-          </div>
-        )}
-      </Capsule>
-    </CapsuleTooltip>
+      )}
+    </Capsule>
   );
 });
 

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Bot, Loader2, MessagesSquare } from 'lucide-react';
-import * as Popover from '@radix-ui/react-popover';
 import { useTranslation } from 'react-i18next';
 import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
 import { Capsule } from '@/shared/components/ui/Capsule';
-import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
+import { Popover } from '@/shared/components/ui/Popover';
 
 interface AgentRunCapsuleProps {
   runningCount?: number;
@@ -16,47 +15,34 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
   const hasRunning = runningCount > 0;
   const { openChannel } = useChannelPanelStore();
 
-  const tooltipContent = hasRunning
-    ? t('agentRun.tooltipRunning', { count: runningCount })
-    : t('agentRun.tooltipIdle');
-
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <CapsuleTooltip content={tooltipContent}>
-        <Popover.Trigger asChild>
-          <Capsule
-            variant={hasRunning ? 'active' : 'default'}
-            isExpanded={open}
-            ariaLabel={
-              hasRunning ? t('agentRun.ariaRunning', { count: runningCount }) : t('agentRun.ariaIdle')
-            }
-            title={hasRunning ? t('agentRun.titleRunning', { count: runningCount }) : t('agentRun.titleIdle')}
-            minWidth="min-w-8"
-            gap="gap-1.5"
-            padding="px-2"
-            justify="center"
-            pulseEffect={hasRunning}
-          >
-            {hasRunning ? (
-              <div className="flex items-center gap-1.5 relative z-10">
-                <Loader2 size={12} className="text-blue-300 shrink-0 animate-spin" />
-              </div>
-            ) : (
-              <Bot size={14} className="text-white/55 shrink-0 relative z-10" />
-            )}
-          </Capsule>
-        </Popover.Trigger>
-      </CapsuleTooltip>
-
-      <Popover.Portal>
-        <Popover.Content
-          align="end"
-          side="bottom"
-          sideOffset={8}
-          className="bg-[#111114] border border-white/[0.10] rounded-xl p-0 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[300px] max-w-[min(380px,92vw)] w-[min(380px,92vw)] z-50 outline-none"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+    <Popover open={open} onOpenChange={setOpen}>
+      <Popover.Trigger>
+        <Capsule
+          variant={hasRunning ? 'active' : 'default'}
+          isExpanded={open}
+          ariaLabel={
+            hasRunning ? t('agentRun.ariaRunning', { count: runningCount }) : t('agentRun.ariaIdle')
+          }
+          title={hasRunning ? t('agentRun.titleRunning', { count: runningCount }) : t('agentRun.titleIdle')}
+          minWidth="min-w-8"
+          gap="gap-1.5"
+          padding="px-2"
+          justify="center"
+          pulseEffect={hasRunning}
         >
-          <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2 min-w-0">
+          {hasRunning ? (
+            <div className="flex items-center gap-1.5 relative z-10">
+              <Loader2 size={12} className="text-blue-300 shrink-0 animate-spin" />
+            </div>
+          ) : (
+            <Bot size={14} className="text-white/55 shrink-0 relative z-10" />
+          )}
+        </Capsule>
+      </Popover.Trigger>
+
+      <Popover.Content align="end" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2 min-w-0">
             <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto">
               <span className="text-[10px] text-white/35 shrink-0">{t('agentRun.quickAgents')}</span>
             </div>
@@ -90,11 +76,8 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
               <p className="text-[11px] text-white/45 py-2">{t('agentRun.noRecords')}</p>
             </section>
           </div>
-
-          <Popover.Arrow className="fill-white/10" />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+      </Popover.Content>
+    </Popover>
   );
 });
 

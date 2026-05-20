@@ -23,7 +23,7 @@ export function createContext(opts: CreateContextOptions) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-user-type, x-server-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-user-type, x-realm-id');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     // Handle OPTIONS preflight
@@ -40,8 +40,8 @@ export function createContext(opts: CreateContextOptions) {
       };
     }
 
-    // Extract server ID from headers
-    const realmId = req.headers['x-server-id'] as string | undefined;
+    // Extract realm ID from headers
+    const realmId = req.headers['x-realm-id'] as string | undefined;
 
     // Try to authenticate via JWT token first
     const authHeader = req.headers['authorization'] as string | undefined;

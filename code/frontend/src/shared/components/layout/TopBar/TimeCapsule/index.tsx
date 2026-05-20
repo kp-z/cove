@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { Capsule } from '@/shared/components/ui/Capsule';
-import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 function formatClock(d: Date): string {
   const hh = d.getHours().toString().padStart(2, '0');
@@ -43,17 +42,15 @@ export const TimeCapsule = React.memo(({ lang = 'zh' }: TimeCapsuleProps) => {
   }, []);
 
   return (
-    <CapsuleTooltip content={formatFull(now, lang)}>
-      <Capsule
-        ariaLabel={formatFull(now, lang)}
-        interactive={false}
-      >
-        <Clock size={14} className="text-white/50 shrink-0" />
-        <span className="text-[12px] font-medium text-white/80 tabular-nums leading-none">
-          {formatClock(now)}
-        </span>
-      </Capsule>
-    </CapsuleTooltip>
+    <Capsule
+      ariaLabel={formatFull(now, lang)}
+      interactive={false}
+    >
+      <Clock size={14} className="text-white/50 shrink-0" />
+      <span className="text-[12px] font-medium text-white/80 tabular-nums leading-none">
+        {formatClock(now)}
+      </span>
+    </Capsule>
   );
 });
 

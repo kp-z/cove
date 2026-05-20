@@ -40,7 +40,7 @@ function UserAvatar({ user, className = '', showRing = false }: UserAvatarProps)
 
   return (
     <div
-      className={`${className} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold ${showRing ? 'ring-1 ring-white/10' : ''}`}
+      className={`${className} rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white font-semibold ${showRing ? 'ring-1 ring-white/10' : ''}`}
     >
       {initial}
     </div>

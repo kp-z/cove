@@ -22,6 +22,7 @@ interface TaskDbRecord {
 interface TaskContent {
   taskType: TaskType;
   taskNumber?: number;
+  krId?: string;
   sourceMessageId?: string;
   assignee?: any;
   dependsOn?: string[];
@@ -45,7 +46,7 @@ export class HybridTaskRepository
       status: dbRecord.status as TaskStatus,
       channelId: dbRecord.channelId,
       projectId: dbRecord.projectId,
-      krId: undefined,
+      krId: content.krId,
       taskNumber: content.taskNumber,
       sourceMessageId: content.sourceMessageId,
       assignee: content.assignee ? AssigneeRef.fromJSON(content.assignee) : undefined,
@@ -76,6 +77,7 @@ export class HybridTaskRepository
     return {
       taskType: entity.taskType,
       taskNumber: entity.taskNumber,
+      krId: entity.krId,
       sourceMessageId: entity.sourceMessageId,
       assignee: entity.assignee?.toJSON(),
       dependsOn: entity.dependsOn ? [...entity.dependsOn] : undefined,

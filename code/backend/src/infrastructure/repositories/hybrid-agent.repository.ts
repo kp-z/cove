@@ -131,6 +131,146 @@ export class HybridAgentRepository
     };
   }
 
+  /**
+   * Override saveEntity to create directory structure instead of single JSON file
+   */
+  protected async saveEntity(entity: AgentEntity, _realmId: string): Promise<void> {
+    const entityId = this.getEntityId(entity);
+    const entityType = this.getEntityType();
+
+    try {
+      // 1. Create directory structure
+      const agentDir = path.join(
+        CovePathResolver.getCoveRoot(this.coveRoot),
+        'storage',
+        entityType,
+        entityId
+      );
+      await fs.mkdir(agentDir, { recursive: true });
+      await fs.mkdir(path.join(agentDir, 'config'), { recursive: true });
+
+      // 2. Write agent.md
+      const content = this.toStorage(entity);
+      const agentMd = this.generateAgentMd(entity, content);
+      await fs.writeFile(path.join(agentDir, 'agent.md'), agentMd, 'utf-8');
+
+      // 3. Write YAML configs if they exist
+      if (content.runtimeConfig) {
+        await this.writeYamlAtomic(agentDir, 'runtime.yaml', content.runtimeConfig);
+      }
+      if (content.persona) {
+        await this.writeYamlAtomic(agentDir, 'persona.yaml', content.persona);
+      }
+      if (content.skills) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'skills.yaml', content.skills);
+      }
+      if (content.tools) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'tools.yaml', content.tools);
+      }
+      if (content.triggers) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'triggers.yaml', content.triggers);
+      }
+
+      // 4. Save to database with relative path
+      const relativePath = path.join('storage', entityType, entityId);
+      const dbRecord = this.toDatabase(entity);
+      await this.saveToDatabase(dbRecord, relativePath);
+
+      this.logger.info(`Saved agent ${entityId} to directory structure`);
+    } catch (error) {
+      this.logger.error(`Failed to save agent ${entityId}:`, error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  /**
+   * Override updateEntity to update directory structure
+   */
+  protected async updateEntity(entity: AgentEntity, _realmId: string): Promise<void> {
+    const entityId = this.getEntityId(entity);
+    const entityType = this.getEntityType();
+
+    try {
+      // 1. Update directory structure (same as save)
+      const agentDir = path.join(
+        CovePathResolver.getCoveRoot(this.coveRoot),
+        'storage',
+        entityType,
+        entityId
+      );
+      await fs.mkdir(agentDir, { recursive: true });
+      await fs.mkdir(path.join(agentDir, 'config'), { recursive: true });
+
+      // 2. Write agent.md
+      const content = this.toStorage(entity);
+      const agentMd = this.generateAgentMd(entity, content);
+      await fs.writeFile(path.join(agentDir, 'agent.md'), agentMd, 'utf-8');
+
+      // 3. Write YAML configs if they exist
+      if (content.runtimeConfig) {
+        await this.writeYamlAtomic(agentDir, 'runtime.yaml', content.runtimeConfig);
+      }
+      if (content.persona) {
+        await this.writeYamlAtomic(agentDir, 'persona.yaml', content.persona);
+      }
+      if (content.skills) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'skills.yaml', content.skills);
+      }
+      if (content.tools) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'tools.yaml', content.tools);
+      }
+      if (content.triggers) {
+        await this.writeYamlAtomic(path.join(agentDir, 'config'), 'triggers.yaml', content.triggers);
+      }
+
+      // 4. Update database
+      const relativePath = path.join('storage', entityType, entityId);
+      const dbRecord = this.toDatabase(entity);
+      await this.updateInDatabase(entityId, dbRecord, relativePath);
+
+      this.logger.info(`Updated agent ${entityId} directory structure`);
+    } catch (error) {
+      this.logger.error(`Failed to update agent ${entityId}:`, error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
+  /**
+   * Generate agent.md content from entity
+   */
+  private generateAgentMd(entity: AgentEntity, content: AgentContent): string {
+    const lines: string[] = [];
+
+    lines.push(`# ${entity.displayName}`);
+    lines.push('');
+
+    if (content.description) {
+      lines.push(content.description);
+      lines.push('');
+    }
+
+    if (content.capabilities && content.capabilities.length > 0) {
+      lines.push('## Capabilities');
+      lines.push('');
+      content.capabilities.forEach(cap => lines.push(`- ${cap}`));
+      lines.push('');
+    }
+
+    if (content.tags && content.tags.length > 0) {
+      lines.push('## Tags');
+      lines.push('');
+      content.tags.forEach(tag => lines.push(`- ${tag}`));
+      lines.push('');
+    }
+
+    lines.push('## Metadata');
+    lines.push('');
+    lines.push(`**Created By**: ${content.createdBy}`);
+    lines.push('');
+
+    return lines.join('\n');
+  }
+
   protected async saveToDatabase(
     dbRecord: AgentDbRecord,
     contentPath: string
@@ -178,11 +318,7 @@ export class HybridAgentRepository
    * 所有 agents 都使用目录结构：agent.md + YAML 文件
    */
   private async loadAgentContent(configPath: string): Promise<AgentContent> {
-    const fullPath = path.join(
-      CovePathResolver.getCoveRoot(this.coveRoot),
-      configPath
-    );
-
+    const fullPath = path.join(this.coveRoot, configPath);
     return await this.loadFromDirectory(fullPath);
   }
 
