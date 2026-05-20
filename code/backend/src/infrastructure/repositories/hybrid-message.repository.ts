@@ -69,7 +69,7 @@ export class HybridMessageRepository
       isThreadRoot: dbRecord.isThreadRoot,
       content: content.content,
       contentType: dbRecord.contentType as 'text' | 'markdown' | 'code' | 'image' | 'file' | 'combination',
-      contentFormat: content.contentFormat as 'plain' | 'markdown' | 'html',
+      contentFormat: (content.contentFormat || (content as any).format) as 'plain' | 'markdown' | 'html',
       attachments: content.attachments || [],
       mentions: content.mentions || [],
       references: content.references || [],

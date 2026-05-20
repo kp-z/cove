@@ -64,10 +64,8 @@ export class BuiltInAgentsInitializer {
       update: {
         displayName: config.displayName,
         status: 'idle',
-        avatarUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${config.name}-agent`,
-        avatarType: 'dicebear',
-        avatarSeed: `${config.name}-agent`,
-        avatarStyle: 'bottts',
+        avatarUrl: 'storage/avatars/presets/preset-4.svg',
+        avatarType: 'preset',
         // Don't update scope - keep it as built-in
       },
       create: {
@@ -78,10 +76,8 @@ export class BuiltInAgentsInitializer {
         scope: 'built-in', // Mark as built-in
         projectIds: '[]',
         configPath: `storage/agents/${config.id}`, // Point to the agent directory
-        avatarUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${config.name}-agent`,
-        avatarType: 'dicebear',
-        avatarSeed: `${config.name}-agent`,
-        avatarStyle: 'bottts',
+        avatarUrl: 'storage/avatars/presets/preset-4.svg',
+        avatarType: 'preset',
         createdBy: 'system',
         createdAt: new Date(),
       },

@@ -56,8 +56,16 @@
       "email": "Email",
       "emailDescription": "Your email address",
       "avatar": "Avatar",
-      "avatarDescription": "Upload a profile picture",
-      "uploadAvatar": "Upload Image"
+      "avatarDescription": "Upload a profile picture or choose a generated avatar",
+      "uploadAvatar": "Upload Image",
+      "chooseStyle": "Choose Style",
+      "randomAvatar": "Random",
+      "deleteAvatar": "Remove",
+      "selectAvatarStyle": "Select Avatar Style",
+      "selectAvatarStyleDescription": "Choose a style for your generated avatar",
+      "avatarTooLarge": "Image file is too large. Maximum size is 2MB.",
+      "avatarInvalidType": "Invalid file type. Please upload PNG, JPEG, or WebP images.",
+      "confirmDeleteAvatar": "Are you sure you want to remove your avatar?"
     },
     "preferences": {
       "title": "Preferences",

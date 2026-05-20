@@ -28,6 +28,8 @@ const HistoryPage = lazy(() => import('@/features/history/components/HistoryPage
 const LoginPage = lazy(() => import('@/features/auth/components/LoginPage'));
 // eslint-disable-next-line react-refresh/only-export-components
 const SettingsPage = lazy(() => import('@/features/settings/components/SettingsPage'));
+// eslint-disable-next-line react-refresh/only-export-components
+const RealmCreatePage = lazy(() => import('@/features/realm/components/RealmCreatePage'));
 
 export const router = createBrowserRouter([
   {
@@ -105,6 +107,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'realm/create',
+        element: <RealmCreatePage />,
       },
     ],
   },

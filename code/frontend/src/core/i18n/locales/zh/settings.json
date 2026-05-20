@@ -56,8 +56,16 @@
       "email": "邮箱",
       "emailDescription": "您的邮箱地址",
       "avatar": "头像",
-      "avatarDescription": "上传个人头像",
-      "uploadAvatar": "上传图片"
+      "avatarDescription": "上传个人头像或选择生成的头像",
+      "uploadAvatar": "上传图片",
+      "chooseStyle": "选择风格",
+      "randomAvatar": "随机生成",
+      "deleteAvatar": "移除",
+      "selectAvatarStyle": "选择头像风格",
+      "selectAvatarStyleDescription": "为您的生成头像选择一个风格",
+      "avatarTooLarge": "图片文件过大，最大支持 2MB。",
+      "avatarInvalidType": "无效的文件类型，请上传 PNG、JPEG 或 WebP 格式的图片。",
+      "confirmDeleteAvatar": "确定要移除您的头像吗？"
     },
     "preferences": {
       "title": "偏好设置",

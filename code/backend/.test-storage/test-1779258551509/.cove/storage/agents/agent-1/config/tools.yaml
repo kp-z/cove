@@ -1,0 +1,5 @@
+enabled:
+  - tool-1
+  - tool-2
+disabled:
+  - tool-3

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Upload, Check } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { SettingsSection, SettingsItem } from '../common/SettingsItem';
 import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { useUpdateUser } from '@/lib/trpc/hooks/user.hooks';
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import { AvatarSelector } from '../AvatarSelector';
 
 export function AccountPanel() {
   const { t, i18n } = useTranslation('settings');
@@ -25,15 +26,17 @@ export function AccountPanel() {
   const [displayName, setDisplayName] = useState(() => user?.displayName || '');
   const [email, setEmail] = useState(() => user?.email || '');
   const [language, setLanguage] = useState(i18n.language);
+  const [avatar, setAvatar] = useState(() => user?.avatar || '');
 
   // 检测是否有修改
   const hasChanges = useMemo(() => {
     return (
       displayName !== user?.displayName ||
       email !== user?.email ||
-      language !== i18n.language
+      language !== i18n.language ||
+      avatar !== user?.avatar
     );
-  }, [displayName, email, language, user, i18n.language]);
+  }, [displayName, email, language, avatar, user, i18n.language]);
 
   // 保存个人资料
   function handleSaveProfile() {
@@ -61,7 +64,15 @@ export function AccountPanel() {
     if (user) {
       setDisplayName(user.displayName);
       setEmail(user.email);
+      setAvatar(user.avatar || '');
     }
+  }
+
+  // 头像变更回调
+  function handleAvatarChange(newAvatarUrl: string) {
+    setAvatar(newAvatarUrl);
+    // 立即更新 auth store 中的头像
+    updateAuthUser({ avatar: newAvatarUrl });
   }
 
   // 切换语言
@@ -129,19 +140,11 @@ export function AccountPanel() {
           label={t('account.profile.avatar')}
           description={t('account.profile.avatarDescription')}
         >
-          <div className="flex items-center gap-4">
-            {user.avatar && (
-              <img
-                src={user.avatar}
-                alt={user.displayName}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            )}
-            <Button variant="outline" size="sm" disabled>
-              <Upload className="w-4 h-4 mr-2" />
-              {t('account.profile.uploadAvatar')}
-            </Button>
-          </div>
+          <AvatarSelector
+            entityType="user"
+            entityId={user.id}
+            currentAvatar={avatar}
+          />
         </SettingsItem>
 
         {hasChanges && (

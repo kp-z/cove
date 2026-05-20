@@ -1,0 +1,13 @@
+{
+  "description": "A test agent",
+  "capabilities": [
+    "coding",
+    "testing"
+  ],
+  "tags": [
+    "backend",
+    "typescript"
+  ],
+  "createdBy": "user-1",
+  "_realm_id": "realm-1"
+}

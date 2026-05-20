@@ -1,0 +1,10 @@
+{
+  "taskType": "single_agent",
+  "taskNumber": 1,
+  "dependsOn": [],
+  "createdBy": {
+    "id": "user-1",
+    "type": "human"
+  },
+  "_realm_id": "realm-1"
+}

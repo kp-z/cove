@@ -71,10 +71,11 @@ export const trpcClient = trpc.createClient({
         headers() {
           const token = getAuthToken();
           const { userId } = getCurrentUser();
+          const realmId = useAuthStore.getState().currentRealmId;
           return {
             authorization: token ? `Bearer ${token}` : '',
             'x-user-id': userId || '',
-            'x-realm-id': 'realm-nexus',
+            'x-realm-id': realmId,
           };
         },
       }),

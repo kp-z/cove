@@ -20,10 +20,12 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   rememberMe: boolean;
+  currentRealmId: string;
 
   login: (user: User, token: string, rememberMe?: boolean) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
+  setCurrentRealmId: (realmId: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,6 +35,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       rememberMe: true,
+      currentRealmId: 'realm-nexus', // Default realm
 
       login: (user, token, rememberMe = true) => {
         if (rememberMe) {
@@ -60,6 +63,10 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...userData } : null,
         }));
+      },
+
+      setCurrentRealmId: (realmId) => {
+        set({ currentRealmId: realmId });
       },
     }),
     {

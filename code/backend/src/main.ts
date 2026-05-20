@@ -6,6 +6,8 @@ import { WebSocketServer as WSServer } from 'ws';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { createReadStream, stat } from 'fs';
+import { promisify } from 'util';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +36,7 @@ import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-a
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
 import { DatabaseInitializer } from './infrastructure/database/database-initializer';
+import { PresetAvatarsInitializer } from './application/services/avatar/preset-avatars-initializer';
 
 // Application Layer Services
 import { MessageService } from './application/services/message/message.service';
@@ -460,7 +463,7 @@ function createStandaloneServer(deps: {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-trpc-source',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-trpc-source, x-realm-id',
           'Access-Control-Max-Age': '86400',
         });
         res.end();
@@ -470,7 +473,7 @@ function createStandaloneServer(deps: {
       // Set CORS headers for all responses
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-trpc-source');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-trpc-source, x-realm-id');
 
       // Handle API documentation endpoint
       if (req.url?.startsWith('/docs') && req.method === 'GET') {
@@ -513,6 +516,100 @@ function createStandaloneServer(deps: {
           uptime: process.uptime(),
         }));
         return;
+      }
+
+      // Handle static file serving for /storage/*
+      if (req.url?.startsWith('/storage/') && req.method === 'GET') {
+        const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
+        const relativePath = req.url.substring(9); // Remove '/storage/'
+        const filePath = path.join(coveRoot, 'storage', relativePath);
+
+        // Security check: prevent directory traversal
+        const normalizedPath = path.normalize(filePath);
+        const storageRoot = path.join(coveRoot, 'storage');
+        if (!normalizedPath.startsWith(storageRoot)) {
+          res.writeHead(403, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({
+            error: 'Forbidden',
+            message: 'Access denied',
+          }));
+          return;
+        }
+
+        // Check if file exists
+        const statAsync = promisify(stat);
+        try {
+          const stats = await statAsync(filePath);
+
+          if (!stats.isFile()) {
+            res.writeHead(404, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify({
+              error: 'Not Found',
+              message: 'File not found',
+            }));
+            return;
+          }
+
+          // Determine content type based on file extension
+          const ext = path.extname(filePath).toLowerCase();
+          const contentTypeMap: Record<string, string> = {
+            '.svg': 'image/svg+xml',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.ico': 'image/x-icon',
+            '.json': 'application/json',
+            '.txt': 'text/plain',
+          };
+          const contentType = contentTypeMap[ext] || 'application/octet-stream';
+
+          // Set cache headers for static assets
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=31536000', // 1 year
+            'Content-Length': stats.size,
+          });
+
+          // Stream file to response
+          const fileStream = createReadStream(filePath);
+          fileStream.pipe(res);
+
+          fileStream.on('error', (error) => {
+            deps.logger.error('File stream error', error);
+            if (!res.headersSent) {
+              res.writeHead(500, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              });
+              res.end(JSON.stringify({
+                error: 'Internal Server Error',
+                message: 'Failed to read file',
+              }));
+            }
+          });
+
+          return;
+        } catch (error) {
+          // File doesn't exist or other error
+          res.writeHead(404, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({
+            error: 'Not Found',
+            message: 'File not found',
+          }));
+          return;
+        }
       }
 
       // Handle tRPC requests
@@ -586,6 +683,14 @@ async function startServer() {
     });
 
     await dbInitializer.initialize();
+
+    // Initialize preset avatars
+    logger.info('Initializing preset avatars...');
+    const presetAvatarsInitializer = new PresetAvatarsInitializer({
+      storageRoot: coveRoot,
+      logger,
+    });
+    await presetAvatarsInitializer.initialize();
 
     const deps = initializeDependencies();
 

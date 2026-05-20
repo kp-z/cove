@@ -55,6 +55,8 @@ export interface RealmEntityProps {
   readonly owner_id: string;
   readonly status: RealmStatus;
   readonly visibility: RealmVisibility;
+  readonly avatarUrl?: string;
+  readonly avatarType?: string;
   readonly settings: RealmSettings;
   readonly limits: RealmLimits;
   readonly created_at: Date;
@@ -77,6 +79,8 @@ export interface RealmEntityJSON {
   readonly owner_id: string;
   readonly status: RealmStatus;
   readonly visibility: RealmVisibility;
+  readonly avatarUrl?: string;
+  readonly avatarType?: string;
   readonly settings: {
     readonly allow_public_channels: boolean;
     readonly allow_private_channels: boolean;
@@ -119,6 +123,8 @@ export class RealmEntity {
       owner_id: json.owner_id,
       status: json.status,
       visibility: json.visibility,
+      avatarUrl: json.avatarUrl,
+      avatarType: json.avatarType,
       settings: json.settings,
       limits: json.limits,
       created_at: new Date(json.created_at),
@@ -196,6 +202,8 @@ export class RealmEntity {
   get owner_id(): string { return this.props.owner_id; }
   get status(): RealmStatus { return this.props.status; }
   get visibility(): RealmVisibility { return this.props.visibility; }
+  get avatarUrl(): string | undefined { return this.props.avatarUrl; }
+  get avatarType(): string | undefined { return this.props.avatarType; }
   get settings(): RealmSettings { return this.props.settings; }
   get limits(): RealmLimits { return this.props.limits; }
   get created_at(): Date { return this.props.created_at; }
@@ -373,6 +381,15 @@ export class RealmEntity {
     });
   }
 
+  updateAvatar(avatarUrl: string | undefined, avatarType: string | undefined): RealmEntity {
+    return RealmEntity.create({
+      ...this.props,
+      avatarUrl,
+      avatarType,
+      updated_at: new Date(),
+    });
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: RealmEntity): boolean {
@@ -390,6 +407,8 @@ export class RealmEntity {
       owner_id: this.props.owner_id,
       status: this.props.status,
       visibility: this.props.visibility,
+      avatarUrl: this.props.avatarUrl,
+      avatarType: this.props.avatarType,
       settings: this.props.settings,
       limits: this.props.limits,
       created_at: this.props.created_at.toISOString(),

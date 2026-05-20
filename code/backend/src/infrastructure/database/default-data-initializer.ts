@@ -131,7 +131,6 @@ export class DefaultDataInitializer {
 
     const meta = {
       tags: ['platform', 'default'],
-      icon: '🌐',
     };
 
     await this.prisma.realm.upsert({
@@ -139,10 +138,8 @@ export class DefaultDataInitializer {
       update: {
         displayName: this.DEFAULT_REALM.displayName,
         description: this.DEFAULT_REALM.description,
-        avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
-        avatarType: 'dicebear',
-        avatarSeed: 'nexus-realm',
-        avatarStyle: 'shapes',
+        avatarUrl: 'storage/avatars/system/nexus-logo.svg',
+        avatarType: 'uploaded',
         updatedAt: now,
       },
       create: {
@@ -156,10 +153,8 @@ export class DefaultDataInitializer {
         settings: JSON.stringify(settings),
         limits: JSON.stringify(limits),
         meta: JSON.stringify(meta),
-        avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
-        avatarType: 'dicebear',
-        avatarSeed: 'nexus-realm',
-        avatarStyle: 'shapes',
+        avatarUrl: 'storage/avatars/system/nexus-logo.svg',
+        avatarType: 'uploaded',
         createdAt: now,
         updatedAt: now,
       },
@@ -239,10 +234,8 @@ export class DefaultDataInitializer {
         await this.prisma.channel.update({
           where: { id: channelConfig.id },
           data: {
-            avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-            avatarType: 'dicebear',
-            avatarSeed: channelConfig.name,
-            avatarStyle: 'initials',
+            avatarUrl: `storage/avatars/presets/preset-${channelConfig.name === 'general' ? '2' : '3'}.svg`,
+            avatarType: 'preset',
             updatedAt: now,
           },
         });
@@ -286,10 +279,8 @@ export class DefaultDataInitializer {
           metaTags: JSON.stringify([]),
           createdById: 'system',
           createdByType: 'system',
-          avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-          avatarType: 'dicebear',
-          avatarSeed: channelConfig.name,
-          avatarStyle: 'initials',
+          avatarUrl: `storage/avatars/presets/preset-${channelConfig.name === 'general' ? '2' : '3'}.svg`,
+          avatarType: 'preset',
           memberCount: memberData.length,
           messageCount: 0,
           createdAt: now,

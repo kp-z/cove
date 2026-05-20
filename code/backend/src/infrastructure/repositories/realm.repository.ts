@@ -19,6 +19,8 @@ interface RealmDbRecord {
   ownerId: string;
   status: string;
   visibility: string;
+  avatarUrl: string | null;
+  avatarType: string;
   settings: string;
   limits: string;
   meta: string | null;
@@ -45,6 +47,8 @@ export class RealmRepository implements IRealmRepository {
       owner_id: dbRecord.ownerId,
       status: dbRecord.status as RealmStatus,
       visibility: dbRecord.visibility as RealmVisibility,
+      avatarUrl: dbRecord.avatarUrl || undefined,
+      avatarType: dbRecord.avatarType || undefined,
       settings,
       limits,
       meta,
@@ -62,6 +66,8 @@ export class RealmRepository implements IRealmRepository {
       ownerId: entity.owner_id,
       status: entity.status,
       visibility: entity.visibility,
+      avatarUrl: entity.avatarUrl || null,
+      avatarType: entity.avatarType || 'preset',
       settings: JSON.stringify(entity.settings),
       limits: JSON.stringify(entity.limits),
       meta: JSON.stringify(entity.meta),

@@ -1,0 +1,5 @@
+enabled:
+  - skill-1
+  - skill-2
+disabled:
+  - skill-3

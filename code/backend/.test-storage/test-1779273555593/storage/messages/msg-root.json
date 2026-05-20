@@ -1,0 +1,13 @@
+{
+  "content": "Test message content",
+  "senderName": "Test User",
+  "channelName": "Test Channel",
+  "contentFormat": "plain",
+  "attachments": [],
+  "mentions": [],
+  "references": [],
+  "reactions": [],
+  "editHistory": [],
+  "meta": {},
+  "_realm_id": "realm-1"
+}

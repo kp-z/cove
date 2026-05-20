@@ -84,7 +84,7 @@ export class HybridRealmMemberRepository
   }
 
   getContentPath(dbRecord: RealmMemberDbRecord): string {
-    return `${this.getEntityType()}/${dbRecord.id}.json`;
+    return `storage/${this.getEntityType()}/${dbRecord.id}.json`;
   }
 
   // ============================================
@@ -163,7 +163,8 @@ export class HybridRealmMemberRepository
       },
     });
     if (!record) return null;
-    const contentPath = this.getContentPath(record);
+    // Use the meta field which contains the full path with storage/ prefix
+    const contentPath = record.meta || this.getContentPath(record);
     const contentWithServerId = await this.storage.loadJson(contentPath);
     const { _realm_id, ...content } = contentWithServerId;
     return this.toDomain(record, content as RealmMemberContent);

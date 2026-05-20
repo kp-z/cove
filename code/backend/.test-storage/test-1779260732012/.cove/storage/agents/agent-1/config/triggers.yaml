@@ -1,0 +1,3 @@
+onMention: true
+onDirectMessage: true
+onSchedule: 0 9 * * *
