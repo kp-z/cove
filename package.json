@@ -1,0 +1,22 @@
+{
+  "name": "cove",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "code/cloud/backend",
+    "code/cloud/frontend",
+    "code/local"
+  ],
+  "scripts": {
+    "dev:cloud": "concurrently \"npm run dev -w code/cloud/backend\" \"npm run dev -w code/cloud/frontend\"",
+    "dev:local": "npm run dev -w code/local",
+    "dev": "npm run dev:cloud",
+    "build:cloud": "npm run build -w code/cloud/backend && npm run build -w code/cloud/frontend",
+    "build:local": "npm run build -w code/local",
+    "build": "npm run build:cloud && npm run build:local",
+    "test": "npm run test -w code/cloud/backend && npm run test -w code/cloud/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

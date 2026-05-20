@@ -1,0 +1,18 @@
+{
+  "server": {
+    "url": "ws://localhost:3002/trpc",
+    "token": ""
+  },
+  "device": {
+    "id": "device-001",
+    "name": "My Local Device",
+    "apiKey": "wn_your_api_key_here",
+    "realmId": "realm-xxx"
+  },
+  "local": {
+    "dataDir": "~/.cove",
+    "heartbeatInterval": 30000,
+    "reconnectDelay": 5000,
+    "maxConcurrentTasks": 3
+  }
+}
