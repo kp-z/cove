@@ -50,6 +50,23 @@ export interface DeviceEntityProps {
   updated_at: Date;
   last_seen_at?: Date;
   meta?: Record<string, unknown>;
+
+  // 🔒 Authentication fields
+  apiKeyHash?: string;
+
+  // 📊 Task scheduling fields
+  activeTaskCount?: number;
+  totalTasksExecuted?: number;
+  averageTaskDuration?: number;
+  lastExecutedAgentId?: string;
+
+  // 🏷️ Scheduling tags
+  region?: string;
+  tags?: string[];
+
+  // 📈 Resource usage
+  cpuUsage?: number;
+  memoryUsage?: number;
 }
 
 export interface DeviceEntityJSON {
@@ -68,6 +85,23 @@ export interface DeviceEntityJSON {
   updated_at: string;
   last_seen_at?: string;
   meta?: Record<string, unknown>;
+
+  // 🔒 Authentication fields
+  apiKeyHash?: string;
+
+  // 📊 Task scheduling fields
+  activeTaskCount?: number;
+  totalTasksExecuted?: number;
+  averageTaskDuration?: number;
+  lastExecutedAgentId?: string;
+
+  // 🏷️ Scheduling tags
+  region?: string;
+  tags?: string[];
+
+  // 📈 Resource usage
+  cpuUsage?: number;
+  memoryUsage?: number;
 }
 
 const VALID_DEVICE_TYPES: DeviceType[] = ['physical', 'virtual', 'container', 'cloud'];
@@ -99,6 +133,15 @@ export class DeviceEntity {
       updated_at: new Date(json.updated_at),
       last_seen_at: json.last_seen_at ? new Date(json.last_seen_at) : undefined,
       meta: json.meta,
+      apiKeyHash: json.apiKeyHash,
+      activeTaskCount: json.activeTaskCount,
+      totalTasksExecuted: json.totalTasksExecuted,
+      averageTaskDuration: json.averageTaskDuration,
+      lastExecutedAgentId: json.lastExecutedAgentId,
+      region: json.region,
+      tags: json.tags,
+      cpuUsage: json.cpuUsage,
+      memoryUsage: json.memoryUsage,
     });
   }
 
@@ -168,6 +211,23 @@ export class DeviceEntity {
   get updated_at(): Date { return this.props.updated_at; }
   get last_seen_at(): Date | undefined { return this.props.last_seen_at; }
   get meta(): Record<string, unknown> | undefined { return this.props.meta; }
+
+  // 🔒 Authentication getters
+  get apiKeyHash(): string | undefined { return this.props.apiKeyHash; }
+
+  // 📊 Task scheduling getters
+  get activeTaskCount(): number { return this.props.activeTaskCount || 0; }
+  get totalTasksExecuted(): number { return this.props.totalTasksExecuted || 0; }
+  get averageTaskDuration(): number | undefined { return this.props.averageTaskDuration; }
+  get lastExecutedAgentId(): string | undefined { return this.props.lastExecutedAgentId; }
+
+  // 🏷️ Scheduling tags getters
+  get region(): string | undefined { return this.props.region; }
+  get tags(): string[] { return this.props.tags || []; }
+
+  // 📈 Resource usage getters
+  get cpuUsage(): number | undefined { return this.props.cpuUsage; }
+  get memoryUsage(): number | undefined { return this.props.memoryUsage; }
 
   // --- Status checks ---
 
@@ -321,6 +381,15 @@ export class DeviceEntity {
       updated_at: this.props.updated_at.toISOString(),
       last_seen_at: this.props.last_seen_at?.toISOString(),
       meta: this.props.meta,
+      apiKeyHash: this.props.apiKeyHash,
+      activeTaskCount: this.props.activeTaskCount,
+      totalTasksExecuted: this.props.totalTasksExecuted,
+      averageTaskDuration: this.props.averageTaskDuration,
+      lastExecutedAgentId: this.props.lastExecutedAgentId,
+      region: this.props.region,
+      tags: this.props.tags,
+      cpuUsage: this.props.cpuUsage,
+      memoryUsage: this.props.memoryUsage,
     };
   }
 

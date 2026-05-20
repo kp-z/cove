@@ -40,7 +40,11 @@ export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDep
 
         return observable<any>((emit) => {
           // 注册设备连接
-          deps.deviceConnectionManager.registerConnection(deviceId, metadata);
+          deps.deviceConnectionManager.registerConnection(
+            deviceId,
+            (_event: string, data: any) => emit.next(data),
+            metadata
+          );
 
           // 发送连接确认
           emit.next({

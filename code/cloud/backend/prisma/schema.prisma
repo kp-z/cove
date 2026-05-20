@@ -336,10 +336,29 @@ model Device {
   createdAt   DateTime
   updatedAt   DateTime
 
+  // 🔒 认证字段
+  apiKeyHash  String?  // API Key 哈希值（bcrypt）
+
+  // 📊 任务调度字段
+  activeTaskCount     Int     @default(0)  // 当前执行任务数
+  totalTasksExecuted  Int     @default(0)  // 累计执行任务数
+  averageTaskDuration Float?  // 平均任务执行时间（秒）
+  lastExecutedAgentId String? // 最后执行的 Agent ID（用于亲和性调度）
+
+  // 🏷️ 调度标签
+  region              String? // 地域标签
+  tags                String  @default("[]") // JSON array of tags
+
+  // 📈 资源使用
+  cpuUsage            Float?  // CPU 使用率 0-100
+  memoryUsage         Float?  // 内存使用率 0-100
+
   @@index([realmId])
   @@index([name])
   @@index([status])
   @@index([type])
+  @@index([apiKeyHash])
+  @@index([realmId, status])
   @@unique([realmId, name])
 }
 
