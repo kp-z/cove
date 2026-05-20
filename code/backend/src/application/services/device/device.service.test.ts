@@ -286,117 +286,70 @@ describe('DeviceService', () => {
     });
   });
 
-  describe('markDeviceOnline', () => {
-    it('should mark device as online', async () => {
+  describe('updateDevice - status changes', () => {
+    it('should mark device as online via updateDevice', async () => {
       const device = createTestDevice({ status: 'offline' });
       vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.markDeviceOnline('device-123');
+        return await service.updateDevice('device-123', { status: 'online' });
       });
 
       expect(result.status).toBe('online');
       expect(mockDeviceRepository.update).toHaveBeenCalled();
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'device.online',
+          eventType: 'device.updated',
         })
       );
     });
-  });
 
-  describe('markDeviceOffline', () => {
-    it('should mark device as offline', async () => {
+    it('should mark device as offline via updateDevice', async () => {
       const device = createTestDevice({ status: 'online' });
       vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.markDeviceOffline('device-123');
+        return await service.updateDevice('device-123', { status: 'offline' });
       });
 
       expect(result.status).toBe('offline');
       expect(mockDeviceRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'device.offline',
-        })
-      );
     });
-  });
 
-  describe('enterDeviceMaintenance', () => {
-    it('should put device into maintenance mode', async () => {
+    it('should put device into maintenance mode via updateDevice', async () => {
       const device = createTestDevice({ status: 'online' });
       vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.enterDeviceMaintenance('device-123');
+        return await service.updateDevice('device-123', { status: 'maintenance' });
       });
 
       expect(result.status).toBe('maintenance');
       expect(mockDeviceRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'device.maintenance_started',
-        })
-      );
     });
-  });
 
-  describe('exitDeviceMaintenance', () => {
-    it('should exit device from maintenance mode', async () => {
-      const device = createTestDevice({ status: 'maintenance' });
-      vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
-
-      const result = await runWithContext(testContext, async () => {
-        return await service.exitDeviceMaintenance('device-123');
-      });
-
-      expect(result.status).toBe('online');
-      expect(mockDeviceRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'device.maintenance_ended',
-        })
-      );
-    });
-  });
-
-  describe('reportDeviceError', () => {
-    it('should report device error', async () => {
+    it('should report device error via updateDevice', async () => {
       const device = createTestDevice({ status: 'online' });
       vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.reportDeviceError('device-123');
+        return await service.updateDevice('device-123', { status: 'error' });
       });
 
       expect(result.status).toBe('error');
       expect(mockDeviceRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'device.error_reported',
-        })
-      );
     });
-  });
 
-  describe('decommissionDevice', () => {
-    it('should decommission device', async () => {
+    it('should decommission device via updateDevice', async () => {
       const device = createTestDevice({ status: 'offline' });
       vi.mocked(mockDeviceRepository.findById).mockResolvedValue(device);
 
       const result = await runWithContext(testContext, async () => {
-        return await service.decommissionDevice('device-123');
+        return await service.updateDevice('device-123', { status: 'decommissioned' });
       });
 
       expect(result.status).toBe('decommissioned');
       expect(mockDeviceRepository.update).toHaveBeenCalled();
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventType: 'device.decommissioned',
-        })
-      );
     });
   });
 

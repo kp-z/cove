@@ -10,20 +10,20 @@ CREATE TABLE "realm_members" (
     "updated_at" DATETIME NOT NULL,
     "meta" TEXT,
     CONSTRAINT "realm_members_realm_id_fkey" FOREIGN KEY ("realm_id") REFERENCES "Realm" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "server_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "realm_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
-CREATE INDEX "server_members_server_id_idx" ON "server_members"("realm_id");
+CREATE INDEX "realm_members_realm_id_idx" ON "realm_members"("realm_id");
 
 -- CreateIndex
-CREATE INDEX "server_members_user_id_idx" ON "server_members"("user_id");
+CREATE INDEX "realm_members_user_id_idx" ON "realm_members"("user_id");
 
 -- CreateIndex
-CREATE INDEX "server_members_role_idx" ON "server_members"("role");
+CREATE INDEX "realm_members_role_idx" ON "realm_members"("role");
 
 -- CreateIndex
-CREATE INDEX "server_members_status_idx" ON "server_members"("status");
+CREATE INDEX "realm_members_status_idx" ON "realm_members"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "server_members_server_id_user_id_key" ON "server_members"("realm_id", "user_id");
+CREATE UNIQUE INDEX "realm_members_realm_id_user_id_key" ON "realm_members"("realm_id", "user_id");

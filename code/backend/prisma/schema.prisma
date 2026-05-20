@@ -3,7 +3,7 @@
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../../../.cove/database/cove.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -71,8 +71,18 @@ model Channel {
   status        String   // active | archived
   projectId     String?
   parentChannelId String?
-  metadataPath  String   // 指向 .cove/storage/channels/{id}.json
-  memberIds     String   @default("[]") // JSON array of member user IDs (冗余字段用于快速查询)
+  description   String?  // 频道描述
+  icon          String?  // 频道图标
+  membersData   String   @default("[]") // JSON array of member details (memberId, memberType, role, joinedAt)
+  agentPool     String   @default("[]") // JSON array of agent IDs
+  taskPool      String   @default("[]") // JSON array of task IDs
+  conversationPool String @default("[]") // JSON array of conversation objects
+  communicationRules String @default("{}") // JSON object of communication rules
+  workspace     String   @default("{}") // JSON object of workspace config
+  metaTags      String   @default("[]") // JSON array of tags
+  metaCategory  String?  // 频道分类
+  createdById   String   @default("system") // 创建者 ID
+  createdByType String   @default("system") // 创建者类型 (user | agent | system)
   messageCount  Int      @default(0)
   memberCount   Int      @default(0)
   createdAt     DateTime
@@ -262,7 +272,9 @@ model Realm {
   ownerId     String
   status      String   // active, archived
   visibility  String   // public, private
-  configPath  String   // 指向 .cove/storage/realms/{id}.json
+  settings    String   // JSON: { allow_invites, require_approval, default_channel_id }
+  limits      String   // JSON: { max_members, max_channels, max_agents }
+  meta        String?  // JSON: { tags, icon, banner }
   createdAt   DateTime
   updatedAt   DateTime
 
@@ -292,7 +304,7 @@ model RealmMember {
   @@index([userId])
   @@index([role])
   @@index([status])
-  @@map("server_members")
+  @@map("realm_members")
 }
 
 model Device {

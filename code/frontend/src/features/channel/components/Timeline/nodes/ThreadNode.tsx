@@ -45,7 +45,7 @@ export const ThreadNodeRenderer: NodeRenderer<ThreadNodeData> = {
   icon: MessageCircle,
   color: 'gray',
   render: (node: TimelineNode<ThreadNodeData>, context: NodeContext) => {
-    const { thread_id, title, reply_count, last_reply_at } = node.data;
+    const { thread_id, title, reply_count } = node.data;
 
     // 使用 title 或生成默认标题
     const displayTitle = title || `Thread #${thread_id.slice(0, 8)}`;
@@ -55,8 +55,8 @@ export const ThreadNodeRenderer: NodeRenderer<ThreadNodeData> = {
       <TimelineNodeCard
         icon={<MessageCircle className="w-4 h-4 mt-0.5 shrink-0" />}
         title={displayTitle}
-        description={`${reply_count} ${replyText} • ${formatTime(last_reply_at || node.timestamp)}`}
-        timestamp={formatTime(last_reply_at || node.timestamp)}
+        description={`${reply_count} ${replyText}`}
+        timestamp={formatTime(node.timestamp)}
         color="gray"
         onClick={() => {
           context.onNodeClick(node);

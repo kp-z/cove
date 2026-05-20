@@ -9,7 +9,7 @@ import { ChannelList } from './ChannelList';
 import { Timeline } from './Timeline';
 import { useTimelineNodes } from './Timeline/hooks/useTimelineNodes';
 import type { TimelineNode } from './Timeline/NodeRegistry';
-import { Button } from '@/shared/components/ui/button';
+import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -65,10 +65,15 @@ export default function ChannelPage() {
         title="Channels"
         subtitle="Collaborate with your team"
         actions={
-          <Button size="sm" onClick={() => navigate('/channels/new')}>
-            <Plus size={14} />
-            {t('actions.new')}
-          </Button>
+          <ButtonGroup
+            options={[
+              {
+                label: t('actions.new'),
+                value: 'new',
+                onClick: () => navigate('/channels/new'),
+              },
+            ]}
+          />
         }
       />
 

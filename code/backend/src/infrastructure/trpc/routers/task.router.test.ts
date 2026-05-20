@@ -27,7 +27,6 @@ describe('taskRouter', () => {
       convertMessageToTask: vi.fn(),
       claimTask: vi.fn(),
       unclaimTask: vi.fn(),
-      updateTaskStatus: vi.fn(),
     } as unknown as TaskService;
 
 
@@ -420,8 +419,8 @@ describe('taskRouter', () => {
     });
   });
 
-  describe('updateStatus', () => {
-    it('should update task status successfully', async () => {
+  describe('update - status changes', () => {
+    it('should update task status via update', async () => {
       const task = TaskEntity.create({
         taskId: 'task-1',
         projectId: 'proj-1',
@@ -434,30 +433,38 @@ describe('taskRouter', () => {
         createdAt: new Date(),
       });
 
-      vi.mocked(mockTaskService.updateTaskStatus).mockResolvedValue(task);
+      vi.mocked(mockTaskService.updateTask).mockResolvedValue(task);
 
       const caller = router.createCaller(mockContext);
-      const result = await caller.updateStatus({
+      const result = await caller.update({
         taskId: 'task-1',
-        status: 'done',
-        actorId: 'user-1',
+        data: {
+          status: 'done',
+          actorId: 'user-1',
+        },
       });
 
       expect(result).toHaveProperty('status', 'done');
+      expect(mockTaskService.updateTask).toHaveBeenCalledWith('task-1', {
+        status: 'done',
+        actorId: 'user-1',
+      });
     });
 
     it('should throw BAD_REQUEST for invalid status transition', async () => {
       const error = new Error('Cannot transition from todo to done');
       error.name = 'InvalidStatusTransitionError';
-      vi.mocked(mockTaskService.updateTaskStatus).mockRejectedValue(error);
+      vi.mocked(mockTaskService.updateTask).mockRejectedValue(error);
 
       const caller = router.createCaller(mockContext);
 
       await expect(
-        caller.updateStatus({
+        caller.update({
           taskId: 'task-1',
-          status: 'done',
-          actorId: 'user-1',
+          data: {
+            status: 'done',
+            actorId: 'user-1',
+          },
         })
       ).rejects.toThrow('Cannot transition from todo to done');
     });

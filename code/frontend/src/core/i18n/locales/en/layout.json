@@ -15,7 +15,8 @@
     "noNewMessages": "No new messages",
     "empty": "No notifications",
     "clearAll": "Clear all notifications",
-    "inProgress": "In Progress"
+    "inProgress": "In Progress",
+    "more": "more"
   },
   "tokenPill": {
     "model": "Model",

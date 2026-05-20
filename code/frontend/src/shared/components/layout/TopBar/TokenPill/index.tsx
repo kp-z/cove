@@ -1,11 +1,7 @@
 import React from 'react';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { useTranslation } from 'react-i18next';
-
-export const headerCapsuleBaseClass =
-  'flex items-center bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] rounded-full transition-colors duration-150 will-change-transform';
-
-export const headerCapsuleClass = `${headerCapsuleBaseClass} h-8 gap-2 px-3`;
+import { Capsule } from '@/shared/components/ui/Capsule';
+import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 export interface TokenUsageData {
   model?: string;
@@ -73,11 +69,11 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
 
   if (isLoading) {
     return (
-      <div className={`${headerCapsuleClass} animate-pulse`}>
+      <Capsule interactive={false} className="animate-pulse">
         <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
         <div className="w-16 h-2.5 rounded bg-white/10" />
         <div className="w-9 h-1 rounded bg-white/10" />
-      </div>
+      </Capsule>
     );
   }
 
@@ -128,38 +124,28 @@ export const TokenPill = React.memo(({ data, isLoading }: TokenPillProps) => {
   );
 
   return (
-    <Tooltip.Provider delayDuration={200}>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <div className={`${headerCapsuleClass} group relative cursor-default select-none`}>
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
-            <span className="text-[12px] font-medium text-white/80 leading-none">
-              {displayModelStr ?? '-- / --'}
-            </span>
-            {hasData && (
-              <div className="w-9 h-[2px] rounded-full bg-white/[0.10] overflow-hidden flex-shrink-0">
-                <div
-                  className={`h-full rounded-full bg-gradient-to-r ${fillClass} transition-[width] duration-500`}
-                  style={{ width: `${Math.min(pct, 100)}%` }}
-                />
-              </div>
-            )}
+    <CapsuleTooltip
+      content={
+        <div className="min-w-[210px]">
+          {tooltipBody}
+        </div>
+      }
+    >
+      <Capsule interactive={false}>
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+        <span className="text-[12px] font-medium text-white/80 leading-none">
+          {displayModelStr ?? '-- / --'}
+        </span>
+        {hasData && (
+          <div className="w-9 h-[2px] rounded-full bg-white/[0.10] overflow-hidden flex-shrink-0">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${fillClass} transition-[width] duration-500`}
+              style={{ width: `${Math.min(pct, 100)}%` }}
+            />
           </div>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            side="bottom"
-            align="end"
-            sideOffset={8}
-            className="bg-[#111114] border border-white/[0.10] rounded-2xl p-4 min-w-[210px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50"
-          >
-            {tooltipBody}
-            <Tooltip.Arrow className="fill-white/10" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
+        )}
+      </Capsule>
+    </CapsuleTooltip>
   );
 });
 

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   RealmMemberEntity,
-  ServerRole,
+  RealmRole,
   MemberStatus,
-  ServerPermission,
-  ROLE_PERMISSIONS,
+  RealmPermission,
+  REALM_ROLE_PERMISSIONS,
 } from '../realm-member.entity';
 
 describe('RealmMemberEntity', () => {
@@ -12,7 +12,7 @@ describe('RealmMemberEntity', () => {
     member_id: 'member-123',
     realm_id: 'server-456',
     user_id: 'user-789',
-    role: 'member' as ServerRole,
+    role: 'member' as RealmRole,
     status: 'active' as MemberStatus,
     joined_at: new Date('2024-01-01'),
     updated_at: new Date('2024-01-01'),
@@ -34,12 +34,12 @@ describe('RealmMemberEntity', () => {
     it('should create a member with custom permissions', () => {
       const member = RealmMemberEntity.create({
         ...validProps,
-        custom_permissions: [ServerPermission.PROJECT_CREATE, ServerPermission.CHANNEL_CREATE],
+        custom_permissions: [RealmPermission.PROJECT_CREATE, RealmPermission.CHANNEL_CREATE],
       });
 
       expect(member.customPermissions).toEqual([
-        ServerPermission.PROJECT_CREATE,
-        ServerPermission.CHANNEL_CREATE,
+        RealmPermission.PROJECT_CREATE,
+        RealmPermission.CHANNEL_CREATE,
       ]);
     });
 
@@ -83,10 +83,10 @@ describe('RealmMemberEntity', () => {
 
     it('should throw error if role is invalid', () => {
       expect(() =>
-        RealmMemberEntity.create({ ...validProps, role: 'invalid' as ServerRole })
+        RealmMemberEntity.create({ ...validProps, role: 'invalid' as RealmRole })
       ).toThrow(Error);
       expect(() =>
-        RealmMemberEntity.create({ ...validProps, role: 'invalid' as ServerRole })
+        RealmMemberEntity.create({ ...validProps, role: 'invalid' as RealmRole })
       ).toThrow('Invalid role: invalid');
     });
 
@@ -123,11 +123,11 @@ describe('RealmMemberEntity', () => {
       const member = RealmMemberEntity.create(validProps);
       const permissions = member.getPermissions();
 
-      expect(permissions).toEqual(ROLE_PERMISSIONS.member);
+      expect(permissions).toEqual(REALM_ROLE_PERMISSIONS.member);
     });
 
     it('should return custom permissions when set', () => {
-      const customPermissions = [ServerPermission.PROJECT_CREATE, ServerPermission.CHANNEL_CREATE];
+      const customPermissions = [RealmPermission.PROJECT_CREATE, RealmPermission.CHANNEL_CREATE];
       const member = RealmMemberEntity.create({
         ...validProps,
         custom_permissions: customPermissions,
@@ -138,39 +138,39 @@ describe('RealmMemberEntity', () => {
 
     it('should return owner permissions for owner role', () => {
       const owner = RealmMemberEntity.create({ ...validProps, role: 'owner' });
-      expect(owner.getPermissions()).toEqual(ROLE_PERMISSIONS.owner);
+      expect(owner.getPermissions()).toEqual(REALM_ROLE_PERMISSIONS.owner);
     });
 
     it('should return admin permissions for admin role', () => {
       const admin = RealmMemberEntity.create({ ...validProps, role: 'admin' });
-      expect(admin.getPermissions()).toEqual(ROLE_PERMISSIONS.admin);
+      expect(admin.getPermissions()).toEqual(REALM_ROLE_PERMISSIONS.admin);
     });
 
     it('should return guest permissions for guest role', () => {
       const guest = RealmMemberEntity.create({ ...validProps, role: 'guest' });
-      expect(guest.getPermissions()).toEqual(ROLE_PERMISSIONS.guest);
+      expect(guest.getPermissions()).toEqual(REALM_ROLE_PERMISSIONS.guest);
     });
   });
 
   describe('hasPermission', () => {
     it('should return true if member has the permission', () => {
       const member = RealmMemberEntity.create(validProps);
-      expect(member.hasPermission(ServerPermission.MESSAGE_SEND)).toBe(true);
+      expect(member.hasPermission(RealmPermission.MESSAGE_SEND)).toBe(true);
     });
 
     it('should return false if member does not have the permission', () => {
       const member = RealmMemberEntity.create(validProps);
-      expect(member.hasPermission(ServerPermission.SERVER_DELETE)).toBe(false);
+      expect(member.hasPermission(RealmPermission.SERVER_DELETE)).toBe(false);
     });
 
     it('should check custom permissions', () => {
       const member = RealmMemberEntity.create({
         ...validProps,
-        custom_permissions: [ServerPermission.PROJECT_CREATE],
+        custom_permissions: [RealmPermission.PROJECT_CREATE],
       });
 
-      expect(member.hasPermission(ServerPermission.PROJECT_CREATE)).toBe(true);
-      expect(member.hasPermission(ServerPermission.MESSAGE_SEND)).toBe(false);
+      expect(member.hasPermission(RealmPermission.PROJECT_CREATE)).toBe(true);
+      expect(member.hasPermission(RealmPermission.MESSAGE_SEND)).toBe(false);
     });
   });
 
@@ -178,7 +178,7 @@ describe('RealmMemberEntity', () => {
     it('should return true if member has all permissions', () => {
       const member = RealmMemberEntity.create(validProps);
       expect(
-        member.hasAllPermissions([ServerPermission.MESSAGE_SEND, ServerPermission.MESSAGE_VIEW])
+        member.hasAllPermissions([RealmPermission.MESSAGE_SEND, RealmPermission.MESSAGE_VIEW])
       ).toBe(true);
     });
 
@@ -186,8 +186,8 @@ describe('RealmMemberEntity', () => {
       const member = RealmMemberEntity.create(validProps);
       expect(
         member.hasAllPermissions([
-          ServerPermission.MESSAGE_SEND,
-          ServerPermission.SERVER_DELETE,
+          RealmPermission.MESSAGE_SEND,
+          RealmPermission.SERVER_DELETE,
         ])
       ).toBe(false);
     });
@@ -197,14 +197,14 @@ describe('RealmMemberEntity', () => {
     it('should return true if member has any of the permissions', () => {
       const member = RealmMemberEntity.create(validProps);
       expect(
-        member.hasAnyPermission([ServerPermission.MESSAGE_SEND, ServerPermission.SERVER_DELETE])
+        member.hasAnyPermission([RealmPermission.MESSAGE_SEND, RealmPermission.SERVER_DELETE])
       ).toBe(true);
     });
 
     it('should return false if member has none of the permissions', () => {
       const member = RealmMemberEntity.create(validProps);
       expect(
-        member.hasAnyPermission([ServerPermission.SERVER_DELETE, ServerPermission.SERVER_TRANSFER])
+        member.hasAnyPermission([RealmPermission.SERVER_DELETE, RealmPermission.SERVER_TRANSFER])
       ).toBe(false);
     });
   });
@@ -291,15 +291,15 @@ describe('RealmMemberEntity', () => {
   describe('setCustomPermissions', () => {
     it('should set custom permissions', () => {
       const member = RealmMemberEntity.create(validProps);
-      const updated = member.setCustomPermissions([ServerPermission.PROJECT_CREATE]);
+      const updated = member.setCustomPermissions([RealmPermission.PROJECT_CREATE]);
 
-      expect(updated.customPermissions).toEqual([ServerPermission.PROJECT_CREATE]);
-      expect(updated.getPermissions()).toEqual([ServerPermission.PROJECT_CREATE]);
+      expect(updated.customPermissions).toEqual([RealmPermission.PROJECT_CREATE]);
+      expect(updated.getPermissions()).toEqual([RealmPermission.PROJECT_CREATE]);
     });
 
     it('should return new instance', () => {
       const member = RealmMemberEntity.create(validProps);
-      const updated = member.setCustomPermissions([ServerPermission.PROJECT_CREATE]);
+      const updated = member.setCustomPermissions([RealmPermission.PROJECT_CREATE]);
 
       expect(updated).not.toBe(member);
       expect(member.customPermissions).toBeUndefined();
@@ -310,12 +310,12 @@ describe('RealmMemberEntity', () => {
     it('should clear custom permissions', () => {
       const member = RealmMemberEntity.create({
         ...validProps,
-        custom_permissions: [ServerPermission.PROJECT_CREATE],
+        custom_permissions: [RealmPermission.PROJECT_CREATE],
       });
       const updated = member.clearCustomPermissions();
 
       expect(updated.customPermissions).toBeUndefined();
-      expect(updated.getPermissions()).toEqual(ROLE_PERMISSIONS.member);
+      expect(updated.getPermissions()).toEqual(REALM_ROLE_PERMISSIONS.member);
     });
   });
 
@@ -433,7 +433,7 @@ describe('RealmMemberEntity', () => {
         member_id: 'member-123',
         realm_id: 'server-456',
         user_id: 'user-789',
-        role: 'member' as ServerRole,
+        role: 'member' as RealmRole,
         status: 'active' as MemberStatus,
         joined_at: '2024-01-01T00:00:00.000Z',
         updated_at: '2024-01-01T00:00:00.000Z',
@@ -453,7 +453,7 @@ describe('RealmMemberEntity', () => {
     it('should round-trip through JSON', () => {
       const original = RealmMemberEntity.create({
         ...validProps,
-        custom_permissions: [ServerPermission.PROJECT_CREATE],
+        custom_permissions: [RealmPermission.PROJECT_CREATE],
         meta: { nickname: 'Alice' },
       });
 
@@ -470,32 +470,32 @@ describe('RealmMemberEntity', () => {
     });
   });
 
-  describe('ROLE_PERMISSIONS', () => {
+  describe('REALM_ROLE_PERMISSIONS', () => {
     it('should define owner permissions', () => {
-      expect(ROLE_PERMISSIONS.owner).toContain(ServerPermission.SERVER_DELETE);
-      expect(ROLE_PERMISSIONS.owner).toContain(ServerPermission.SERVER_TRANSFER);
-      expect(ROLE_PERMISSIONS.owner).toContain(ServerPermission.MEMBER_MANAGE_ROLES);
+      expect(REALM_ROLE_PERMISSIONS.owner).toContain(RealmPermission.SERVER_DELETE);
+      expect(REALM_ROLE_PERMISSIONS.owner).toContain(RealmPermission.SERVER_TRANSFER);
+      expect(REALM_ROLE_PERMISSIONS.owner).toContain(RealmPermission.MEMBER_MANAGE_ROLES);
     });
 
     it('should define admin permissions without server delete and transfer', () => {
-      expect(ROLE_PERMISSIONS.admin).toContain(ServerPermission.SERVER_MANAGE);
-      expect(ROLE_PERMISSIONS.admin).toContain(ServerPermission.MEMBER_MANAGE_ROLES);
-      expect(ROLE_PERMISSIONS.admin).not.toContain(ServerPermission.SERVER_DELETE);
-      expect(ROLE_PERMISSIONS.admin).not.toContain(ServerPermission.SERVER_TRANSFER);
+      expect(REALM_ROLE_PERMISSIONS.admin).toContain(RealmPermission.SERVER_MANAGE);
+      expect(REALM_ROLE_PERMISSIONS.admin).toContain(RealmPermission.MEMBER_MANAGE_ROLES);
+      expect(REALM_ROLE_PERMISSIONS.admin).not.toContain(RealmPermission.SERVER_DELETE);
+      expect(REALM_ROLE_PERMISSIONS.admin).not.toContain(RealmPermission.SERVER_TRANSFER);
     });
 
     it('should define member permissions as basic permissions', () => {
-      expect(ROLE_PERMISSIONS.member).toContain(ServerPermission.MESSAGE_SEND);
-      expect(ROLE_PERMISSIONS.member).toContain(ServerPermission.CHANNEL_CREATE);
-      expect(ROLE_PERMISSIONS.member).not.toContain(ServerPermission.SERVER_MANAGE);
-      expect(ROLE_PERMISSIONS.member).not.toContain(ServerPermission.MEMBER_REMOVE);
+      expect(REALM_ROLE_PERMISSIONS.member).toContain(RealmPermission.MESSAGE_SEND);
+      expect(REALM_ROLE_PERMISSIONS.member).toContain(RealmPermission.CHANNEL_CREATE);
+      expect(REALM_ROLE_PERMISSIONS.member).not.toContain(RealmPermission.SERVER_MANAGE);
+      expect(REALM_ROLE_PERMISSIONS.member).not.toContain(RealmPermission.MEMBER_REMOVE);
     });
 
     it('should define guest permissions as read-only', () => {
-      expect(ROLE_PERMISSIONS.guest).toContain(ServerPermission.MESSAGE_VIEW);
-      expect(ROLE_PERMISSIONS.guest).toContain(ServerPermission.CHANNEL_VIEW);
-      expect(ROLE_PERMISSIONS.guest).not.toContain(ServerPermission.MESSAGE_SEND);
-      expect(ROLE_PERMISSIONS.guest).not.toContain(ServerPermission.CHANNEL_CREATE);
+      expect(REALM_ROLE_PERMISSIONS.guest).toContain(RealmPermission.MESSAGE_VIEW);
+      expect(REALM_ROLE_PERMISSIONS.guest).toContain(RealmPermission.CHANNEL_VIEW);
+      expect(REALM_ROLE_PERMISSIONS.guest).not.toContain(RealmPermission.MESSAGE_SEND);
+      expect(REALM_ROLE_PERMISSIONS.guest).not.toContain(RealmPermission.CHANNEL_CREATE);
     });
   });
 });

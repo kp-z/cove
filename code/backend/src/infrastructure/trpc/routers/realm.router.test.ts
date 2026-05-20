@@ -14,7 +14,7 @@ describe('realmRouter', () => {
   let caller: any;
 
   const mockContext = {
-    realmId: 'test-server',
+    realmId: 'test-realm',
     userId: 'test-user',
   };
 
@@ -56,9 +56,9 @@ describe('realmRouter', () => {
   describe('create', () => {
     it('should create a new realm', async () => {
       const input = {
-        name: 'test-server',
-        displayName: 'Test Server',
-        description: 'A test server',
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        description: 'A test realm',
         ownerId: 'user-1',
       };
 
@@ -82,14 +82,14 @@ describe('realmRouter', () => {
       const result = await caller.create(input);
 
       expect(result).toHaveProperty('realm_id', 'server-1');
-      expect(result).toHaveProperty('name', 'test-server');
+      expect(result).toHaveProperty('name', 'test-realm');
       expect(mockRealmService.createRealm).toHaveBeenCalledWith(input);
     });
   });
 
   describe('list', () => {
-    it('should list all servers', async () => {
-      const mockServers = [
+    it('should list all realms', async () => {
+      const mockRealms = [
         RealmEntity.create({
           realm_id: 'server-1',
           name: 'server-1',
@@ -118,17 +118,17 @@ describe('realmRouter', () => {
         }),
       ];
 
-      mockRealmService.queryServers.mockResolvedValue(mockServers);
+      mockRealmService.queryServers.mockResolvedValue(mockRealms);
 
       const result = await caller.list();
 
-      expect(result.servers).toHaveLength(2);
+      expect(result.realms).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(mockRealmService.queryServers).toHaveBeenCalledWith(undefined);
     });
 
-    it('should list servers by owner', async () => {
-      const mockServers = [
+    it('should list realms by owner', async () => {
+      const mockRealms = [
         RealmEntity.create({
           realm_id: 'server-1',
           name: 'server-1',
@@ -144,16 +144,16 @@ describe('realmRouter', () => {
         }),
       ];
 
-      mockRealmService.queryServers.mockResolvedValue(mockServers);
+      mockRealmService.queryServers.mockResolvedValue(mockRealms);
 
       const result = await caller.list({ ownerId: 'user-1' });
 
-      expect(result.servers).toHaveLength(1);
+      expect(result.realms).toHaveLength(1);
       expect(mockRealmService.queryServers).toHaveBeenCalledWith({ ownerId: 'user-1' });
     });
 
-    it('should list servers by status', async () => {
-      const mockServers = [
+    it('should list realms by status', async () => {
+      const mockRealms = [
         RealmEntity.create({
           realm_id: 'server-1',
           name: 'server-1',
@@ -169,11 +169,11 @@ describe('realmRouter', () => {
         }),
       ];
 
-      mockRealmService.queryServers.mockResolvedValue(mockServers);
+      mockRealmService.queryServers.mockResolvedValue(mockRealms);
 
       const result = await caller.list({ status: 'active' });
 
-      expect(result.servers).toHaveLength(1);
+      expect(result.realms).toHaveLength(1);
       expect(mockRealmService.queryServers).toHaveBeenCalledWith({ status: 'active' });
     });
   });
@@ -182,8 +182,8 @@ describe('realmRouter', () => {
     it('should get realm by id', async () => {
       const mockServer = RealmEntity.create({
         realm_id: 'server-1',
-        name: 'test-server',
-        display_name: 'Test Server',
+        name: 'test-realm',
+        display_name: 'Test Realm',
         owner_id: 'user-1',
         status: 'active',
         visibility: 'private',
@@ -213,7 +213,7 @@ describe('realmRouter', () => {
     it('should update realm', async () => {
       const mockServer = RealmEntity.create({
         realm_id: 'server-1',
-        name: 'test-server',
+        name: 'test-realm',
         display_name: 'Updated Server',
         owner_id: 'user-1',
         status: 'active',
@@ -237,12 +237,12 @@ describe('realmRouter', () => {
     });
   });
 
-  describe('archive', () => {
-    it('should archive realm', async () => {
+  describe('update - status changes', () => {
+    it('should archive realm via update', async () => {
       const mockServer = RealmEntity.create({
         realm_id: 'server-1',
-        name: 'test-server',
-        display_name: 'Test Server',
+        name: 'test-realm',
+        display_name: 'Test Realm',
         owner_id: 'user-1',
         status: 'archived',
         visibility: 'private',
@@ -253,21 +253,22 @@ describe('realmRouter', () => {
         updated_at: new Date(),
       });
 
-      mockRealmService.archiveRealm.mockResolvedValue(mockServer);
+      mockRealmService.updateRealm.mockResolvedValue(mockServer);
 
-      const result = await caller.archive({ realmId: 'server-1' });
+      const result = await caller.update({
+        realmId: 'server-1',
+        data: { status: 'archived' },
+      });
 
       expect(result).toHaveProperty('status', 'archived');
-      expect(mockRealmService.archiveRealm).toHaveBeenCalledWith('server-1');
+      expect(mockRealmService.updateRealm).toHaveBeenCalledWith('server-1', { status: 'archived' });
     });
-  });
 
-  describe('activate', () => {
-    it('should activate realm', async () => {
+    it('should activate realm via update', async () => {
       const mockServer = RealmEntity.create({
         realm_id: 'server-1',
-        name: 'test-server',
-        display_name: 'Test Server',
+        name: 'test-realm',
+        display_name: 'Test Realm',
         owner_id: 'user-1',
         status: 'active',
         visibility: 'private',
@@ -278,12 +279,15 @@ describe('realmRouter', () => {
         updated_at: new Date(),
       });
 
-      mockRealmService.activateServer.mockResolvedValue(mockServer);
+      mockRealmService.updateRealm.mockResolvedValue(mockServer);
 
-      const result = await caller.activate({ realmId: 'server-1' });
+      const result = await caller.update({
+        realmId: 'server-1',
+        data: { status: 'active' },
+      });
 
       expect(result).toHaveProperty('status', 'active');
-      expect(mockRealmService.activateServer).toHaveBeenCalledWith('server-1');
+      expect(mockRealmService.updateRealm).toHaveBeenCalledWith('server-1', { status: 'active' });
     });
   });
 

@@ -101,7 +101,7 @@ export function createAppRouter(deps: RouterDependencies) {
     project: projectRouter(deps.projectService),
 
     // Realm router
-    server: realmRouter(deps.realmService),
+    realm: realmRouter(deps.realmService),
 
     // Device router
     device: deviceRouter(deps.deviceService),

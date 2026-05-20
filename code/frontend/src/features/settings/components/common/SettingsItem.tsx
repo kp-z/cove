@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard'
 
 interface SettingsSectionProps {
   title: string
@@ -28,14 +29,16 @@ interface SettingsItemProps {
 
 export function SettingsItem({ label, description, children }: SettingsItemProps) {
   return (
-    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-      <div className="flex-1">
-        <div className="text-white font-medium">{label}</div>
-        {description && (
-          <div className="text-sm text-white/60 mt-1">{description}</div>
-        )}
+    <GlassCard padding="py-3 px-4">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="text-white font-medium">{label}</div>
+          {description && (
+            <div className="text-sm text-white/60 mt-1">{description}</div>
+          )}
+        </div>
+        <div className="ml-4">{children}</div>
       </div>
-      <div className="ml-4">{children}</div>
-    </div>
+    </GlassCard>
   )
 }

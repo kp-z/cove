@@ -5,12 +5,12 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Badge } from '@/shared/components/ui/badge';
-import { GlassCard } from '@/shared/components/ui/GlassCard';
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { useServer } from '@/lib/trpc/hooks/realm.hooks';
+import { useRealm } from '@/lib/trpc/hooks/realm.hooks';
 import type { Agent, AgentScope } from '../types/agent.types';
 import { RuntimeAdapterConfig } from './RuntimeAdapterConfig';
 import type { AdapterConfig } from '../types/adapter.types';
@@ -111,9 +111,9 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
 
-  // Fetch server settings to get default adapter
-  const { data: server } = useServer('default-server', { enabled: isCreateMode });
-  const defaultAdapterId = server?.settings?.default_adapter_id;
+  // Fetch realm settings to get default adapter
+  const { data: realm } = useRealm('default-server', { enabled: isCreateMode });
+  const defaultAdapterId = realm?.settings?.default_adapter_id;
 
   // Basic Info
   const [displayName, setDisplayName] = useState(agent?.display_name ?? '');

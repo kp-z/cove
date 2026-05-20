@@ -12,7 +12,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto pr-2">
       <AnimatePresence mode="wait">
         <motion.div
           key={activeCategory}
@@ -20,6 +20,7 @@ export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
+          className="pb-8"
         >
           {activeCategory === 'general' && <GeneralPanel />}
           {activeCategory === 'appearance' && <AppearancePanel />}

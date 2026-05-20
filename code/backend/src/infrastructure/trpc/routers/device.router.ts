@@ -5,11 +5,7 @@
  * - register: 注册设备
  * - list: 获取设备列表
  * - getById: 获取单个设备
- * - update: 更新设备
- * - markOnline: 标记设备在线
- * - markOffline: 标记设备离线
- * - markMaintenance: 标记设备维护中
- * - decommission: 停用设备
+ * - update: 更新设备（支持 status 字段更新）
  * - delete: 删除设备
  */
 
@@ -58,6 +54,7 @@ const registerDeviceSchema = z.object({
 const updateDeviceSchema = z.object({
   displayName: z.string().min(1).max(200).optional(),
   description: z.string().optional(),
+  status: z.enum(['provisioning', 'online', 'offline', 'maintenance', 'error', 'decommissioned']).optional(),
   specs: deviceSpecsSchema.optional(),
   network: deviceNetworkSchema.optional(),
   location: deviceLocationSchema.optional(),
@@ -137,66 +134,6 @@ export const deviceRouter = (deviceService: DeviceService) =>
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const device = await deviceService.updateDevice(input.deviceId, input.data);
-            return device.toJSON();
-          });
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // 标记设备在线
-    markOnline: publicProcedure
-      .input(z.object({ deviceId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
-          return await runWithContext(context, async () => {
-            const device = await deviceService.markDeviceOnline(input.deviceId);
-            return device.toJSON();
-          });
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // 标记设备离线
-    markOffline: publicProcedure
-      .input(z.object({ deviceId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
-          return await runWithContext(context, async () => {
-            const device = await deviceService.markDeviceOffline(input.deviceId);
-            return device.toJSON();
-          });
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // 标记设备维护中
-    markMaintenance: publicProcedure
-      .input(z.object({ deviceId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
-          return await runWithContext(context, async () => {
-            const device = await deviceService.enterDeviceMaintenance(input.deviceId);
-            return device.toJSON();
-          });
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // 停用设备
-    decommission: publicProcedure
-      .input(z.object({ deviceId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
-          return await runWithContext(context, async () => {
-            const device = await deviceService.decommissionDevice(input.deviceId);
             return device.toJSON();
           });
         } catch (error: any) {

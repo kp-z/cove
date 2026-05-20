@@ -26,16 +26,12 @@ describe('deviceRouter', () => {
 
   beforeEach(() => {
     mockDeviceService = {
-      registerDevice: vi.fn(),
+      createDevice: vi.fn(),
       getDeviceById: vi.fn(),
       getDevicesByServer: vi.fn(),
       getDevicesByStatus: vi.fn(),
-      getDevicesByType: vi.fn(),
+      getAllDevices: vi.fn(),
       updateDevice: vi.fn(),
-      markOnline: vi.fn(),
-      markOffline: vi.fn(),
-      markMaintenance: vi.fn(),
-      decommissionDevice: vi.fn(),
       deleteDevice: vi.fn(),
     };
 
@@ -68,13 +64,16 @@ describe('deviceRouter', () => {
         updated_at: new Date(),
       });
 
-      mockDeviceService.registerDevice.mockResolvedValue(mockDevice);
+      mockDeviceService.createDevice.mockResolvedValue(mockDevice);
 
       const result = await caller.register(input);
 
       expect(result).toHaveProperty('device_id', 'device-1');
       expect(result).toHaveProperty('name', 'test-device');
-      expect(mockDeviceService.registerDevice).toHaveBeenCalledWith(input);
+      expect(mockDeviceService.createDevice).toHaveBeenCalledWith({
+        ...input,
+        realmId: 'test-server'
+      });
     });
   });
 
@@ -136,29 +135,6 @@ describe('deviceRouter', () => {
       expect(result.devices).toHaveLength(1);
       expect(mockDeviceService.getDevicesByStatus).toHaveBeenCalledWith('online');
     });
-
-    it('should list devices by type', async () => {
-      const mockDevices = [
-        DeviceEntity.create({
-          device_id: 'device-1',
-          realm_id: 'test-server',
-          name: 'device-1',
-          display_name: 'Device 1',
-          type: 'physical',
-          specs: mockSpecs,
-          status: 'online',
-          created_at: new Date(),
-          updated_at: new Date(),
-        }),
-      ];
-
-      mockDeviceService.getDevicesByType.mockResolvedValue(mockDevices);
-
-      const result = await caller.list({ type: 'physical' });
-
-      expect(result.devices).toHaveLength(1);
-      expect(mockDeviceService.getDevicesByType).toHaveBeenCalledWith('physical');
-    });
   });
 
   describe('getById', () => {
@@ -216,8 +192,8 @@ describe('deviceRouter', () => {
     });
   });
 
-  describe('markOnline', () => {
-    it('should mark device online', async () => {
+  describe('update - status changes', () => {
+    it('should mark device online via update', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
         realm_id: 'test-server',
@@ -230,17 +206,18 @@ describe('deviceRouter', () => {
         updated_at: new Date(),
       });
 
-      mockDeviceService.markOnline.mockResolvedValue(mockDevice);
+      mockDeviceService.updateDevice.mockResolvedValue(mockDevice);
 
-      const result = await caller.markOnline({ deviceId: 'device-1' });
+      const result = await caller.update({
+        deviceId: 'device-1',
+        data: { status: 'online' }
+      });
 
       expect(result).toHaveProperty('status', 'online');
-      expect(mockDeviceService.markOnline).toHaveBeenCalledWith('device-1');
+      expect(mockDeviceService.updateDevice).toHaveBeenCalledWith('device-1', { status: 'online' });
     });
-  });
 
-  describe('markOffline', () => {
-    it('should mark device offline', async () => {
+    it('should mark device offline via update', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
         realm_id: 'test-server',
@@ -253,17 +230,18 @@ describe('deviceRouter', () => {
         updated_at: new Date(),
       });
 
-      mockDeviceService.markOffline.mockResolvedValue(mockDevice);
+      mockDeviceService.updateDevice.mockResolvedValue(mockDevice);
 
-      const result = await caller.markOffline({ deviceId: 'device-1' });
+      const result = await caller.update({
+        deviceId: 'device-1',
+        data: { status: 'offline' }
+      });
 
       expect(result).toHaveProperty('status', 'offline');
-      expect(mockDeviceService.markOffline).toHaveBeenCalledWith('device-1');
+      expect(mockDeviceService.updateDevice).toHaveBeenCalledWith('device-1', { status: 'offline' });
     });
-  });
 
-  describe('markMaintenance', () => {
-    it('should mark device in maintenance', async () => {
+    it('should mark device in maintenance via update', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
         realm_id: 'test-server',
@@ -276,17 +254,18 @@ describe('deviceRouter', () => {
         updated_at: new Date(),
       });
 
-      mockDeviceService.markMaintenance.mockResolvedValue(mockDevice);
+      mockDeviceService.updateDevice.mockResolvedValue(mockDevice);
 
-      const result = await caller.markMaintenance({ deviceId: 'device-1' });
+      const result = await caller.update({
+        deviceId: 'device-1',
+        data: { status: 'maintenance' }
+      });
 
       expect(result).toHaveProperty('status', 'maintenance');
-      expect(mockDeviceService.markMaintenance).toHaveBeenCalledWith('device-1');
+      expect(mockDeviceService.updateDevice).toHaveBeenCalledWith('device-1', { status: 'maintenance' });
     });
-  });
 
-  describe('decommission', () => {
-    it('should decommission device', async () => {
+    it('should decommission device via update', async () => {
       const mockDevice = DeviceEntity.create({
         device_id: 'device-1',
         realm_id: 'test-server',
@@ -299,12 +278,15 @@ describe('deviceRouter', () => {
         updated_at: new Date(),
       });
 
-      mockDeviceService.decommissionDevice.mockResolvedValue(mockDevice);
+      mockDeviceService.updateDevice.mockResolvedValue(mockDevice);
 
-      const result = await caller.decommission({ deviceId: 'device-1' });
+      const result = await caller.update({
+        deviceId: 'device-1',
+        data: { status: 'decommissioned' }
+      });
 
       expect(result).toHaveProperty('status', 'decommissioned');
-      expect(mockDeviceService.decommissionDevice).toHaveBeenCalledWith('device-1');
+      expect(mockDeviceService.updateDevice).toHaveBeenCalledWith('device-1', { status: 'decommissioned' });
     });
   });
 

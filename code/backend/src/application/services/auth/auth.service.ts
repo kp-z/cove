@@ -11,10 +11,11 @@
 
 import jwt from 'jsonwebtoken';
 import { UserEntity, UserRole } from '../../../domain/models/user/user.entity';
-import { IUserRepository, ILogger } from '../../interfaces';
+import { IUserRepository, ILogger, IRealmRepository, IRealmMemberRepository } from '../../interfaces';
 import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from './auth.errors';
 import { AuditService } from '../audit/audit.service';
 import { TRPCError } from '@trpc/server';
+import { RealmMemberEntity } from '../../../domain/models/realm-member/realm-member.entity';
 
 export interface JWTPayload {
   userId: string;
@@ -35,6 +36,8 @@ export class AuthService {
     private readonly userRepository: IUserRepository,
     private readonly logger: ILogger,
     private readonly auditService: AuditService,
+    private readonly realmRepository?: IRealmRepository,
+    private readonly realmMemberRepository?: IRealmMemberRepository,
     jwtSecret?: string,
     jwtExpiresIn?: string
   ) {
@@ -116,6 +119,9 @@ export class AuthService {
     // 登录成功，更新最后登录时间并重置失败次数
     const loggedInUser = user.updateLastLoginAt(new Date());
     await this.userRepository.update(loggedInUser, 'default');
+
+    // 确保用户已加入 Nexus（兜底检查）
+    await this.ensureUserInPlatformRealm(loggedInUser.userId);
 
     // 生成 JWT
     const token = this.generateToken(loggedInUser);
@@ -230,6 +236,9 @@ export class AuthService {
 
     // 保存用户
     await this.userRepository.save(user, 'default');
+
+    // 自动加入 Nexus Realm
+    await this.addUserToPlatformRealm(user.userId);
 
     // 记录审计日志
     await this.auditService.log(
@@ -357,7 +366,7 @@ export class AuthService {
    */
   async ensureInitialAdmin(): Promise<void> {
     try {
-      const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
+      const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin123!';
 
       // 检查是否已有 owner 用户
       const owners = await this.userRepository.findByRole('owner');
@@ -403,12 +412,95 @@ export class AuthService {
         username: adminUser.username,
       });
 
-      if (adminPassword === 'admin123') {
+      if (adminPassword === 'Admin123!') {
         this.logger.warn('⚠️  Initial admin is using default password. Please change it immediately!');
       }
     } catch (error) {
       this.logger.error('Failed to create initial admin', error as Error);
       throw error;
+    }
+  }
+
+  /**
+   * 添加用户到平台 Realm (Nexus)
+   */
+  private async addUserToPlatformRealm(userId: string): Promise<void> {
+    if (!this.realmRepository || !this.realmMemberRepository) {
+      this.logger.debug('Realm repositories not available, skipping platform realm join');
+      return;
+    }
+
+    try {
+      // 查找 Nexus Realm
+      const platformRealm = await this.realmRepository.findByName('nexus');
+
+      if (!platformRealm) {
+        this.logger.warn('Platform realm (Nexus) not found, skipping auto-join');
+        return;
+      }
+
+      // 检查用户是否已经是成员
+      const existingMember = await this.realmMemberRepository.findByServerAndUser(
+        platformRealm.realm_id,
+        userId
+      );
+
+      if (existingMember) {
+        this.logger.debug('User already member of platform realm', { userId, realmId: platformRealm.realm_id });
+        return;
+      }
+
+      // 添加为 Realm 成员
+      const memberId = `member-nexus-${userId}`;
+      const member = RealmMemberEntity.create({
+        member_id: memberId,
+        realm_id: platformRealm.realm_id,
+        user_id: userId,
+        role: 'member',
+        status: 'active',
+        joined_at: new Date(),
+        updated_at: new Date(),
+        meta: {},
+      });
+
+      await this.realmMemberRepository.save(member, platformRealm.realm_id);
+
+      this.logger.info('User added to platform realm', { userId, realmId: platformRealm.realm_id });
+    } catch (error) {
+      this.logger.error('Failed to add user to platform realm', error as Error);
+      // Don't throw - this shouldn't block registration/login
+    }
+  }
+
+  /**
+   * 确保用户已加入平台 Realm (兜底检查)
+   */
+  private async ensureUserInPlatformRealm(userId: string): Promise<void> {
+    if (!this.realmRepository || !this.realmMemberRepository) {
+      return;
+    }
+
+    try {
+      // 查找 Nexus Realm
+      const platformRealm = await this.realmRepository.findByName('nexus');
+
+      if (!platformRealm) {
+        return;
+      }
+
+      // 检查用户是否已经是成员
+      const existingMember = await this.realmMemberRepository.findByServerAndUser(
+        platformRealm.realm_id,
+        userId
+      );
+
+      if (!existingMember) {
+        // 用户不是成员，添加进去
+        await this.addUserToPlatformRealm(userId);
+      }
+    } catch (error) {
+      this.logger.error('Failed to ensure user in platform realm', error as Error);
+      // Don't throw - this shouldn't block login
     }
   }
 }

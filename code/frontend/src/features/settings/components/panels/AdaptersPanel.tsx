@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useAdapters, useCreateAdapter, useUpdateAdapter, useDeleteAdapter, useTestConnection } from '@/lib/trpc/hooks'
-import { useServer, useUpdateServer } from '@/lib/trpc/hooks/realm.hooks'
+import { useRealm, useUpdateRealm } from '@/lib/trpc/hooks/realm.hooks'
 import { useAuthStore } from '@/core/auth/authStore'
 import { Button } from '@/shared/components/ui/button'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
@@ -23,9 +23,9 @@ export function AdaptersPanel() {
   // Get current user
   const user = useAuthStore(state => state.user)
 
-  // Use 'default-server' as the server ID (matches backend context default)
-  const { data: server } = useServer('default-server')
-  const updateRealm = useUpdateServer()
+  // Use 'default-server' as the realm ID (matches backend context default)
+  const { data: realm } = useRealm('default-server')
+  const updateRealm = useUpdateRealm()
 
   // CRUD hooks
   const createAdapter = useCreateAdapter()
@@ -38,7 +38,7 @@ export function AdaptersPanel() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<AdapterType>('anthropic-api')
 
-  const defaultAdapterId = server?.settings?.default_adapter_id || ''
+  const defaultAdapterId = realm?.settings?.default_adapter_id || ''
 
   // Filter adapters by active tab
   const filteredAdapters = useMemo(() => {
@@ -49,10 +49,10 @@ export function AdaptersPanel() {
   const testConnection = useTestConnection()
 
   const handleDefaultChange = (adapterId: string) => {
-    if (!server) return
+    if (!realm) return
 
     updateRealm.mutate({
-      realmId: server.realm_id,
+      realmId: realm.realm_id,
       data: {
         settings: {
           default_adapter_id: adapterId || undefined,

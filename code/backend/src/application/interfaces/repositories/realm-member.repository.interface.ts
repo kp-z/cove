@@ -6,7 +6,7 @@
  * - Server 成员查询
  */
 
-import { RealmMemberEntity, ServerRole, MemberStatus } from '../../../domain/models/realm-member/realm-member.entity';
+import { RealmMemberEntity, RealmRole, MemberStatus } from '../../../domain/models/realm-member/realm-member.entity';
 
 export interface IRealmMemberRepository {
   // 基本 CRUD
@@ -17,7 +17,7 @@ export interface IRealmMemberRepository {
 
   // 查询
   findByServer(realmId: string): Promise<RealmMemberEntity[]>;
-  findByRole(realmId: string, role: ServerRole): Promise<RealmMemberEntity[]>;
+  findByRole(realmId: string, role: RealmRole): Promise<RealmMemberEntity[]>;
   findByStatus(realmId: string, status: MemberStatus): Promise<RealmMemberEntity[]>;
 
   // 检查

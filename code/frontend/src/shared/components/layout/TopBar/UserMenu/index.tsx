@@ -4,7 +4,8 @@ import { Settings, LogOut, User } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/core/auth/authStore';
-import { headerCapsuleBaseClass } from '../TokenPill';
+import { Capsule } from '@/shared/components/ui/Capsule';
+import { HoverGradient } from '@/shared/components/ui/HoverGradient';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
@@ -50,20 +51,19 @@ export const UserMenu = React.memo(() => {
   const { t } = useTranslation('layout');
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [open, setOpen] = React.useState(false);
 
   if (!isAuthenticated || !user) {
     return (
-      <button
-        type="button"
+      <Capsule
         onClick={() => navigate('/login')}
-        className={`${headerCapsuleBaseClass} group relative h-8 cursor-pointer outline-none items-center justify-center gap-0 p-0 text-[12px] font-medium text-white/80 hover:text-white sm:justify-start sm:gap-2 sm:px-3`}
+        className="items-center justify-center gap-0 p-0 text-[12px] font-medium text-white/80 hover:text-white sm:justify-start sm:gap-2 sm:px-3"
       >
-        <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
           <User size={14} />
         </div>
         <span className="hidden sm:inline">{t('userMenu.login')}</span>
-      </button>
+      </Capsule>
     );
   }
 
@@ -78,14 +78,15 @@ export const UserMenu = React.memo(() => {
   };
 
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          title={displayName}
-          className={`group ${headerCapsuleBaseClass} relative h-8 cursor-pointer outline-none items-center p-0 gap-0 transition-all duration-200 ease-out sm:group-hover:gap-2 sm:group-hover:pl-3.5 sm:group-hover:pr-2.5`}
-        >
-          <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+      <Capsule
+        onClick={() => setOpen(!open)}
+        title={displayName}
+        isExpanded={open}
+        ariaLabel={t('userMenu.ariaLabel')}
+        ariaExpanded={open}
+        className="items-center p-0 gap-0 transition-all duration-200 ease-out sm:group-hover:gap-2 sm:group-hover:pl-3.5 sm:group-hover:pr-2.5"
+      >
           <div className="pointer-events-none hidden max-w-0 min-w-0 flex-row items-center gap-1.5 justify-start overflow-hidden pl-0 opacity-0 transition-all duration-200 ease-out sm:flex sm:group-hover:max-w-[220px] sm:group-hover:pl-1 sm:group-hover:opacity-100">
             <div className="min-w-0 flex-1">
               <p className="truncate text-left text-[11px] font-semibold leading-none text-white">
@@ -99,8 +100,7 @@ export const UserMenu = React.memo(() => {
             </span>
           </div>
           <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
-        </button>
-      </DropdownMenu.Trigger>
+        </Capsule>
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content

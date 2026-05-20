@@ -5,12 +5,11 @@
  * - create: 创建任务
  * - list: 获取任务列表（支持按 projectId, channelId, status, priority 过滤）
  * - getById: 获取单个任务
- * - update: 更新任务
+ * - update: 更新任务（支持 status 字段更新）
  * - delete: 删除任务
  * - convertMessageToTask: 消息转任务
  * - claim: 认领任务
  * - unclaim: 放弃认领
- * - updateStatus: 更新任务状态
  */
 
 import { z } from 'zod';
@@ -37,6 +36,8 @@ const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
+  status: z.enum(['todo', 'in_progress', 'blocked', 'in_review', 'done', 'cancelled']).optional(),
+  actorId: z.string().optional(),
 });
 
 const convertMessageToTaskSchema = z.object({
@@ -49,12 +50,6 @@ const claimTaskSchema = z.object({
   taskId: z.string(),
   assigneeId: z.string(),
   assigneeType: z.enum(['human', 'agent']).optional().default('human'),
-});
-
-const updateStatusSchema = z.object({
-  taskId: z.string(),
-  status: z.enum(['todo', 'in_progress', 'blocked', 'in_review', 'done', 'cancelled']),
-  actorId: z.string(),
 });
 
 export const taskRouter = (taskService: TaskService) =>
@@ -207,24 +202,6 @@ export const taskRouter = (taskService: TaskService) =>
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const task = await taskService.unclaimTask(input.taskId, input.userId);
-          return task.toJSON();
-          });
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // 更新任务状态
-    updateStatus: publicProcedure
-      .input(updateStatusSchema)
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
-          return await runWithContext(context, async () => {
-            const task = await taskService.updateTaskStatus(
-            input.taskId,
-            input.status,
-            input.actorId);
           return task.toJSON();
           });
         } catch (error: any) {

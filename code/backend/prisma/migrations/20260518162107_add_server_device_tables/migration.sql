@@ -15,7 +15,7 @@ CREATE TABLE "Realm" (
 -- CreateTable
 CREATE TABLE "Device" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "serverId" TEXT NOT NULL,
+    "realmId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "displayName" TEXT,
     "type" TEXT NOT NULL,
@@ -28,19 +28,19 @@ CREATE TABLE "Device" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Realm_name_key" ON "Server"("name");
+CREATE UNIQUE INDEX "Realm_name_key" ON "Realm"("name");
 
 -- CreateIndex
-CREATE INDEX "Realm_name_idx" ON "Server"("name");
+CREATE INDEX "Realm_name_idx" ON "Realm"("name");
 
 -- CreateIndex
-CREATE INDEX "Realm_ownerId_idx" ON "Server"("ownerId");
+CREATE INDEX "Realm_ownerId_idx" ON "Realm"("ownerId");
 
 -- CreateIndex
-CREATE INDEX "Realm_status_idx" ON "Server"("status");
+CREATE INDEX "Realm_status_idx" ON "Realm"("status");
 
 -- CreateIndex
-CREATE INDEX "Device_serverId_idx" ON "Device"("serverId");
+CREATE INDEX "Device_realmId_idx" ON "Device"("realmId");
 
 -- CreateIndex
 CREATE INDEX "Device_name_idx" ON "Device"("name");
@@ -52,4 +52,4 @@ CREATE INDEX "Device_status_idx" ON "Device"("status");
 CREATE INDEX "Device_type_idx" ON "Device"("type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Device_serverId_name_key" ON "Device"("serverId", "name");
+CREATE UNIQUE INDEX "Device_realmId_name_key" ON "Device"("realmId", "name");

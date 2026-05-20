@@ -15,7 +15,7 @@ import { PrismaClient } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import { HybridProjectRepository } from './hybrid-project.repository';
-import { HybridChannelRepository } from './hybrid-channel.repository';
+import { ChannelRepository } from './channel.repository';
 import { HybridAgentRepository } from './hybrid-agent.repository';
 import { HybridMessageRepository } from './hybrid-message.repository';
 import { HybridUserRepository } from './hybrid-user.repository';
@@ -63,7 +63,7 @@ export class RepositoryFactory {
 
   // Repository 实例缓存（按 realmId 缓存）
   private projectRepos = new Map<string, HybridProjectRepository>();
-  private channelRepos = new Map<string, HybridChannelRepository>();
+  private channelRepos = new Map<string, ChannelRepository>();
   private agentRepos = new Map<string, HybridAgentRepository>();
   private messageRepos = new Map<string, HybridMessageRepository>();
   private userRepos = new Map<string, HybridUserRepository>();
@@ -143,12 +143,11 @@ export class RepositoryFactory {
    * @param realmId - Server ID
    * @returns ChannelRepository 实例
    */
-  getChannelRepository(realmId: string): HybridChannelRepository {
+  getChannelRepository(realmId: string): ChannelRepository {
     if (!this.channelRepos.has(realmId)) {
-      const storage = this.createStorageService(realmId);
       this.channelRepos.set(
         realmId,
-        new HybridChannelRepository(this.prisma, storage, this.logger)
+        new ChannelRepository(this.prisma, this.logger)
       );
       this.logger.debug('Created ChannelRepository', { realmId });
     }

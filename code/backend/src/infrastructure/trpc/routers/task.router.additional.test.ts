@@ -23,7 +23,6 @@ describe('taskRouter - Additional Coverage', () => {
       convertMessageToTask: vi.fn(),
       claimTask: vi.fn(),
       unclaimTask: vi.fn(),
-      updateTaskStatus: vi.fn(),
     } as unknown as TaskService;
 
 
@@ -271,16 +270,16 @@ describe('taskRouter - Additional Coverage', () => {
     });
   });
 
-  describe('updateStatus - additional error cases', () => {
+  describe('update - additional error cases for status', () => {
     it('should throw NOT_FOUND when task not found', async () => {
       const error = new TaskNotFoundError('task-1');
       error.name = 'TaskNotFoundError';
-      vi.mocked(mockTaskService.updateTaskStatus).mockRejectedValue(error);
+      vi.mocked(mockTaskService.updateTask).mockRejectedValue(error);
 
       const caller = router.createCaller(mockContext);
 
       try {
-        await caller.updateStatus({
+        await caller.update({
           taskId: 'nonexistent',
           status: 'in_progress',
           actorId: 'user-1',
@@ -292,12 +291,12 @@ describe('taskRouter - Additional Coverage', () => {
     });
 
     it('should throw INTERNAL_SERVER_ERROR for unknown errors', async () => {
-      vi.mocked(mockTaskService.updateTaskStatus).mockRejectedValue(new Error('Database error'));
+      vi.mocked(mockTaskService.updateTask).mockRejectedValue(new Error('Database error'));
 
       const caller = router.createCaller(mockContext);
 
       try {
-        await caller.updateStatus({
+        await caller.update({
           taskId: 'task-1',
           status: 'in_progress',
           actorId: 'user-1',

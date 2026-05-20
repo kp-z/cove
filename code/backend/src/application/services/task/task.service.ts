@@ -32,6 +32,8 @@ export interface UpdateTaskDTO {
   readonly title?: string;
   readonly description?: string;
   readonly priority?: TaskPriority;
+  readonly status?: TaskStatus;
+  readonly actorId?: string;
 }
 
 export type { AssignTaskDTO, ClaimTaskDTO, AddDependencyDTO, RemoveDependencyDTO };
@@ -111,6 +113,12 @@ export class TaskService {
   async updateTask(taskId: string, dto: UpdateTaskDTO): Promise<TaskEntity> {
       const context = getRealmContext();
     this.logger.info('Updating task', { taskId });
+
+    // Handle status update if provided
+    if (dto.status !== undefined && dto.actorId !== undefined) {
+      return this.taskStatusService.updateTaskStatus(taskId, dto.status, dto.actorId);
+    }
+
     const task = await this.getTaskById(taskId);
 
     const json = task.toJSON();
@@ -201,10 +209,6 @@ export class TaskService {
   async completeTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.completeTask(taskId); }
   async blockTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.blockTask(taskId); }
   async cancelTask(taskId: string): Promise<TaskEntity> { return this.taskStatusService.cancelTask(taskId); }
-  async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string): Promise<TaskEntity> {
-    return this.taskStatusService.updateTaskStatus(taskId, status, actorId);
-  }
-
   // --- Delegation to TaskAssignmentService ---
   async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> { return this.taskAssignmentService.assignTask(dto); }
   async claimTask(dto: ClaimTaskDTO): Promise<TaskEntity> { return this.taskAssignmentService.claimTask(dto); }

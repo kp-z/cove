@@ -2,7 +2,7 @@
  * Realm Member Role
  * 定义服务器成员的角色层级
  */
-export type ServerRole = 'owner' | 'admin' | 'member' | 'guest';
+export type RealmRole = 'owner' | 'admin' | 'member' | 'guest';
 
 /**
  * Realm Member Status
@@ -14,7 +14,7 @@ export type MemberStatus = 'active' | 'suspended' | 'left';
  * Realm Permission
  * 定义服务器权限列表
  */
-export enum ServerPermission {
+export enum RealmPermission {
   // Realm 管理权限
   SERVER_MANAGE = 'server.manage',
   SERVER_DELETE = 'server.delete',
@@ -58,79 +58,79 @@ export enum ServerPermission {
  * Role Permission Mapping
  * 定义每个角色的默认权限
  */
-export const ROLE_PERMISSIONS: Record<ServerRole, ServerPermission[]> = {
+export const REALM_ROLE_PERMISSIONS: Record<RealmRole, RealmPermission[]> = {
   owner: [
     // Owner 拥有所有权限
-    ServerPermission.SERVER_MANAGE,
-    ServerPermission.SERVER_DELETE,
-    ServerPermission.SERVER_TRANSFER,
-    ServerPermission.MEMBER_INVITE,
-    ServerPermission.MEMBER_REMOVE,
-    ServerPermission.MEMBER_MANAGE_ROLES,
-    ServerPermission.MEMBER_VIEW,
-    ServerPermission.PROJECT_CREATE,
-    ServerPermission.PROJECT_DELETE,
-    ServerPermission.PROJECT_MANAGE,
-    ServerPermission.PROJECT_VIEW,
-    ServerPermission.CHANNEL_CREATE,
-    ServerPermission.CHANNEL_DELETE,
-    ServerPermission.CHANNEL_MANAGE,
-    ServerPermission.CHANNEL_VIEW,
-    ServerPermission.MESSAGE_SEND,
-    ServerPermission.MESSAGE_DELETE,
-    ServerPermission.MESSAGE_VIEW,
-    ServerPermission.DEVICE_MANAGE,
-    ServerPermission.DEVICE_VIEW,
-    ServerPermission.AGENT_CREATE,
-    ServerPermission.AGENT_DELETE,
-    ServerPermission.AGENT_MANAGE,
-    ServerPermission.AGENT_VIEW,
+    RealmPermission.SERVER_MANAGE,
+    RealmPermission.SERVER_DELETE,
+    RealmPermission.SERVER_TRANSFER,
+    RealmPermission.MEMBER_INVITE,
+    RealmPermission.MEMBER_REMOVE,
+    RealmPermission.MEMBER_MANAGE_ROLES,
+    RealmPermission.MEMBER_VIEW,
+    RealmPermission.PROJECT_CREATE,
+    RealmPermission.PROJECT_DELETE,
+    RealmPermission.PROJECT_MANAGE,
+    RealmPermission.PROJECT_VIEW,
+    RealmPermission.CHANNEL_CREATE,
+    RealmPermission.CHANNEL_DELETE,
+    RealmPermission.CHANNEL_MANAGE,
+    RealmPermission.CHANNEL_VIEW,
+    RealmPermission.MESSAGE_SEND,
+    RealmPermission.MESSAGE_DELETE,
+    RealmPermission.MESSAGE_VIEW,
+    RealmPermission.DEVICE_MANAGE,
+    RealmPermission.DEVICE_VIEW,
+    RealmPermission.AGENT_CREATE,
+    RealmPermission.AGENT_DELETE,
+    RealmPermission.AGENT_MANAGE,
+    RealmPermission.AGENT_VIEW,
   ],
   admin: [
     // Admin 拥有管理权限（除了删除 Server 和转让所有权）
-    ServerPermission.SERVER_MANAGE,
-    ServerPermission.MEMBER_INVITE,
-    ServerPermission.MEMBER_REMOVE,
-    ServerPermission.MEMBER_MANAGE_ROLES,
-    ServerPermission.MEMBER_VIEW,
-    ServerPermission.PROJECT_CREATE,
-    ServerPermission.PROJECT_DELETE,
-    ServerPermission.PROJECT_MANAGE,
-    ServerPermission.PROJECT_VIEW,
-    ServerPermission.CHANNEL_CREATE,
-    ServerPermission.CHANNEL_DELETE,
-    ServerPermission.CHANNEL_MANAGE,
-    ServerPermission.CHANNEL_VIEW,
-    ServerPermission.MESSAGE_SEND,
-    ServerPermission.MESSAGE_DELETE,
-    ServerPermission.MESSAGE_VIEW,
-    ServerPermission.DEVICE_MANAGE,
-    ServerPermission.DEVICE_VIEW,
-    ServerPermission.AGENT_CREATE,
-    ServerPermission.AGENT_DELETE,
-    ServerPermission.AGENT_MANAGE,
-    ServerPermission.AGENT_VIEW,
+    RealmPermission.SERVER_MANAGE,
+    RealmPermission.MEMBER_INVITE,
+    RealmPermission.MEMBER_REMOVE,
+    RealmPermission.MEMBER_MANAGE_ROLES,
+    RealmPermission.MEMBER_VIEW,
+    RealmPermission.PROJECT_CREATE,
+    RealmPermission.PROJECT_DELETE,
+    RealmPermission.PROJECT_MANAGE,
+    RealmPermission.PROJECT_VIEW,
+    RealmPermission.CHANNEL_CREATE,
+    RealmPermission.CHANNEL_DELETE,
+    RealmPermission.CHANNEL_MANAGE,
+    RealmPermission.CHANNEL_VIEW,
+    RealmPermission.MESSAGE_SEND,
+    RealmPermission.MESSAGE_DELETE,
+    RealmPermission.MESSAGE_VIEW,
+    RealmPermission.DEVICE_MANAGE,
+    RealmPermission.DEVICE_VIEW,
+    RealmPermission.AGENT_CREATE,
+    RealmPermission.AGENT_DELETE,
+    RealmPermission.AGENT_MANAGE,
+    RealmPermission.AGENT_VIEW,
   ],
   member: [
     // Member 拥有基本权限
-    ServerPermission.MEMBER_VIEW,
-    ServerPermission.PROJECT_VIEW,
-    ServerPermission.CHANNEL_CREATE,
-    ServerPermission.CHANNEL_VIEW,
-    ServerPermission.MESSAGE_SEND,
-    ServerPermission.MESSAGE_VIEW,
-    ServerPermission.DEVICE_VIEW,
-    ServerPermission.AGENT_CREATE,
-    ServerPermission.AGENT_VIEW,
+    RealmPermission.MEMBER_VIEW,
+    RealmPermission.PROJECT_VIEW,
+    RealmPermission.CHANNEL_CREATE,
+    RealmPermission.CHANNEL_VIEW,
+    RealmPermission.MESSAGE_SEND,
+    RealmPermission.MESSAGE_VIEW,
+    RealmPermission.DEVICE_VIEW,
+    RealmPermission.AGENT_CREATE,
+    RealmPermission.AGENT_VIEW,
   ],
   guest: [
     // Guest 只有只读权限
-    ServerPermission.MEMBER_VIEW,
-    ServerPermission.PROJECT_VIEW,
-    ServerPermission.CHANNEL_VIEW,
-    ServerPermission.MESSAGE_VIEW,
-    ServerPermission.DEVICE_VIEW,
-    ServerPermission.AGENT_VIEW,
+    RealmPermission.MEMBER_VIEW,
+    RealmPermission.PROJECT_VIEW,
+    RealmPermission.CHANNEL_VIEW,
+    RealmPermission.MESSAGE_VIEW,
+    RealmPermission.DEVICE_VIEW,
+    RealmPermission.AGENT_VIEW,
   ],
 };
 
@@ -141,8 +141,8 @@ export interface RealmMemberEntityProps {
   member_id: string;
   realm_id: string;
   user_id: string;
-  role: ServerRole;
-  custom_permissions?: ServerPermission[]; // 自定义权限，可覆盖角色默认权限
+  role: RealmRole;
+  custom_permissions?: RealmPermission[]; // 自定义权限，可覆盖角色默认权限
   status: MemberStatus;
   joined_at: Date;
   updated_at: Date;
@@ -156,8 +156,8 @@ export type RealmMemberEntityJSON = {
   member_id: string;
   realm_id: string;
   user_id: string;
-  role: ServerRole;
-  custom_permissions?: ServerPermission[];
+  role: RealmRole;
+  custom_permissions?: RealmPermission[];
   status: MemberStatus;
   joined_at: string;
   updated_at: string;
@@ -220,11 +220,11 @@ export class RealmMemberEntity {
     return this.props.user_id;
   }
 
-  get role(): ServerRole {
+  get role(): RealmRole {
     return this.props.role;
   }
 
-  get customPermissions(): ServerPermission[] | undefined {
+  get customPermissions(): RealmPermission[] | undefined {
     return this.props.custom_permissions;
   }
 
@@ -248,17 +248,17 @@ export class RealmMemberEntity {
    * 获取成员的所有权限
    * 如果有自定义权限，使用自定义权限；否则使用角色默认权限
    */
-  getPermissions(): ServerPermission[] {
+  getPermissions(): RealmPermission[] {
     if (this.props.custom_permissions && this.props.custom_permissions.length > 0) {
       return this.props.custom_permissions;
     }
-    return ROLE_PERMISSIONS[this.props.role];
+    return REALM_ROLE_PERMISSIONS[this.props.role];
   }
 
   /**
    * 检查是否拥有指定权限
    */
-  hasPermission(permission: ServerPermission): boolean {
+  hasPermission(permission: RealmPermission): boolean {
     const permissions = this.getPermissions();
     return permissions.includes(permission);
   }
@@ -266,7 +266,7 @@ export class RealmMemberEntity {
   /**
    * 检查是否拥有所有指定权限
    */
-  hasAllPermissions(permissions: ServerPermission[]): boolean {
+  hasAllPermissions(permissions: RealmPermission[]): boolean {
     const memberPermissions = this.getPermissions();
     return permissions.every((p) => memberPermissions.includes(p));
   }
@@ -274,7 +274,7 @@ export class RealmMemberEntity {
   /**
    * 检查是否拥有任一指定权限
    */
-  hasAnyPermission(permissions: ServerPermission[]): boolean {
+  hasAnyPermission(permissions: RealmPermission[]): boolean {
     const memberPermissions = this.getPermissions();
     return permissions.some((p) => memberPermissions.includes(p));
   }
@@ -317,7 +317,7 @@ export class RealmMemberEntity {
   /**
    * 更新角色
    */
-  updateRole(role: ServerRole): RealmMemberEntity {
+  updateRole(role: RealmRole): RealmMemberEntity {
     return new RealmMemberEntity({
       ...this.props,
       role,
@@ -328,7 +328,7 @@ export class RealmMemberEntity {
   /**
    * 设置自定义权限
    */
-  setCustomPermissions(permissions: ServerPermission[]): RealmMemberEntity {
+  setCustomPermissions(permissions: RealmPermission[]): RealmMemberEntity {
     return new RealmMemberEntity({
       ...this.props,
       custom_permissions: permissions,

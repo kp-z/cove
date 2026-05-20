@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Lock, Loader2, Mail } from 'lucide-react';
+import { User, Lock, Loader2, Mail, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TRPCClientError } from '@trpc/client';
 import { branding } from '@/core/config';
@@ -11,7 +11,8 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Switch } from '@/shared/components/ui/switch';
-import { AnimatedBorder, LoginHeroThree } from '@/shared/components/ui/animations';
+import { LoginBackground } from '@/shared/components/ui/animations';
+import { GlassCard, GlassCardVariants } from '@/shared/components/ui/cards/GlassCard';
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
 
@@ -32,6 +33,8 @@ export default function LoginPage() {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMeLocal] = useState(() => {
     const rememberedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
     return rememberedUsername ? true : storedRememberMe;
@@ -137,9 +140,7 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 bg-gray-950">
-      <div className="pointer-events-none absolute inset-0">
-        <LoginHeroThree />
-      </div>
+      <LoginBackground />
 
       <div className="relative z-10 flex min-h-screen items-center justify-end p-4 pr-20">
         <motion.div
@@ -148,10 +149,8 @@ export default function LoginPage() {
           transition={{ duration: 0.6 }}
           className="w-full max-w-md"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
-            <AnimatedBorder />
-
-            <div className="p-8">
+          <GlassCard {...GlassCardVariants.hero} className="rounded-2xl">
+            <div>
               {/* Header */}
               <div className="flex items-center gap-4 mb-8">
                 <img
@@ -261,15 +260,27 @@ export default function LoginPage() {
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="password"
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           placeholder={t('auth.passwordPlaceholder')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10"
+                          className="pl-10 pr-10"
                           autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                           minLength={8}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
                       </div>
                       {mode === 'register' && (
                         <p className="text-xs text-muted-foreground">
@@ -286,15 +297,27 @@ export default function LoginPage() {
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? "text" : "password"}
                             placeholder={t('auth.confirmPasswordPlaceholder')}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 pr-10"
                             autoComplete="new-password"
                             minLength={8}
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
                     )}
@@ -339,7 +362,7 @@ export default function LoginPage() {
                 </div>
               </form>
             </div>
-          </div>
+          </GlassCard>
         </motion.div>
       </div>
     </div>

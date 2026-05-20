@@ -13,7 +13,7 @@ export class RealmNotFoundError extends NotFoundError {
   }
 }
 
-export class ServerNameAlreadyExistsError extends ConflictError {
+export class RealmNameAlreadyExistsError extends ConflictError {
   readonly code = ERROR_CODES.REALM_NAME_EXISTS;
 
   constructor(name: string) {
@@ -21,7 +21,7 @@ export class ServerNameAlreadyExistsError extends ConflictError {
   }
 }
 
-export class ServerNotActiveError extends ValidationError {
+export class RealmNotActiveError extends ValidationError {
   readonly code = ERROR_CODES.REALM_NOT_ACTIVE;
 
   constructor(realmId: string) {
@@ -29,7 +29,7 @@ export class ServerNotActiveError extends ValidationError {
   }
 }
 
-export class ServerAlreadyArchivedError extends ValidationError {
+export class RealmAlreadyArchivedError extends ValidationError {
   readonly code = ERROR_CODES.REALM_ALREADY_ARCHIVED;
 
   constructor(realmId: string) {
@@ -37,7 +37,7 @@ export class ServerAlreadyArchivedError extends ValidationError {
   }
 }
 
-export class ServerNotArchivedError extends ValidationError {
+export class RealmNotArchivedError extends ValidationError {
   readonly code = ERROR_CODES.REALM_NOT_ARCHIVED;
 
   constructor(realmId: string) {
@@ -45,7 +45,7 @@ export class ServerNotArchivedError extends ValidationError {
   }
 }
 
-export class UnauthorizedServerAccessError extends AuthorizationError {
+export class UnauthorizedRealmAccessError extends AuthorizationError {
   readonly code = ERROR_CODES.UNAUTHORIZED_REALM_ACCESS;
 
   constructor(realmId: string, userId: string) {

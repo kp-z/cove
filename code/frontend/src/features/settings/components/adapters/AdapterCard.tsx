@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Edit2, Trash2, Globe, CheckCircle, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard'
 import { useState } from 'react'
 import type { Adapter } from '@/features/settings/types/adapter.types'
 
@@ -49,12 +50,12 @@ export function AdapterCard({
   }
 
   return (
-    <div
+    <GlassCard
       className={`
-        p-6 rounded-xl border transition-all
+        p-6
         ${isDefault
-          ? 'bg-white/5 border-green-500/50 ring-1 ring-green-500/20'
-          : 'bg-white/5 border-white/10 hover:border-white/20'
+          ? 'border-green-500/50 ring-1 ring-green-500/20'
+          : ''
         }
       `}
     >
@@ -152,6 +153,6 @@ export function AdapterCard({
           <span className="text-white/80">{getModelInfo()}</span>
         </div>
       </div>
-    </div>
+    </GlassCard>
   )
 }

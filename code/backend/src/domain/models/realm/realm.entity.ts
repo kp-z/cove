@@ -24,7 +24,7 @@ const VALID_MEMBER_ROLES: readonly MemberRole[] = ['member', 'guest'];
 /**
  * Realm 设置
  */
-export interface ServerSettings {
+export interface RealmSettings {
   readonly allow_public_channels: boolean;
   readonly allow_private_channels: boolean;
   readonly allow_dm: boolean;
@@ -36,7 +36,7 @@ export interface ServerSettings {
 /**
  * Realm 资源限制
  */
-export interface ServerLimits {
+export interface RealmLimits {
   readonly max_members: number;
   readonly max_projects: number;
   readonly max_channels: number;
@@ -55,8 +55,8 @@ export interface RealmEntityProps {
   readonly owner_id: string;
   readonly status: RealmStatus;
   readonly visibility: RealmVisibility;
-  readonly settings: ServerSettings;
-  readonly limits: ServerLimits;
+  readonly settings: RealmSettings;
+  readonly limits: RealmLimits;
   readonly created_at: Date;
   readonly updated_at: Date;
   readonly meta: {
@@ -196,8 +196,8 @@ export class RealmEntity {
   get owner_id(): string { return this.props.owner_id; }
   get status(): RealmStatus { return this.props.status; }
   get visibility(): RealmVisibility { return this.props.visibility; }
-  get settings(): ServerSettings { return this.props.settings; }
-  get limits(): ServerLimits { return this.props.limits; }
+  get settings(): RealmSettings { return this.props.settings; }
+  get limits(): RealmLimits { return this.props.limits; }
   get created_at(): Date { return this.props.created_at; }
   get updated_at(): Date { return this.props.updated_at; }
   get meta(): RealmEntityProps['meta'] { return this.props.meta; }
@@ -321,7 +321,7 @@ export class RealmEntity {
     });
   }
 
-  updateSettings(settings: Partial<ServerSettings>): RealmEntity {
+  updateSettings(settings: Partial<RealmSettings>): RealmEntity {
     return RealmEntity.create({
       ...this.props,
       settings: {
@@ -332,7 +332,7 @@ export class RealmEntity {
     });
   }
 
-  updateLimits(limits: Partial<ServerLimits>): RealmEntity {
+  updateLimits(limits: Partial<RealmLimits>): RealmEntity {
     const newLimits = {
       ...this.props.limits,
       ...limits,

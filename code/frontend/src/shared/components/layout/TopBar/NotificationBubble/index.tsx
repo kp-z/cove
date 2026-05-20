@@ -9,9 +9,9 @@ import {
   Info,
   Sparkles,
 } from 'lucide-react';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { useTranslation } from 'react-i18next';
-import { headerCapsuleBaseClass } from '../TokenPill';
+import { Capsule } from '@/shared/components/ui/Capsule';
+import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 export interface Notification {
   id: string;
@@ -99,66 +99,65 @@ export const NotificationBubble = React.memo(
       return () => document.removeEventListener('mousedown', onDoc);
     }, [isExpanded]);
 
+    const tooltipContent = useMemo(() => {
+      if (notifications.length === 0) {
+        return t('notification.noUnread');
+      }
+
+      const recentNotifications = notifications.slice(0, 3);
+      const remaining = notifications.length - 3;
+
+      return (
+        <div className="space-y-1.5 min-w-[200px] max-w-[280px]">
+          {recentNotifications.map((notification) => (
+            <div key={notification.id} className="text-xs">
+              <div className="font-medium text-white/90 truncate">
+                {notification.title}
+              </div>
+            </div>
+          ))}
+          {remaining > 0 && (
+            <div className="text-[10px] text-white/50 pt-0.5">
+              +{remaining} {t('notification.more')}
+            </div>
+          )}
+        </div>
+      );
+    }, [notifications, t]);
+
     return (
       <div className="relative z-50">
-        <Tooltip.Provider delayDuration={200}>
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <button
-                type="button"
-                ref={triggerRef}
-                onClick={() => setIsExpanded(!isExpanded)}
-                aria-expanded={isExpanded}
-                aria-label={
-                  unreadCount > 0
-                    ? t('notification.ariaWithUnread', { count: unreadCount > 99 ? '99+' : unreadCount })
-                    : t('notification.ariaDefault')
-                }
-                className={`${headerCapsuleBaseClass} group relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
-                  activeNotifications.length > 0
-                    ? 'border-violet-400/35 bg-violet-500/15 hover:bg-violet-500/25'
-                    : ''
-                } ${isExpanded ? 'ring-1 ring-white/20 bg-white/[0.08]' : ''}`}
-              >
-                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-                {activeNotifications.length > 0 ? (
-                  <Loader2
-                    size={14}
-                    className="text-violet-200 shrink-0 animate-spin relative z-10"
-                  />
-                ) : (
-                  <Bell size={14} className="text-white/55 shrink-0 relative z-10" />
-                )}
-                {unreadCount > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-[10px] font-bold text-white flex items-center justify-center tabular-nums leading-none border border-white/15 relative z-10">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-                {activeNotifications.length > 0 && (
-                  <span className="absolute inset-0 rounded-full bg-violet-400/20 pointer-events-none animate-pulse z-0" />
-                )}
-              </button>
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                side="bottom"
-                align="end"
-                sideOffset={8}
-                className="z-[10050] bg-[#111114] border border-white/[0.10] rounded-xl px-3 py-2 text-xs text-white/90 max-w-[240px]"
-              >
-                <p className="font-medium text-white">{t('notification.center')}</p>
-                <p className="text-[11px] text-white/60 mt-1">
-                  {unreadCount > 0
-                    ? t('notification.unreadCount', { count: unreadCount > 99 ? '99+' : unreadCount })
-                    : activeNotifications.length > 0
-                      ? t('notification.tasksInProgress')
-                      : t('notification.noUnread')}
-                </p>
-                <Tooltip.Arrow className="fill-white/10" />
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
-        </Tooltip.Provider>
+        <CapsuleTooltip content={tooltipContent}>
+          <Capsule
+            ref={triggerRef}
+            onClick={() => setIsExpanded(!isExpanded)}
+            variant={activeNotifications.length > 0 ? 'loading' : 'default'}
+            isExpanded={isExpanded}
+            ariaLabel={
+              unreadCount > 0
+                ? t('notification.ariaWithUnread', { count: unreadCount > 99 ? '99+' : unreadCount })
+                : t('notification.ariaDefault')
+            }
+            minWidth="min-w-8"
+            gap="gap-1.5"
+            padding="px-2"
+            justify="center"
+            pulseEffect={activeNotifications.length > 0}
+            badge={
+              unreadCount > 0 ? (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-[10px] font-bold text-white flex items-center justify-center tabular-nums leading-none border border-white/15 relative z-10">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              ) : undefined
+            }
+          >
+            {activeNotifications.length > 0 ? (
+              <Loader2 size={14} className="text-violet-200 shrink-0 animate-spin relative z-10" />
+            ) : (
+              <Bell size={14} className="text-white/55 shrink-0 relative z-10" />
+            )}
+          </Capsule>
+        </CapsuleTooltip>
 
         <AnimatePresence mode="wait">
           {isExpanded && (

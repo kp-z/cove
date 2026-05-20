@@ -69,7 +69,7 @@ export class HybridAgentRepository
     prisma: any,
     storage: any,
     logger: any,
-    private readonly projectRoot: string
+    private readonly coveRoot: string
   ) {
     super(prisma, storage, logger);
   }
@@ -173,6 +173,133 @@ export class HybridAgentRepository
     return dbRecord.configPath;
   }
 
+  /**
+   * 从目录结构加载 agent 内容
+   * 所有 agents 都使用目录结构：agent.md + YAML 文件
+   */
+  private async loadAgentContent(configPath: string): Promise<AgentContent> {
+    const fullPath = path.join(
+      CovePathResolver.getCoveRoot(this.coveRoot),
+      configPath
+    );
+
+    return await this.loadFromDirectory(fullPath);
+  }
+
+  /**
+   * 从目录结构加载 agent 配置
+   */
+  private async loadFromDirectory(dirPath: string): Promise<AgentContent> {
+    // 读取 agent.md
+    const agentMdPath = path.join(dirPath, 'agent.md');
+    const agentMd = await fs.readFile(agentMdPath, 'utf-8');
+
+    // 解析 agent.md
+    const parsed = this.parseAgentMd(agentMd);
+
+    // 读取 YAML 配置（可选）
+    const runtimeConfig = await this.loadYamlIfExists(path.join(dirPath, 'runtime.yaml'));
+    const persona = await this.loadYamlIfExists(path.join(dirPath, 'persona.yaml'));
+    const skills = await this.loadYamlIfExists(path.join(dirPath, 'config', 'skills.yaml'));
+    const tools = await this.loadYamlIfExists(path.join(dirPath, 'config', 'tools.yaml'));
+    const triggers = await this.loadYamlIfExists(path.join(dirPath, 'config', 'triggers.yaml'));
+
+    return {
+      description: parsed.description,
+      capabilities: parsed.capabilities,
+      tags: parsed.tags,
+      runtimeConfig,
+      persona,
+      skills,
+      tools,
+      triggers,
+      createdBy: parsed.createdBy,
+    };
+  }
+
+  /**
+   * 解析 agent.md 文件
+   */
+  private parseAgentMd(content: string): {
+    description: string;
+    capabilities: string[];
+    tags: string[];
+    createdBy: string;
+  } {
+    const lines = content.split('\n');
+    let description = '';
+    const capabilities: string[] = [];
+    const tags: string[] = [];
+    let createdBy = 'system';
+
+    let section = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('# ')) {
+        continue; // Skip title
+      } else if (trimmed.startsWith('## Capabilities')) {
+        section = 'capabilities';
+      } else if (trimmed.startsWith('## Tags')) {
+        section = 'tags';
+      } else if (trimmed.startsWith('## Metadata')) {
+        section = 'metadata';
+      } else if (trimmed.startsWith('## ')) {
+        section = '';
+      } else if (section === 'capabilities' && trimmed.startsWith('- ')) {
+        capabilities.push(trimmed.substring(2));
+      } else if (section === 'tags' && trimmed.startsWith('- ')) {
+        tags.push(trimmed.substring(2));
+      } else if (section === 'metadata' && trimmed.includes('Created By')) {
+        const match = trimmed.match(/Created By[*:]*\s*(.+)/);
+        if (match && match[1]) createdBy = match[1].trim();
+      } else if (!section && trimmed && !trimmed.startsWith('#')) {
+        description = trimmed;
+      }
+    }
+
+    return { description, capabilities, tags, createdBy };
+  }
+
+  /**
+   * 加载 YAML 文件（如果存在）
+   */
+  private async loadYamlIfExists(filePath: string): Promise<any> {
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      return YAML.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * 重写 findEntityById 以支持目录结构
+   */
+  protected async findEntityById(entityId: string): Promise<AgentEntity | null> {
+    const dbRecord = await this.findInDatabase(entityId);
+    if (!dbRecord) return null;
+
+    const contentPath = this.getContentPath(dbRecord);
+    const content = await this.loadAgentContent(contentPath);
+
+    return this.toDomain(dbRecord, content);
+  }
+
+  /**
+   * 重写 loadEntities 以支持目录结构
+   */
+  protected async loadEntities(dbRecords: AgentDbRecord[]): Promise<AgentEntity[]> {
+    return await Promise.all(
+      dbRecords.map(async (record) => {
+        const contentPath = this.getContentPath(record);
+        const content = await this.loadAgentContent(contentPath);
+        return this.toDomain(record, content);
+      })
+    );
+  }
+
   // ============================================
   // IAgentRepository 接口实现
   // ============================================
@@ -225,7 +352,7 @@ export class HybridAgentRepository
   private getAgentConfigDir(agentId: string): string {
     // Agent configs are stored in .cove/storage/agents/{agentId}/
     return path.join(
-      CovePathResolver.getCoveRoot(this.projectRoot),
+      CovePathResolver.getCoveRoot(this.coveRoot),
       'storage',
       'agents',
       agentId

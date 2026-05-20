@@ -4,6 +4,7 @@ import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { ILogger } from '../../application/interfaces/index';
 import { BuiltInAgentsInitializer } from './built-in-agents-initializer';
+import { DefaultDataInitializer } from './default-data-initializer';
 
 export interface DatabaseInitializerOptions {
   databasePath: string;
@@ -78,12 +79,19 @@ export class DatabaseInitializer {
 
       this.logger.debug('Executing prisma migrate deploy', { cwd: backendDir });
 
+      // Set DATABASE_URL environment variable to use absolute path
+      const databaseUrl = `file:${this.databasePath}`;
+
       // Use 'prisma migrate deploy' for production-safe migrations
       // This applies all pending migrations without prompting
       const output = execSync('npx prisma migrate deploy', {
         cwd: backendDir,
         encoding: 'utf-8',
         stdio: 'pipe',
+        env: {
+          ...process.env,
+          DATABASE_URL: databaseUrl,
+        },
       });
 
       this.logger.info('Prisma migrations completed successfully');
@@ -106,47 +114,53 @@ export class DatabaseInitializer {
 
     this.logger.info('Checking database initialization status...');
 
-    if (!this.needsInitialization()) {
+    const needsMigration = this.needsInitialization();
+
+    if (needsMigration) {
+      this.logger.info('Database needs initialization, starting setup...');
+
+      try {
+        // Step 1: Ensure database directory exists
+        this.ensureDatabaseDirectory();
+
+        // Step 2: Run migrations
+        this.runMigrations();
+
+        // Step 3: Verify database was created successfully
+        if (!fs.existsSync(this.databasePath)) {
+          throw new Error('Database file was not created after migration');
+        }
+
+        const stats = fs.statSync(this.databasePath);
+        if (stats.size === 0) {
+          throw new Error('Database file is still empty after migration');
+        }
+
+        this.logger.info('Database initialized successfully', {
+          path: this.databasePath,
+          size: stats.size
+        });
+      } catch (error) {
+        this.logger.error('Database initialization failed', error as Error);
+        throw error;
+      }
+    } else {
       this.logger.info('Database is already initialized, skipping migration');
-      return false;
     }
 
-    this.logger.info('Database needs initialization, starting setup...');
+    // Step 4: Initialize built-in agents (if prisma and storageRoot are provided)
+    // This runs regardless of whether migration was needed, to ensure agents exist
+    if (this.prisma && this.storageRoot) {
+      await this.initializeBuiltInAgents();
 
-    try {
-      // Step 1: Ensure database directory exists
-      this.ensureDatabaseDirectory();
-
-      // Step 2: Run migrations
-      this.runMigrations();
-
-      // Step 3: Verify database was created successfully
-      if (!fs.existsSync(this.databasePath)) {
-        throw new Error('Database file was not created after migration');
-      }
-
-      const stats = fs.statSync(this.databasePath);
-      if (stats.size === 0) {
-        throw new Error('Database file is still empty after migration');
-      }
-
-      this.logger.info('Database initialized successfully', {
-        path: this.databasePath,
-        size: stats.size
-      });
-
-      // Step 4: Initialize built-in agents (if prisma and storageRoot are provided)
-      if (this.prisma && this.storageRoot) {
-        await this.initializeBuiltInAgents();
-      } else {
-        this.logger.debug('Skipping built-in agents initialization (prisma or storageRoot not provided)');
-      }
-
-      return true;
-    } catch (error) {
-      this.logger.error('Database initialization failed', error as Error);
-      throw error;
+      // Step 5: Initialize default data (Nexus realm + default channels)
+      // This runs regardless of whether migration was needed, to ensure default data exists
+      await this.initializeDefaultData();
+    } else {
+      this.logger.debug('Skipping built-in agents and default data initialization (prisma or storageRoot not provided)');
     }
+
+    return needsMigration;
   }
 
   /**
@@ -172,6 +186,32 @@ export class DatabaseInitializer {
     } catch (error) {
       this.logger.error('Failed to initialize built-in agents', error as Error);
       // Don't throw - built-in agents initialization failure shouldn't block database initialization
+    }
+  }
+
+  /**
+   * Initialize default data (Nexus realm + default channels)
+   */
+  private async initializeDefaultData(): Promise<void> {
+    if (!this.prisma || !this.storageRoot) {
+      return;
+    }
+
+    try {
+      this.logger.info('Initializing default data...');
+
+      const defaultDataInitializer = new DefaultDataInitializer({
+        prisma: this.prisma,
+        logger: this.logger,
+        storageRoot: this.storageRoot,
+      });
+
+      await defaultDataInitializer.initialize();
+
+      this.logger.info('Default data initialization complete');
+    } catch (error) {
+      this.logger.error('Failed to initialize default data', error as Error);
+      // Don't throw - default data initialization failure shouldn't block database initialization
     }
   }
 

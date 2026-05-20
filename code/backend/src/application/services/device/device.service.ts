@@ -45,6 +45,7 @@ export interface UpdateDeviceDTO {
   readonly displayName?: string;
   readonly description?: string;
   readonly provider?: string;
+  readonly status?: DeviceStatus;
 }
 
 export interface UpdateDeviceSpecsDTO {
@@ -165,12 +166,36 @@ export class DeviceService {
       }
     }
 
-    // Build update object
+    // Handle status transitions
+    if (dto.status !== undefined && dto.status !== device.status) {
+      switch (dto.status) {
+        case 'online':
+          device = device.markOnline();
+          break;
+        case 'offline':
+          device = device.markOffline();
+          break;
+        case 'maintenance':
+          device = device.enterMaintenance();
+          break;
+        case 'decommissioned':
+          device = device.decommission();
+          break;
+        default:
+          // For 'provisioning' and 'error', update directly
+          break;
+      }
+    }
+
+    // Build update object for other fields
     const updates: any = {};
     if (dto.name !== undefined) updates.name = dto.name;
     if (dto.displayName !== undefined) updates.display_name = dto.displayName;
     if (dto.description !== undefined) updates.description = dto.description;
     if (dto.provider !== undefined) updates.provider = dto.provider;
+    if (dto.status !== undefined && ['provisioning', 'error'].includes(dto.status)) {
+      updates.status = dto.status;
+    }
 
     // Apply updates if any
     if (Object.keys(updates).length > 0) {
@@ -285,138 +310,6 @@ export class DeviceService {
     });
 
     this.logger.info('Device location updated successfully', { deviceId });
-    return device;
-  }
-
-  async markDeviceOnline(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Marking device online', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.markOnline();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.online',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device marked online', { deviceId });
-    return device;
-  }
-
-  async markDeviceOffline(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Marking device offline', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.markOffline();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.offline',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device marked offline', { deviceId });
-    return device;
-  }
-
-  async enterDeviceMaintenance(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Entering device maintenance', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.enterMaintenance();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.maintenance_started',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device entered maintenance', { deviceId });
-    return device;
-  }
-
-  async exitDeviceMaintenance(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Exiting device maintenance', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.exitMaintenance();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.maintenance_ended',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device exited maintenance', { deviceId });
-    return device;
-  }
-
-  async reportDeviceError(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Reporting device error', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.reportError();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.error_reported',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device error reported', { deviceId });
-    return device;
-  }
-
-  async decommissionDevice(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-    this.logger.info('Decommissioning device', { deviceId });
-
-    let device = await this.getDeviceById(deviceId);
-    device = device.decommission();
-
-    await this.deviceRepository.update(device, context.realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'device.decommissioned',
-      aggregateId: deviceId,
-      aggregateType: 'Device',
-      occurredAt: new Date(),
-      payload: { deviceId },
-    });
-
-    this.logger.info('Device decommissioned', { deviceId });
     return device;
   }
 

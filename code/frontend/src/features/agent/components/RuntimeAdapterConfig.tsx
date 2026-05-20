@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Cpu } from 'lucide-react';
-import { GlassCard } from '@/shared/components/ui/GlassCard';
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 

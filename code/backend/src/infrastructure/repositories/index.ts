@@ -5,7 +5,7 @@
  */
 
 export { HybridAgentRepository } from './hybrid-agent.repository';
-export { HybridChannelRepository } from './hybrid-channel.repository';
+export { ChannelRepository } from './channel.repository';
 export { HybridMessageRepository } from './hybrid-message.repository';
 export { HybridTaskRepository } from './hybrid-task.repository';
 export { HybridThreadRepository } from './hybrid-thread.repository';

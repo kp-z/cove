@@ -4,6 +4,7 @@ import { createHTTPHandler } from '@trpc/server/adapters/standalone';
 import { applyWSSHandler } from '@trpc/server/adapters/ws';
 import { WebSocketServer as WSServer } from 'ws';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 // Get __dirname equivalent in ES modules
@@ -21,12 +22,12 @@ import {
 import { HybridAgentRepository } from './infrastructure/repositories/hybrid-agent.repository';
 import { HybridTaskRepository } from './infrastructure/repositories/hybrid-task.repository';
 import { HybridThreadRepository } from './infrastructure/repositories/hybrid-thread.repository';
-import { HybridChannelRepository } from './infrastructure/repositories/hybrid-channel.repository';
+import { ChannelRepository } from './infrastructure/repositories/channel.repository';
 import { HybridMessageRepository } from './infrastructure/repositories/hybrid-message.repository';
 import { HybridUserRepository } from './infrastructure/repositories/hybrid-user.repository';
 import { HybridProjectRepository } from './infrastructure/repositories/hybrid-project.repository';
 import { HybridWorkflowRepository } from './infrastructure/repositories/hybrid-workflow.repository';
-import { HybridRealmRepository } from './infrastructure/repositories/hybrid-realm.repository';
+import { RealmRepository } from './infrastructure/repositories/realm.repository';
 import { HybridRealmMemberRepository } from './infrastructure/repositories/hybrid-realm-member.repository';
 import { HybridDeviceRepository } from './infrastructure/repositories/hybrid-device.repository';
 import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-audit-log.repository';
@@ -115,21 +116,20 @@ function initializeDependencies() {
 
   // Database + Storage
   const prisma = getPrismaClient();
-  // Project root: from backend/src/ to project root (../../../)
-  // backend/src/ -> backend/ -> code/ -> cove/
-  const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../../');
-  const storageService = new StorageService(projectRoot);
+  // Use global .cove directory in user's home directory
+  const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
+  const storageService = new StorageService(coveRoot);
 
   // Repositories
   const messageRepository = new HybridMessageRepository(prisma, storageService, logger);
-  const channelRepository = new HybridChannelRepository(prisma, storageService, logger);
-  const agentRepository = new HybridAgentRepository(prisma, storageService, logger, projectRoot);
+  const channelRepository = new ChannelRepository(prisma, logger);
+  const agentRepository = new HybridAgentRepository(prisma, storageService, logger, coveRoot);
   const threadRepository = new HybridThreadRepository(prisma, storageService, logger);
   const taskRepository = new HybridTaskRepository(prisma, storageService, logger);
   const userRepository = new HybridUserRepository(prisma, storageService, logger);
   const projectRepository = new HybridProjectRepository(prisma, storageService, logger);
   const workflowRepository = new HybridWorkflowRepository(prisma, storageService, logger);
-  const serverRepository = new HybridRealmRepository(prisma, storageService, logger);
+  const serverRepository = new RealmRepository(prisma, logger);
   const serverMemberRepository = new HybridRealmMemberRepository(prisma, storageService, logger, 'default');
   const deviceRepository = new HybridDeviceRepository(prisma, storageService, logger);
   const auditLogRepository = new HybridAuditLogRepository(prisma);
@@ -144,7 +144,7 @@ function initializeDependencies() {
   const agentRuntime = new MockAgentRuntime();
 
   // Adapter Configuration Store and Service
-  const coveDir = path.join(projectRoot, '.cove');
+  const coveDir = path.join(coveRoot);
   const lockManager = new FileLockManager();
   const auditLogStore = new FileSystemAuditLogStore(coveDir);
   const auditLogger = new AuditLogger(auditLogStore);
@@ -348,7 +348,9 @@ function initializeDependencies() {
   const authService = new AuthService(
     userRepository,
     logger,
-    auditService
+    auditService,
+    serverRepository,
+    serverMemberRepository
   );
 
   /**
@@ -542,16 +544,22 @@ async function startServer() {
   const PORT = process.env.PORT || 3001;
 
   try {
+    // Use global .cove directory in user's home directory
+    const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
+
     // Initialize database before starting server
-    const projectRoot = process.env.COVE_PROJECT_ROOT || path.resolve(__dirname, '../../../');
-    const databasePath = path.join(projectRoot, '.cove/database/cove.db');
+    const databasePath = path.join(coveRoot, 'database/cove.db');
     const migrationsPath = path.join(__dirname, '../prisma/migrations');
+
+    // Set DATABASE_URL for Prisma Client
+    process.env.DATABASE_URL = `file:${databasePath}`;
 
     const logger = new ConsoleLogger();
 
-    // Get Prisma client and storage root for built-in agents initialization
+    // Get Prisma client for initialization
     const prisma = getPrismaClient();
-    const storageRoot = path.resolve(__dirname, '../../.cove');
+    // Use the same coveRoot as StorageService for consistency
+    const storageRoot = coveRoot;
 
     const dbInitializer = new DatabaseInitializer({
       databasePath,

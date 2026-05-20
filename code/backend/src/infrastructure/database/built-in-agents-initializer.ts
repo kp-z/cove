@@ -73,7 +73,7 @@ export class BuiltInAgentsInitializer {
         status: 'idle',
         scope: 'built-in', // Mark as built-in
         projectIds: '[]',
-        configPath: `storage/agents/${config.id}`,
+        configPath: `storage/agents/${config.id}`, // Point to the agent directory
         createdBy: 'system',
         createdAt: new Date(),
       },

@@ -1,23 +1,23 @@
 /**
- * ServerConfigRepository 单元测试
+ * RealmConfigRepository 单元测试
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { ServerConfigRepository } from '../server-config.repository';
+import { RealmConfigRepository } from '../realm-config.repository';
 import { RealmEntity } from '../../../domain/models/realm/realm.entity';
 
-describe('ServerConfigRepository', () => {
-  const testRoot = path.join(process.cwd(), '.test-server-config');
-  let repository: ServerConfigRepository;
+describe('RealmConfigRepository', () => {
+  const testRoot = path.join(process.cwd(), '.test-realm-config');
+  let repository: RealmConfigRepository;
 
   // 辅助函数：创建测试用的 RealmEntity
   const createTestServer = (overrides: Partial<Parameters<typeof RealmEntity.create>[0]> = {}) => {
     const now = new Date();
     return RealmEntity.create({
       realm_id: 'server-001',
-      name: 'test-server',
+      name: 'test-realm',
       display_name: 'Test Server',
       owner_id: 'user-001',
       status: 'active',
@@ -56,7 +56,7 @@ describe('ServerConfigRepository', () => {
 
   describe('本地模式', () => {
     beforeEach(() => {
-      repository = new ServerConfigRepository({
+      repository = new RealmConfigRepository({
         mode: 'local',
         localRoot: testRoot,
       });
@@ -78,7 +78,7 @@ describe('ServerConfigRepository', () => {
       const loaded = await repository.load();
       expect(loaded).not.toBeNull();
       expect(loaded!.realm_id).toBe('server-001');
-      expect(loaded!.name).toBe('test-server');
+      expect(loaded!.name).toBe('test-realm');
       expect(loaded!.display_name).toBe('Test Server');
       expect(loaded!.owner_id).toBe('user-001');
       expect(loaded!.status).toBe('active');
@@ -128,7 +128,7 @@ describe('ServerConfigRepository', () => {
 
   describe('云端模式', () => {
     beforeEach(() => {
-      repository = new ServerConfigRepository({
+      repository = new RealmConfigRepository({
         mode: 'cloud',
         cloudRoot: testRoot,
       });
@@ -144,7 +144,7 @@ describe('ServerConfigRepository', () => {
       const loaded = await repository.load('server-001');
       expect(loaded).not.toBeNull();
       expect(loaded!.realm_id).toBe('server-001');
-      expect(loaded!.name).toBe('test-server');
+      expect(loaded!.name).toBe('test-realm');
     });
 
     it('应该在云端模式下不传 realmId 时抛出错误', async () => {
@@ -203,7 +203,7 @@ describe('ServerConfigRepository', () => {
 
   describe('配置文件格式', () => {
     beforeEach(() => {
-      repository = new ServerConfigRepository({
+      repository = new RealmConfigRepository({
         mode: 'local',
         localRoot: testRoot,
       });
@@ -242,7 +242,7 @@ describe('ServerConfigRepository', () => {
 
       // 验证配置格式
       expect(json.realm_id).toBe('server-001');
-      expect(json.name).toBe('test-server');
+      expect(json.name).toBe('test-realm');
       expect(json.display_name).toBe('Test Server');
       expect(json.description).toBe('A test server');
       expect(json.owner_id).toBe('user-001');

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { headerCapsuleBaseClass } from '../TokenPill';
+import { Capsule } from '@/shared/components/ui/Capsule';
+import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 function formatClock(d: Date): string {
   const hh = d.getHours().toString().padStart(2, '0');
@@ -43,33 +43,17 @@ export const TimeCapsule = React.memo(({ lang = 'zh' }: TimeCapsuleProps) => {
   }, []);
 
   return (
-    <Tooltip.Provider delayDuration={200}>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <div
-            className={`${headerCapsuleBaseClass} group relative h-8 gap-2 px-3 cursor-default select-none`}
-            aria-label={formatFull(now, lang)}
-          >
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-            <Clock size={14} className="text-white/50 shrink-0" />
-            <span className="text-[12px] font-medium text-white/80 tabular-nums leading-none">
-              {formatClock(now)}
-            </span>
-          </div>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            side="bottom"
-            align="end"
-            sideOffset={8}
-            className="bg-[#111114] border border-white/[0.10] rounded-xl px-3 py-2 text-xs text-white/90 z-50"
-          >
-            {formatFull(now, lang)}
-            <Tooltip.Arrow className="fill-white/10" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
+    <CapsuleTooltip content={formatFull(now, lang)}>
+      <Capsule
+        ariaLabel={formatFull(now, lang)}
+        interactive={false}
+      >
+        <Clock size={14} className="text-white/50 shrink-0" />
+        <span className="text-[12px] font-medium text-white/80 tabular-nums leading-none">
+          {formatClock(now)}
+        </span>
+      </Capsule>
+    </CapsuleTooltip>
   );
 });
 

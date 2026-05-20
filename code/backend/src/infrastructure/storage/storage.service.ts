@@ -6,11 +6,10 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { CovePathResolver } from './cove-path-resolver';
 
 export class StorageService {
   constructor(
-    private readonly projectRoot: string
+    private readonly coveRoot: string
   ) {}
 
   /**
@@ -22,11 +21,11 @@ export class StorageService {
     entityId: string,
     content: any
   ): Promise<string> {
-    const filePath = CovePathResolver.getFilePath(
-      this.projectRoot,
+    const filePath = path.join(
+      this.coveRoot,
+      'storage',
       entityType,
-      entityId,
-      'json'
+      `${entityId}.json`
     );
 
     // 确保目录存在
@@ -36,17 +35,14 @@ export class StorageService {
     await fs.writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
 
     // 返回相对路径
-    return CovePathResolver.getRelativePath(this.projectRoot, filePath);
+    return path.relative(this.coveRoot, filePath);
   }
 
   /**
    * 从文件加载 JSON 内容
    */
   async loadJson(relativePath: string): Promise<any> {
-    const absolutePath = CovePathResolver.getAbsolutePath(
-      this.projectRoot,
-      relativePath
-    );
+    const absolutePath = path.join(this.coveRoot, relativePath);
 
     const content = await fs.readFile(absolutePath, 'utf-8');
     return JSON.parse(content);
@@ -62,11 +58,11 @@ export class StorageService {
     buffer: Buffer,
     ext: string
   ): Promise<string> {
-    const filePath = CovePathResolver.getFilePath(
-      this.projectRoot,
+    const filePath = path.join(
+      this.coveRoot,
+      'storage',
       entityType,
-      entityId,
-      ext
+      `${entityId}.${ext}`
     );
 
     // 确保目录存在
@@ -76,18 +72,14 @@ export class StorageService {
     await fs.writeFile(filePath, buffer);
 
     // 返回相对路径
-    return CovePathResolver.getRelativePath(this.projectRoot, filePath);
+    return path.relative(this.coveRoot, filePath);
   }
 
   /**
    * 从文件加载二进制内容
    */
   async loadFile(relativePath: string): Promise<Buffer> {
-    const absolutePath = CovePathResolver.getAbsolutePath(
-      this.projectRoot,
-      relativePath
-    );
-
+    const absolutePath = path.join(this.coveRoot, relativePath);
     return await fs.readFile(absolutePath);
   }
 
@@ -95,10 +87,7 @@ export class StorageService {
    * 删除文件
    */
   async deleteFile(relativePath: string): Promise<void> {
-    const absolutePath = CovePathResolver.getAbsolutePath(
-      this.projectRoot,
-      relativePath
-    );
+    const absolutePath = path.join(this.coveRoot, relativePath);
 
     try {
       await fs.unlink(absolutePath);
@@ -114,10 +103,7 @@ export class StorageService {
    * 检查文件是否存在
    */
   async exists(relativePath: string): Promise<boolean> {
-    const absolutePath = CovePathResolver.getAbsolutePath(
-      this.projectRoot,
-      relativePath
-    );
+    const absolutePath = path.join(this.coveRoot, relativePath);
 
     try {
       await fs.access(absolutePath);
@@ -135,11 +121,7 @@ export class StorageService {
     createdAt: Date;
     modifiedAt: Date;
   }> {
-    const absolutePath = CovePathResolver.getAbsolutePath(
-      this.projectRoot,
-      relativePath
-    );
-
+    const absolutePath = path.join(this.coveRoot, relativePath);
     const stats = await fs.stat(absolutePath);
 
     return {
@@ -153,7 +135,7 @@ export class StorageService {
    * 列出目录中的所有文件
    */
   async listFiles(entityType: string): Promise<string[]> {
-    const dirPath = CovePathResolver.getStorageDir(this.projectRoot, entityType);
+    const dirPath = path.join(this.coveRoot, 'storage', entityType);
 
     try {
       const files = await fs.readdir(dirPath);
@@ -175,10 +157,11 @@ export class StorageService {
     buffer: Buffer,
     ext: string
   ): Promise<string> {
-    const filePath = CovePathResolver.getAttachmentPath(
-      this.projectRoot,
-      attachmentId,
-      ext
+    const filePath = path.join(
+      this.coveRoot,
+      'storage',
+      'attachments',
+      `${attachmentId}.${ext}`
     );
 
     // 确保目录存在
@@ -188,7 +171,7 @@ export class StorageService {
     await fs.writeFile(filePath, buffer);
 
     // 返回相对路径
-    return CovePathResolver.getRelativePath(this.projectRoot, filePath);
+    return path.relative(this.coveRoot, filePath);
   }
 
   /**
@@ -199,11 +182,11 @@ export class StorageService {
     entityId: string,
     content: any
   ): Promise<string> {
-    const filePath = CovePathResolver.getFilePath(
-      this.projectRoot,
+    const filePath = path.join(
+      this.coveRoot,
+      'storage',
       entityType,
-      entityId,
-      'json'
+      `${entityId}.json`
     );
 
     const tempPath = `${filePath}.tmp`;
@@ -218,6 +201,6 @@ export class StorageService {
     await fs.rename(tempPath, filePath);
 
     // 返回相对路径
-    return CovePathResolver.getRelativePath(this.projectRoot, filePath);
+    return path.relative(this.coveRoot, filePath);
   }
 }

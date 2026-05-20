@@ -1,5 +1,5 @@
 /**
- * ServerConfigRepository - Server 配置文件管理
+ * RealmConfigRepository - Realm 配置文件管理
  *
  * 负责读写 .cove/server.json 配置文件
  * 支持本地模式和云端模式的路径切换
@@ -9,7 +9,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RealmEntity, RealmEntityJSON } from '../../domain/models/realm/realm.entity';
 
-export interface ServerConfigRepositoryOptions {
+export interface RealmConfigRepositoryOptions {
   /**
    * 存储模式
    * - local: 本地模式，使用 .cove/server.json
@@ -29,16 +29,16 @@ export interface ServerConfigRepositoryOptions {
 }
 
 /**
- * ServerConfigRepository
+ * RealmConfigRepository
  *
- * 管理 Server 配置文件的读写
+ * 管理 Realm 配置文件的读写
  */
-export class ServerConfigRepository {
+export class RealmConfigRepository {
   private readonly mode: 'local' | 'cloud';
   private readonly localRoot: string;
   private readonly cloudRoot: string;
 
-  constructor(options: ServerConfigRepositoryOptions) {
+  constructor(options: RealmConfigRepositoryOptions) {
     this.mode = options.mode;
     this.localRoot = options.localRoot || process.cwd();
     this.cloudRoot = options.cloudRoot || '/data/servers';
@@ -59,7 +59,7 @@ export class ServerConfigRepository {
   }
 
   /**
-   * 读取 Server 配置
+   * 读取 Realm 配置
    *
    * @param realmId - Server ID（云端模式必需）
    * @returns RealmEntity 或 null（如果配置不存在）
@@ -80,7 +80,7 @@ export class ServerConfigRepository {
   }
 
   /**
-   * 保存 Server 配置
+   * 保存 Realm 配置
    *
    * @param server - RealmEntity
    */
@@ -97,7 +97,7 @@ export class ServerConfigRepository {
   }
 
   /**
-   * 删除 Server 配置
+   * 删除 Realm 配置
    *
    * @param realmId - Server ID
    */
@@ -130,7 +130,7 @@ export class ServerConfigRepository {
   }
 
   /**
-   * 列出所有 Server 配置（仅云端模式）
+   * 列出所有 Realm 配置（仅云端模式）
    *
    * @returns Server ID 列表
    */

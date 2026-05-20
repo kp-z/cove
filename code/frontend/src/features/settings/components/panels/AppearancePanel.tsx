@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/stores/settingsStore'
 import { SettingsSection, SettingsItem } from '../common/SettingsItem'
+import { FormSelect } from '@/shared/components/ui/FormControls'
 
 export function AppearancePanel() {
   const { t } = useTranslation('settings')
@@ -18,15 +19,14 @@ export function AppearancePanel() {
           label={t('appearance.theme.label')}
           description={t('appearance.theme.description')}
         >
-          <select
+          <FormSelect
             value={theme}
             onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'auto')}
-            className="px-3 py-2 rounded-lg bg-white/10 text-white border border-white/20 focus:outline-none focus:border-white/40"
           >
             <option value="dark">{t('appearance.theme.dark')}</option>
             <option value="light">{t('appearance.theme.light')}</option>
             <option value="auto">{t('appearance.theme.auto')}</option>
-          </select>
+          </FormSelect>
         </SettingsItem>
 
         <SettingsItem

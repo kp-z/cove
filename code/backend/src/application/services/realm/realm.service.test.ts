@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RealmService, CreateRealmDTO, UpdateRealmDTO, UpdateServerSettingsDTO, UpdateServerLimitsDTO } from './realm.service';
+import { RealmService, CreateRealmDTO, UpdateRealmDTO, UpdateRealmSettingsDTO, UpdateRealmLimitsDTO } from './realm.service';
 import { RealmEntity } from '../../../domain/models/realm/realm.entity';
 import {
   RealmNotFoundError,
-  ServerNameAlreadyExistsError,
-  ServerNotActiveError,
-  ServerAlreadyArchivedError,
-  ServerNotArchivedError,
-  UnauthorizedServerAccessError,
+  RealmNameAlreadyExistsError,
+  RealmNotActiveError,
+  RealmAlreadyArchivedError,
+  RealmNotArchivedError,
+  UnauthorizedRealmAccessError,
 } from './realm.errors';
 import { IRealmRepository, IEventBus, ILogger } from '../../interfaces';
 import { RealmContext } from '../../context/realm-context';
@@ -109,7 +109,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.createRealm(dto);
         })
-      ).rejects.toThrow(ServerNameAlreadyExistsError);
+      ).rejects.toThrow(RealmNameAlreadyExistsError);
     });
 
     it('should create server with default settings and limits', async () => {
@@ -233,7 +233,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.updateRealm('server-123', dto);
         })
-      ).rejects.toThrow(UnauthorizedServerAccessError);
+      ).rejects.toThrow(UnauthorizedRealmAccessError);
     });
 
     it('should throw error when new name already exists', async () => {
@@ -252,7 +252,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.updateRealm('server-123', dto);
         })
-      ).rejects.toThrow(ServerNameAlreadyExistsError);
+      ).rejects.toThrow(RealmNameAlreadyExistsError);
     });
   });
 
@@ -264,7 +264,7 @@ describe('RealmService', () => {
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'updateSettings').mockReturnValue(updatedServer);
 
-      const dto: UpdateServerSettingsDTO = {
+      const dto: UpdateRealmSettingsDTO = {
         allowPublicChannels: false,
         requireApproval: true,
       };
@@ -285,7 +285,7 @@ describe('RealmService', () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
 
-      const dto: UpdateServerSettingsDTO = {
+      const dto: UpdateRealmSettingsDTO = {
         allowPublicChannels: false,
       };
 
@@ -293,7 +293,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.updateRealmSettings('server-123', dto);
         })
-      ).rejects.toThrow(UnauthorizedServerAccessError);
+      ).rejects.toThrow(UnauthorizedRealmAccessError);
     });
   });
 
@@ -305,7 +305,7 @@ describe('RealmService', () => {
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
       vi.spyOn(mockServer, 'updateLimits').mockReturnValue(updatedServer);
 
-      const dto: UpdateServerLimitsDTO = {
+      const dto: UpdateRealmLimitsDTO = {
         maxMembers: 200,
         maxProjects: 100,
       };
@@ -350,7 +350,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.suspendServer('server-123');
         })
-      ).rejects.toThrow(ServerNotActiveError);
+      ).rejects.toThrow(RealmNotActiveError);
     });
   });
 
@@ -400,7 +400,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.archiveRealm('server-123');
         })
-      ).rejects.toThrow(ServerAlreadyArchivedError);
+      ).rejects.toThrow(RealmAlreadyArchivedError);
     });
   });
 
@@ -431,7 +431,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.unarchiveRealm('server-123');
         })
-      ).rejects.toThrow(ServerNotArchivedError);
+      ).rejects.toThrow(RealmNotArchivedError);
     });
   });
 
@@ -460,7 +460,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.deleteRealm('server-123');
         })
-      ).rejects.toThrow(UnauthorizedServerAccessError);
+      ).rejects.toThrow(UnauthorizedRealmAccessError);
     });
   });
 });

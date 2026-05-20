@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/shared/components/ui/dialog'
+import { FormInput, FormSelect, FormTextarea } from '@/shared/components/ui/FormControls'
 
 type AdapterType = 'anthropic-api' | 'openai-api' | 'claude-code-cli'
 type AdapterScope = 'shared' | 'private'
@@ -36,10 +37,6 @@ interface AdapterFormDialogProps {
   onSubmit: (data: AdapterFormData) => Promise<void>
   isSubmitting: boolean
 }
-
-const INPUT_CLASS = 'w-full px-3 py-2 bg-white/10 text-white border border-white/20 rounded-lg focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20'
-const SELECT_CLASS = 'w-full px-3 py-2 bg-white/10 text-white border border-white/20 rounded-lg focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20'
-const TEXTAREA_CLASS = 'w-full px-3 py-2 bg-white/10 text-white border border-white/20 rounded-lg focus:outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20 resize-none'
 
 function getEmptyFormData(): AdapterFormData {
   return {
@@ -108,11 +105,10 @@ export function AdapterFormDialog({
           <label className="block text-sm font-medium text-white mb-1">
             Model <span className="text-red-400">*</span>
           </label>
-          <input
+          <FormInput
             type="text"
             value={formData.config.model || ''}
             onChange={e => handleConfigChange('model', e.target.value)}
-            className={INPUT_CLASS}
             placeholder={type === 'anthropic-api' ? 'claude-sonnet-4-20250514' : type === 'openai-api' ? 'gpt-4' : 'claude-3-5-sonnet-20241022'}
           />
         </div>
@@ -121,14 +117,13 @@ export function AdapterFormDialog({
           <label className="block text-sm font-medium text-white mb-1">
             Temperature
           </label>
-          <input
+          <FormInput
             type="number"
             step="0.1"
             min="0"
             max={type === 'openai-api' ? '2' : '1'}
             value={formData.config.temperature ?? 0.7}
             onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-            className={INPUT_CLASS}
           />
           <p className="text-xs text-white/40 mt-1">Range: 0.0 - {type === 'openai-api' ? '2.0' : '1.0'}</p>
         </div>
@@ -137,11 +132,10 @@ export function AdapterFormDialog({
           <label className="block text-sm font-medium text-white mb-1">
             Max Tokens
           </label>
-          <input
+          <FormInput
             type="number"
             value={formData.config.max_tokens ?? 4096}
             onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-            className={INPUT_CLASS}
           />
         </div>
       </>
@@ -156,11 +150,10 @@ export function AdapterFormDialog({
               <label className="block text-sm font-medium text-white mb-1">
                 API Key
               </label>
-              <input
+              <FormInput
                 type="password"
                 value={formData.config.api_key || ''}
                 onChange={e => handleConfigChange('api_key', e.target.value)}
-                className={INPUT_CLASS}
                 placeholder={type === 'anthropic-api' ? 'sk-ant-...' : 'sk-...'}
               />
               <p className="text-xs text-white/40 mt-1">Leave empty to use environment variable</p>
@@ -170,11 +163,10 @@ export function AdapterFormDialog({
               <label className="block text-sm font-medium text-white mb-1">
                 Base URL
               </label>
-              <input
+              <FormInput
                 type="text"
                 value={formData.config.base_url || ''}
                 onChange={e => handleConfigChange('base_url', e.target.value)}
-                className={INPUT_CLASS}
                 placeholder={type === 'anthropic-api' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'}
               />
               <p className="text-xs text-white/40 mt-1">Optional custom API endpoint</p>
@@ -191,11 +183,10 @@ export function AdapterFormDialog({
               <label className="block text-sm font-medium text-white mb-1">
                 CLI Path
               </label>
-              <input
+              <FormInput
                 type="text"
                 value={formData.config.cli_path || ''}
                 onChange={e => handleConfigChange('cli_path', e.target.value)}
-                className={INPUT_CLASS}
                 placeholder="/usr/local/bin/claude"
               />
               <p className="text-xs text-white/40 mt-1">Path to Claude Code CLI executable</p>
@@ -207,11 +198,10 @@ export function AdapterFormDialog({
               <label className="block text-sm font-medium text-white mb-1">
                 Context Window
               </label>
-              <input
+              <FormInput
                 type="number"
                 value={formData.config.context_window ?? 200000}
                 onChange={e => handleConfigChange('context_window', parseInt(e.target.value))}
-                className={INPUT_CLASS}
               />
             </div>
           </>
@@ -231,21 +221,19 @@ export function AdapterFormDialog({
             <label className="block text-sm font-medium text-white mb-1">
               Name <span className="text-red-400">*</span>
             </label>
-            <input
+            <FormInput
               type="text"
               value={formData.name}
               onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className={INPUT_CLASS}
               placeholder="My Adapter"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-white mb-1">Description</label>
-            <textarea
+            <FormTextarea
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className={TEXTAREA_CLASS}
               rows={2}
               placeholder="Optional description"
             />
@@ -255,7 +243,7 @@ export function AdapterFormDialog({
             <label className="block text-sm font-medium text-white mb-1">
               Type <span className="text-red-400">*</span>
             </label>
-            <select
+            <FormSelect
               value={formData.type}
               onChange={e => {
                 const newType = e.target.value as AdapterType
@@ -268,30 +256,28 @@ export function AdapterFormDialog({
                   }
                 }))
               }}
-              className={SELECT_CLASS}
               disabled={mode === 'edit'}
             >
               <option value="anthropic-api">Anthropic API</option>
               <option value="openai-api">OpenAI API</option>
               <option value="claude-code-cli">Claude Code CLI</option>
-            </select>
+            </FormSelect>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-white mb-1">
               Scope <span className="text-red-400">*</span>
             </label>
-            <select
+            <FormSelect
               value={formData.scope}
               onChange={e => setFormData(prev => ({
                 ...prev,
                 scope: e.target.value as AdapterScope
               }))}
-              className={SELECT_CLASS}
             >
               <option value="private">Private</option>
               <option value="shared">Shared</option>
-            </select>
+            </FormSelect>
           </div>
 
           {renderConfigFields(formData.type)}

@@ -15,7 +15,8 @@
     "noNewMessages": "无新消息",
     "empty": "暂无通知",
     "clearAll": "清空所有通知",
-    "inProgress": "进行中"
+    "inProgress": "进行中",
+    "more": "更多"
   },
   "tokenPill": {
     "model": "模型",

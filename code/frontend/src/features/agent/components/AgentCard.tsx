@@ -4,7 +4,7 @@ import {
   MoreVertical, Play, Settings2, Zap, Trash2,
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { GlassCard } from '@/shared/components/ui/GlassCard';
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { getAgentAvatarUrl, getAgentInitials } from '../utils/avatar';
 import type { Agent } from '@/lib/trpc-types';
 

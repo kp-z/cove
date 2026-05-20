@@ -47,16 +47,13 @@ export const MessageNodeRenderer: NodeRenderer<MessageNodeData> = {
   icon: MessageSquare,
   color: 'blue',
   render: (node: TimelineNode<MessageNodeData>, context: NodeContext) => {
-    const { content, sender } = node.data;
-
-    // 截取内容预览（最多 100 字符）
-    const preview = content.length > 100 ? `${content.slice(0, 100)}...` : content;
+    const { sender } = node.data;
 
     return (
       <TimelineNodeCard
         icon={<MessageSquare className="w-4 h-4 mt-0.5 shrink-0" />}
-        title={preview}
-        description={`${sender.display_name} • ${formatTime(node.timestamp)}`}
+        title={`Message from ${sender.display_name}`}
+        description={formatTime(node.timestamp)}
         timestamp={formatTime(node.timestamp)}
         color="blue"
         onClick={() => {

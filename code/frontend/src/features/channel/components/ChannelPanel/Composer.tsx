@@ -125,10 +125,10 @@ export function Composer({
 
   // Auto-resize textarea
   useEffect(() => {
-    if (textareaRef.current) {
+    if (textareaRef.current && expandedInput) {
       const el = textareaRef.current;
       el.style.height = 'auto';
-      const limit = expandedInput ? 256 : 120;
+      const limit = 256;
       const newHeight = Math.min(el.scrollHeight, limit);
       el.style.height = `${newHeight}px`;
     }
@@ -401,8 +401,9 @@ export function Composer({
           className="flex-1 min-w-0 h-[34px] bg-white/5 border border-white/10 rounded-lg px-3 py-[6px] text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 resize-none leading-5 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           rows={1}
           style={{
+            height: expandedInput ? 'auto' : '34px',
             minHeight: expandedInput ? '10rem' : '34px',
-            maxHeight: expandedInput ? '16rem' : '7.5rem',
+            maxHeight: expandedInput ? '16rem' : '34px',
           }}
         />
 

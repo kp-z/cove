@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Bot, Loader2, MessagesSquare } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { useTranslation } from 'react-i18next';
-import { headerCapsuleBaseClass } from '../TokenPill';
 import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
+import { Capsule } from '@/shared/components/ui/Capsule';
+import { CapsuleTooltip } from '@/shared/components/ui/CapsuleTooltip';
 
 interface AgentRunCapsuleProps {
   runningCount?: number;
@@ -16,50 +16,37 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
   const hasRunning = runningCount > 0;
   const { openChannel } = useChannelPanelStore();
 
+  const tooltipContent = hasRunning
+    ? t('agentRun.tooltipRunning', { count: runningCount })
+    : t('agentRun.tooltipIdle');
+
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Tooltip.Provider delayDuration={200}>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <Popover.Trigger asChild>
-              <button
-                type="button"
-                aria-expanded={open}
-                aria-label={
-                  hasRunning ? t('agentRun.ariaRunning', { count: runningCount }) : t('agentRun.ariaIdle')
-                }
-                title={hasRunning ? t('agentRun.titleRunning', { count: runningCount }) : t('agentRun.titleIdle')}
-                className={`${headerCapsuleBaseClass} group relative h-8 min-w-8 gap-1.5 px-2 justify-center shrink-0 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] ${
-                  hasRunning ? 'border-blue-400/30 bg-blue-500/12 hover:bg-blue-500/18' : ''
-                } ${open ? 'ring-1 ring-white/20 bg-white/[0.08]' : ''}`}
-              >
-                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-                {hasRunning ? (
-                  <div className="flex items-center gap-1.5 relative z-10">
-                    <Loader2 size={12} className="text-blue-300 shrink-0 animate-spin" />
-                  </div>
-                ) : (
-                  <Bot size={14} className="text-white/55 shrink-0 relative z-10" />
-                )}
-                {hasRunning && (
-                  <span className="absolute inset-0 rounded-full bg-blue-400/15 pointer-events-none animate-pulse z-0" />
-                )}
-              </button>
-            </Popover.Trigger>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="bottom"
-              align="end"
-              sideOffset={8}
-              className="bg-[#111114] border border-white/[0.10] rounded-xl px-3 py-2 text-xs text-white/90 z-50"
-            >
-              {hasRunning ? t('agentRun.tooltipRunning', { count: runningCount }) : t('agentRun.tooltipIdle')}
-              <Tooltip.Arrow className="fill-white/10" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Tooltip.Provider>
+      <CapsuleTooltip content={tooltipContent}>
+        <Popover.Trigger asChild>
+          <Capsule
+            variant={hasRunning ? 'active' : 'default'}
+            isExpanded={open}
+            ariaLabel={
+              hasRunning ? t('agentRun.ariaRunning', { count: runningCount }) : t('agentRun.ariaIdle')
+            }
+            title={hasRunning ? t('agentRun.titleRunning', { count: runningCount }) : t('agentRun.titleIdle')}
+            minWidth="min-w-8"
+            gap="gap-1.5"
+            padding="px-2"
+            justify="center"
+            pulseEffect={hasRunning}
+          >
+            {hasRunning ? (
+              <div className="flex items-center gap-1.5 relative z-10">
+                <Loader2 size={12} className="text-blue-300 shrink-0 animate-spin" />
+              </div>
+            ) : (
+              <Bot size={14} className="text-white/55 shrink-0 relative z-10" />
+            )}
+          </Capsule>
+        </Popover.Trigger>
+      </CapsuleTooltip>
 
       <Popover.Portal>
         <Popover.Content

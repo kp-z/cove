@@ -13,7 +13,7 @@
 // Repositories
 export {
   HybridAgentRepository,
-  HybridChannelRepository,
+  ChannelRepository,
   HybridMessageRepository,
   HybridTaskRepository,
   HybridThreadRepository,

@@ -81,14 +81,17 @@ export function TimelineNodeCard({
         transition={{ duration: 0.2 }}
         className={`text-left p-3 rounded-lg transition-all border ${colors.card}`}
       >
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-2">
           <div className={colors.icon}>{icon}</div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-sm font-medium line-clamp-2 ${isActive ? 'text-white' : 'text-gray-300'}`}>
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-gray-300'}`}>
               {title}
-            </p>
+            </span>
             {description && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{description}</p>
+              <>
+                <span className="text-gray-600">•</span>
+                <span className="text-xs text-gray-500 truncate">{description}</span>
+              </>
             )}
           </div>
         </div>

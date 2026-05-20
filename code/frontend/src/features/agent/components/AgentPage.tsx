@@ -5,7 +5,8 @@ import { Search, RefreshCw, Plus, Layers, Settings, User, FolderOpen, Shield } f
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import { GlassCard } from '@/shared/components/ui/GlassCard';
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
+import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -112,16 +113,20 @@ export default function AgentPage() {
         title={t('page.title')}
         subtitle={t('page.subtitle', { count: agents?.length ?? 0 })}
         actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw size={14} />
-              {t('actions.sync')}
-            </Button>
-            <Button size="sm" onClick={() => navigate('/agents/new')}>
-              <Plus size={14} />
-              {t('actions.new')}
-            </Button>
-          </>
+          <ButtonGroup
+            options={[
+              {
+                label: t('actions.sync'),
+                value: 'sync',
+                onClick: () => refetch(),
+              },
+              {
+                label: t('actions.new'),
+                value: 'new',
+                onClick: () => navigate('/agents/new'),
+              },
+            ]}
+          />
         }
       />
 

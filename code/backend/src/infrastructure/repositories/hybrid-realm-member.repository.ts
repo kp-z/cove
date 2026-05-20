@@ -7,7 +7,7 @@
  */
 
 import { HybridRepository } from './hybrid-repository.base';
-import { RealmMemberEntity, ServerRole, MemberStatus, ServerPermission } from '../../domain/models/realm-member/realm-member.entity';
+import { RealmMemberEntity, RealmRole, MemberStatus, RealmPermission } from '../../domain/models/realm-member/realm-member.entity';
 import { IRealmMemberRepository } from '../../application/interfaces/repositories/realm-member.repository.interface';
 
 interface RealmMemberDbRecord {
@@ -23,7 +23,7 @@ interface RealmMemberDbRecord {
 }
 
 interface RealmMemberContent {
-  customPermissions?: ServerPermission[];
+  customPermissions?: RealmPermission[];
   meta?: Record<string, unknown>;
 }
 
@@ -53,7 +53,7 @@ export class HybridRealmMemberRepository
       member_id: dbRecord.id,
       realm_id: dbRecord.realmId,
       user_id: dbRecord.userId,
-      role: dbRecord.role as ServerRole,
+      role: dbRecord.role as RealmRole,
       custom_permissions: content.customPermissions,
       status: dbRecord.status as MemberStatus,
       joined_at: dbRecord.joinedAt,
@@ -169,7 +169,7 @@ export class HybridRealmMemberRepository
     return this.toDomain(record, content as RealmMemberContent);
   }
 
-  async findByRole(realmId: string, role: ServerRole): Promise<RealmMemberEntity[]> {
+  async findByRole(realmId: string, role: RealmRole): Promise<RealmMemberEntity[]> {
     const records = await this.prisma.realmMember.findMany({
       where: { realmId, role },
       orderBy: { joinedAt: 'asc' },

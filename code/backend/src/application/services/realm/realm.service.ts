@@ -12,25 +12,26 @@ import {
   RealmEntity,
   RealmStatus,
   RealmVisibility,
-  ServerSettings,
-  ServerLimits,
+  RealmSettings,
+  RealmLimits,
 } from '../../../domain/models/realm/realm.entity';
 import {
   RealmMemberEntity,
-  ServerRole,
+  RealmRole,
   MemberStatus,
 } from '../../../domain/models/realm-member/realm-member.entity';
 import {
   RealmNotFoundError,
-  ServerNameAlreadyExistsError,
-  ServerNotActiveError,
-  ServerAlreadyArchivedError,
-  ServerNotArchivedError,
-  UnauthorizedServerAccessError,
+  RealmNameAlreadyExistsError,
+  RealmNotActiveError,
+  RealmAlreadyArchivedError,
+  RealmNotArchivedError,
+  UnauthorizedRealmAccessError,
 } from './realm.errors';
 import {
   IRealmRepository,
   IRealmMemberRepository,
+  IAgentRepository,
   IEventBus,
   ILogger,
   DomainEvent,
@@ -43,8 +44,13 @@ export interface CreateRealmDTO {
   readonly description?: string;
   readonly ownerId: string;
   readonly visibility?: RealmVisibility;
-  readonly settings?: Partial<ServerSettings>;
-  readonly limits?: Partial<ServerLimits>;
+  readonly settings?: Partial<RealmSettings>;
+  readonly limits?: Partial<RealmLimits>;
+}
+
+export interface UpdateRealmMemberDTO {
+  readonly role?: RealmRole;
+  readonly status?: MemberStatus;
 }
 
 export interface UpdateRealmDTO {
@@ -52,9 +58,10 @@ export interface UpdateRealmDTO {
   readonly displayName?: string;
   readonly description?: string;
   readonly visibility?: RealmVisibility;
+  readonly status?: RealmStatus;
 }
 
-export interface UpdateServerSettingsDTO {
+export interface UpdateRealmSettingsDTO {
   readonly allowPublicChannels?: boolean;
   readonly allowPrivateChannels?: boolean;
   readonly allowDM?: boolean;
@@ -62,7 +69,7 @@ export interface UpdateServerSettingsDTO {
   readonly defaultMemberRole?: 'member' | 'guest';
 }
 
-export interface UpdateServerLimitsDTO {
+export interface UpdateRealmLimitsDTO {
   readonly maxMembers?: number;
   readonly maxProjects?: number;
   readonly maxChannels?: number;
@@ -75,7 +82,8 @@ export class RealmService {
     private readonly serverRepository: IRealmRepository,
     private readonly serverMemberRepository: IRealmMemberRepository,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
+    private readonly agentRepository?: IAgentRepository
   ) {}
 
   async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
@@ -85,13 +93,13 @@ export class RealmService {
     // Check if server name already exists
     const existing = await this.serverRepository.find();
     if (existing.some(s => s.name === dto.name)) {
-      throw new ServerNameAlreadyExistsError(dto.name);
+      throw new RealmNameAlreadyExistsError(dto.name);
     }
 
     const realmId = this.generateServerId();
 
     // Default settings
-    const defaultSettings: ServerSettings = {
+    const defaultSettings: RealmSettings = {
       allow_public_channels: true,
       allow_private_channels: true,
       allow_dm: true,
@@ -101,7 +109,7 @@ export class RealmService {
     };
 
     // Default limits
-    const defaultLimits: ServerLimits = {
+    const defaultLimits: RealmLimits = {
       max_members: 100,
       max_projects: 50,
       max_channels: 100,
@@ -141,6 +149,9 @@ export class RealmService {
 
     await this.serverMemberRepository.save(ownerMember, realmId);
 
+    // Auto-add platform agent (agent-zhang) as admin
+    await this.addPlatformAgentToRealm(realmId);
+
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'server.created',
@@ -178,14 +189,14 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     if (dto.name !== undefined) {
       // Check if new name already exists
       const existing = await this.serverRepository.find();
       if (existing.some(s => s.name === dto.name && s.realm_id !== realmId)) {
-        throw new ServerNameAlreadyExistsError(dto.name);
+        throw new RealmNameAlreadyExistsError(dto.name);
       }
       server = server.updateName(dto.name);
     }
@@ -200,6 +211,10 @@ export class RealmService {
 
     if (dto.visibility !== undefined) {
       server = server.updateVisibility(dto.visibility);
+    }
+
+    if (dto.status !== undefined) {
+      server = server.updateStatus(dto.status);
     }
 
     await this.serverRepository.update(server, realmId);
@@ -217,7 +232,7 @@ export class RealmService {
     return server;
   }
 
-  async updateRealmSettings(realmId: string, dto: UpdateServerSettingsDTO): Promise<RealmEntity> {
+  async updateRealmSettings(realmId: string, dto: UpdateRealmSettingsDTO): Promise<RealmEntity> {
     const context = getRealmContext();
     this.logger.info('Updating realm settings', { realmId });
 
@@ -225,10 +240,10 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
-    const settingsUpdate: Partial<ServerSettings> = {
+    const settingsUpdate: Partial<RealmSettings> = {
       ...(dto.allowPublicChannels !== undefined && { allow_public_channels: dto.allowPublicChannels }),
       ...(dto.allowPrivateChannels !== undefined && { allow_private_channels: dto.allowPrivateChannels }),
       ...(dto.allowDM !== undefined && { allow_dm: dto.allowDM }),
@@ -253,7 +268,7 @@ export class RealmService {
     return server;
   }
 
-  async updateRealmLimits(realmId: string, dto: UpdateServerLimitsDTO): Promise<RealmEntity> {
+  async updateRealmLimits(realmId: string, dto: UpdateRealmLimitsDTO): Promise<RealmEntity> {
     const context = getRealmContext();
     this.logger.info('Updating realm limits', { realmId });
 
@@ -261,10 +276,10 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
-    const limitsUpdate: Partial<ServerLimits> = {
+    const limitsUpdate: Partial<RealmLimits> = {
       ...(dto.maxMembers !== undefined && { max_members: dto.maxMembers }),
       ...(dto.maxProjects !== undefined && { max_projects: dto.maxProjects }),
       ...(dto.maxChannels !== undefined && { max_channels: dto.maxChannels }),
@@ -297,11 +312,11 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     if (!server.isActive()) {
-      throw new ServerNotActiveError(realmId);
+      throw new RealmNotActiveError(realmId);
     }
 
     server = server.suspend();
@@ -329,7 +344,7 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     if (!server.isSuspended()) {
@@ -361,11 +376,11 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     if (server.isArchived()) {
-      throw new ServerAlreadyArchivedError(realmId);
+      throw new RealmAlreadyArchivedError(realmId);
     }
 
     server = server.archive();
@@ -393,11 +408,11 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     if (!server.isArchived()) {
-      throw new ServerNotArchivedError(realmId);
+      throw new RealmNotArchivedError(realmId);
     }
 
     server = server.unarchive();
@@ -425,7 +440,7 @@ export class RealmService {
 
     // Check authorization
     if (server.owner_id !== context.userId) {
-      throw new UnauthorizedServerAccessError(realmId, context.userId);
+      throw new UnauthorizedRealmAccessError(realmId, context.userId);
     }
 
     await this.serverRepository.delete(realmId);
@@ -469,7 +484,7 @@ export class RealmService {
   // Realm Member Management
   // ============================================
 
-  async addServerMember(realmId: string, userId: string, role: ServerRole): Promise<RealmMemberEntity> {
+  async addRealmMember(realmId: string, userId: string, role: RealmRole): Promise<RealmMemberEntity> {
     this.logger.info('Adding member to server', { realmId, userId, role });
 
     // Check if server exists
@@ -507,64 +522,53 @@ export class RealmService {
     return member;
   }
 
-  async removeServerMember(realmId: string, userId: string): Promise<void> {
-    this.logger.info('Removing member from server', { realmId, userId });
+  async updateRealmMember(realmId: string, userId: string, dto: UpdateRealmMemberDTO): Promise<RealmMemberEntity> {
+    this.logger.info('Updating realm member', { realmId, userId, dto });
 
     const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
     if (!member) {
       throw new Error(`Member not found: ${userId} in server ${realmId}`);
     }
 
-    // Cannot remove owner
+    // Cannot modify owner
     if (member.role === 'owner') {
-      throw new Error('Cannot remove server owner. Transfer ownership first.');
+      throw new Error('Cannot modify owner. Transfer ownership first.');
     }
 
-    const updatedMember = member.leave();
+    let updatedMember = member;
+
+    // Update role
+    if (dto.role !== undefined) {
+      updatedMember = updatedMember.updateRole(dto.role);
+    }
+
+    // Update status
+    if (dto.status !== undefined) {
+      if (dto.status === 'left') {
+        updatedMember = updatedMember.leave();
+      } else if (dto.status === 'suspended') {
+        updatedMember = updatedMember.suspend();
+      } else if (dto.status === 'active' && member.status === 'suspended') {
+        updatedMember = updatedMember.activate();
+      }
+    }
+
     await this.serverMemberRepository.update(updatedMember, realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
-      eventType: 'server_member.removed',
+      eventType: 'server_member.updated',
       aggregateId: member.memberId,
       aggregateType: 'ServerMember',
       occurredAt: new Date(),
-      payload: { realmId, userId },
+      payload: { realmId, userId, role: updatedMember.role, status: updatedMember.status },
     });
 
-    this.logger.info('Member removed from server successfully', { realmId, userId });
-  }
-
-  async updateRealmMemberRole(realmId: string, userId: string, newRole: ServerRole): Promise<RealmMemberEntity> {
-    this.logger.info('Updating member role', { realmId, userId, newRole });
-
-    const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
-    if (!member) {
-      throw new Error(`Member not found: ${userId} in server ${realmId}`);
-    }
-
-    // Cannot modify owner role
-    if (member.role === 'owner') {
-      throw new Error('Cannot modify owner role. Transfer ownership first.');
-    }
-
-    const updatedMember = member.updateRole(newRole);
-    await this.serverMemberRepository.update(updatedMember, realmId);
-
-    await this.publishEvent({
-      eventId: this.generateEventId(),
-      eventType: 'server_member.role_changed',
-      aggregateId: member.memberId,
-      aggregateType: 'ServerMember',
-      occurredAt: new Date(),
-      payload: { realmId, userId, oldRole: member.role, newRole },
-    });
-
-    this.logger.info('Member role updated successfully', { realmId, userId, newRole });
+    this.logger.info('Realm member updated successfully', { realmId, userId });
     return updatedMember;
   }
 
-  async getServerMembers(realmId: string, filters?: { role?: ServerRole; status?: MemberStatus }): Promise<RealmMemberEntity[]> {
+  async getRealmMembers(realmId: string, filters?: { role?: RealmRole; status?: MemberStatus }): Promise<RealmMemberEntity[]> {
     if (filters?.role) {
       return await this.serverMemberRepository.findByRole(realmId, filters.role);
     }
@@ -576,5 +580,51 @@ export class RealmService {
 
   async getServerMember(realmId: string, userId: string): Promise<RealmMemberEntity | null> {
     return await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+  }
+
+  /**
+   * 添加平台 Agent (agent-zhang) 到 Realm
+   */
+  private async addPlatformAgentToRealm(realmId: string): Promise<void> {
+    if (!this.agentRepository) {
+      this.logger.debug('Agent repository not available, skipping platform agent addition');
+      return;
+    }
+
+    try {
+      // 查找 agent-zhang
+      const zhangAgent = await this.agentRepository.findById('agent-zhang');
+      if (!zhangAgent) {
+        this.logger.warn('Platform agent (agent-zhang) not found, skipping auto-add');
+        return;
+      }
+
+      // 检查是否已经是成员
+      const existingMember = await this.serverMemberRepository.findByServerAndUser(realmId, 'agent-zhang');
+      if (existingMember) {
+        this.logger.debug('Platform agent already member of realm', { realmId });
+        return;
+      }
+
+      // 添加为 admin
+      const memberId = `member-${realmId}-zhang`;
+      const member = RealmMemberEntity.create({
+        member_id: memberId,
+        realm_id: realmId,
+        user_id: 'agent-zhang',
+        role: 'admin',
+        status: 'active',
+        joined_at: new Date(),
+        updated_at: new Date(),
+        meta: {},
+      });
+
+      await this.serverMemberRepository.save(member, realmId);
+
+      this.logger.info('Platform agent added to realm', { realmId, agentId: 'agent-zhang' });
+    } catch (error) {
+      this.logger.error('Failed to add platform agent to realm', error as Error);
+      // Don't throw - this shouldn't block realm creation
+    }
   }
 }
