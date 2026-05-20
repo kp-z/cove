@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "type": "frontend",
+  "runtime": {
+    "type": "node",
+    "version": "20"
+  },
+  "build": {
+    "command": "cd frontend && npm run build",
+    "outputDir": "frontend/dist"
+  },
+  "serve": {
+    "type": "static",
+    "spa": true,
+    "port": 5173
+  },
+  "env": {
+    "VITE_API_URL": "http://localhost:3002"
+  }
+}
