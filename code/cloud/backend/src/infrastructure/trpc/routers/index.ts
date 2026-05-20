@@ -12,6 +12,7 @@ import { userRouter } from './user.router';
 import { workflowRouter } from './workflow.router';
 import { projectRouter } from './project.router';
 import { createSubscriptionRouter } from './subscription.router';
+import { createDeviceSubscriptionRouter } from './device-subscription.router';
 import { realmRouter } from './realm.router';
 import { deviceRouter } from './device.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
@@ -31,6 +32,8 @@ import type { ProjectService } from '../../../application/services/project/proje
 import type { RealmService } from '../../../application/services/realm/realm.service';
 import type { DeviceService } from '../../../application/services/device/device.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
+import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
+import type { ILogger } from '../../../application/interfaces/logger.interface';
 
 export interface RouterDependencies {
   agentService: AgentService;
@@ -49,13 +52,15 @@ export interface RouterDependencies {
   realmService: RealmService;
   deviceService: DeviceService;
   eventBus: IEventBus;
+  deviceConnectionManager: DeviceConnectionManager;
+  logger: ILogger;
 }
 
-export function createAppRouter(deps: RouterDependencies) {
+export function createAppRouter(deps: RouterDependencies): ReturnType<typeof router> {
   // Initialize adapter metadata service
   const adapterMetadataService = new AdapterMetadataService();
 
-  return router({
+  const appRouter = router({
     // Health check
     health: router({
       check: procedure.query(async () => {
@@ -116,7 +121,16 @@ export function createAppRouter(deps: RouterDependencies) {
     subscription: createSubscriptionRouter({
       eventBus: deps.eventBus,
     }),
+
+    // Device subscription router (WebSocket communication with Local Devices)
+    deviceSubscription: createDeviceSubscriptionRouter({
+      eventBus: deps.eventBus,
+      deviceConnectionManager: deps.deviceConnectionManager,
+      logger: deps.logger,
+    }),
   });
+
+  return appRouter;
 }
 
 export type AppRouter = ReturnType<typeof createAppRouter>;

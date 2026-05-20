@@ -7,8 +7,8 @@ export interface SubscriptionRouterDependencies {
   eventBus: IEventBus;
 }
 
-export function createSubscriptionRouter(deps: SubscriptionRouterDependencies) {
-  return router({
+export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): ReturnType<typeof router> {
+  const subscriptionRouter = router({
     // 订阅频道消息事件
     onMessage: procedure
       .input(
@@ -258,4 +258,6 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies) {
         });
       }),
   });
+
+  return subscriptionRouter;
 }

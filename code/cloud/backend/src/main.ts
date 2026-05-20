@@ -34,6 +34,7 @@ import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-a
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
 import { DatabaseInitializer } from './infrastructure/database/database-initializer';
+import { DeviceConnectionManager } from './infrastructure/websocket/device-connection-manager';
 
 // Application Layer Services
 import { MessageService } from './application/services/message/message.service';
@@ -382,9 +383,13 @@ function initializeDependencies() {
 
   logger.info('Dependencies initialized successfully');
 
+  // Initialize Device Connection Manager
+  const deviceConnectionManager = new DeviceConnectionManager(logger);
+
   return {
     logger,
     eventBus,
+    deviceConnectionManager,
     // Services for tRPC
     agentService,
     agentRuntimeService,
@@ -407,6 +412,7 @@ function initializeDependencies() {
 function createStandaloneServer(deps: {
   logger: ILogger;
   eventBus: InMemoryEventBus;
+  deviceConnectionManager: DeviceConnectionManager;
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
   adapterService: AdapterService;
@@ -441,6 +447,8 @@ function createStandaloneServer(deps: {
     realmService: deps.realmService,
     deviceService: deps.deviceService,
     eventBus: deps.eventBus,
+    deviceConnectionManager: deps.deviceConnectionManager,
+    logger: deps.logger,
   });
 
   // Create tRPC HTTP handler
@@ -487,7 +495,7 @@ function createStandaloneServer(deps: {
         }
 
         const { renderTrpcPanel } = await import('trpc-ui');
-        const PORT = process.env.PORT || 3001;
+        const PORT = process.env.PORT || 3002;
 
         res.writeHead(200, {
           'Content-Type': 'text/html',
@@ -556,7 +564,7 @@ function createStandaloneServer(deps: {
 }
 
 async function startServer() {
-  const PORT = process.env.PORT || 3001;
+  const PORT = process.env.PORT || 3002;
 
   try {
     // Use global .cove directory in user's home directory

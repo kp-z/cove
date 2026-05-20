@@ -1,0 +1,18 @@
+{
+  "server": {
+    "url": "ws://localhost:3002",
+    "token": ""
+  },
+  "device": {
+    "id": "device-test-001",
+    "name": "Test Device",
+    "apiKey": "test-api-key",
+    "realmId": "realm-nexus"
+  },
+  "local": {
+    "dataDir": "~/.cove",
+    "heartbeatInterval": 30000,
+    "reconnectDelay": 5000,
+    "maxConcurrentTasks": 3
+  }
+}
