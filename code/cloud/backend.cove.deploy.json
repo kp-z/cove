@@ -6,11 +6,11 @@
     "version": "20"
   },
   "build": {
-    "command": "cd backend && npm run build:esbuild",
-    "outputDir": "backend/dist"
+    "command": "cd code/cloud/backend && npm run build:esbuild",
+    "outputDir": "code/cloud/backend/dist"
   },
   "start": {
-    "command": "node backend/dist/bundle.js",
+    "command": "node dist/bundle.js",
     "port": 3002
   },
   "health": {
@@ -19,6 +19,8 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "DATABASE_URL": "file:./data/cove.db"
+    "DATABASE_URL": "file:./data/cove.db",
+    "JWT_SECRET": "dev-secret-change-in-production-12345678901234567890",
+    "PORT": "3002"
   }
 }

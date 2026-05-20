@@ -26,6 +26,7 @@ export interface DeployConfig {
     port: number;
     env?: Record<string, string>;
   };
+  env?: Record<string, string>;
   health?: {
     endpoint: string;
     timeout?: number;
