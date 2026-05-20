@@ -35,6 +35,7 @@ import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
 import { DatabaseInitializer } from './infrastructure/database/database-initializer';
 import { DeviceConnectionManager } from './infrastructure/websocket/device-connection-manager';
+import { PresetAvatarsInitializer } from './application/services/avatar/preset-avatars-initializer';
 
 // Application Layer Services
 import { MessageService } from './application/services/message/message.service';
@@ -594,6 +595,13 @@ async function startServer() {
     });
 
     await dbInitializer.initialize();
+
+    // Initialize preset avatars
+    const presetAvatarsInitializer = new PresetAvatarsInitializer({
+      storageRoot: coveRoot,
+      logger,
+    });
+    await presetAvatarsInitializer.initialize();
 
     const deps = initializeDependencies();
 

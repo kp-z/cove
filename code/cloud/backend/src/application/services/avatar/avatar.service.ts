@@ -2,18 +2,19 @@
  * Avatar Service - 头像管理服务
  *
  * 职责：
- * - 头像业务逻辑（上传、更新、删除）
- * - DiceBear 头像生成
- * - 头像类型管理（uploaded vs dicebear）
+ * - 头像业务逻辑（上传、删除）
+ * - 预设头像管理
+ * - 头像类型管理（uploaded vs preset vs default）
  *
  * 依赖：
  * - StorageService: 处理文件存储
- * - DicebearHelper: 生成 DiceBear URL
  */
 
 import { ILogger } from '../../interfaces/logger.interface';
 import { StorageService } from '../storage/storage.service';
-import { DicebearHelper, EntityType } from './dicebear.helper';
+import { PRESET_AVATARS } from './preset-avatars.config';
+
+export type EntityType = 'user' | 'agent' | 'channel' | 'realm';
 
 export interface UploadAvatarOptions {
   entityType: EntityType;
@@ -22,18 +23,22 @@ export interface UploadAvatarOptions {
   mimeType: string;
 }
 
-export interface SetDicebearAvatarOptions {
+export interface SetPresetAvatarOptions {
   entityType: EntityType;
   entityId: string;
-  style: string;
-  seed?: string;
+  presetId: string;
 }
 
 export interface AvatarInfo {
   avatarUrl: string;
-  avatarType: 'uploaded' | 'dicebear' | 'default';
-  avatarSeed?: string;
-  avatarStyle?: string;
+  avatarType: 'uploaded' | 'preset' | 'default';
+}
+
+export interface PresetAvatarInfo {
+  id: string;
+  name: string;
+  description: string;
+  previewUrl: string;
 }
 
 export class AvatarService {
@@ -86,54 +91,30 @@ export class AvatarService {
   }
 
   /**
-   * 设置 DiceBear 头像
+   * 设置预设头像
    */
-  async setDicebearAvatar(options: SetDicebearAvatarOptions): Promise<AvatarInfo> {
-    const { entityType, entityId, style, seed } = options;
+  async setPresetAvatar(options: SetPresetAvatarOptions): Promise<AvatarInfo> {
+    const { presetId } = options;
 
-    // 验证风格
-    if (!DicebearHelper.isValidStyle(style)) {
-      throw new Error(`Invalid DiceBear style: ${style}`);
+    // 验证预设头像是否存在
+    const preset = PRESET_AVATARS.find(p => p.id === presetId);
+    if (!preset) {
+      throw new Error(`Invalid preset avatar ID: ${presetId}`);
     }
 
-    // 生成或使用提供的种子
-    const finalSeed = seed || DicebearHelper.generateRandomSeed();
+    // 返回预设头像的路径
+    const avatarUrl = `storage/avatars/presets/${presetId}.svg`;
 
-    // 生成 URL
-    const avatarUrl = DicebearHelper.generateUrl(style, finalSeed);
-
-    this.logger.info('DiceBear avatar set successfully', {
-      entityType,
-      entityId,
-      style,
-      seed: finalSeed,
+    this.logger.info('Preset avatar set successfully', {
+      entityType: options.entityType,
+      entityId: options.entityId,
+      presetId,
     });
 
     return {
       avatarUrl,
-      avatarType: 'dicebear',
-      avatarSeed: finalSeed,
-      avatarStyle: style,
+      avatarType: 'preset',
     };
-  }
-
-  /**
-   * 生成随机 DiceBear 头像
-   */
-  async generateRandomAvatar(
-    entityType: EntityType,
-    entityId: string,
-    style?: string
-  ): Promise<AvatarInfo> {
-    const finalStyle = style || DicebearHelper.getDefaultStyle(entityType);
-    const seed = DicebearHelper.generateRandomSeed();
-
-    return this.setDicebearAvatar({
-      entityType,
-      entityId,
-      style: finalStyle,
-      seed,
-    });
   }
 
   /**
@@ -153,18 +134,9 @@ export class AvatarService {
   /**
    * 获取头像 URL
    */
-  getAvatarUrl(
-    avatarType: string,
-    avatarUrl?: string,
-    avatarSeed?: string,
-    avatarStyle?: string
-  ): string {
-    if (avatarType === 'uploaded' && avatarUrl) {
+  getAvatarUrl(avatarType: string, avatarUrl?: string): string {
+    if ((avatarType === 'uploaded' || avatarType === 'preset') && avatarUrl) {
       return this.storageService.getUrl(avatarUrl);
-    }
-
-    if (avatarType === 'dicebear' && avatarSeed && avatarStyle) {
-      return DicebearHelper.generateUrl(avatarStyle, avatarSeed);
     }
 
     // 返回默认头像
@@ -172,25 +144,26 @@ export class AvatarService {
   }
 
   /**
-   * 获取可用的 DiceBear 风格列表
+   * 获取所有预设头像
    */
-  getAvailableStyles(entityType?: EntityType) {
-    const styles = DicebearHelper.getAvailableStyles(entityType);
-
-    return styles.map(style => ({
-      id: style.id,
-      name: style.name,
-      description: style.description,
-      previewUrl: DicebearHelper.getStylePreviewUrl(style.id),
-      recommended: style.recommended,
+  getPresetAvatars(): PresetAvatarInfo[] {
+    return PRESET_AVATARS.map(preset => ({
+      id: preset.id,
+      name: preset.name,
+      description: preset.description,
+      previewUrl: this.storageService.getUrl(`storage/avatars/presets/${preset.id}.svg`),
     }));
   }
 
   /**
-   * 获取默认头像 URL
+   * 获取默认头像 URL（使用第一个预设头像）
    */
   private getDefaultAvatarUrl(): string {
-    return DicebearHelper.generateUrl('identicon', 'default');
+    const firstPreset = PRESET_AVATARS[0];
+    if (!firstPreset) {
+      throw new Error('No preset avatars available');
+    }
+    return this.storageService.getUrl(`storage/avatars/presets/${firstPreset.id}.svg`);
   }
 
   /**
