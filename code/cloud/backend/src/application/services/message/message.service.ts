@@ -13,9 +13,9 @@
 
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { MessageReaction } from '../../../domain/models/message/message.types';
-import { MessageCrudService, SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service.js';
-import { MessageQueryService } from './message-query.service.js';
-import { MessageReactionService, AddReactionDTO, RemoveReactionDTO } from './message-reaction.service.js';
+import { MessageCrudService, SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service';
+import { MessageQueryService } from './message-query.service';
+import { MessageReactionService, AddReactionDTO, RemoveReactionDTO } from './message-reaction.service';
 
 export { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, AddReactionDTO, RemoveReactionDTO };
 
