@@ -52,7 +52,7 @@ export function ChannelAvatar({ channel, size = 'md', onClick }: ChannelAvatarPr
       onClick={onClick}
       whileHover={{ scale: 1.1, zIndex: 10 }}
       whileTap={{ scale: 0.95 }}
-      className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background`}
+      className={`${sizeClass} rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background`}
     >
       {initial}
     </motion.button>
@@ -71,7 +71,7 @@ export function AvatarStack({ avatars, size = 'md', onClick }: AvatarStackProps)
         onClick={onClick}
         whileHover={{ scale: 1.1, zIndex: 10 }}
         whileTap={{ scale: 0.95 }}
-        className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background`}
+        className={`${sizeClass} rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background`}
       >
         {avatars[0].charAt(0).toUpperCase()}
       </motion.button>
@@ -86,7 +86,7 @@ export function AvatarStack({ avatars, size = 'md', onClick }: AvatarStackProps)
           onClick={onClick}
           whileHover={{ scale: 1.1, zIndex: 10 }}
           whileTap={{ scale: 0.95 }}
-          className={`${sizeClass} ${index > 0 ? offsetClass : ''} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background relative`}
+          className={`${sizeClass} ${index > 0 ? offsetClass : ''} rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center font-semibold text-white cursor-pointer transition-all ring-2 ring-background relative`}
           style={{ zIndex: avatars.length - index }}
         >
           {avatar.charAt(0).toUpperCase()}

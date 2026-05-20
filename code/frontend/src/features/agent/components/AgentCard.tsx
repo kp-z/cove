@@ -32,7 +32,7 @@ const categoryColors: Record<AgentCategory, string> = {
 export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProps) {
   const { t } = useTranslation('agent');
   const [avatarError, setAvatarError] = useState(false);
-  const avatarUrl = getAgentAvatarUrl(agent.agent_id, agent.name);
+  const avatarUrl = getAgentAvatarUrl(agent.avatar);
   const initials = getAgentInitials(agent.name);
 
   const categoryLabels: Record<AgentCategory, string> = {
@@ -59,8 +59,8 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
     <GlassCard className="flex flex-col h-full p-5">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-        {avatarError ? (
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-white/20 flex items-center justify-center text-sm font-bold text-white/80 shrink-0">
+        {!avatarUrl || avatarError ? (
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
             {initials}
           </div>
         ) : (

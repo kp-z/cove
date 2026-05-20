@@ -1,29 +1,17 @@
-const DICEBEAR_STYLES = [
-  'avataaars-neutral',
-  'big-ears-neutral',
-  'lorelei-neutral',
-  'notionists-neutral',
-  'open-peeps',
-  'personas',
-] as const;
-
-const BACKGROUND_COLORS = 'b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf';
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
+/**
+ * Get agent avatar URL from backend or return undefined for fallback
+ * @param avatarUrl - Avatar URL from backend (optional)
+ * @returns Avatar URL or undefined
+ */
+export function getAgentAvatarUrl(avatarUrl?: string | null): string | undefined {
+  return avatarUrl || undefined;
 }
 
-export function getAgentAvatarUrl(id: string, name: string): string {
-  const styleIndex = hashString(id) % DICEBEAR_STYLES.length;
-  const style = DICEBEAR_STYLES[styleIndex];
-  const seed = encodeURIComponent(name);
-  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=${BACKGROUND_COLORS}&radius=50`;
-}
-
+/**
+ * Get agent initials for fallback avatar display
+ * @param name - Agent name
+ * @returns Two-letter initials
+ */
 export function getAgentInitials(name: string): string {
   const parts = name.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[\s-_]+/);
   if (parts.length >= 2) {

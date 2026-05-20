@@ -75,9 +75,9 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col gap-3 px-4 pt-4 pb-6">
       {pinnedChannels.length > 0 && (
-        <div className="p-2">
+        <div className="p-4">
           <PinnedChannels
             channels={pinnedChannels}
             selectedChannelId={selectedChannelId}
@@ -89,21 +89,18 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
         </div>
       )}
 
-      {pinnedChannels.length > 0 && recentChannels.length > 0 && (
-        <div className="border-t border-white/10 mx-2" />
-      )}
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {recentChannels.length > 0 && (
-          <>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
-              {t('list.recent')}
-            </h3>
+      {recentChannels.length > 0 && (
+        <div className="flex-1 overflow-hidden flex flex-col p-4">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            {t('list.recent')}
+          </h3>
+          <div className="flex-1 overflow-y-auto space-y-1 -mx-6 px-2">
             {recentChannels.map((channel: ChannelEntity) => (
               <ChannelListItem
                 key={channel.channel_id}
                 channel={channel}
                 isActive={selectedChannelId === channel.channel_id}
+                isPinned={isPinned(channel.channel_id)}
                 onClick={() => onChannelSelect(channel.channel_id)}
                 onTogglePin={handleTogglePin}
                 onMarkAsRead={handleMarkAsRead}
@@ -111,9 +108,9 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
                 onLeaveChannel={handleLeaveChannel}
               />
             ))}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

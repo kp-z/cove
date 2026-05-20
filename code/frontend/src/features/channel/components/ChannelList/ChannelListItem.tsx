@@ -9,6 +9,7 @@ type ChannelType = 'public' | 'private' | 'dm' | 'thread';
 interface ChannelListItemProps {
   channel: ChannelEntity;
   isActive: boolean;
+  isPinned?: boolean;
   onClick: () => void;
   onTogglePin?: (channel: ChannelEntity) => void;
   onMarkAsRead?: (channel: ChannelEntity) => void;
@@ -43,6 +44,7 @@ function formatTime(dateStr: string) {
 export function ChannelListItem({
   channel,
   isActive,
+  isPinned = false,
   onClick,
   onTogglePin,
   onMarkAsRead,
@@ -68,7 +70,7 @@ export function ChannelListItem({
           }`}
         >
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
               isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'
             }`}
           >
@@ -105,7 +107,7 @@ export function ChannelListItem({
               "
             >
               <Bookmark className="w-4 h-4" />
-              <span>{t('list.pinChannel')}</span>
+              <span>{isPinned ? t('list.unpinChannel') : t('list.pinChannel')}</span>
             </ContextMenu.Item>
           )}
 

@@ -42,13 +42,13 @@ const authErrorLink: TRPCLink<AppRouter> = () => {
 };
 
 const wsClient = createWSClient({
-  url: env.wsUrl,
-  connectionParams: () => {
+  url: () => {
     const { userId } = getCurrentUser();
-    return {
+    const params = new URLSearchParams({
       userId: userId || 'anonymous',
       userType: 'human',
-    };
+    });
+    return `${env.wsUrl}?${params.toString()}`;
   },
 });
 
@@ -74,6 +74,7 @@ export const trpcClient = trpc.createClient({
           return {
             authorization: token ? `Bearer ${token}` : '',
             'x-user-id': userId || '',
+            'x-realm-id': 'realm-nexus',
           };
         },
       }),
