@@ -4,6 +4,8 @@ import { ProjectEntity, ProjectStatus } from '../../domain/models/project/projec
 import { StorageService } from '../storage/storage.service';
 import { TestDatabaseHelper } from './test-database.helper';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { RealmContext } from '../../application/context/realm-context';
+import { runWithContext } from '../../application/context/realm-context-store';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -24,6 +26,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   let repository: HybridProjectRepository;
   let storageService: StorageService;
   let testStorageRoot: string;
+  let testContext: RealmContext;
 
   beforeAll(async () => {
     // Setup test database
@@ -49,6 +52,8 @@ describe('HybridProjectRepository Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    testContext = RealmContext.create('test-realm-id', 'test-user-id');
+
     await dbHelper.clearAllTables();
 
     // Create a test user for foreign key constraint
@@ -127,7 +132,9 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
       // Verify database record
       const dbRecord = await dbHelper.getPrisma().project.findUnique({
@@ -157,9 +164,13 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
-      const savedProject = await repository.findById('proj-2');
+      const savedProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-2');
+      });
       expect(savedProject).toBeDefined();
       expect(savedProject?.description).toBeUndefined();
     });
@@ -180,9 +191,13 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
-      const foundProject = await repository.findById('proj-3');
+      const foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-3');
+      });
       expect(foundProject).toBeDefined();
       expect(foundProject?.name).toBe('Find Project');
       expect(foundProject?.displayName).toBe('Find Me');
@@ -190,7 +205,9 @@ describe('HybridProjectRepository Integration Tests', () => {
     });
 
     it('should return null for non-existent project', async () => {
-      const foundProject = await repository.findById('non-existent');
+      const foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('non-existent');
+      });
       expect(foundProject).toBeNull();
     });
   });
@@ -236,17 +253,23 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project1);
-      await repository.save(project2);
-      await repository.save(project3);
+      await runWithContext(testContext, async () => {
+        await repository.save(project1);
+        await repository.save(project2);
+        await repository.save(project3);
+      });
 
-      const ownerProjects = await repository.findByOwner('owner-1');
+      const ownerProjects = await runWithContext(testContext, async () => {
+        return await repository.findByOwner('owner-1');
+      });
       expect(ownerProjects).toHaveLength(2);
       expect(ownerProjects.map(p => p.projectId)).toEqual(expect.arrayContaining(['proj-4', 'proj-5']));
     });
 
     it('should return empty array when owner has no projects', async () => {
-      const projects = await repository.findByOwner('no-projects-owner');
+      const projects = await runWithContext(testContext, async () => {
+        return await repository.findByOwner('no-projects-owner');
+      });
       expect(projects).toEqual([]);
     });
   });
@@ -279,16 +302,22 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(activeProject);
-      await repository.save(archivedProject);
+      await runWithContext(testContext, async () => {
+        await repository.save(activeProject);
+        await repository.save(archivedProject);
+      });
 
-      const activeProjects = await repository.findByStatus('active' as ProjectStatus);
+      const activeProjects = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('active' as ProjectStatus);
+      });
       expect(activeProjects).toHaveLength(1);
       expect(activeProjects[0].projectId).toBe('proj-7');
     });
 
     it('should return empty array when no projects with status', async () => {
-      const projects = await repository.findByStatus('active' as ProjectStatus);
+      const projects = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('active' as ProjectStatus);
+      });
       expect(projects).toEqual([]);
     });
   });
@@ -321,16 +350,22 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project1);
-      await repository.save(project2);
+      await runWithContext(testContext, async () => {
+        await repository.save(project1);
+        await repository.save(project2);
+      });
 
-      const allProjects = await repository.findAll();
+      const allProjects = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(allProjects).toHaveLength(2);
       expect(allProjects.map(p => p.projectId)).toEqual(expect.arrayContaining(['proj-9', 'proj-10']));
     });
 
     it('should return empty array when no projects', async () => {
-      const allProjects = await repository.findAll();
+      const allProjects = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(allProjects).toEqual([]);
     });
   });
@@ -351,7 +386,9 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
       // Update project
       const updatedProject = ProjectEntity.create({
@@ -368,10 +405,14 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: project.createdAt,
       });
 
-      await repository.update(updatedProject);
+      await runWithContext(testContext, async () => {
+        await repository.update(updatedProject);
+      });
 
       // Verify update
-      const foundProject = await repository.findById('proj-11');
+      const foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-11');
+      });
       expect(foundProject).toBeDefined();
       expect(foundProject?.name).toBe('Updated Project');
       expect(foundProject?.displayName).toBe('Updated Display');
@@ -396,17 +437,25 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
       // Verify project exists
-      let foundProject = await repository.findById('proj-12');
+      let foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-12');
+      });
       expect(foundProject).toBeDefined();
 
       // Delete project
-      await repository.delete('proj-12');
+      await runWithContext(testContext, async () => {
+        await repository.delete('proj-12');
+      });
 
       // Verify project is deleted
-      foundProject = await repository.findById('proj-12');
+      foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-12');
+      });
       expect(foundProject).toBeNull();
     });
   });
@@ -426,14 +475,20 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
-      const exists = await repository.exists('proj-13');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('proj-13');
+      });
       expect(exists).toBe(true);
     });
 
     it('should return false for non-existent project', async () => {
-      const exists = await repository.exists('non-existent');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('non-existent');
+      });
       expect(exists).toBe(false);
     });
   });
@@ -455,9 +510,13 @@ describe('HybridProjectRepository Integration Tests', () => {
         })
       );
 
-      await Promise.all(projects.map(project => repository.save(project)));
+      await runWithContext(testContext, async () => {
+        await Promise.all(projects.map(project => repository.save(project)));
+      });
 
-      const allProjects = await repository.findAll();
+      const allProjects = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(allProjects.length).toBeGreaterThanOrEqual(5);
     });
   });
@@ -477,7 +536,9 @@ describe('HybridProjectRepository Integration Tests', () => {
         createdAt: new Date(),
       });
 
-      await repository.save(project);
+      await runWithContext(testContext, async () => {
+        await repository.save(project);
+      });
 
       // Verify database
       const dbRecord = await dbHelper.getPrisma().project.findUnique({
@@ -491,7 +552,9 @@ describe('HybridProjectRepository Integration Tests', () => {
       expect(content.agentIds).toEqual(['agent-1']);
 
       // Verify through repository
-      const foundProject = await repository.findById('proj-14');
+      const foundProject = await runWithContext(testContext, async () => {
+        return await repository.findById('proj-14');
+      });
       expect(foundProject?.channelIds).toEqual(['channel-1', 'channel-2']);
       expect(foundProject?.agentIds).toEqual(['agent-1']);
     });

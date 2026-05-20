@@ -57,8 +57,12 @@ export class TestDatabaseHelper {
         "email" TEXT NOT NULL UNIQUE,
         "displayName" TEXT NOT NULL,
         "role" TEXT NOT NULL,
-        "status" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'active',
         "profilePath" TEXT NOT NULL,
+        "passwordHash" TEXT,
+        "lastLoginAt" DATETIME,
+        "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+        "lockedUntil" DATETIME,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL
       )
@@ -89,8 +93,18 @@ export class TestDatabaseHelper {
         "status" TEXT NOT NULL,
         "projectId" TEXT,
         "parentChannelId" TEXT,
-        "metadataPath" TEXT NOT NULL,
-        "memberIds" TEXT NOT NULL DEFAULT '[]',
+        "description" TEXT,
+        "icon" TEXT,
+        "membersData" TEXT NOT NULL DEFAULT '[]',
+        "agentPool" TEXT NOT NULL DEFAULT '[]',
+        "taskPool" TEXT NOT NULL DEFAULT '[]',
+        "conversationPool" TEXT NOT NULL DEFAULT '[]',
+        "communicationRules" TEXT NOT NULL DEFAULT '{}',
+        "workspace" TEXT NOT NULL DEFAULT '{}',
+        "metaTags" TEXT NOT NULL DEFAULT '[]',
+        "metaCategory" TEXT,
+        "createdById" TEXT NOT NULL DEFAULT 'system',
+        "createdByType" TEXT NOT NULL DEFAULT 'system',
         "messageCount" INTEGER NOT NULL DEFAULT 0,
         "memberCount" INTEGER NOT NULL DEFAULT 0,
         "createdAt" DATETIME NOT NULL,
@@ -121,11 +135,14 @@ export class TestDatabaseHelper {
       CREATE TABLE IF NOT EXISTS "Task" (
         "id" TEXT PRIMARY KEY,
         "title" TEXT NOT NULL,
+        "description" TEXT,
         "status" TEXT NOT NULL,
         "priority" TEXT NOT NULL,
-        "projectId" TEXT,
+        "projectId" TEXT NOT NULL,
+        "channelId" TEXT,
         "assigneeId" TEXT,
-        "metadataPath" TEXT NOT NULL,
+        "detailsPath" TEXT NOT NULL,
+        "dueDate" DATETIME,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
         FOREIGN KEY ("projectId") REFERENCES "Project"("id")
@@ -137,9 +154,10 @@ export class TestDatabaseHelper {
       CREATE TABLE IF NOT EXISTS "Workflow" (
         "id" TEXT PRIMARY KEY,
         "name" TEXT NOT NULL,
+        "type" TEXT NOT NULL,
         "status" TEXT NOT NULL,
-        "projectId" TEXT,
-        "metadataPath" TEXT NOT NULL,
+        "projectId" TEXT NOT NULL,
+        "definitionPath" TEXT NOT NULL,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
         FOREIGN KEY ("projectId") REFERENCES "Project"("id")
@@ -151,13 +169,48 @@ export class TestDatabaseHelper {
       CREATE TABLE IF NOT EXISTS "Thread" (
         "id" TEXT PRIMARY KEY,
         "channelId" TEXT NOT NULL,
-        "rootMessageId" TEXT NOT NULL,
-        "status" TEXT NOT NULL,
-        "replyCount" INTEGER NOT NULL DEFAULT 0,
+        "rootMessageId" TEXT NOT NULL UNIQUE,
         "participants" TEXT NOT NULL,
+        "replyCount" INTEGER NOT NULL DEFAULT 0,
+        "detailsPath" TEXT NOT NULL,
+        "lastReplyAt" DATETIME,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
-        FOREIGN KEY ("channelId") REFERENCES "Channel"("id")
+        FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE
+      )
+    `);
+
+    // 创建 Agent 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Agent" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "displayName" TEXT NOT NULL,
+        "status" TEXT NOT NULL,
+        "scope" TEXT NOT NULL DEFAULT 'user',
+        "projectIds" TEXT NOT NULL DEFAULT '[]',
+        "configPath" TEXT NOT NULL,
+        "createdBy" TEXT NOT NULL DEFAULT 'system',
+        "createdAt" DATETIME NOT NULL
+      )
+    `);
+
+    // 创建 Realm 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Realm" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT NOT NULL UNIQUE,
+        "displayName" TEXT NOT NULL,
+        "description" TEXT,
+        "ownerId" TEXT NOT NULL,
+        "status" TEXT NOT NULL,
+        "visibility" TEXT NOT NULL,
+        "settings" TEXT NOT NULL,
+        "limits" TEXT NOT NULL,
+        "meta" TEXT,
+        "createdAt" DATETIME NOT NULL,
+        "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("ownerId") REFERENCES "User"("id")
       )
     `);
 
@@ -165,18 +218,56 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Message" (
         "id" TEXT PRIMARY KEY,
+        "shortId" TEXT NOT NULL UNIQUE,
         "channelId" TEXT NOT NULL,
         "threadId" TEXT,
         "senderId" TEXT NOT NULL,
         "senderType" TEXT NOT NULL,
-        "content" TEXT NOT NULL,
-        "status" TEXT NOT NULL,
+        "isThreadRoot" INTEGER NOT NULL DEFAULT 0,
         "contentPath" TEXT NOT NULL,
+        "contentType" TEXT NOT NULL,
+        "status" TEXT NOT NULL,
+        "isEdited" INTEGER NOT NULL DEFAULT 0,
+        "reactionCount" INTEGER NOT NULL DEFAULT 0,
+        "replyCount" INTEGER NOT NULL DEFAULT 0,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
-        FOREIGN KEY ("channelId") REFERENCES "Channel"("id"),
-        FOREIGN KEY ("threadId") REFERENCES "Thread"("id")
+        "deletedAt" DATETIME,
+        FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY ("threadId") REFERENCES "Message"("id")
       )
+    `);
+
+    // 创建 AuditLog 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "AuditLog" (
+        "id" TEXT PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        "action" TEXT NOT NULL,
+        "resourceType" TEXT NOT NULL,
+        "resourceId" TEXT,
+        "details" TEXT,
+        "ipAddress" TEXT,
+        "userAgent" TEXT,
+        "createdAt" DATETIME NOT NULL
+      )
+    `);
+
+    // 创建 AuditLog 索引
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AuditLog_userId_idx" ON "AuditLog"("userId")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AuditLog_action_idx" ON "AuditLog"("action")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AuditLog_resourceType_idx" ON "AuditLog"("resourceType")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AuditLog_resourceId_idx" ON "AuditLog"("resourceId")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AuditLog_createdAt_idx" ON "AuditLog"("createdAt")
     `);
   }
 

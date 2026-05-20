@@ -8,12 +8,15 @@ import { DeviceEntity } from '../../domain/models/device/device.entity';
 import { PrismaClient } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { RealmContext } from '../../application/context/realm-context';
+import { runWithContext } from '../../application/context/realm-context-store';
 
 describe('HybridDeviceRepository', () => {
   let repository: HybridDeviceRepository;
   let mockPrisma: any;
   let mockStorage: any;
   let mockLogger: any;
+  let testContext: RealmContext;
 
   const mockSpecs = {
     cpu_cores: 8,
@@ -22,6 +25,8 @@ describe('HybridDeviceRepository', () => {
   };
 
   beforeEach(() => {
+    testContext = RealmContext.create('test-realm-id', 'test-user-id');
+
     mockPrisma = {
       device: {
         findFirst: vi.fn(),
@@ -58,7 +63,7 @@ describe('HybridDeviceRepository', () => {
     it('should find device by id and realmId', async () => {
       const dbRecord = {
         id: 'device-1',
-        realmId: 'server-1',
+        realmId: 'test-realm-id',
         name: 'test-device',
         displayName: 'Test Device',
         type: 'physical',
@@ -78,20 +83,24 @@ describe('HybridDeviceRepository', () => {
       mockPrisma.device.findFirst.mockResolvedValue(dbRecord);
       mockStorage.loadJson.mockResolvedValue(content);
 
-      const result = await repository.findById('device-1', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findById('device-1');
+      });
 
       expect(result).toBeInstanceOf(DeviceEntity);
       expect(result?.device_id).toBe('device-1');
       expect(result?.name).toBe('test-device');
       expect(mockPrisma.device.findFirst).toHaveBeenCalledWith({
-        where: { id: 'device-1', realmId: 'server-1' },
+        where: { id: 'device-1', realmId: 'test-realm-id' },
       });
     });
 
     it('should return null if device not found', async () => {
       mockPrisma.device.findFirst.mockResolvedValue(null);
 
-      const result = await repository.findById('nonexistent', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findById('nonexistent');
+      });
 
       expect(result).toBeNull();
     });
@@ -131,7 +140,9 @@ describe('HybridDeviceRepository', () => {
       mockPrisma.device.findMany.mockResolvedValue(dbRecords);
       mockStorage.loadJson.mockResolvedValue({ specs: mockSpecs });
 
-      const result = await repository.findByServer('server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findByServer('server-1');
+      });
 
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(DeviceEntity);
@@ -144,7 +155,7 @@ describe('HybridDeviceRepository', () => {
       const dbRecords = [
         {
           id: 'device-1',
-          realmId: 'server-1',
+          realmId: 'test-realm-id',
           name: 'device-1',
           displayName: 'Device 1',
           type: 'physical',
@@ -160,12 +171,14 @@ describe('HybridDeviceRepository', () => {
       mockPrisma.device.findMany.mockResolvedValue(dbRecords);
       mockStorage.loadJson.mockResolvedValue({ specs: mockSpecs });
 
-      const result = await repository.findByStatus('online', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('online');
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('online');
       expect(mockPrisma.device.findMany).toHaveBeenCalledWith({
-        where: { realmId: 'server-1', status: 'online' },
+        where: { realmId: 'test-realm-id', status: 'online' },
       });
     });
   });
@@ -191,7 +204,9 @@ describe('HybridDeviceRepository', () => {
       mockPrisma.device.findMany.mockResolvedValue(dbRecords);
       mockStorage.loadJson.mockResolvedValue({ specs: mockSpecs });
 
-      const result = await repository.findByType('physical', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findByType('physical', 'server-1');
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('physical');
@@ -205,18 +220,22 @@ describe('HybridDeviceRepository', () => {
     it('should return true if device exists', async () => {
       mockPrisma.device.count.mockResolvedValue(1);
 
-      const result = await repository.exists('device-1', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.exists('device-1');
+      });
 
       expect(result).toBe(true);
       expect(mockPrisma.device.count).toHaveBeenCalledWith({
-        where: { id: 'device-1', realmId: 'server-1' },
+        where: { id: 'device-1', realmId: 'test-realm-id' },
       });
     });
 
     it('should return false if device does not exist', async () => {
       mockPrisma.device.count.mockResolvedValue(0);
 
-      const result = await repository.exists('nonexistent', 'server-1');
+      const result = await runWithContext(testContext, async () => {
+        return await repository.exists('nonexistent');
+      });
 
       expect(result).toBe(false);
     });
@@ -240,7 +259,9 @@ describe('HybridDeviceRepository', () => {
       mockStorage.saveJsonAtomic.mockResolvedValue('devices/device-1.json');
       mockPrisma.device.create.mockResolvedValue({});
 
-      await repository.save(device, 'server-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(device, 'server-1');
+      });
 
       expect(mockStorage.saveJsonAtomic).toHaveBeenCalled();
       expect(mockPrisma.device.create).toHaveBeenCalled();
@@ -264,7 +285,9 @@ describe('HybridDeviceRepository', () => {
       mockStorage.saveJsonAtomic.mockResolvedValue('devices/device-1.json');
       mockPrisma.device.update.mockResolvedValue({});
 
-      await repository.update(device, 'server-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(device, 'server-1');
+      });
 
       expect(mockStorage.saveJsonAtomic).toHaveBeenCalled();
       expect(mockPrisma.device.update).toHaveBeenCalled();
@@ -275,7 +298,9 @@ describe('HybridDeviceRepository', () => {
     it('should delete device from database', async () => {
       mockPrisma.device.delete.mockResolvedValue({});
 
-      await repository.delete('device-1', 'server-1');
+      await runWithContext(testContext, async () => {
+        await repository.delete('device-1', 'server-1');
+      });
 
       expect(mockPrisma.device.delete).toHaveBeenCalledWith({
         where: { id: 'device-1' },

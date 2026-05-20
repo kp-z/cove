@@ -26,6 +26,7 @@ describe('DefaultDataInitializer', () => {
         create: vi.fn(),
       },
       realmMember: {
+        findUnique: vi.fn(),
         create: vi.fn(),
       },
       user: {
@@ -39,6 +40,7 @@ describe('DefaultDataInitializer', () => {
         create: vi.fn(),
       },
       message: {
+        findMany: vi.fn(),
         create: vi.fn(),
       },
     };
@@ -69,6 +71,20 @@ describe('DefaultDataInitializer', () => {
         id: 'realm-nexus',
         name: 'nexus',
       });
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'user-admin',
+        role: 'owner',
+      });
+      mockPrisma.realmMember.findUnique.mockResolvedValue({
+        id: 'member-nexus-user-admin',
+        realmId: 'realm-nexus',
+        userId: 'user-admin',
+      });
+      mockPrisma.channel.findUnique.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -79,7 +95,11 @@ describe('DefaultDataInitializer', () => {
       });
       expect(mockPrisma.realm.create).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith(
-        'Default realm already exists, skipping initialization'
+        'Starting default data initialization...'
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Default realm already exists',
+        { realmId: 'realm-nexus' }
       );
     });
 
@@ -95,6 +115,8 @@ describe('DefaultDataInitializer', () => {
         name: 'zhang',
       });
       mockPrisma.channel.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -112,8 +134,16 @@ describe('DefaultDataInitializer', () => {
         }),
       });
 
-      // 2. Should add initial members (admin + agent-zhang)
-      expect(mockPrisma.realmMember.create).toHaveBeenCalledTimes(2);
+      // 2. Should add only admin as member (agents are not realm members)
+      expect(mockPrisma.realmMember.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.realmMember.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          realmId: 'realm-nexus',
+          userId: 'user-admin',
+          role: 'owner',
+          status: 'active',
+        }),
+      });
 
       // 3. Should create default channels (#general, #welcome)
       expect(mockPrisma.channel.create).toHaveBeenCalledTimes(2);
@@ -142,6 +172,8 @@ describe('DefaultDataInitializer', () => {
         name: 'zhang',
       });
       mockPrisma.channel.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -173,6 +205,8 @@ describe('DefaultDataInitializer', () => {
         name: 'zhang',
       });
       mockPrisma.channel.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -193,6 +227,8 @@ describe('DefaultDataInitializer', () => {
         name: 'zhang',
       });
       mockPrisma.channel.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -202,13 +238,11 @@ describe('DefaultDataInitializer', () => {
       expect(mockPrisma.realm.create).toHaveBeenCalled();
       expect(mockPrisma.channel.create).toHaveBeenCalledTimes(2);
 
-      // Should only add agent-zhang as member (not admin)
-      expect(mockPrisma.realmMember.create).toHaveBeenCalledTimes(1);
-      expect(mockPrisma.realmMember.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          userId: 'agent-zhang',
-        }),
-      });
+      // Should NOT add any members (no admin, agents are not realm members)
+      expect(mockPrisma.realmMember.create).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Admin user not found, skipping admin member creation'
+      );
     });
 
     it('should log errors if initialization fails', async () => {

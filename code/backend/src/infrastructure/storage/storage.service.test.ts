@@ -44,7 +44,7 @@ describe('StorageService', () => {
       const content = { id: 'test-1', nested: { key: 'value' } };
       const relativePath = await storageService.saveJson('users', 'test-1', content);
 
-      const absolutePath = path.join(testProjectRoot, '.cove', relativePath);
+      const absolutePath = path.join(testProjectRoot, relativePath);
       const fileContent = await fs.readFile(absolutePath, 'utf-8');
 
       expect(fileContent).toContain('  '); // Check for indentation
@@ -157,7 +157,7 @@ describe('StorageService', () => {
       // Create a file with restricted permissions (if possible)
       const content = { id: 'test-1' };
       const relativePath = await storageService.saveJson('users', 'test-1', content);
-      const absolutePath = path.join(testProjectRoot, '.cove', relativePath);
+      const absolutePath = path.join(testProjectRoot, relativePath);
 
       // Make parent directory read-only
       const parentDir = path.dirname(absolutePath);

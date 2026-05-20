@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { HybridMessageRepository } from '../../src/infrastructure/repositories/hybrid-message.repository';
-import { HybridChannelRepository } from '../../src/infrastructure/repositories/hybrid-channel.repository';
+import { ChannelRepository } from '../../src/infrastructure/repositories/channel.repository';
 import { StorageService } from '../../src/infrastructure/storage/storage.service';
 import { ILogger } from '../../src/application/interfaces/logger.interface';
 import { MessageEntity } from '../../src/domain/models/message/message.entity';
@@ -34,7 +34,7 @@ describe.skip('Repository Performance Benchmarks', () => {
   let storageService: StorageService;
   let logger: ILogger;
   let messageRepository: HybridMessageRepository;
-  let channelRepository: HybridChannelRepository;
+  let channelRepository: ChannelRepository;
 
   const projectRoot = path.resolve(__dirname, '../../../');
 
@@ -43,7 +43,7 @@ describe.skip('Repository Performance Benchmarks', () => {
     storageService = new StorageService(projectRoot);
     logger = new MockLogger();
     messageRepository = new HybridMessageRepository(prisma, storageService, logger);
-    channelRepository = new HybridChannelRepository(prisma, storageService, logger);
+    channelRepository = new ChannelRepository(prisma, storageService, logger);
   });
 
   afterAll(async () => {

@@ -4,7 +4,7 @@ import { UserEntity } from './user.entity';
 describe('UserEntity', () => {
   const validProps = {
     userId: 'user-001',
-    username: 'kp-user',
+    username: 'kp_user',
     displayName: 'KP',
     email: 'kp@example.com',
     role: 'owner' as const,
@@ -16,7 +16,7 @@ describe('UserEntity', () => {
       const user = UserEntity.create(validProps);
 
       expect(user.userId).toBe('user-001');
-      expect(user.username).toBe('kp-user');
+      expect(user.username).toBe('kp_user');
       expect(user.displayName).toBe('KP');
       expect(user.email).toBe('kp@example.com');
       expect(user.role).toBe('owner');
@@ -31,7 +31,7 @@ describe('UserEntity', () => {
     it('should throw error for empty username', () => {
       expect(() => {
         UserEntity.create({ ...validProps, username: '' });
-      }).toThrow('Username cannot be empty');
+      }).toThrow('Username must be 3-20 characters and contain only letters, numbers, and underscores');
     });
 
     it('should throw error for invalid email', () => {
@@ -115,13 +115,17 @@ describe('UserEntity', () => {
 
       expect(json).toEqual({
         user_id: 'user-001',
-        username: 'kp-user',
+        username: 'kp_user',
         display_name: 'KP',
         email: 'kp@example.com',
         role: 'owner',
+        status: 'active',
         avatar: undefined,
         permissions: [],
         preference: {},
+        last_login_at: undefined,
+        failed_login_attempts: 0,
+        locked_until: undefined,
         created_at: '2026-01-01T00:00:00.000Z',
       });
     });
@@ -129,7 +133,7 @@ describe('UserEntity', () => {
     it('should deserialize from JSON', () => {
       const json = {
         user_id: 'user-001',
-        username: 'kp-user',
+        username: 'kp_user',
         display_name: 'KP',
         email: 'kp@example.com',
         role: 'owner' as const,

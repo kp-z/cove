@@ -16,6 +16,7 @@ describe('userRouter', () => {
       createUser: vi.fn(),
       getAllUsers: vi.fn(),
       getUsersByRole: vi.fn(),
+      getUsersPaginated: vi.fn(),
       getUserById: vi.fn(),
       updateUser: vi.fn(),
       deleteUser: vi.fn(),
@@ -23,6 +24,9 @@ describe('userRouter', () => {
 
 
     mockContext = {
+      userId: 'test-user-id',
+      realmId: 'test-realm-id',
+      userRole: 'owner',
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -119,7 +123,13 @@ describe('userRouter', () => {
         }),
       ];
 
-      vi.mocked(mockUserService.getAllUsers).mockResolvedValue(users);
+      vi.mocked(mockUserService.getUsersPaginated).mockResolvedValue({
+        items: users,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
 
       const caller = router.createCaller(mockContext);
       const result = await caller.list();
@@ -140,14 +150,24 @@ describe('userRouter', () => {
         }),
       ];
 
-      vi.mocked(mockUserService.getUsersByRole).mockResolvedValue(users);
+      vi.mocked(mockUserService.getUsersPaginated).mockResolvedValue({
+        items: users,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
 
       const caller = router.createCaller(mockContext);
       const result = await caller.list({ role: 'admin' });
 
       expect(result.users).toHaveLength(1);
       expect(result.users[0].role).toBe('admin');
-      expect(mockUserService.getUsersByRole).toHaveBeenCalledWith('admin');
+      expect(mockUserService.getUsersPaginated).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        role: 'admin',
+      });
     });
   });
 
@@ -187,7 +207,7 @@ describe('userRouter', () => {
   describe('update', () => {
     it('should update user successfully', async () => {
       const user = UserEntity.create({
-        userId: 'user-1',
+        userId: 'test-user-id',
         username: 'testuser',
         displayName: 'Updated Name',
         email: 'updated@example.com',
@@ -199,7 +219,7 @@ describe('userRouter', () => {
 
       const caller = router.createCaller(mockContext);
       const result = await caller.update({
-        userId: 'user-1',
+        userId: 'test-user-id',
         data: {
           displayName: 'Updated Name',
           email: 'updated@example.com',

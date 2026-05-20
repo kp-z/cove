@@ -281,8 +281,10 @@ describe('taskRouter - Additional Coverage', () => {
       try {
         await caller.update({
           taskId: 'nonexistent',
-          status: 'in_progress',
-          actorId: 'user-1',
+          data: {
+            status: 'in_progress',
+            actorId: 'user-1',
+          },
         });
         expect.fail('Should have thrown an error');
       } catch (err: any) {
@@ -298,8 +300,10 @@ describe('taskRouter - Additional Coverage', () => {
       try {
         await caller.update({
           taskId: 'task-1',
-          status: 'in_progress',
-          actorId: 'user-1',
+          data: {
+            status: 'in_progress',
+            actorId: 'user-1',
+          },
         });
         expect.fail('Should have thrown an error');
       } catch (err: any) {

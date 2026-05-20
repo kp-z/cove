@@ -8,12 +8,14 @@ import {
 } from '../../interfaces';
 import { RealmContext } from '../../context/realm-context';
 import { runWithContext } from '../../context/realm-context-store';
+import { AuditService } from '../audit/audit.service';
 
 describe('UserService', () => {
   let userService: UserService;
   let mockUserRepository: IUserRepository;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  let mockAuditService: AuditService;
   let testContext: RealmContext;
 
   beforeEach(() => {
@@ -44,10 +46,15 @@ describe('UserService', () => {
       debug: vi.fn(),
     } as unknown as ILogger;
 
+    mockAuditService = {
+      log: vi.fn(),
+    } as unknown as AuditService;
+
     userService = new UserService(
       mockUserRepository,
       mockEventBus,
-      mockLogger
+      mockLogger,
+      mockAuditService
     );
   });
 
@@ -383,7 +390,13 @@ describe('UserService', () => {
         await userService.deleteUser('user-1');
       });
 
-      expect(mockUserRepository.delete).toHaveBeenCalledWith('user-1');
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          status: 'deleted',
+        }),
+        'test-server-id'
+      );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'user.deleted',
