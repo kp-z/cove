@@ -4,6 +4,7 @@ import { SecurityPanel } from '../panels/SecurityPanel'
 import { GeneralPanel } from '../panels/GeneralPanel'
 import { AppearancePanel } from '../panels/AppearancePanel'
 import { NotificationsPanel } from '../panels/NotificationsPanel'
+import { RealmPanel } from '../panels/RealmPanel'
 import { AdaptersPanel } from '../panels/AdaptersPanel'
 
 interface SettingsPanelProps {
@@ -27,6 +28,7 @@ export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
           {activeCategory === 'general' && <GeneralPanel />}
           {activeCategory === 'appearance' && <AppearancePanel />}
           {activeCategory === 'notifications' && <NotificationsPanel />}
+          {activeCategory === 'realm' && <RealmPanel />}
           {activeCategory === 'adapters' && <AdaptersPanel />}
         </motion.div>
       </AnimatePresence>
