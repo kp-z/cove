@@ -44,11 +44,7 @@ function getEmptyFormData(): AdapterFormData {
     description: '',
     type: 'anthropic-api',
     scope: 'private',
-    config: {
-      model: 'claude-3-5-sonnet-20241022',
-      temperature: 0.7,
-      max_tokens: 4096,
-    },
+    config: {},
   }
 }
 
@@ -99,47 +95,6 @@ export function AdapterFormDialog({
   }
 
   const renderConfigFields = (type: AdapterType) => {
-    const commonFields = (
-      <>
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">
-            Model <span className="text-red-400">*</span>
-          </label>
-          <FormInput
-            type="text"
-            value={formData.config.model || ''}
-            onChange={e => handleConfigChange('model', e.target.value)}
-            placeholder={type === 'anthropic-api' ? 'claude-sonnet-4-20250514' : type === 'openai-api' ? 'gpt-4' : 'claude-3-5-sonnet-20241022'}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">
-            Temperature
-          </label>
-          <FormInput
-            type="number"
-            step="0.1"
-            min="0"
-            max={type === 'openai-api' ? '2' : '1'}
-            value={formData.config.temperature ?? 0.7}
-            onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-          />
-          <p className="text-xs text-white/40 mt-1">Range: 0.0 - {type === 'openai-api' ? '2.0' : '1.0'}</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">
-            Max Tokens
-          </label>
-          <FormInput
-            type="number"
-            value={formData.config.max_tokens ?? 4096}
-            onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-          />
-        </div>
-      </>
-    )
 
     switch (type) {
       case 'anthropic-api':
@@ -148,7 +103,7 @@ export function AdapterFormDialog({
           <>
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                API Key
+                API Key <span className="text-red-400">*</span>
               </label>
               <FormInput
                 type="password"
@@ -156,7 +111,6 @@ export function AdapterFormDialog({
                 onChange={e => handleConfigChange('api_key', e.target.value)}
                 placeholder={type === 'anthropic-api' ? 'sk-ant-...' : 'sk-...'}
               />
-              <p className="text-xs text-white/40 mt-1">Leave empty to use environment variable</p>
             </div>
 
             <div>
@@ -172,7 +126,18 @@ export function AdapterFormDialog({
               <p className="text-xs text-white/40 mt-1">Optional custom API endpoint</p>
             </div>
 
-            {commonFields}
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                Model
+              </label>
+              <FormInput
+                type="text"
+                value={formData.config.model || ''}
+                onChange={e => handleConfigChange('model', e.target.value)}
+                placeholder={type === 'anthropic-api' ? 'claude-sonnet-4-20250514' : 'gpt-4'}
+              />
+              <p className="text-xs text-white/40 mt-1">Optional - leave empty to use default</p>
+            </div>
           </>
         )
 
@@ -192,17 +157,17 @@ export function AdapterFormDialog({
               <p className="text-xs text-white/40 mt-1">Path to Claude Code CLI executable</p>
             </div>
 
-            {commonFields}
-
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                Context Window
+                Model
               </label>
               <FormInput
-                type="number"
-                value={formData.config.context_window ?? 200000}
-                onChange={e => handleConfigChange('context_window', parseInt(e.target.value))}
+                type="text"
+                value={formData.config.model || ''}
+                onChange={e => handleConfigChange('model', e.target.value)}
+                placeholder="claude-3-5-sonnet-20241022"
               />
+              <p className="text-xs text-white/40 mt-1">Optional - leave empty to use default</p>
             </div>
           </>
         )
@@ -289,7 +254,7 @@ export function AdapterFormDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.name}
+            disabled={isSubmitting || !formData.name || !formData.config.api_key}
           >
             {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create' : 'Save Changes'}
           </Button>

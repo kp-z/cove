@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
+import { Plus, Sparkles, Cpu, Terminal } from 'lucide-react'
 import { useAdapters, useCreateAdapter, useUpdateAdapter, useDeleteAdapter, useTestConnection } from '@/lib/trpc/hooks'
 import { useRealm, useUpdateRealm } from '@/lib/trpc/hooks/realm.hooks'
 import { useAuthStore } from '@/core/auth/authStore'
@@ -165,33 +165,37 @@ export function AdaptersPanel() {
     <div>
       {/* Tabs + Add Button */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-        <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as AdapterType)}>
-          <Tabs.List className="flex items-center gap-1">
-            <Tabs.Trigger
-              value="anthropic-api"
-              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-            >
-              Anthropic API
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value="openai-api"
-              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-            >
-              OpenAI API
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value="claude-code-cli"
-              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-            >
-              Claude Code CLI
-            </Tabs.Trigger>
-          </Tabs.List>
-        </Tabs.Root>
-
         <Button onClick={handleCreate} size="sm">
           <Plus size={16} className="mr-2" />
           {t('adapters.add')}
         </Button>
+
+        {/* Icon Tabs - Right Side */}
+        <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as AdapterType)}>
+          <Tabs.List className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+            <Tabs.Trigger
+              value="anthropic-api"
+              className="p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-indigo-500/20 transition-colors"
+              title="Anthropic API"
+            >
+              <Sparkles size={18} />
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="openai-api"
+              className="p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-indigo-500/20 transition-colors"
+              title="OpenAI API"
+            >
+              <Cpu size={18} />
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="claude-code-cli"
+              className="p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 data-[state=active]:text-white data-[state=active]:bg-indigo-500/20 transition-colors"
+              title="Claude Code CLI"
+            >
+              <Terminal size={18} />
+            </Tabs.Trigger>
+          </Tabs.List>
+        </Tabs.Root>
       </div>
 
       {/* Adapter Cards */}
