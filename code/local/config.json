@@ -1,6 +1,6 @@
 {
   "server": {
-    "url": "ws://localhost:3002",
+    "url": "ws://localhost:4002",
     "token": ""
   },
   "device": {

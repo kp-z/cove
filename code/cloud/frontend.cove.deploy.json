@@ -6,15 +6,15 @@
     "version": "20"
   },
   "build": {
-    "command": "cd frontend && npm run build",
-    "outputDir": "frontend/dist"
+    "command": "cd code/cloud/frontend && npm run build",
+    "outputDir": "code/cloud/frontend/dist"
   },
   "serve": {
     "type": "static",
     "spa": true,
-    "port": 5173
+    "port": 6173
   },
   "env": {
-    "VITE_API_URL": "http://localhost:3002"
+    "VITE_API_URL": "http://localhost:4002"
   }
 }

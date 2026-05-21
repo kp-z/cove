@@ -123,6 +123,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         indent={16}
         rowHeight={28}
         overscanCount={10}
+        idAccessor="id"
+        childrenAccessor="children"
       >
         {Node}
       </Tree>
