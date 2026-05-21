@@ -63,17 +63,20 @@ Thumbs.db
 .obsidian/
 *.backup
 
-# Cove Data Directory
-/.cove/database/*.db
-/.cove/database/*.db-shm
-/.cove/database/*.db-wal
-/.cove/storage/
-/.cove/cache/
-/.cove/logs/
-/.cove/temp/
+# Cove Data Directory (recursive match for any depth)
+**/.cove/database/*.db
+**/.cove/database/*.db-shm
+**/.cove/database/*.db-wal
+**/.cove/storage/
+**/.cove/cache/
+**/.cove/logs/
+**/.cove/temp/
+
+# Test temporary files
+**/.test-storage/
 
 # Keep directory structure
-!/.cove/storage/.gitkeep
-!/.cove/cache/.gitkeep
-!/.cove/logs/.gitkeep
-!/.cove/temp/.gitkeep
+!**/.cove/storage/.gitkeep
+!**/.cove/cache/.gitkeep
+!**/.cove/logs/.gitkeep
+!**/.cove/temp/.gitkeep
