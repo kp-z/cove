@@ -27,7 +27,7 @@ export function useFileSystem({
   });
 
   const loadFileTree = useCallback(async () => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true }));
     try {
       const tree = await adapter.readDirectory(rootPath);
       setState((prev) => ({
