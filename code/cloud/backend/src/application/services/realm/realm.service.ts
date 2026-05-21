@@ -128,6 +128,7 @@ export class RealmService {
       visibility: dto.visibility || 'private',
       settings: defaultSettings,
       limits: defaultLimits,
+      logo_type: 'dicebear',
       created_at: new Date(),
       updated_at: new Date(),
       meta: {},

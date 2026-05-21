@@ -60,6 +60,10 @@ export class TestDatabaseHelper {
         "status" TEXT NOT NULL DEFAULT 'active',
         "profilePath" TEXT NOT NULL,
         "passwordHash" TEXT,
+        "avatarUrl" TEXT,
+        "avatarType" TEXT NOT NULL DEFAULT 'dicebear',
+        "avatarSeed" TEXT,
+        "avatarStyle" TEXT DEFAULT 'avataaars',
         "lastLoginAt" DATETIME,
         "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
         "lockedUntil" DATETIME,
@@ -95,6 +99,10 @@ export class TestDatabaseHelper {
         "parentChannelId" TEXT,
         "description" TEXT,
         "icon" TEXT,
+        "avatarUrl" TEXT,
+        "avatarType" TEXT NOT NULL DEFAULT 'dicebear',
+        "avatarSeed" TEXT,
+        "avatarStyle" TEXT DEFAULT 'initials',
         "membersData" TEXT NOT NULL DEFAULT '[]',
         "agentPool" TEXT NOT NULL DEFAULT '[]',
         "taskPool" TEXT NOT NULL DEFAULT '[]',
@@ -190,6 +198,10 @@ export class TestDatabaseHelper {
         "scope" TEXT NOT NULL DEFAULT 'user',
         "projectIds" TEXT NOT NULL DEFAULT '[]',
         "configPath" TEXT NOT NULL,
+        "avatarUrl" TEXT,
+        "avatarType" TEXT NOT NULL DEFAULT 'dicebear',
+        "avatarSeed" TEXT,
+        "avatarStyle" TEXT DEFAULT 'bottts',
         "createdBy" TEXT NOT NULL DEFAULT 'system',
         "createdAt" DATETIME NOT NULL
       )
@@ -208,6 +220,10 @@ export class TestDatabaseHelper {
         "settings" TEXT NOT NULL,
         "limits" TEXT NOT NULL,
         "meta" TEXT,
+        "logoUrl" TEXT,
+        "logoType" TEXT NOT NULL DEFAULT 'dicebear',
+        "logoSeed" TEXT,
+        "logoStyle" TEXT DEFAULT 'shapes',
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
         FOREIGN KEY ("ownerId") REFERENCES "User"("id")
@@ -268,6 +284,107 @@ export class TestDatabaseHelper {
     `);
     await this.prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "AuditLog_createdAt_idx" ON "AuditLog"("createdAt")
+    `);
+
+    // 创建 Attachment 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Attachment" (
+        "id" TEXT PRIMARY KEY,
+        "messageId" TEXT,
+        "fileName" TEXT NOT NULL,
+        "fileSize" INTEGER NOT NULL,
+        "mimeType" TEXT NOT NULL,
+        "filePath" TEXT NOT NULL,
+        "uploadedBy" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL
+      )
+    `);
+
+    // 创建 Attachment 索引
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Attachment_messageId_idx" ON "Attachment"("messageId")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Attachment_uploadedBy_idx" ON "Attachment"("uploadedBy")
+    `);
+
+    // 创建 RealmMember 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "realm_members" (
+        "id" TEXT PRIMARY KEY,
+        "realm_id" TEXT NOT NULL,
+        "user_id" TEXT NOT NULL,
+        "role" TEXT NOT NULL,
+        "custom_permissions" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'active',
+        "joined_at" DATETIME NOT NULL,
+        "updated_at" DATETIME NOT NULL,
+        "meta" TEXT,
+        FOREIGN KEY ("realm_id") REFERENCES "Realm"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE,
+        UNIQUE("realm_id", "user_id")
+      )
+    `);
+
+    // 创建 RealmMember 索引
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "realm_members_realm_id_idx" ON "realm_members"("realm_id")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "realm_members_user_id_idx" ON "realm_members"("user_id")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "realm_members_role_idx" ON "realm_members"("role")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "realm_members_status_idx" ON "realm_members"("status")
+    `);
+
+    // 创建 Device 表
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Device" (
+        "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "displayName" TEXT,
+        "type" TEXT NOT NULL,
+        "status" TEXT NOT NULL,
+        "platform" TEXT,
+        "configPath" TEXT NOT NULL,
+        "lastSeenAt" DATETIME,
+        "createdAt" DATETIME NOT NULL,
+        "updatedAt" DATETIME NOT NULL,
+        "apiKeyHash" TEXT,
+        "activeTaskCount" INTEGER NOT NULL DEFAULT 0,
+        "totalTasksExecuted" INTEGER NOT NULL DEFAULT 0,
+        "averageTaskDuration" REAL,
+        "lastExecutedAgentId" TEXT,
+        "region" TEXT,
+        "tags" TEXT NOT NULL DEFAULT '[]',
+        "cpuUsage" REAL,
+        "memoryUsage" REAL,
+        UNIQUE("realmId", "name")
+      )
+    `);
+
+    // 创建 Device 索引
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_realmId_idx" ON "Device"("realmId")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_name_idx" ON "Device"("name")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_status_idx" ON "Device"("status")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_type_idx" ON "Device"("type")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_apiKeyHash_idx" ON "Device"("apiKeyHash")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Device_realmId_status_idx" ON "Device"("realmId", "status")
     `);
   }
 

@@ -45,6 +45,10 @@ interface AgentDbRecord {
   scope: string;
   projectIds: string;
   configPath: string;
+  avatarUrl: string | null;
+  avatarType: string;
+  avatarSeed: string | null;
+  avatarStyle: string | null;
   createdBy: string;
   createdAt: Date;
 }
@@ -83,6 +87,15 @@ export class HybridAgentRepository
   }
 
   toDomain(dbRecord: AgentDbRecord, content: AgentContent): AgentEntity {
+    // Merge avatar fields from database into persona
+    const persona = {
+      ...content.persona,
+      avatar_url: dbRecord.avatarUrl ?? undefined,
+      avatar_type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
+      avatar_seed: dbRecord.avatarSeed ?? undefined,
+      avatar_style: dbRecord.avatarStyle ?? undefined,
+    };
+
     return AgentEntity.create({
       agentId: dbRecord.id,
       name: dbRecord.name,
@@ -94,7 +107,7 @@ export class HybridAgentRepository
       capabilities: content.capabilities,
       tags: content.tags,
       runtimeConfig: content.runtimeConfig,
-      persona: content.persona,
+      persona,
       skills: content.skills,
       tools: content.tools,
       triggers: content.triggers,
@@ -104,6 +117,9 @@ export class HybridAgentRepository
   }
 
   toDatabase(entity: AgentEntity): AgentDbRecord {
+    // Extract avatar fields from persona
+    const persona = entity.persona as any || {};
+
     return {
       id: entity.agentId,
       name: entity.name,
@@ -112,6 +128,10 @@ export class HybridAgentRepository
       scope: entity.scope,
       projectIds: JSON.stringify(entity.projectIds),
       configPath: '',
+      avatarUrl: persona.avatar_url ?? null,
+      avatarType: persona.avatar_type || 'dicebear',
+      avatarSeed: persona.avatar_seed ?? null,
+      avatarStyle: persona.avatar_style ?? null,
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
     };

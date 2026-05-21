@@ -39,6 +39,10 @@ export interface AgentPersona {
   readonly role: string;
   readonly tone?: string;
   readonly instructions?: string;
+  readonly avatarUrl?: string;
+  readonly avatarType?: 'uploaded' | 'dicebear' | 'default';
+  readonly avatarSeed?: string;
+  readonly avatarStyle?: string;
 }
 
 export interface AgentSkills {

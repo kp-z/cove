@@ -22,6 +22,10 @@ interface RealmDbRecord {
   settings: string;
   limits: string;
   meta: string | null;
+  logoUrl: string | null;
+  logoType: string;
+  logoSeed: string | null;
+  logoStyle: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +52,10 @@ export class RealmRepository implements IRealmRepository {
       settings,
       limits,
       meta,
+      logo_url: dbRecord.logoUrl ?? undefined,
+      logo_type: dbRecord.logoType as 'uploaded' | 'dicebear' | 'default',
+      logo_seed: dbRecord.logoSeed ?? undefined,
+      logo_style: dbRecord.logoStyle ?? undefined,
       created_at: dbRecord.createdAt,
       updated_at: dbRecord.updatedAt,
     });
@@ -65,6 +73,10 @@ export class RealmRepository implements IRealmRepository {
       settings: JSON.stringify(entity.settings),
       limits: JSON.stringify(entity.limits),
       meta: JSON.stringify(entity.meta),
+      logoUrl: entity.logo_url ?? null,
+      logoType: entity.logo_type,
+      logoSeed: entity.logo_seed ?? null,
+      logoStyle: entity.logo_style ?? null,
     };
   }
 
