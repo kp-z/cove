@@ -61,8 +61,8 @@ function SettingsCategoryItem({ category, isActive, onClick }: SettingsCategoryI
           transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
         />
       )}
-      <Icon className="w-5 h-5 relative z-10" />
-      <span className="font-medium relative z-10">{category.name}</span>
+      <Icon className="w-5 h-5 relative" />
+      <span className="font-medium relative">{category.name}</span>
     </motion.button>
   )
 }
