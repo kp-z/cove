@@ -168,9 +168,8 @@ function initializeDependencies() {
   const avatarService = new AvatarService(fileStorageService, logger);
 
   // FileSystem Service
-  // Use storage directory as base for file operations
-  const storageRoot = path.join(coveRoot, 'storage');
-  const fileSystemService = new FileSystemService(logger, [storageRoot]);
+  // Use storage directory as base for filesystem operations
+  const fileSystemService = new FileSystemService(logger, [path.join(coveRoot, 'storage')]);
 
   // Services (order matters — channelMessagingService first, used by channelService)
   const channelMessagingService = new ChannelMessagingService(
