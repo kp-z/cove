@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tree } from 'react-arborist';
 import type { NodeRendererProps } from 'react-arborist';
+import { File, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import type { FileNode } from '@/features/file-editor/types';
 
 interface FileExplorerProps {
@@ -93,6 +94,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   };
 
   const Node: React.FC<NodeRendererProps<FileNode>> = ({ node, style, dragHandle }) => {
+    const isDirectory = node.data.type === 'directory';
+
     return (
       <div
         ref={dragHandle}
@@ -105,9 +108,30 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         onClick={() => handleNodeClick(node.data)}
         onContextMenu={(e) => handleContextMenu(e, node.data)}
       >
-        <span className="mr-2 text-base">
-          {node.data.type === 'directory' ? (node.isOpen ? '📂' : '📁') : '📄'}
+        {/* Chevron for directories */}
+        {isDirectory && (
+          <span className="mr-1 flex-shrink-0">
+            {node.isOpen ? (
+              <ChevronDown size={14} className="text-white/60" />
+            ) : (
+              <ChevronRight size={14} className="text-white/60" />
+            )}
+          </span>
+        )}
+
+        {/* Icon */}
+        <span className="mr-2 flex-shrink-0">
+          {isDirectory ? (
+            node.isOpen ? (
+              <FolderOpen size={16} className="text-blue-400" />
+            ) : (
+              <Folder size={16} className="text-blue-400" />
+            )
+          ) : (
+            <File size={16} className="text-white/60" />
+          )}
         </span>
+
         <span className="truncate">{node.data.name}</span>
       </div>
     );
@@ -115,6 +139,39 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
 
   return (
     <div className={`h-full overflow-auto ${className}`}>
+      <style>{`
+        /* Tree lines styling */
+        .react-arborist-node-content {
+          position: relative;
+        }
+
+        .react-arborist-node-content::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 50%;
+          width: 1px;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .react-arborist-node-content::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 12px;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Hide lines for root level nodes */
+        .react-arborist-node[data-level="0"] .react-arborist-node-content::before,
+        .react-arborist-node[data-level="0"] .react-arborist-node-content::after {
+          display: none;
+        }
+      `}</style>
+
       <Tree
         data={data}
         openByDefault={false}

@@ -48,7 +48,7 @@ export const FileEditorWorkspace: React.FC<FileEditorWorkspaceProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* File Explorer Card */}
         <div className="lg:col-span-1">
-          <GlassCard className="p-6 h-[calc(100vh-240px)]">
+          <GlassCard className="p-6 h-[calc(100vh-180px)]">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <FolderTree size={20} />
               Files
@@ -74,7 +74,7 @@ export const FileEditorWorkspace: React.FC<FileEditorWorkspaceProps> = ({
 
         {/* Editor Card */}
         <div className="lg:col-span-2">
-          <GlassCard className="p-6 h-[calc(100vh-240px)]">
+          <GlassCard className="p-6 h-[calc(100vh-180px)]">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <FileCode size={20} />
               Editor
