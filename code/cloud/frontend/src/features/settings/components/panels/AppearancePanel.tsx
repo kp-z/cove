@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/stores/settingsStore'
-import { SettingsSection, SettingsItem } from '../common/SettingsItem'
-import { FormSelect } from '@/shared/components/ui/FormControls'
+import { SettingsCard } from '../common/SettingsCard'
+import { SettingsRow, SettingsSelect, SettingsToggle } from '../common/SettingsControls'
 
 export function AppearancePanel() {
   const { t } = useTranslation('settings')
@@ -11,25 +11,26 @@ export function AppearancePanel() {
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">{t('appearance.title')}</h2>
 
-      <SettingsSection
-        title={t('appearance.theme.label')}
+      <SettingsCard
+        title={t('appearance.theme.title')}
         description={t('appearance.theme.description')}
       >
-        <SettingsItem
+        <SettingsRow
           label={t('appearance.theme.label')}
           description={t('appearance.theme.description')}
         >
-          <FormSelect
+          <SettingsSelect
             value={theme}
-            onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'auto')}
-          >
-            <option value="dark">{t('appearance.theme.dark')}</option>
-            <option value="light">{t('appearance.theme.light')}</option>
-            <option value="auto">{t('appearance.theme.auto')}</option>
-          </FormSelect>
-        </SettingsItem>
+            onChange={(value) => setTheme(value as 'light' | 'dark' | 'auto')}
+            options={[
+              { value: 'dark', label: t('appearance.theme.dark') },
+              { value: 'light', label: t('appearance.theme.light') },
+              { value: 'auto', label: t('appearance.theme.auto') },
+            ]}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label={t('appearance.accentColor.label')}
           description={t('appearance.accentColor.description')}
         >
@@ -51,43 +52,33 @@ export function AppearancePanel() {
               />
             ))}
           </div>
-        </SettingsItem>
-      </SettingsSection>
+        </SettingsRow>
+      </SettingsCard>
 
-      <SettingsSection
-        title={t('appearance.compactMode.label')}
-        description={t('appearance.compactMode.description')}
+      <SettingsCard
+        title={t('appearance.interface.title')}
+        description={t('appearance.interface.description')}
       >
-        <SettingsItem
+        <SettingsRow
           label={t('appearance.compactMode.label')}
           description={t('appearance.compactMode.description')}
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={compactMode}
-              onChange={(e) => setCompactMode(e.target.checked)}
-            />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
+          <SettingsToggle
+            checked={compactMode}
+            onChange={setCompactMode}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label={t('appearance.animations.label')}
           description={t('appearance.animations.description')}
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={showAnimations}
-              onChange={(e) => setShowAnimations(e.target.checked)}
-            />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
-      </SettingsSection>
+          <SettingsToggle
+            checked={showAnimations}
+            onChange={setShowAnimations}
+          />
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }

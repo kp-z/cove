@@ -6,7 +6,7 @@ import { SettingsSidebar } from './common/SettingsSidebar'
 import { SettingsPanel } from './common/SettingsPanel'
 
 export default function SettingsPage() {
-  const [activeCategory, setActiveCategory] = useState('general')
+  const [activeCategory, setActiveCategory] = useState('account')
 
   return (
     <PageShell>

@@ -1,59 +1,66 @@
-import { SettingsSection, SettingsItem } from '../common/SettingsItem'
+import { useState } from 'react'
+import { SettingsCard } from '../common/SettingsCard'
+import { SettingsRow, SettingsToggle } from '../common/SettingsControls'
 
 export function NotificationsPanel() {
+  const [pushEnabled, setPushEnabled] = useState(true)
+  const [taskUpdates, setTaskUpdates] = useState(true)
+  const [mentions, setMentions] = useState(true)
+  const [dailyDigest, setDailyDigest] = useState(false)
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">Notifications</h2>
 
-      <SettingsSection
+      <SettingsCard
         title="Push Notifications"
         description="Manage how you receive notifications"
       >
-        <SettingsItem
+        <SettingsRow
           label="Enable Notifications"
           description="Receive push notifications for important updates"
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" defaultChecked />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
+          <SettingsToggle
+            checked={pushEnabled}
+            onChange={setPushEnabled}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label="Task Updates"
           description="Get notified when tasks are assigned or updated"
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" defaultChecked />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
+          <SettingsToggle
+            checked={taskUpdates}
+            onChange={setTaskUpdates}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label="Message Mentions"
           description="Get notified when someone mentions you"
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" defaultChecked />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
-      </SettingsSection>
+          <SettingsToggle
+            checked={mentions}
+            onChange={setMentions}
+          />
+        </SettingsRow>
+      </SettingsCard>
 
-      <SettingsSection
+      <SettingsCard
         title="Email Notifications"
         description="Configure email notification preferences"
       >
-        <SettingsItem
+        <SettingsRow
           label="Daily Digest"
           description="Receive a daily summary of activity"
         >
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" />
-            <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </SettingsItem>
-      </SettingsSection>
+          <SettingsToggle
+            checked={dailyDigest}
+            onChange={setDailyDigest}
+          />
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }

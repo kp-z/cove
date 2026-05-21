@@ -1,19 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Upload, Check } from 'lucide-react';
-import { SettingsSection, SettingsItem } from '../common/SettingsItem';
+import { SettingsCard } from '../common/SettingsCard';
+import { SettingsRow, SettingsInput, SettingsSelect, SettingsButton } from '../common/SettingsControls';
 import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { useUpdateUser } from '@/lib/trpc/hooks/user.hooks';
 import { useAuthStore } from '@/core/auth/authStore';
-import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select';
 
 export function AccountPanel() {
   const { t, i18n } = useTranslation('settings');
@@ -83,49 +76,11 @@ export function AccountPanel() {
       <h2 className="text-2xl font-bold text-white mb-6">{t('account.title')}</h2>
 
       {/* 个人资料 */}
-      <SettingsSection
+      <SettingsCard
         title={t('account.profile.title')}
         description={t('account.profile.description')}
       >
-        <SettingsItem
-          label={t('account.profile.username')}
-          description={t('account.profile.usernameDescription')}
-        >
-          <Input
-            type="text"
-            value={user.username}
-            disabled
-            className="w-64 bg-white/5 cursor-not-allowed"
-          />
-        </SettingsItem>
-
-        <SettingsItem
-          label={t('account.profile.displayName')}
-          description={t('account.profile.displayNameDescription')}
-        >
-          <Input
-            type="text"
-            placeholder={t('account.profile.displayNamePlaceholder')}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-64"
-          />
-        </SettingsItem>
-
-        <SettingsItem
-          label={t('account.profile.email')}
-          description={t('account.profile.emailDescription')}
-        >
-          <Input
-            type="email"
-            placeholder="email@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-64"
-          />
-        </SettingsItem>
-
-        <SettingsItem
+        <SettingsRow
           label={t('account.profile.avatar')}
           description={t('account.profile.avatarDescription')}
         >
@@ -142,10 +97,46 @@ export function AccountPanel() {
               {t('account.profile.uploadAvatar')}
             </Button>
           </div>
-        </SettingsItem>
+        </SettingsRow>
+
+        <SettingsRow
+          label={t('account.profile.username')}
+          description={t('account.profile.usernameDescription')}
+        >
+          <SettingsInput
+            type="text"
+            value={user.username}
+            disabled
+            className="bg-white/5 cursor-not-allowed"
+          />
+        </SettingsRow>
+
+        <SettingsRow
+          label={t('account.profile.displayName')}
+          description={t('account.profile.displayNameDescription')}
+        >
+          <SettingsInput
+            type="text"
+            placeholder={t('account.profile.displayNamePlaceholder')}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+        </SettingsRow>
+
+        <SettingsRow
+          label={t('account.profile.email')}
+          description={t('account.profile.emailDescription')}
+        >
+          <SettingsInput
+            type="email"
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </SettingsRow>
 
         {hasChanges && (
-          <div className="flex items-center gap-3 pt-4">
+          <div className="flex items-center gap-3 pt-4 border-t border-white/10">
             <Button
               onClick={handleSaveProfile}
               disabled={updateUser.isPending}
@@ -172,37 +163,36 @@ export function AccountPanel() {
             </Button>
           </div>
         )}
-      </SettingsSection>
+      </SettingsCard>
 
       {/* 用户偏好 */}
-      <SettingsSection
+      <SettingsCard
         title={t('account.preferences.title')}
         description={t('account.preferences.description')}
       >
-        <SettingsItem
+        <SettingsRow
           label={t('account.preferences.language')}
           description={t('account.preferences.languageDescription')}
         >
-          <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-64">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="zh">中文</SelectItem>
-            </SelectContent>
-          </Select>
-        </SettingsItem>
+          <SettingsSelect
+            value={language}
+            onChange={handleLanguageChange}
+            options={[
+              { value: 'en', label: 'English' },
+              { value: 'zh', label: '中文' },
+            ]}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label={t('account.preferences.role')}
           description={t('account.preferences.roleDescription')}
         >
           <div className="px-3 py-2 rounded-lg bg-white/5 text-white/60 border border-white/10 w-64 capitalize">
             {user.role}
           </div>
-        </SettingsItem>
-      </SettingsSection>
+        </SettingsRow>
+      </SettingsCard>
     </div>
   );
 }
