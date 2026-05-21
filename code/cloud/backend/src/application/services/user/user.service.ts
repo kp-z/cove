@@ -57,13 +57,19 @@ export class UserService {
 
     const userId = this.generateUserId();
 
+    // If no avatar is provided, assign a default avatar
+    const avatar = dto.avatar || {
+      url: 'storage/avatars/presets/default-user.svg',
+      type: 'default' as const,
+    };
+
     const user = UserEntity.create({
       userId,
       username: dto.username,
       displayName: dto.displayName,
       email: dto.email,
       role: dto.role || 'user',
-      avatar: dto.avatar,
+      avatar,
       permissions: [],
       createdAt: new Date(),
     });
