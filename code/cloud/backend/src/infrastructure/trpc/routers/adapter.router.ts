@@ -290,12 +290,11 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
               const customHeaders = config.custom_headers;
 
               let apiKey: string | undefined;
-              if (adapter.type === 'openai-api') {
-                if (config.api_key) {
-                  apiKey = config.api_key;
-                } else if (config.api_key_ref) {
-                  apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
-                }
+              // Resolve API key for both Anthropic and OpenAI
+              if (config.api_key) {
+                apiKey = config.api_key;
+              } else if (config.api_key_ref) {
+                apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
               }
 
               const result = await getAvailableModels(

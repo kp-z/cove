@@ -58,7 +58,8 @@ function setCachedModels(key: string, data: ModelListResult): void {
  */
 export async function getAnthropicModels(
   baseURL: string,
-  customHeaders?: Record<string, string>
+  customHeaders?: Record<string, string>,
+  apiKey?: string
 ): Promise<ModelListResult> {
   const clientOptions: any = {
     baseURL,
@@ -67,6 +68,8 @@ export async function getAnthropicModels(
   if (customHeaders && Object.keys(customHeaders).length > 0) {
     clientOptions.apiKey = 'custom-header-auth';
     clientOptions.defaultHeaders = customHeaders;
+  } else if (apiKey) {
+    clientOptions.apiKey = apiKey;
   } else {
     throw new Error('API key or custom headers required');
   }
@@ -181,7 +184,7 @@ export async function getAvailableModels(
       if (!baseURL) {
         throw new Error('Base URL is required for Anthropic API');
       }
-      result = await getAnthropicModels(baseURL, customHeaders);
+      result = await getAnthropicModels(baseURL, customHeaders, apiKey);
       break;
 
     case 'openai-api':
