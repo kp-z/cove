@@ -13,6 +13,7 @@ const createAgentSchema = z.object({
   projectIds: z.array(z.string()).optional(),
   capabilities: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+  repositoryPath: z.string().optional(),
   createdBy: z.string().optional(),
   runtimeConfig: z.object({
     adapter_id: z.string().optional(),
@@ -28,6 +29,7 @@ const updateAgentSchema = z.object({
   projectIds: z.array(z.string()).optional(),
   capabilities: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+  repositoryPath: z.string().optional(),
 
   // Runtime config (legacy individual fields)
   model: z.string().optional(),
@@ -104,6 +106,7 @@ export function createAgentRouter(deps: AgentRouterDeps) {
             projectIds: input.projectIds,
             capabilities: input.capabilities,
             tags: input.tags,
+            repositoryPath: input.repositoryPath,
             createdBy: input.createdBy ?? 'system',
           };
           const agent = await deps.agentService.createAgent(dto);

@@ -81,6 +81,7 @@ export interface AgentEntityProps {
   readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
+  readonly repositoryPath?: string;
   readonly runtimeConfig?: AgentRuntimeConfig;
   readonly persona?: AgentPersona;
   readonly skills?: AgentSkills;
@@ -100,6 +101,7 @@ export interface AgentEntityJSON {
   readonly project_ids: readonly string[];
   readonly capabilities: readonly string[];
   readonly tags: readonly string[];
+  readonly repository_path?: string;
   readonly runtime_config?: AgentRuntimeConfig;
   readonly persona?: AgentPersonaJSON;
   readonly skills?: AgentSkills;
@@ -129,6 +131,7 @@ export class AgentEntity {
       projectIds: json.project_ids,
       capabilities: json.capabilities,
       tags: json.tags,
+      repositoryPath: json.repository_path,
       runtimeConfig: json.runtime_config,
       persona: json.persona,
       skills: json.skills,
@@ -169,6 +172,7 @@ export class AgentEntity {
   get projectIds(): readonly string[] { return this.props.projectIds ?? []; }
   get capabilities(): readonly string[] { return this.props.capabilities ?? []; }
   get tags(): readonly string[] { return this.props.tags ?? []; }
+  get repositoryPath(): string | undefined { return this.props.repositoryPath; }
   get runtimeConfig(): AgentRuntimeConfig | undefined { return this.props.runtimeConfig; }
   get persona(): AgentPersona | undefined { return this.props.persona; }
   get skills(): AgentSkills | undefined { return this.props.skills; }
@@ -206,6 +210,10 @@ export class AgentEntity {
 
   updateDescription(description: string): AgentEntity {
     return AgentEntity.create({ ...this.props, description });
+  }
+
+  updateRepositoryPath(repositoryPath: string): AgentEntity {
+    return AgentEntity.create({ ...this.props, repositoryPath });
   }
 
   updateScope(scope: AgentScope): AgentEntity {
@@ -316,6 +324,7 @@ export class AgentEntity {
       project_ids: [...this.projectIds],
       capabilities: [...this.capabilities],
       tags: [...this.tags],
+      repository_path: this.props.repositoryPath,
       runtime_config: this.props.runtimeConfig,
       persona: this.props.persona,
       skills: this.props.skills,

@@ -20,6 +20,7 @@ export interface CreateAgentDTO {
   readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
+  readonly repositoryPath?: string;
   readonly createdBy: string;
   readonly runtimeConfig?: {
     readonly adapter_id?: string;
@@ -35,6 +36,7 @@ export interface UpdateAgentDTO {
   readonly projectIds?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
+  readonly repositoryPath?: string;
 
   // Runtime config (legacy individual fields)
   readonly model?: string;
@@ -78,6 +80,9 @@ export class AgentCrudService {
 
     const agentId = this.generateAgentId();
 
+    // Set default repository path if not provided
+    const repositoryPath = dto.repositoryPath ?? `.cove/agents/${dto.name}`;
+
     const agent = AgentEntity.create({
       agentId,
       name: dto.name,
@@ -88,6 +93,7 @@ export class AgentCrudService {
       projectIds: dto.projectIds,
       capabilities: dto.capabilities,
       tags: dto.tags,
+      repositoryPath,
       runtimeConfig: dto.runtimeConfig as any,
       createdBy: dto.createdBy,
       createdAt: new Date(),
@@ -182,6 +188,7 @@ export class AgentCrudService {
       projectIds: dto.projectIds !== undefined ? dto.projectIds : agent.projectIds,
       capabilities: dto.capabilities !== undefined ? dto.capabilities : agent.capabilities,
       tags: dto.tags !== undefined ? dto.tags : agent.tags,
+      repositoryPath: dto.repositoryPath !== undefined ? dto.repositoryPath : agent.repositoryPath,
       runtimeConfig,
       persona,
       skills,
