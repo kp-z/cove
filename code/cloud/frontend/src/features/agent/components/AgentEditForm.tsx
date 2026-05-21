@@ -81,7 +81,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                       icon: <Settings size={16} />,
                     },
                     {
-                      label: 'Editor',
+                      label: 'Explore',
                       value: 'files',
                       icon: <Code size={16} />,
                     },
@@ -164,14 +164,14 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-200px)]">
+          <div className="py-6">
             {!isCreateMode && agent && agentFilesPath ? (
               <FileEditorWorkspace
                 adapter={fileSystemAdapter}
                 rootPath={agentFilesPath}
               />
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-64">
                 <p className="text-muted-foreground">Save the agent first to access files</p>
               </div>
             )}
