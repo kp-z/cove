@@ -12,6 +12,7 @@
  */
 
 import bcrypt from 'bcrypt';
+import { Avatar } from '../../types/avatar.types';
 
 export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 export type UserStatus = 'active' | 'suspended' | 'deleted';
@@ -31,7 +32,7 @@ export interface UserEntityProps {
   readonly email: string;
   readonly role: UserRole;
   readonly status?: UserStatus;
-  readonly avatar?: string;
+  readonly avatar?: Avatar;
   readonly permissions?: readonly string[];
   readonly preference?: UserPreference;
   readonly passwordHash?: string;  // 密码哈希（可选，向后兼容）
@@ -48,7 +49,7 @@ export interface UserEntityJSON {
   readonly email: string;
   readonly role: UserRole;
   readonly status: UserStatus;
-  readonly avatar?: string;
+  readonly avatar?: Avatar;
   readonly permissions: readonly string[];
   readonly preference?: UserPreference;
   readonly last_login_at?: string;
@@ -112,7 +113,7 @@ export class UserEntity {
   get email(): string { return this.props.email; }
   get role(): UserRole { return this.props.role; }
   get status(): UserStatus { return this.props.status ?? 'active'; }
-  get avatar(): string | undefined { return this.props.avatar; }
+  get avatar(): Avatar | undefined { return this.props.avatar; }
   get permissions(): readonly string[] { return this.props.permissions ?? []; }
   get preference(): UserPreference { return this.props.preference ?? {}; }
   get passwordHash(): string | undefined { return this.props.passwordHash; }

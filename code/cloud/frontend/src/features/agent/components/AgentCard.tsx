@@ -32,7 +32,7 @@ const categoryColors: Record<AgentCategory, string> = {
 export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProps) {
   const { t } = useTranslation('agent');
   const [avatarError, setAvatarError] = useState(false);
-  const avatarUrl = getAgentAvatarUrl(agent.avatar);
+  const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar_url);
   const initials = getAgentInitials(agent.name);
 
   const categoryLabels: Record<AgentCategory, string> = {

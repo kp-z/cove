@@ -9,6 +9,7 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { UserEntity, UserRole, UserStatus } from '../../domain/models/user/user.entity';
 import { IUserRepository, PaginationParams, PaginatedResult } from '../../application/interfaces/repositories/user.repository.interface';
+import { Avatar } from '../../domain/types/avatar.types';
 
 interface UserDbRecord {
   id: string;
@@ -27,7 +28,7 @@ interface UserDbRecord {
 }
 
 interface UserContent {
-  avatar?: string;
+  avatar?: Avatar;
   permissions: string[];
   preference?: {
     pinned_channels?: readonly string[];

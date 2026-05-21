@@ -20,6 +20,7 @@ import {
   ChannelMember, ConversationRef, CommunicationRules, ChannelWorkspace,
   ChannelEntityProps, ChannelEntityJSON,
 } from './channel.types';
+import { Avatar } from '../../types/avatar.types';
 
 export * from './channel.types';
 
@@ -73,10 +74,7 @@ export class ChannelEntity {
         sharedFiles: json.workspace.shared_files,
         attachments: json.workspace.attachments,
       },
-      avatarUrl: json.avatar_url,
-      avatarType: json.avatar_type,
-      avatarSeed: json.avatar_seed,
-      avatarStyle: json.avatar_style,
+      avatar: json.avatar,
       meta: {
         tags: json.meta.tags,
         category: json.meta.category,
@@ -122,10 +120,7 @@ export class ChannelEntity {
   get displayName(): string { return this.props.displayName; }
   get description(): string | undefined { return this.props.description; }
   get icon(): string | undefined { return this.props.icon; }
-  get avatarUrl(): string | undefined { return this.props.avatarUrl; }
-  get avatarType(): 'uploaded' | 'dicebear' | 'default' { return this.props.avatarType; }
-  get avatarSeed(): string | undefined { return this.props.avatarSeed; }
-  get avatarStyle(): string | undefined { return this.props.avatarStyle; }
+  get avatar(): Avatar | undefined { return this.props.avatar; }
   get type(): ChannelType { return this.props.type; }
   get status(): ChannelStatus { return this.props.status; }
   get parentChannelId(): string | undefined { return this.props.parentChannelId; }
@@ -465,10 +460,7 @@ export class ChannelEntity {
         shared_files: this.props.workspace.sharedFiles,
         attachments: this.props.workspace.attachments,
       },
-      avatar_url: this.props.avatarUrl,
-      avatar_type: this.props.avatarType,
-      avatar_seed: this.props.avatarSeed,
-      avatar_style: this.props.avatarStyle,
+      avatar: this.props.avatar,
       meta: {
         tags: this.props.meta.tags,
         category: this.props.meta.category,

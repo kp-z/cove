@@ -19,18 +19,23 @@ import { runWithContext } from '../../../application/context/realm-context-store
 import { requireRole, requireOwnerOrAdmin } from '../middleware/auth.middleware';
 
 // Zod Schemas
+const avatarSchema = z.object({
+  url: z.string(),
+  type: z.enum(['uploaded', 'dicebear', 'default']),
+}).optional();
+
 const createUserSchema = z.object({
   username: z.string().min(1),
   displayName: z.string().min(1),
   email: z.string().email(),
   role: z.enum(['owner', 'admin', 'user', 'visitor']).optional(),
-  avatar: z.string().optional(),
+  avatar: avatarSchema,
 });
 
 const updateUserSchema = z.object({
   displayName: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  avatar: z.string().optional(),
+  avatar: avatarSchema,
   preference: z.object({
     pinned_channels: z.array(z.string()).max(10, 'Cannot pin more than 10 channels').optional(),
   }).optional(),

@@ -141,8 +141,6 @@ export class DefaultDataInitializer {
         description: this.DEFAULT_REALM.description,
         logoUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
         logoType: 'dicebear',
-        logoSeed: 'nexus-realm',
-        logoStyle: 'shapes',
         updatedAt: now,
       },
       create: {
@@ -158,8 +156,6 @@ export class DefaultDataInitializer {
         meta: JSON.stringify(meta),
         logoUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
         logoType: 'dicebear',
-        logoSeed: 'nexus-realm',
-        logoStyle: 'shapes',
         createdAt: now,
         updatedAt: now,
       },
@@ -241,8 +237,6 @@ export class DefaultDataInitializer {
           data: {
             avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
             avatarType: 'dicebear',
-            avatarSeed: channelConfig.name,
-            avatarStyle: 'initials',
             updatedAt: now,
           },
         });
@@ -288,8 +282,6 @@ export class DefaultDataInitializer {
           createdByType: 'system',
           avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
           avatarType: 'dicebear',
-          avatarSeed: channelConfig.name,
-          avatarStyle: 'initials',
           memberCount: memberData.length,
           messageCount: 0,
           createdAt: now,

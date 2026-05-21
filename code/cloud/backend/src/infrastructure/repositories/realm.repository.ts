@@ -10,6 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import { RealmEntity, RealmStatus, RealmVisibility, RealmSettings, RealmLimits } from '../../domain/models/realm/realm.entity';
 import { IRealmRepository } from '../../application/interfaces/repositories/realm.repository.interface';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { Avatar } from '../../domain/types/avatar.types';
 
 interface RealmDbRecord {
   id: string;
@@ -24,8 +25,6 @@ interface RealmDbRecord {
   meta: string | null;
   logoUrl: string | null;
   logoType: string;
-  logoSeed: string | null;
-  logoStyle: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +40,11 @@ export class RealmRepository implements IRealmRepository {
     const limits = JSON.parse(dbRecord.limits) as RealmLimits;
     const meta = dbRecord.meta ? JSON.parse(dbRecord.meta) : {};
 
+    const logo: Avatar | undefined = dbRecord.logoUrl ? {
+      url: dbRecord.logoUrl,
+      type: dbRecord.logoType as 'uploaded' | 'dicebear' | 'default',
+    } : undefined;
+
     return RealmEntity.create({
       realm_id: dbRecord.id,
       name: dbRecord.name,
@@ -52,10 +56,7 @@ export class RealmRepository implements IRealmRepository {
       settings,
       limits,
       meta,
-      logo_url: dbRecord.logoUrl ?? undefined,
-      logo_type: dbRecord.logoType as 'uploaded' | 'dicebear' | 'default',
-      logo_seed: dbRecord.logoSeed ?? undefined,
-      logo_style: dbRecord.logoStyle ?? undefined,
+      logo,
       created_at: dbRecord.createdAt,
       updated_at: dbRecord.updatedAt,
     });
@@ -73,10 +74,8 @@ export class RealmRepository implements IRealmRepository {
       settings: JSON.stringify(entity.settings),
       limits: JSON.stringify(entity.limits),
       meta: JSON.stringify(entity.meta),
-      logoUrl: entity.logo_url ?? null,
-      logoType: entity.logo_type,
-      logoSeed: entity.logo_seed ?? null,
-      logoStyle: entity.logo_style ?? null,
+      logoUrl: entity.logo?.url ?? null,
+      logoType: entity.logo?.type ?? 'default',
     };
   }
 

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, useMemo } from 'react';
-import { Save, X, Plus, Check, Settings, FileText, FolderOpen, Tag, User, Wrench, Zap } from 'lucide-react';
+import { Save, X, Plus, Check, Settings, FileText, FolderOpen, Tag, User, Wrench, Zap, Code } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -11,9 +11,14 @@ import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useCreateAgent, useUpdateAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useRealm } from '@/lib/trpc/hooks/realm.hooks';
+import { trpc } from '@/lib/trpc';
 import type { Agent, AgentScope } from '../types/agent.types';
 import { RuntimeAdapterConfig } from './RuntimeAdapterConfig';
 import type { AdapterConfig } from '../types/adapter.types';
+import { FileEditorWorkspace } from '@/features/file-editor';
+import { LocalFileSystemAdapter } from '@/features/file-editor/adapters/LocalFileSystemAdapter';
+
+type TabType = 'config' | 'files';
 
 interface AgentEditFormProps {
   agent?: Agent;
@@ -111,9 +116,16 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('config');
+
   // Fetch realm settings to get default adapter
   const { data: realm } = useRealm('default-server', { enabled: isCreateMode });
   const defaultAdapterId = realm?.settings?.default_adapter_id;
+
+  // File system adapter for file editor
+  const fileSystemAdapter = useMemo(() => new LocalFileSystemAdapter(trpc), []);
+  const agentFilesPath = agent ? `${process.env.HOME}/.cove/agents/${agent.name}` : '';
 
   // Basic Info
   const [displayName, setDisplayName] = useState(agent?.display_name ?? '');
@@ -229,15 +241,38 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
         title={isCreateMode ? 'Create Agent' : (agent?.display_name || agent?.name || 'Edit Agent')}
         subtitle={isCreateMode ? 'Create a new AI agent' : `Agent ID: ${agent?.agent_id}`}
         actions={
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saved ? <Check size={16} /> : <Save size={16} />}
-            {saved ? 'Saved' : 'Save'}
-          </Button>
+          <div className="flex items-center gap-3">
+            {!isCreateMode && (
+              <div className="flex items-center gap-2 mr-4">
+                <Button
+                  variant={activeTab === 'config' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('config')}
+                >
+                  <Settings size={16} className="mr-2" />
+                  Configuration
+                </Button>
+                <Button
+                  variant={activeTab === 'files' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveTab('files')}
+                >
+                  <Code size={16} className="mr-2" />
+                  Files
+                </Button>
+              </div>
+            )}
+            <Button onClick={handleSave} disabled={!canSave}>
+              {saved ? <Check size={16} /> : <Save size={16} />}
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
         }
       />
 
       <PageContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1400px] mx-auto">
+        {activeTab === 'config' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1400px] mx-auto">
           {/* Left Column */}
           <div className="flex flex-col gap-6">
             {/* System Information (Edit Mode Only) */}
@@ -484,6 +519,20 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             </GlassCard>
           </div>
         </div>
+        ) : (
+          <div className="h-[calc(100vh-200px)]">
+            {!isCreateMode && agent && agentFilesPath ? (
+              <FileEditorWorkspace
+                adapter={fileSystemAdapter}
+                rootPath={agentFilesPath}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Save the agent first to access files</p>
+              </div>
+            )}
+          </div>
+        )}
       </PageContent>
     </PageShell>
   );

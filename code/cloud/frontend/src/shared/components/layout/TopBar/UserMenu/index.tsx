@@ -79,28 +79,33 @@ export const UserMenu = React.memo(() => {
 
   return (
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-      <Capsule
+      <button
+        type="button"
         onClick={() => setOpen(!open)}
         title={displayName}
-        isExpanded={open}
-        ariaLabel={t('userMenu.ariaLabel')}
-        ariaExpanded={open}
-        className="items-center p-0 gap-0 transition-all duration-200 ease-out sm:group-hover:gap-2 sm:group-hover:pl-3.5 sm:group-hover:pr-2.5"
+        aria-label={t('userMenu.ariaLabel')}
+        aria-expanded={open}
+        className={`group relative flex shrink-0 items-center gap-0 rounded-full p-0 transition-all duration-200 ease-out ${
+          open ? 'bg-white/[0.04] border border-white/[0.08] ring-1 ring-white/20 pl-3.5 pr-2.5 gap-2' : 'bg-transparent border-0'
+        } sm:hover:bg-white/[0.04] sm:hover:border sm:hover:border-white/[0.08] sm:hover:gap-2 sm:hover:pl-3.5 sm:hover:pr-2.5`}
       >
-          <div className="pointer-events-none hidden max-w-0 min-w-0 flex-row items-center gap-1.5 justify-start overflow-hidden pl-0 opacity-0 transition-all duration-200 ease-out sm:flex sm:group-hover:max-w-[220px] sm:group-hover:pl-1 sm:group-hover:opacity-100">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-left text-[11px] font-semibold leading-none text-white">
-                {displayName}
-              </p>
-            </div>
-            <span
-              className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0 text-[9px] font-medium ${badgeClass}`}
-            >
-              {roleDisplayLabel}
-            </span>
+        <HoverGradient rounded="rounded-full" />
+        <div className={`pointer-events-none hidden max-w-0 min-w-0 flex-row items-center gap-1.5 justify-start overflow-hidden pl-0 opacity-0 transition-all duration-200 ease-out sm:flex ${
+          open ? 'max-w-[220px] pl-1 opacity-100' : 'sm:group-hover:max-w-[220px] sm:group-hover:pl-1 sm:group-hover:opacity-100'
+        }`}>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-left text-[11px] font-semibold leading-none text-white">
+              {displayName}
+            </p>
           </div>
-          <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
-        </Capsule>
+          <span
+            className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0 text-[9px] font-medium ${badgeClass}`}
+          >
+            {roleDisplayLabel}
+          </span>
+        </div>
+        <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
+      </button>
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content

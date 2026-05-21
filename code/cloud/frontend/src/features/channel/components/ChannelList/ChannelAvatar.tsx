@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { ChannelEntity } from '../../api/client';
+import { getAvatarUrl } from '@/shared/utils/avatar';
 
 interface ChannelAvatarProps {
   channel: ChannelEntity;
@@ -26,7 +28,28 @@ const offsetClasses = {
 };
 
 export function ChannelAvatar({ channel, size = 'md', onClick }: ChannelAvatarProps) {
+  const [imageError, setImageError] = useState(false);
   const sizeClass = sizeClasses[size];
+  const avatarUrl = getAvatarUrl(channel.avatar_url);
+
+  // If avatar URL exists and hasn't errored, show the image
+  if (avatarUrl && !imageError) {
+    return (
+      <motion.button
+        onClick={onClick}
+        whileHover={{ scale: 1.1, zIndex: 10 }}
+        whileTap={{ scale: 0.95 }}
+        className={`${sizeClass} rounded-full overflow-hidden cursor-pointer transition-all ring-2 ring-background`}
+      >
+        <img
+          src={avatarUrl}
+          alt={channel.name}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      </motion.button>
+    );
+  }
 
   // Check if channel name is an emoji
   const isEmoji = /^[\p{Emoji}]+$/u.test(channel.name);

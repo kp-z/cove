@@ -26,8 +26,6 @@ interface ChannelDbRecord {
   createdByType: string;
   avatarUrl: string | null;
   avatarType: string;
-  avatarSeed: string | null;
-  avatarStyle: string | null;
   messageCount: number;
   memberCount: number;
   createdAt: Date;
@@ -59,10 +57,10 @@ export class ChannelRepository implements IChannelRepository {
       parentChannelId: dbRecord.parentChannelId ?? undefined,
       description: dbRecord.description ?? undefined,
       icon: dbRecord.icon ?? undefined,
-      avatarUrl: dbRecord.avatarUrl ?? undefined,
-      avatarType: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
-      avatarSeed: dbRecord.avatarSeed ?? undefined,
-      avatarStyle: dbRecord.avatarStyle ?? undefined,
+      avatar: dbRecord.avatarUrl && dbRecord.avatarType ? {
+        url: dbRecord.avatarUrl,
+        type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
+      } : undefined,
       members: membersData.map((m: any) => ({
         memberId: m.memberId,
         memberType: m.memberType,
@@ -115,10 +113,8 @@ export class ChannelRepository implements IChannelRepository {
       parentChannelId: entity.parentChannelId ?? null,
       description: entity.description ?? null,
       icon: entity.icon ?? null,
-      avatarUrl: entity.avatarUrl ?? null,
-      avatarType: entity.avatarType,
-      avatarSeed: entity.avatarSeed ?? null,
-      avatarStyle: entity.avatarStyle ?? null,
+      avatarUrl: entity.avatar?.url ?? null,
+      avatarType: entity.avatar?.type ?? 'dicebear',
       membersData: JSON.stringify(entity.members.map(m => ({
         memberId: m.memberId,
         memberType: m.memberType,

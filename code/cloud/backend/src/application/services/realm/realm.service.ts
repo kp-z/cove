@@ -128,7 +128,10 @@ export class RealmService {
       visibility: dto.visibility || 'private',
       settings: defaultSettings,
       limits: defaultLimits,
-      logo_type: 'dicebear',
+      logo: {
+        url: `https://api.dicebear.com/9.x/shapes/svg?seed=${dto.name}`,
+        type: 'dicebear',
+      },
       created_at: new Date(),
       updated_at: new Date(),
       meta: {},

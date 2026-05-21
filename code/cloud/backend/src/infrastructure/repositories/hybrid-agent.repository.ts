@@ -47,8 +47,6 @@ interface AgentDbRecord {
   configPath: string;
   avatarUrl: string | null;
   avatarType: string;
-  avatarSeed: string | null;
-  avatarStyle: string | null;
   createdBy: string;
   createdAt: Date;
 }
@@ -88,13 +86,15 @@ export class HybridAgentRepository
 
   toDomain(dbRecord: AgentDbRecord, content: AgentContent): AgentEntity {
     // Merge avatar fields from database into persona
-    const persona = {
+    const avatar = dbRecord.avatarUrl ? {
+      url: dbRecord.avatarUrl,
+      type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
+    } : undefined;
+
+    const persona = content.persona ? {
       ...content.persona,
-      avatar_url: dbRecord.avatarUrl ?? undefined,
-      avatar_type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
-      avatar_seed: dbRecord.avatarSeed ?? undefined,
-      avatar_style: dbRecord.avatarStyle ?? undefined,
-    };
+      avatar,
+    } : undefined;
 
     return AgentEntity.create({
       agentId: dbRecord.id,
@@ -118,7 +118,8 @@ export class HybridAgentRepository
 
   toDatabase(entity: AgentEntity): AgentDbRecord {
     // Extract avatar fields from persona
-    const persona = entity.persona as any || {};
+    const persona = entity.persona;
+    const avatar = persona?.avatar;
 
     return {
       id: entity.agentId,
@@ -128,10 +129,8 @@ export class HybridAgentRepository
       scope: entity.scope,
       projectIds: JSON.stringify(entity.projectIds),
       configPath: '',
-      avatarUrl: persona.avatar_url ?? null,
-      avatarType: persona.avatar_type || 'dicebear',
-      avatarSeed: persona.avatar_seed ?? null,
-      avatarStyle: persona.avatar_style ?? null,
+      avatarUrl: avatar?.url ?? null,
+      avatarType: avatar?.type || 'dicebear',
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
     };
@@ -161,7 +160,7 @@ export class HybridAgentRepository
     try {
       // 1. Create directory structure
       const agentDir = path.join(
-        CovePathResolver.getCoveRoot(this.coveRoot),
+        this.coveRoot,
         'storage',
         entityType,
         entityId
@@ -213,7 +212,7 @@ export class HybridAgentRepository
     try {
       // 1. Update directory structure (same as save)
       const agentDir = path.join(
-        CovePathResolver.getCoveRoot(this.coveRoot),
+        this.coveRoot,
         'storage',
         entityType,
         entityId
@@ -338,6 +337,8 @@ export class HybridAgentRepository
    * 所有 agents 都使用目录结构：agent.md + YAML 文件
    */
   private async loadAgentContent(configPath: string): Promise<AgentContent> {
+    // this.coveRoot is already the complete cove root path (e.g., /Users/kp/.cove)
+    // Don't call getCoveRoot() again as it would add another .cove
     const fullPath = path.join(this.coveRoot, configPath);
     return await this.loadFromDirectory(fullPath);
   }
@@ -508,7 +509,7 @@ export class HybridAgentRepository
   private getAgentConfigDir(agentId: string): string {
     // Agent configs are stored in .cove/storage/agents/{agentId}/
     return path.join(
-      CovePathResolver.getCoveRoot(this.coveRoot),
+      this.coveRoot,
       'storage',
       'agents',
       agentId

@@ -28,8 +28,6 @@ model User {
   lockedUntil   DateTime? // 账号锁定到期时间
   avatarUrl     String?  // 头像 URL（上传的文件路径或外部 URL）
   avatarType    String   @default("dicebear") // uploaded | dicebear | default
-  avatarSeed    String?  // DiceBear 种子（用于生成一致的头像）
-  avatarStyle   String?  @default("avataaars") // DiceBear 风格
   createdAt     DateTime
   updatedAt     DateTime
 
@@ -88,8 +86,6 @@ model Channel {
   createdByType String   @default("system") // 创建者类型 (user | agent | system)
   avatarUrl     String?  // 头像 URL（上传的文件路径或外部 URL）
   avatarType    String   @default("dicebear") // uploaded | dicebear | default
-  avatarSeed    String?  // DiceBear 种子（用于生成一致的头像）
-  avatarStyle   String?  @default("initials") // DiceBear 风格
   messageCount  Int      @default(0)
   memberCount   Int      @default(0)
   createdAt     DateTime
@@ -221,8 +217,6 @@ model Agent {
   configPath  String   // 指向 .cove/storage/agents/{id}.json
   avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
   avatarType  String   @default("dicebear") // uploaded | dicebear | default
-  avatarSeed  String?  // DiceBear 种子（用于生成一致的头像）
-  avatarStyle String?  @default("bottts") // DiceBear 风格
   createdBy   String   @default("system")
   createdAt   DateTime
 
@@ -288,8 +282,6 @@ model Realm {
   meta        String?  // JSON: { tags, icon, banner }
   logoUrl     String?  // Logo URL（上传的文件路径或外部 URL）
   logoType    String   @default("dicebear") // uploaded | dicebear | default
-  logoSeed    String?  // DiceBear 种子（用于生成一致的 logo）
-  logoStyle   String?  @default("shapes") // DiceBear 风格
   createdAt   DateTime
   updatedAt   DateTime
 

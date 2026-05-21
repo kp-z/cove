@@ -3,6 +3,8 @@ export type ChannelStatus = 'active' | 'archived';
 export type MemberRole = 'owner' | 'admin' | 'member';
 export type MemberType = 'human' | 'agent';
 
+import { Avatar } from '../../types/avatar.types';
+
 export const VALID_CHANNEL_TYPES: readonly ChannelType[] = ['public', 'private', 'dm'];
 export const VALID_CHANNEL_STATUSES: readonly ChannelStatus[] = ['active', 'archived'];
 export const VALID_MEMBER_ROLES: readonly MemberRole[] = ['owner', 'admin', 'member'];
@@ -85,10 +87,7 @@ export interface ChannelEntityProps {
   readonly conversationPool: readonly ConversationRef[];
   readonly communicationRules: CommunicationRules;
   readonly workspace: ChannelWorkspace;
-  readonly avatarUrl?: string;
-  readonly avatarType: 'uploaded' | 'dicebear' | 'default';
-  readonly avatarSeed?: string;
-  readonly avatarStyle?: string;
+  readonly avatar?: Avatar;
   readonly meta: {
     readonly tags?: readonly string[];
     readonly category?: string;
@@ -142,10 +141,7 @@ export interface ChannelEntityJSON {
     readonly shared_files: string;
     readonly attachments: string;
   };
-  readonly avatar_url?: string;
-  readonly avatar_type: 'uploaded' | 'dicebear' | 'default';
-  readonly avatar_seed?: string;
-  readonly avatar_style?: string;
+  readonly avatar?: Avatar;
   readonly meta: {
     readonly tags?: readonly string[];
     readonly category?: string;

@@ -39,10 +39,21 @@ export interface AgentPersona {
   readonly role: string;
   readonly tone?: string;
   readonly instructions?: string;
-  readonly avatarUrl?: string;
-  readonly avatarType?: 'uploaded' | 'dicebear' | 'default';
-  readonly avatarSeed?: string;
-  readonly avatarStyle?: string;
+  readonly avatar?: {
+    readonly url: string;
+    readonly type: 'uploaded' | 'dicebear' | 'default';
+  };
+}
+
+export interface AgentPersonaJSON {
+  readonly name: string;
+  readonly role: string;
+  readonly tone?: string;
+  readonly instructions?: string;
+  readonly avatar?: {
+    readonly url: string;
+    readonly type: 'uploaded' | 'dicebear' | 'default';
+  };
 }
 
 export interface AgentSkills {
@@ -90,7 +101,7 @@ export interface AgentEntityJSON {
   readonly capabilities: readonly string[];
   readonly tags: readonly string[];
   readonly runtime_config?: AgentRuntimeConfig;
-  readonly persona?: AgentPersona;
+  readonly persona?: AgentPersonaJSON;
   readonly skills?: AgentSkills;
   readonly tools?: AgentTools;
   readonly triggers?: AgentTriggers;
@@ -295,18 +306,6 @@ export class AgentEntity {
   // --- Serialization ---
 
   toJSON(): AgentEntityJSON {
-    // Convert persona avatar fields to snake_case
-    const persona = this.props.persona ? {
-      name: this.props.persona.name,
-      role: this.props.persona.role,
-      tone: this.props.persona.tone,
-      instructions: this.props.persona.instructions,
-      avatar_url: this.props.persona.avatarUrl,
-      avatar_type: this.props.persona.avatarType,
-      avatar_seed: this.props.persona.avatarSeed,
-      avatar_style: this.props.persona.avatarStyle,
-    } : undefined;
-
     return {
       agent_id: this.props.agentId,
       name: this.props.name,
@@ -318,7 +317,7 @@ export class AgentEntity {
       capabilities: [...this.capabilities],
       tags: [...this.tags],
       runtime_config: this.props.runtimeConfig,
-      persona: persona as any,
+      persona: this.props.persona,
       skills: this.props.skills,
       tools: this.props.tools,
       triggers: this.props.triggers,

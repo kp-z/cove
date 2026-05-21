@@ -8,6 +8,7 @@
  */
 
 import { UserEntity, UserRole, UserPreference } from '../../../domain/models/user/user.entity';
+import { Avatar } from '../../../domain/types/avatar.types';
 import { UserNotFoundError, UsernameAlreadyExistsError, EmailAlreadyExistsError } from './user.errors';
 import {
   IUserRepository,
@@ -24,13 +25,13 @@ export interface CreateUserDTO {
   readonly displayName: string;
   readonly email: string;
   readonly role?: UserRole;
-  readonly avatar?: string;
+  readonly avatar?: Avatar;
 }
 
 export interface UpdateUserDTO {
   readonly displayName?: string;
   readonly email?: string;
-  readonly avatar?: string;
+  readonly avatar?: Avatar;
   readonly preference?: UserPreference;
 }
 
