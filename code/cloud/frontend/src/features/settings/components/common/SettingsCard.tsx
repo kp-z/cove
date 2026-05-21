@@ -9,7 +9,7 @@ interface SettingsCardProps {
 
 export function SettingsCard({ title, description, children }: SettingsCardProps) {
   return (
-    <GlassCard padding="p-6" className="mb-6">
+    <GlassCard padding="p-6" className="mb-6" hover={false}>
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white">{title}</h3>
         {description && (

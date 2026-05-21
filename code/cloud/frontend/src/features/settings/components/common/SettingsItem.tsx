@@ -29,7 +29,7 @@ interface SettingsItemProps {
 
 export function SettingsItem({ label, description, children }: SettingsItemProps) {
   return (
-    <GlassCard padding="py-3 px-4">
+    <GlassCard padding="py-3 px-4" hover={false}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="text-white font-medium">{label}</div>
