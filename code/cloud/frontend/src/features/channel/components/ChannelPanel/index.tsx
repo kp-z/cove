@@ -8,6 +8,7 @@ import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
 import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
+import type { Message } from './types';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -41,19 +42,6 @@ interface Thread {
   execution_id?: number;
 }
 
-type MessageSender = 'user' | 'agent' | 'system';
-
-interface Message {
-  message_id: string;
-  thread_id: string;
-  sender: MessageSender;
-  sender_name: string;
-  sender_avatar?: string;
-  content: string;
-  timestamp: Date;
-  is_streaming?: boolean;
-}
-
 interface ChannelPanelProps {
   channel_id: string;
   thread_id?: string | null;
@@ -67,7 +55,8 @@ function messageEntityToMessage(entity: MessageEntity): Message {
     message_id: entity.message_id,
     thread_id: entity.thread_id || '',
     sender: entity.sender_type === 'human' ? 'user' : entity.sender_type === 'agent' ? 'agent' : 'system',
-    sender_name: entity.sender_id,
+    sender_id: entity.sender_id,
+    sender_name: entity.sender_name,
     content: entity.content,
     timestamp: new Date(entity.created_at),
     is_streaming: false,
