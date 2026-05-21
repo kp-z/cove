@@ -1,5 +1,5 @@
 import { trpc } from '@/lib/trpc';
-import { notify } from '@/core/stores/notificationStore';
+import { notify } from '@/core/services/notificationService';
 
 export function useSendMessage() {
   const utils = trpc.useUtils();
@@ -7,10 +7,10 @@ export function useSendMessage() {
   return trpc.message.send.useMutation({
     onSuccess: (_data, variables) => {
       utils.message.list.invalidate({ channelId: variables.channelId });
-      notify.success('Message sent', 'Your message has been sent successfully');
+      notify.toast.success('Message sent', 'Your message has been sent successfully');
     },
     onError: (error) => {
-      notify.error('Failed to send message', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to send message', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -45,10 +45,10 @@ export function useUpdateMessage() {
     onSuccess: (data) => {
       utils.message.getById.invalidate({ messageId: data.message_id });
       utils.message.list.invalidate({ channelId: data.channel_id });
-      notify.success('Message updated', 'Your message has been updated successfully');
+      notify.toast.success('Message updated', 'Your message has been updated successfully');
     },
     onError: (error) => {
-      notify.error('Failed to update message', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to update message', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -59,10 +59,10 @@ export function useDeleteMessage() {
   return trpc.message.delete.useMutation({
     onSuccess: () => {
       utils.message.list.invalidate();
-      notify.success('Message deleted', 'The message has been deleted successfully');
+      notify.toast.success('Message deleted', 'The message has been deleted successfully');
     },
     onError: (error) => {
-      notify.error('Failed to delete message', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to delete message', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -75,7 +75,7 @@ export function useAddReaction() {
       utils.message.getById.setData({ messageId: data.message_id }, data);
     },
     onError: (error) => {
-      notify.error('Failed to add reaction', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to add reaction', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -88,7 +88,7 @@ export function useRemoveReaction() {
       utils.message.getById.setData({ messageId: data.message_id }, data);
     },
     onError: (error) => {
-      notify.error('Failed to remove reaction', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to remove reaction', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -99,10 +99,10 @@ export function useReplyToThread() {
   return trpc.message.replyToThread.useMutation({
     onSuccess: (_data, variables) => {
       utils.message.getThreadMessages.invalidate({ parentMessageId: variables.parentMessageId });
-      notify.success('Reply sent', 'Your reply has been sent successfully');
+      notify.toast.success('Reply sent', 'Your reply has been sent successfully');
     },
     onError: (error) => {
-      notify.error('Failed to send reply', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to send reply', error.message || 'An unexpected error occurred');
     },
   });
 }

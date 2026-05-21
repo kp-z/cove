@@ -26,7 +26,15 @@ function App() {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           {/* Toast Notifications */}
-          <Toaster position="top-right" richColors />
+          <Toaster
+        position="top-right"
+        toastOptions={{
+          unstyled: true,
+          classNames: {
+            toast: 'bg-transparent shadow-none',
+          },
+        }}
+      />
 
           {/* Global Loader */}
           <AnimatePresence>

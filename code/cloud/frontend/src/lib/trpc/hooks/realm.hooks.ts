@@ -1,5 +1,5 @@
 import { trpc } from '@/lib/trpc';
-import { notify } from '@/core/stores/notificationStore';
+import { notify } from '@/core/services/notificationService';
 
 export function useRealm(realmId: string, options?: { enabled?: boolean }) {
   return trpc.realm.getById.useQuery(
@@ -16,10 +16,10 @@ export function useUpdateRealm() {
   return trpc.realm.update.useMutation({
     onSuccess: (_result, variables) => {
       utils.realm.getById.invalidate({ realmId: variables.realmId });
-      notify.success('Realm updated', 'The realm settings have been updated successfully');
+      notify.toast.success('Realm updated', 'The realm settings have been updated successfully');
     },
     onError: (error) => {
-      notify.error('Failed to update realm', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to update realm', error.message || 'An unexpected error occurred');
     },
   });
 }

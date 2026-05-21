@@ -1,1 +1,1 @@
-export { NotificationBubble } from './NotificationBubble'
+export { NotificationCard } from './NotificationCard'

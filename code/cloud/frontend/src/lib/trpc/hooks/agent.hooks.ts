@@ -1,5 +1,5 @@
 import { trpc } from '@/lib/trpc';
-import { notify } from '@/core/stores/notificationStore';
+import { notify } from '@/core/services/notificationService';
 
 type AgentFilters = Record<string, unknown> | undefined;
 
@@ -31,10 +31,10 @@ export function useCreateAgent() {
   return trpc.agent.create.useMutation({
     onSuccess: () => {
       utils.agent.list.invalidate();
-      notify.success('Agent created', 'The agent has been created successfully');
+      notify.toast.success('Agent created', 'The agent has been created successfully');
     },
     onError: (error) => {
-      notify.error('Failed to create agent', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to create agent', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -46,10 +46,10 @@ export function useUpdateAgent() {
     onSuccess: (_result, variables) => {
       utils.agent.getById.invalidate({ agentId: variables.agentId });
       utils.agent.list.invalidate();
-      notify.success('Agent updated', 'The agent has been updated successfully');
+      notify.toast.success('Agent updated', 'The agent has been updated successfully');
     },
     onError: (error) => {
-      notify.error('Failed to update agent', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to update agent', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -78,10 +78,10 @@ export function useDeleteAgent() {
       if (context?.previousData) {
         utils.agent.list.setData(undefined, context.previousData);
       }
-      notify.error('Failed to delete agent', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to delete agent', error.message || 'An unexpected error occurred');
     },
     onSuccess: () => {
-      notify.success('Agent deleted', 'The agent has been deleted successfully');
+      notify.toast.success('Agent deleted', 'The agent has been deleted successfully');
     },
     onSettled: () => {
       utils.agent.list.invalidate();
@@ -95,10 +95,10 @@ export function useStartAgent() {
   return trpc.agent.start.useMutation({
     onSuccess: (_result, variables) => {
       utils.agent.getById.invalidate({ agentId: variables.agentId });
-      notify.success('Agent started', 'The agent has been started successfully');
+      notify.toast.success('Agent started', 'The agent has been started successfully');
     },
     onError: (error) => {
-      notify.error('Failed to start agent', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to start agent', error.message || 'An unexpected error occurred');
     },
   });
 }
@@ -109,10 +109,10 @@ export function useStopAgent() {
   return trpc.agent.stop.useMutation({
     onSuccess: (_result, variables) => {
       utils.agent.getById.invalidate({ agentId: variables.agentId });
-      notify.success('Agent stopped', 'The agent has been stopped successfully');
+      notify.toast.success('Agent stopped', 'The agent has been stopped successfully');
     },
     onError: (error) => {
-      notify.error('Failed to stop agent', error.message || 'An unexpected error occurred');
+      notify.toast.error('Failed to stop agent', error.message || 'An unexpected error occurred');
     },
   });
 }

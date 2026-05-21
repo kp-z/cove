@@ -9,7 +9,7 @@ import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import * as Tabs from '@radix-ui/react-tabs'
 import { AdapterCard } from '@/features/settings/components/adapters/AdapterCard'
 import { AdapterFormDialog, type AdapterFormData } from '@/features/settings/components/adapters/AdapterFormDialog'
-import { toast } from 'sonner'
+import { notify } from '@/core/services/notificationService'
 import type { Adapter } from '@/features/settings/types/adapter.types'
 type AdapterType = 'anthropic-api' | 'openai-api' | 'claude-code-cli'
 
@@ -59,12 +59,10 @@ export function AdaptersPanel() {
       },
     }, {
       onSuccess: () => {
-        toast.success('Default adapter updated')
+        notify.toast.success('Default adapter updated')
       },
       onError: (error: Error) => {
-        toast.error('Failed to update default adapter', {
-          description: error.message,
-        })
+        notify.toast.error('Failed to update default adapter', error.message)
       },
     })
   }
@@ -77,16 +75,13 @@ export function AdaptersPanel() {
     const result = await testConnection.mutateAsync({ adapterId })
 
     if (result.success) {
-      toast.success(result.message, {
-        description: result.details?.modelCount
-          ? `Found ${result.details.modelCount} models (${result.details.latency}ms)`
-          : `Latency: ${result.details?.latency}ms`,
-      })
+      const description = result.details?.modelCount
+        ? `Found ${result.details.modelCount} models (${result.details.latency}ms)`
+        : `Latency: ${result.details?.latency}ms`
+      notify.toast.success(result.message, description)
     } else {
       const errorMessage = result.message || 'Unknown error'
-      toast.error('Connection test failed', {
-        description: errorMessage,
-      })
+      notify.toast.error('Connection test failed', errorMessage)
       throw new Error(errorMessage)
     }
   }
@@ -119,7 +114,7 @@ export function AdaptersPanel() {
             config: data.config,
           },
         })
-        toast.success('Adapter created successfully')
+        notify.toast.success('Adapter created successfully')
       } else if (dialogMode === 'edit' && editingAdapter) {
         await updateAdapter.mutateAsync({
           adapterId: editingAdapter.id,
@@ -132,13 +127,15 @@ export function AdaptersPanel() {
             },
           },
         })
-        toast.success('Adapter updated successfully')
+        notify.toast.success('Adapter updated successfully')
       }
       handleDialogClose()
     } catch (error) {
-      toast.error(dialogMode === 'create' ? 'Failed to create adapter' : 'Failed to update adapter', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      })
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      notify.toast.error(
+        dialogMode === 'create' ? 'Failed to create adapter' : 'Failed to update adapter',
+        errorMessage
+      )
       throw error
     }
   }
@@ -149,11 +146,10 @@ export function AdaptersPanel() {
     try {
       await deleteAdapter.mutateAsync({ adapterId: deleteConfirmId })
       setDeleteConfirmId(null)
-      toast.success('Adapter deleted successfully')
+      notify.toast.success('Adapter deleted successfully')
     } catch (error) {
-      toast.error('Failed to delete adapter', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      })
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      notify.toast.error('Failed to delete adapter', errorMessage)
     }
   }
 

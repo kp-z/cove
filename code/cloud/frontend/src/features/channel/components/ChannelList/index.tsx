@@ -6,7 +6,7 @@ import { useChannelPin } from '../../hooks/useChannelPin';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
+import { notify } from '@/core/services/notificationService';
 import { useCurrentUser } from '@/core/auth';
 import type { ChannelEntity } from '../../api/client';
 
@@ -55,10 +55,10 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
     try {
       await togglePin(channel.channel_id);
 
-      toast.success(willPin ? t('list.pinSuccess') : t('list.unpinSuccess'));
+      notify.toast.success(willPin ? t('list.pinSuccess') : t('list.unpinSuccess'));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('list.pinError');
-      toast.error(errorMessage);
+      notify.toast.error(errorMessage);
     }
   };
 
