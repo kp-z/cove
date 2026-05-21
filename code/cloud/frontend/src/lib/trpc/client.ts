@@ -1,6 +1,6 @@
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../../../backend/src/infrastructure/trpc/routers';
-import { env } from '../../core/config/env';
+import { env } from '@/core/config/env';
 
 /**
  * Vanilla tRPC client for non-React contexts (e.g., adapters, utilities)
