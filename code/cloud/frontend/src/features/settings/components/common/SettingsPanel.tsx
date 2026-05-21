@@ -12,7 +12,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
   return (
-    <div className="flex-1 overflow-y-auto pr-2">
+    <div className="flex-1 overflow-y-auto pr-2 relative z-10">
       <AnimatePresence mode="wait">
         <motion.div
           key={activeCategory}
