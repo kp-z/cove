@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
 import type { FileSystemAdapter } from '@/features/file-editor/types';
 import { useFileSystem } from '../hooks/useFileSystem';
 import { FileExplorer } from './FileExplorer';
@@ -44,14 +43,6 @@ export const FileEditorWorkspace: React.FC<FileEditorWorkspaceProps> = ({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      {/* Error Banner */}
-      {error && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-          <AlertCircle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
-
       {/* Main Workspace */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - File Explorer */}

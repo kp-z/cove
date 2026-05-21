@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { notify } from '@/core/services/notificationService';
 import type {
   FileSystemAdapter,
   FileNode,
@@ -35,10 +36,12 @@ export function useFileSystem({
         isLoading: false,
       }));
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load file tree';
+      notify.toast.error('Failed to load file tree', errorMessage);
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load file tree',
+        error: null,
       }));
     }
   }, [adapter, rootPath]);
@@ -82,9 +85,11 @@ export function useFileSystem({
           activeTabId: newTab.id,
         }));
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to open file';
+        notify.toast.error('Failed to open file', errorMessage);
         setState((prev) => ({
           ...prev,
-          error: error instanceof Error ? error.message : 'Failed to open file',
+          error: null,
         }));
       }
     },
@@ -127,9 +132,11 @@ export function useFileSystem({
           ),
         }));
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save file';
+        notify.toast.error('Failed to save file', errorMessage);
         setState((prev) => ({
           ...prev,
-          error: error instanceof Error ? error.message : 'Failed to save file',
+          error: null,
         }));
       }
     },
@@ -142,9 +149,11 @@ export function useFileSystem({
         await adapter.createFile(parentPath, name);
         await loadFileTree();
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create file';
+        notify.toast.error('Failed to create file', errorMessage);
         setState((prev) => ({
           ...prev,
-          error: error instanceof Error ? error.message : 'Failed to create file',
+          error: null,
         }));
       }
     },
@@ -157,9 +166,11 @@ export function useFileSystem({
         await adapter.createDirectory(parentPath, name);
         await loadFileTree();
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create directory';
+        notify.toast.error('Failed to create directory', errorMessage);
         setState((prev) => ({
           ...prev,
-          error: error instanceof Error ? error.message : 'Failed to create directory',
+          error: null,
         }));
       }
     },
