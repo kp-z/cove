@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { router, procedure } from '../trpc';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
 import { mapErrorToTRPC } from '../../../common/errors';
 
 // Zod schemas for input validation
@@ -50,6 +51,21 @@ interface FileNode {
   children?: FileNode[];
 }
 
+/**
+ * Resolve a path to an absolute path
+ * Handles relative paths by resolving them from the user's home directory
+ */
+function resolveAbsolutePath(inputPath: string): string {
+  // If already absolute, return as-is
+  if (path.isAbsolute(inputPath)) {
+    return inputPath;
+  }
+
+  // Resolve relative paths from home directory
+  const homeDir = os.homedir();
+  return path.resolve(homeDir, inputPath);
+}
+
 async function buildFileTree(dirPath: string): Promise<FileNode[]> {
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -85,7 +101,8 @@ export const fileSystemRouter = router({
     .input(readDirectorySchema)
     .query(async ({ input }) => {
       try {
-        const tree = await buildFileTree(input.path);
+        const absolutePath = resolveAbsolutePath(input.path);
+        const tree = await buildFileTree(absolutePath);
         return tree;
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -96,7 +113,8 @@ export const fileSystemRouter = router({
     .input(readFileSchema)
     .query(async ({ input }) => {
       try {
-        const content = await fs.readFile(input.path, 'utf-8');
+        const absolutePath = resolveAbsolutePath(input.path);
+        const content = await fs.readFile(absolutePath, 'utf-8');
         return { content };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -107,7 +125,8 @@ export const fileSystemRouter = router({
     .input(writeFileSchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.writeFile(input.path, input.content, 'utf-8');
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.writeFile(absolutePath, input.content, 'utf-8');
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -118,7 +137,8 @@ export const fileSystemRouter = router({
     .input(createFileSchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.writeFile(input.path, '', 'utf-8');
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.writeFile(absolutePath, '', 'utf-8');
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -129,7 +149,8 @@ export const fileSystemRouter = router({
     .input(createDirectorySchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.mkdir(input.path, { recursive: true });
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.mkdir(absolutePath, { recursive: true });
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -140,7 +161,8 @@ export const fileSystemRouter = router({
     .input(deleteFileSchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.unlink(input.path);
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.unlink(absolutePath);
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -151,7 +173,8 @@ export const fileSystemRouter = router({
     .input(deleteDirectorySchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.rm(input.path, { recursive: true, force: true });
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.rm(absolutePath, { recursive: true, force: true });
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -162,7 +185,9 @@ export const fileSystemRouter = router({
     .input(renameSchema)
     .mutation(async ({ input }) => {
       try {
-        await fs.rename(input.oldPath, input.newPath);
+        const absoluteOldPath = resolveAbsolutePath(input.oldPath);
+        const absoluteNewPath = resolveAbsolutePath(input.newPath);
+        await fs.rename(absoluteOldPath, absoluteNewPath);
         return { success: true };
       } catch (error) {
         throw mapErrorToTRPC(error);
@@ -173,7 +198,8 @@ export const fileSystemRouter = router({
     .input(existsSchema)
     .query(async ({ input }) => {
       try {
-        await fs.access(input.path);
+        const absolutePath = resolveAbsolutePath(input.path);
+        await fs.access(absolutePath);
         return { exists: true };
       } catch (error) {
         return { exists: false };
