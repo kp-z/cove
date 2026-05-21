@@ -15,6 +15,7 @@ import { createSubscriptionRouter } from './subscription.router';
 import { createDeviceSubscriptionRouter } from './device-subscription.router';
 import { realmRouter } from './realm.router';
 import { deviceRouter } from './device.router';
+import { createFileSystemRouter } from './filesystem.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import type { AdapterService } from '../../../application/services/adapter/adapter.service';
@@ -31,6 +32,7 @@ import type { WorkflowService } from '../../../application/services/workflow/wor
 import type { ProjectService } from '../../../application/services/project/project.service';
 import type { RealmService } from '../../../application/services/realm/realm.service';
 import type { DeviceService } from '../../../application/services/device/device.service';
+import type { FileSystemService } from '../../../application/services/filesystem/filesystem.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
 import type { ILogger } from '../../../application/interfaces/logger.interface';
@@ -51,6 +53,7 @@ export interface RouterDependencies {
   projectService: ProjectService;
   realmService: RealmService;
   deviceService: DeviceService;
+  fileSystemService: FileSystemService;
   eventBus: IEventBus;
   deviceConnectionManager: DeviceConnectionManager;
   logger: ILogger;
@@ -116,6 +119,9 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
 
     // Device router
     device: deviceRouter(deps.deviceService),
+
+    // FileSystem router
+    filesystem: createFileSystemRouter(deps.fileSystemService),
 
     // Subscription router
     subscription: createSubscriptionRouter({

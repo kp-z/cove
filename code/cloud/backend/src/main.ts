@@ -72,6 +72,7 @@ import { AuthService } from './application/services/auth/auth.service';
 import { AuditService } from './application/services/audit/audit.service';
 import { AvatarService } from './application/services/avatar/avatar.service';
 import { StorageService as FileStorageService } from './application/services/storage/storage.service';
+import { FileSystemService } from './application/services/filesystem/filesystem.service';
 import { FileSystemAdapterConfigStore } from './infrastructure/persistence/file-system-adapter-config-store';
 import { FileLockManager } from './application/services/lock/file-lock-manager.service';
 import { AuditLogger } from './application/services/audit/audit-logger.service';
@@ -164,6 +165,9 @@ function initializeDependencies() {
     logger
   );
   const avatarService = new AvatarService(fileStorageService, logger);
+
+  // FileSystem Service
+  const fileSystemService = new FileSystemService(logger, [coveRoot]);
 
   // Services (order matters — channelMessagingService first, used by channelService)
   const channelMessagingService = new ChannelMessagingService(
@@ -407,6 +411,7 @@ function initializeDependencies() {
     workflowService,
     realmService,
     deviceService,
+    fileSystemService,
   };
 }
 
@@ -429,6 +434,7 @@ function createStandaloneServer(deps: {
   workflowService: WorkflowService;
   realmService: RealmService;
   deviceService: DeviceService;
+  fileSystemService: FileSystemService;
 }) {
   // Create app router
   const appRouter = createAppRouter({
@@ -447,6 +453,7 @@ function createStandaloneServer(deps: {
     workflowService: deps.workflowService,
     realmService: deps.realmService,
     deviceService: deps.deviceService,
+    fileSystemService: deps.fileSystemService,
     eventBus: deps.eventBus,
     deviceConnectionManager: deps.deviceConnectionManager,
     logger: deps.logger,
