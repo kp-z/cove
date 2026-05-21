@@ -20,7 +20,7 @@ export const borderRadius = {
   full: '9999px',    // 完全圆形（头像、徽章）
 
   // 特殊用途
-  card: '1.5rem',           // 24px - Dashboard 卡片标准圆角
+  card: '0.75rem',          // 12px - Dashboard 卡片标准圆角（参考 Apple 设计）
   panel: '1rem',            // 16px - 侧边面板圆角
   mobileNav: '2.75rem',     // 44px - 移动端导航栏圆角（iOS 风格）
   button: '0.5rem',         // 8px - 按钮圆角

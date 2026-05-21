@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Save, Check, Settings, Code } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { Badge } from '@/shared/components/ui/badge';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
@@ -71,23 +72,23 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
         actions={
           <div className="flex items-center gap-3">
             {!isCreateMode && (
-              <div className="flex items-center gap-2 mr-4">
-                <Button
-                  variant={activeTab === 'config' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('config')}
-                >
-                  <Settings size={16} className="mr-2" />
-                  Configuration
-                </Button>
-                <Button
-                  variant={activeTab === 'files' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('files')}
-                >
-                  <Code size={16} className="mr-2" />
-                  Editor
-                </Button>
+              <div className="mr-4">
+                <ButtonGroup
+                  options={[
+                    {
+                      label: 'Configuration',
+                      value: 'config',
+                      icon: <Settings size={16} />,
+                    },
+                    {
+                      label: 'Editor',
+                      value: 'files',
+                      icon: <Code size={16} />,
+                    },
+                  ]}
+                  value={activeTab}
+                  onChange={(value) => setActiveTab(value as TabType)}
+                />
               </div>
             )}
             <Button onClick={onSave} disabled={!canSave}>
