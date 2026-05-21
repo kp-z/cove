@@ -75,6 +75,12 @@ Thumbs.db
 # Test temporary files
 **/.test-storage/
 
+# Process IDs
+**/.pids/
+
+# Prisma migrations (generated)
+**/prisma/migrations/
+
 # Keep directory structure
 !**/.cove/storage/.gitkeep
 !**/.cove/cache/.gitkeep
