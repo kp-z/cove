@@ -16,12 +16,14 @@ NC='\033[0m'
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/cloud/backend"
 FRONTEND_DIR="$PROJECT_ROOT/cloud/frontend"
+LOCAL_DIR="$PROJECT_ROOT/local"
 PID_DIR="$PROJECT_ROOT/.pids"
 LOG_DIR="$PROJECT_ROOT/.logs"
 
 # Ports
 BACKEND_PORT=3002
 FRONTEND_PORT=5174
+# LOCAL_PORT is dynamic, not fixed
 
 # Create directories
 mkdir -p "$PID_DIR" "$LOG_DIR"
@@ -100,6 +102,25 @@ start_frontend() {
     print_success "Frontend started (PID: $!)"
 }
 
+# Start local agent
+start_local() {
+    print_info "Starting local agent..."
+
+    cd "$LOCAL_DIR"
+
+    # Check dependencies
+    if [ ! -d "node_modules" ]; then
+        print_info "Installing local agent dependencies..."
+        npm install
+    fi
+
+    # Start local agent
+    nohup npm run dev > "$LOG_DIR/local.log" 2>&1 &
+    echo $! > "$PID_DIR/local.pid"
+
+    print_success "Local agent started (PID: $!)"
+}
+
 # Show status
 show_status() {
     echo ""
@@ -124,17 +145,31 @@ show_status() {
         print_error "Frontend: Not running"
     fi
 
+    # Check local agent
+    if [ -f "$PID_DIR/local.pid" ]; then
+        local pid=$(cat "$PID_DIR/local.pid")
+        if ps -p "$pid" > /dev/null 2>&1; then
+            print_success "Local Agent: Running (PID: $pid)"
+            echo "  (No fixed port - check log for details)"
+        else
+            print_error "Local Agent: Not running"
+        fi
+    else
+        print_error "Local Agent: Not running"
+    fi
+
     echo ""
     echo "Logs:"
     echo "  Backend:  $LOG_DIR/backend.log"
     echo "  Frontend: $LOG_DIR/frontend.log"
+    echo "  Local:    $LOG_DIR/local.log"
     echo ""
 }
 
 # Tail logs
 tail_logs() {
     print_info "Tailing logs (Ctrl+C to stop)..."
-    tail -f "$LOG_DIR/backend.log" "$LOG_DIR/frontend.log" 2>/dev/null
+    tail -f "$LOG_DIR/backend.log" "$LOG_DIR/frontend.log" "$LOG_DIR/local.log" 2>/dev/null
 }
 
 # Main command handler
@@ -146,6 +181,8 @@ case "${1:-start}" in
         start_backend
         sleep 3
         start_frontend
+        sleep 2
+        start_local
         sleep 2
         show_status
         ;;
@@ -174,7 +211,7 @@ case "${1:-start}" in
         echo "Usage: $0 {start|stop|restart|status|logs}"
         echo ""
         echo "Commands:"
-        echo "  start   - Start backend and frontend"
+        echo "  start   - Start backend, frontend, and local agent"
         echo "  stop    - Stop all services"
         echo "  restart - Restart all services"
         echo "  status  - Show service status"
