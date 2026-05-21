@@ -20,7 +20,7 @@ export class AgentDiscoveryService {
   private readonly agentsDir: string;
 
   constructor(private readonly prisma: PrismaClient) {
-    this.agentsDir = path.join(os.homedir(), '.cove', 'agents');
+    this.agentsDir = path.join(os.homedir(), '.cove', 'storage', 'agents');
   }
 
   async discoverAndSyncAgents(): Promise<void> {
@@ -118,7 +118,7 @@ export class AgentDiscoveryService {
     metadata: AgentMetadata,
   ): Promise<void> {
     const now = new Date();
-    const agentDir = path.join(os.homedir(), '.cove', 'agents', metadata.agent_id);
+    const agentDir = path.join(os.homedir(), '.cove', 'storage', 'agents', metadata.agent_id);
     const configPath = path.join('storage', 'agents', metadata.agent_id);
 
     await this.prisma.agent.create({
@@ -143,7 +143,8 @@ export class AgentDiscoveryService {
   private async updateAgent(
     metadata: AgentMetadata,
   ): Promise<void> {
-    const agentDir = path.join(os.homedir(), '.cove', 'agents', metadata.agent_id);
+    const agentDir = path.join(os.homedir(), '.cove', 'storage', 'agents', metadata.agent_id);
+    const configPath = path.join('storage', 'agents', metadata.agent_id);
 
     await this.prisma.agent.update({
       where: { id: metadata.agent_id },
@@ -151,6 +152,7 @@ export class AgentDiscoveryService {
         name: metadata.name,
         displayName: metadata.display_name || metadata.name,
         status: metadata.status || 'active',
+        configPath,  // Fix old .json format paths
       },
     });
 
