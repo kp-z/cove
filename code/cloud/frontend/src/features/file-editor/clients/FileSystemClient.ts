@@ -20,14 +20,20 @@ export class FileSystemClient implements FileSystemAdapter {
         throw new Error(`Backend error: ${(result as any).error}`);
       }
 
-      // Type guard: check if result is an array
-      if (!Array.isArray(result)) {
+      // Handle wrapped response format: {success: true, data: [...]}
+      let data = result;
+      if (result && typeof result === 'object' && 'data' in result) {
+        data = (result as any).data;
+      }
+
+      // Type guard: check if data is an array
+      if (!Array.isArray(data)) {
         console.error('Invalid response format:', result);
         // Return empty array to prevent UI crash
         return [];
       }
 
-      return result.map((item: any) => this.mapToFileNode(item));
+      return data.map((item: any) => this.mapToFileNode(item));
     } catch (error) {
       console.error('Failed to read directory:', error);
       throw error;
