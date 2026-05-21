@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import type { EditorTab } from '@/features/file-editor/types';
 
 interface EditorTabsProps {
@@ -22,97 +23,36 @@ export const EditorTabs: React.FC<EditorTabsProps> = ({
   };
 
   return (
-    <div className={`editor-tabs ${className}`}>
-      <div className="tabs-container">
+    <div className={`flex bg-[#2d2d2d] border-b border-[#1e1e1e] overflow-x-auto overflow-y-hidden ${className}`}>
+      <div className="flex flex-1 min-w-0">
         {tabs.map((tab) => (
           <div
             key={tab.id}
-            className={`tab ${tab.isActive ? 'active' : ''} ${tab.isDirty ? 'dirty' : ''}`}
+            className={`flex items-center gap-2 px-3 py-2 border-r border-[#1e1e1e] cursor-pointer select-none whitespace-nowrap min-w-[120px] max-w-[200px] transition-colors duration-150 ${
+              tab.id === activeTabId
+                ? 'bg-[#1e1e1e] border-b-2 border-b-blue-500'
+                : 'bg-[#2d2d2d] hover:bg-[#3e3e3e]'
+            }`}
             onClick={() => onTabClick(tab.id)}
           >
-            <span className="tab-name">
+            <span className={`flex-1 overflow-hidden text-ellipsis text-sm ${
+              tab.id === activeTabId ? 'text-white' : 'text-white/70'
+            }`}>
               {tab.name}
-              {tab.isDirty && <span className="dirty-indicator">●</span>}
+              {tab.isDirty && (
+                <span className="ml-1 text-blue-400 text-base">●</span>
+              )}
             </span>
             <button
-              className="tab-close"
+              className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors duration-150"
               onClick={(e) => handleCloseClick(e, tab.id)}
               aria-label="Close tab"
             >
-              ×
+              <X size={14} />
             </button>
           </div>
         ))}
       </div>
-
-      <style>{`
-        .editor-tabs {
-          display: flex;
-          background-color: #2d2d2d;
-          border-bottom: 1px solid #1e1e1e;
-          overflow-x: auto;
-          overflow-y: hidden;
-        }
-        .tabs-container {
-          display: flex;
-          flex: 1;
-          min-width: 0;
-        }
-        .tab {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background-color: #2d2d2d;
-          border-right: 1px solid #1e1e1e;
-          cursor: pointer;
-          user-select: none;
-          white-space: nowrap;
-          min-width: 120px;
-          max-width: 200px;
-        }
-        .tab:hover {
-          background-color: #3e3e3e;
-        }
-        .tab.active {
-          background-color: #1e1e1e;
-          border-bottom: 2px solid #007acc;
-        }
-        .tab-name {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: 13px;
-          color: #cccccc;
-        }
-        .tab.active .tab-name {
-          color: #ffffff;
-        }
-        .dirty-indicator {
-          margin-left: 4px;
-          color: #007acc;
-          font-size: 16px;
-        }
-        .tab-close {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 20px;
-          height: 20px;
-          border: none;
-          background: none;
-          color: #cccccc;
-          font-size: 20px;
-          line-height: 1;
-          cursor: pointer;
-          padding: 0;
-          border-radius: 3px;
-        }
-        .tab-close:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-          color: #ffffff;
-        }
-      `}</style>
     </div>
   );
 };

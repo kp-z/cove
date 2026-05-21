@@ -86,7 +86,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                   onClick={() => setActiveTab('files')}
                 >
                   <Code size={16} className="mr-2" />
-                  Files
+                  Editor
                 </Button>
               </div>
             )}
