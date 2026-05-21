@@ -67,7 +67,9 @@ function resolveAbsolutePath(inputPath: string): string {
   if (path.isAbsolute(inputPath)) {
     resolvedPath = path.normalize(inputPath);
   } else {
-    resolvedPath = path.resolve(homeDir, inputPath);
+    // Resolve relative paths from baseDir (.cove), not homeDir
+    // This prevents access to files outside .cove directory
+    resolvedPath = path.resolve(baseDir, inputPath);
   }
 
   // Security check: ensure the resolved path is within the base directory
