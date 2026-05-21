@@ -13,7 +13,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async readDirectory(path: string): Promise<FileNode[]> {
     try {
-      const result = await this.trpc.fileSystem.readDirectory.query({ path });
+      const result = await this.trpc.filesystem.readDirectory.query({ path });
       return result.map((item: any) => this.mapToFileNode(item));
     } catch (error) {
       console.error('Failed to read directory:', error);
@@ -23,7 +23,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async readFile(path: string): Promise<string> {
     try {
-      const result = await this.trpc.fileSystem.readFile.query({ path });
+      const result = await this.trpc.filesystem.readFile.query({ path });
       return result.content;
     } catch (error) {
       console.error('Failed to read file:', error);
@@ -33,7 +33,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async writeFile(path: string, content: string): Promise<void> {
     try {
-      await this.trpc.fileSystem.writeFile.mutate({ path, content });
+      await this.trpc.filesystem.writeFile.mutate({ path, content });
     } catch (error) {
       console.error('Failed to write file:', error);
       throw new Error(`Failed to write file: ${path}`);
@@ -43,7 +43,7 @@ export class FileSystemClient implements FileSystemAdapter {
   async createFile(path: string, name: string): Promise<FileNode> {
     try {
       const fullPath = `${path}/${name}`;
-      await this.trpc.fileSystem.createFile.mutate({ path: fullPath });
+      await this.trpc.filesystem.createFile.mutate({ path: fullPath });
       return {
         id: fullPath,
         name,
@@ -59,7 +59,7 @@ export class FileSystemClient implements FileSystemAdapter {
   async createDirectory(path: string, name: string): Promise<FileNode> {
     try {
       const fullPath = `${path}/${name}`;
-      await this.trpc.fileSystem.createDirectory.mutate({ path: fullPath });
+      await this.trpc.filesystem.createDirectory.mutate({ path: fullPath });
       return {
         id: fullPath,
         name,
@@ -75,7 +75,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async deleteFile(path: string): Promise<void> {
     try {
-      await this.trpc.fileSystem.deleteFile.mutate({ path });
+      await this.trpc.filesystem.deleteFile.mutate({ path });
     } catch (error) {
       console.error('Failed to delete file:', error);
       throw new Error(`Failed to delete file: ${path}`);
@@ -84,7 +84,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async deleteDirectory(path: string): Promise<void> {
     try {
-      await this.trpc.fileSystem.deleteDirectory.mutate({ path });
+      await this.trpc.filesystem.deleteDirectory.mutate({ path });
     } catch (error) {
       console.error('Failed to delete directory:', error);
       throw new Error(`Failed to delete directory: ${path}`);
@@ -93,7 +93,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async renameFile(oldPath: string, newPath: string): Promise<void> {
     try {
-      await this.trpc.fileSystem.rename.mutate({ oldPath, newPath });
+      await this.trpc.filesystem.rename.mutate({ oldPath, newPath });
     } catch (error) {
       console.error('Failed to rename file:', error);
       throw new Error(`Failed to rename: ${oldPath} -> ${newPath}`);
@@ -102,7 +102,7 @@ export class FileSystemClient implements FileSystemAdapter {
 
   async exists(path: string): Promise<boolean> {
     try {
-      const result = await this.trpc.fileSystem.exists.query({ path });
+      const result = await this.trpc.filesystem.exists.query({ path });
       return result.exists;
     } catch (error) {
       console.error('Failed to check file existence:', error);
