@@ -63,7 +63,7 @@ Thumbs.db
 .obsidian/
 *.backup
 
-# Cove Data Directory (recursive match for any depth)
+# Cove Data Directory (recursive match for all subdirectories)
 **/.cove/database/*.db
 **/.cove/database/*.db-shm
 **/.cove/database/*.db-wal
