@@ -1,0 +1,122 @@
+import type { FileSystemAdapter, FileNode } from '@/features/file-editor/types';
+
+/**
+ * Local file system adapter using tRPC API
+ * This adapter communicates with the backend to perform file operations
+ */
+export class LocalFileSystemAdapter implements FileSystemAdapter {
+  private trpc: any; // TODO: Replace with proper tRPC client type
+
+  constructor(trpc: any) {
+    this.trpc = trpc;
+  }
+
+  async readDirectory(path: string): Promise<FileNode[]> {
+    try {
+      const result = await this.trpc.fileSystem.readDirectory.query({ path });
+      return result.map((item: any) => this.mapToFileNode(item));
+    } catch (error) {
+      console.error('Failed to read directory:', error);
+      throw new Error(`Failed to read directory: ${path}`);
+    }
+  }
+
+  async readFile(path: string): Promise<string> {
+    try {
+      const result = await this.trpc.fileSystem.readFile.query({ path });
+      return result.content;
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      throw new Error(`Failed to read file: ${path}`);
+    }
+  }
+
+  async writeFile(path: string, content: string): Promise<void> {
+    try {
+      await this.trpc.fileSystem.writeFile.mutate({ path, content });
+    } catch (error) {
+      console.error('Failed to write file:', error);
+      throw new Error(`Failed to write file: ${path}`);
+    }
+  }
+
+  async createFile(path: string, name: string): Promise<FileNode> {
+    try {
+      const fullPath = `${path}/${name}`;
+      await this.trpc.fileSystem.createFile.mutate({ path: fullPath });
+      return {
+        id: fullPath,
+        name,
+        path: fullPath,
+        type: 'file',
+      };
+    } catch (error) {
+      console.error('Failed to create file:', error);
+      throw new Error(`Failed to create file: ${name}`);
+    }
+  }
+
+  async createDirectory(path: string, name: string): Promise<FileNode> {
+    try {
+      const fullPath = `${path}/${name}`;
+      await this.trpc.fileSystem.createDirectory.mutate({ path: fullPath });
+      return {
+        id: fullPath,
+        name,
+        path: fullPath,
+        type: 'directory',
+        children: [],
+      };
+    } catch (error) {
+      console.error('Failed to create directory:', error);
+      throw new Error(`Failed to create directory: ${name}`);
+    }
+  }
+
+  async deleteFile(path: string): Promise<void> {
+    try {
+      await this.trpc.fileSystem.deleteFile.mutate({ path });
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      throw new Error(`Failed to delete file: ${path}`);
+    }
+  }
+
+  async deleteDirectory(path: string): Promise<void> {
+    try {
+      await this.trpc.fileSystem.deleteDirectory.mutate({ path });
+    } catch (error) {
+      console.error('Failed to delete directory:', error);
+      throw new Error(`Failed to delete directory: ${path}`);
+    }
+  }
+
+  async renameFile(oldPath: string, newPath: string): Promise<void> {
+    try {
+      await this.trpc.fileSystem.rename.mutate({ oldPath, newPath });
+    } catch (error) {
+      console.error('Failed to rename file:', error);
+      throw new Error(`Failed to rename: ${oldPath} -> ${newPath}`);
+    }
+  }
+
+  async exists(path: string): Promise<boolean> {
+    try {
+      const result = await this.trpc.fileSystem.exists.query({ path });
+      return result.exists;
+    } catch (error) {
+      console.error('Failed to check file existence:', error);
+      return false;
+    }
+  }
+
+  private mapToFileNode(item: any): FileNode {
+    return {
+      id: item.path,
+      name: item.name,
+      path: item.path,
+      type: item.type,
+      children: item.children?.map((child: any) => this.mapToFileNode(child)),
+    };
+  }
+}
