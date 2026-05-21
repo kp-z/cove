@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Cpu } from 'lucide-react';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 
@@ -94,7 +94,13 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   };
 
   return (
-    <SectionCard title="Runtime Configuration" icon={<Cpu size={20} />} key={componentKey}>
+    <GlassCard className="p-6 space-y-6" key={componentKey}>
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Cpu className="w-5 h-5 text-primary" />
+        <h3 className="text-lg font-semibold">Runtime Configuration</h3>
+      </div>
+
       <div className="space-y-4">
         {/* Adapter Selection - Simple Dropdown */}
         <FormField
@@ -233,6 +239,6 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
           </div>
         )}
       </div>
-    </SectionCard>
+    </GlassCard>
   );
 }
