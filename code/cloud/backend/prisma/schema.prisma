@@ -286,10 +286,10 @@ model Realm {
   settings    String   // JSON: { allow_invites, require_approval, default_channel_id }
   limits      String   // JSON: { max_members, max_channels, max_agents }
   meta        String?  // JSON: { tags, icon, banner }
-  avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
-  avatarType  String   @default("dicebear") // uploaded | dicebear | default
-  avatarSeed  String?  // DiceBear 种子（用于生成一致的头像）
-  avatarStyle String?  @default("shapes") // DiceBear 风格
+  logoUrl     String?  // Logo URL（上传的文件路径或外部 URL）
+  logoType    String   @default("dicebear") // uploaded | dicebear | default
+  logoSeed    String?  // DiceBear 种子（用于生成一致的 logo）
+  logoStyle   String?  @default("shapes") // DiceBear 风格
   createdAt   DateTime
   updatedAt   DateTime
 

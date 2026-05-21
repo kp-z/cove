@@ -36,15 +36,15 @@ export function RealmSwitcher({ open, onOpenChange, children }: RealmSwitcherPro
     setImageErrors(prev => ({ ...prev, [realmId]: true }));
   };
 
-  const renderRealmAvatar = (realm: any, isSelected: boolean) => {
-    const avatarUrl = getAvatarUrl(realm.avatarUrl);
+  const renderRealmLogo = (realm: any, isSelected: boolean) => {
+    const logoUrl = getAvatarUrl(realm.logo_url);
     const displayName = realm.displayName || realm.display_name || 'R';
     const hasError = imageErrors[realm.id];
 
-    if (avatarUrl && !hasError) {
+    if (logoUrl && !hasError) {
       return (
         <img
-          src={avatarUrl}
+          src={logoUrl}
           alt={displayName}
           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           onError={() => handleImageError(realm.id)}
@@ -91,7 +91,7 @@ export function RealmSwitcher({ open, onOpenChange, children }: RealmSwitcherPro
                             : 'text-white hover:bg-white/[0.08] focus:bg-white/[0.08]'
                         }`}
                       >
-                        {renderRealmAvatar(realm, isSelected)}
+                        {renderRealmLogo(realm, isSelected)}
                         <div className="flex flex-col items-start min-w-0 flex-1">
                           <span className="text-sm font-semibold text-white max-w-full break-words">
                             {displayName}

@@ -64,6 +64,10 @@ export interface RealmEntityProps {
     readonly icon?: string;
     readonly banner?: string;
   };
+  readonly logo_url?: string;
+  readonly logo_type: 'uploaded' | 'dicebear' | 'default';
+  readonly logo_seed?: string;
+  readonly logo_style?: string;
 }
 
 /**
@@ -99,6 +103,10 @@ export interface RealmEntityJSON {
     readonly icon?: string;
     readonly banner?: string;
   };
+  readonly logo_url?: string;
+  readonly logo_type: 'uploaded' | 'dicebear' | 'default';
+  readonly logo_seed?: string;
+  readonly logo_style?: string;
 }
 
 export class RealmEntity {
@@ -124,6 +132,10 @@ export class RealmEntity {
       created_at: new Date(json.created_at),
       updated_at: new Date(json.updated_at),
       meta: json.meta,
+      logo_url: json.logo_url,
+      logo_type: json.logo_type,
+      logo_seed: json.logo_seed,
+      logo_style: json.logo_style,
     });
   }
 
@@ -201,6 +213,10 @@ export class RealmEntity {
   get created_at(): Date { return this.props.created_at; }
   get updated_at(): Date { return this.props.updated_at; }
   get meta(): RealmEntityProps['meta'] { return this.props.meta; }
+  get logo_url(): string | undefined { return this.props.logo_url; }
+  get logo_type(): 'uploaded' | 'dicebear' | 'default' { return this.props.logo_type; }
+  get logo_seed(): string | undefined { return this.props.logo_seed; }
+  get logo_style(): string | undefined { return this.props.logo_style; }
 
   // --- Status checks ---
 
@@ -373,6 +389,22 @@ export class RealmEntity {
     });
   }
 
+  updateLogo(logo: {
+    logo_url?: string;
+    logo_type?: 'uploaded' | 'dicebear' | 'default';
+    logo_seed?: string;
+    logo_style?: string;
+  }): RealmEntity {
+    return RealmEntity.create({
+      ...this.props,
+      logo_url: logo.logo_url ?? this.props.logo_url,
+      logo_type: logo.logo_type ?? this.props.logo_type,
+      logo_seed: logo.logo_seed ?? this.props.logo_seed,
+      logo_style: logo.logo_style ?? this.props.logo_style,
+      updated_at: new Date(),
+    });
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: RealmEntity): boolean {
@@ -395,6 +427,10 @@ export class RealmEntity {
       created_at: this.props.created_at.toISOString(),
       updated_at: this.props.updated_at.toISOString(),
       meta: this.props.meta,
+      logo_url: this.props.logo_url,
+      logo_type: this.props.logo_type,
+      logo_seed: this.props.logo_seed,
+      logo_style: this.props.logo_style,
     };
   }
 }
