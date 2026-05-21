@@ -12,6 +12,6 @@ export function getAvatarUrl(avatarUrl?: string | null): string | undefined {
   }
 
   // Otherwise, prepend the API URL
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
   return `${apiUrl}/${avatarUrl}`;
 }
