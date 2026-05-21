@@ -90,7 +90,7 @@ export function AdapterCard({
   const showDetailControl = testStatus === 'error' && testMessage.length > 32
 
   return (
-    <GlassCard>
+    <GlassCard hover={false}>
       <div className="p-3 sm:p-4">
         {/* Header: Name + Status Badge + Actions */}
         <div className="flex flex-wrap items-start justify-between gap-2">
