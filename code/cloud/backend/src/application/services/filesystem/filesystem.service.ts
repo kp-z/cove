@@ -30,19 +30,29 @@ export interface FileContent {
 }
 
 export class FileSystemService {
+  private readonly baseDir: string;
+
   constructor(
     private readonly logger: ILogger,
     private readonly allowedBasePaths: string[] = []
-  ) {}
+  ) {
+    // Use the first allowed base path as the base directory for relative path resolution
+    this.baseDir = allowedBasePaths.length > 0 ? path.resolve(allowedBasePaths[0]!) : process.cwd();
+  }
 
-  private validatePath(targetPath: string): void {
-    const resolvedPath = path.resolve(targetPath);
+  private validatePath(targetPath: string): string {
+    // Resolve relative paths from baseDir, absolute paths as-is
+    const resolvedPath = path.isAbsolute(targetPath)
+      ? path.normalize(targetPath)
+      : path.resolve(this.baseDir, targetPath);
 
     // Check if path is within allowed base paths
     if (this.allowedBasePaths.length > 0) {
       const isAllowed = this.allowedBasePaths.some(basePath => {
         const resolvedBase = path.resolve(basePath);
-        return resolvedPath.startsWith(resolvedBase);
+        const relativePath = path.relative(resolvedBase, resolvedPath);
+        // Path must not escape the base directory
+        return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
       });
 
       if (!isAllowed) {
@@ -50,24 +60,21 @@ export class FileSystemService {
       }
     }
 
-    // Prevent path traversal attacks
-    if (resolvedPath.includes('..')) {
-      throw new Error('Invalid path: path traversal detected');
-    }
+    return resolvedPath;
   }
 
   async readDirectory(
     targetPath: string,
     options: ReadDirectoryOptions = {}
   ): Promise<DirectoryEntry[]> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      const entries = await fs.readdir(targetPath, { withFileTypes: true });
+      const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
       const result: DirectoryEntry[] = [];
 
       for (const entry of entries) {
-        const entryPath = path.join(targetPath, entry.name);
+        const entryPath = path.join(resolvedPath, entry.name);
         const stats = await fs.stat(entryPath);
 
         result.push({
@@ -86,10 +93,10 @@ export class FileSystemService {
         }
       }
 
-      this.logger.info('Directory read successfully', { path: targetPath, count: result.length });
+      this.logger.info('Directory read successfully', { path: resolvedPath, count: result.length });
       return result;
     } catch (error) {
-      this.logger.error('Failed to read directory', error as Error, { path: targetPath });
+      this.logger.error('Failed to read directory', error as Error, { path: resolvedPath });
       throw new Error(`Failed to read directory: ${(error as Error).message}`);
     }
   }
@@ -98,13 +105,13 @@ export class FileSystemService {
     targetPath: string,
     encoding: BufferEncoding = 'utf-8'
   ): Promise<FileContent> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      const content = await fs.readFile(targetPath, encoding);
-      const stats = await fs.stat(targetPath);
+      const content = await fs.readFile(resolvedPath, encoding);
+      const stats = await fs.stat(resolvedPath);
 
-      this.logger.info('File read successfully', { path: targetPath, size: stats.size });
+      this.logger.info('File read successfully', { path: resolvedPath, size: stats.size });
 
       return {
         content,
@@ -113,7 +120,7 @@ export class FileSystemService {
         modifiedAt: stats.mtime,
       };
     } catch (error) {
-      this.logger.error('Failed to read file', error as Error, { path: targetPath });
+      this.logger.error('Failed to read file', error as Error, { path: resolvedPath });
       throw new Error(`Failed to read file: ${(error as Error).message}`);
     }
   }
@@ -123,71 +130,71 @@ export class FileSystemService {
     content: string,
     options: WriteFileOptions = {}
   ): Promise<void> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      await fs.writeFile(targetPath, content, {
+      await fs.writeFile(resolvedPath, content, {
         encoding: options.encoding || 'utf-8',
         mode: options.mode,
         flag: options.flag,
       });
 
-      this.logger.info('File written successfully', { path: targetPath, size: content.length });
+      this.logger.info('File written successfully', { path: resolvedPath, size: content.length });
     } catch (error) {
-      this.logger.error('Failed to write file', error as Error, { path: targetPath });
+      this.logger.error('Failed to write file', error as Error, { path: resolvedPath });
       throw new Error(`Failed to write file: ${(error as Error).message}`);
     }
   }
 
   async createDirectory(targetPath: string, recursive = false): Promise<void> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      await fs.mkdir(targetPath, { recursive });
-      this.logger.info('Directory created successfully', { path: targetPath, recursive });
+      await fs.mkdir(resolvedPath, { recursive });
+      this.logger.info('Directory created successfully', { path: resolvedPath, recursive });
     } catch (error) {
-      this.logger.error('Failed to create directory', error as Error, { path: targetPath });
+      this.logger.error('Failed to create directory', error as Error, { path: resolvedPath });
       throw new Error(`Failed to create directory: ${(error as Error).message}`);
     }
   }
 
   async delete(targetPath: string, recursive = false): Promise<void> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      const stats = await fs.stat(targetPath);
+      const stats = await fs.stat(resolvedPath);
 
       if (stats.isDirectory()) {
-        await fs.rm(targetPath, { recursive, force: true });
-        this.logger.info('Directory deleted successfully', { path: targetPath, recursive });
+        await fs.rm(resolvedPath, { recursive, force: true });
+        this.logger.info('Directory deleted successfully', { path: resolvedPath, recursive });
       } else {
-        await fs.unlink(targetPath);
-        this.logger.info('File deleted successfully', { path: targetPath });
+        await fs.unlink(resolvedPath);
+        this.logger.info('File deleted successfully', { path: resolvedPath });
       }
     } catch (error) {
-      this.logger.error('Failed to delete', error as Error, { path: targetPath });
+      this.logger.error('Failed to delete', error as Error, { path: resolvedPath });
       throw new Error(`Failed to delete: ${(error as Error).message}`);
     }
   }
 
   async rename(oldPath: string, newPath: string): Promise<void> {
-    this.validatePath(oldPath);
-    this.validatePath(newPath);
+    const resolvedOldPath = this.validatePath(oldPath);
+    const resolvedNewPath = this.validatePath(newPath);
 
     try {
-      await fs.rename(oldPath, newPath);
-      this.logger.info('Renamed successfully', { oldPath, newPath });
+      await fs.rename(resolvedOldPath, resolvedNewPath);
+      this.logger.info('Renamed successfully', { oldPath: resolvedOldPath, newPath: resolvedNewPath });
     } catch (error) {
-      this.logger.error('Failed to rename', error as Error, { oldPath, newPath });
+      this.logger.error('Failed to rename', error as Error, { oldPath: resolvedOldPath, newPath: resolvedNewPath });
       throw new Error(`Failed to rename: ${(error as Error).message}`);
     }
   }
 
   async exists(targetPath: string): Promise<boolean> {
-    this.validatePath(targetPath);
+    const resolvedPath = this.validatePath(targetPath);
 
     try {
-      await fs.access(targetPath);
+      await fs.access(resolvedPath);
       return true;
     } catch {
       return false;
