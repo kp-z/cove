@@ -42,7 +42,7 @@ export interface AnthropicAdapterConfig extends BaseAdapterConfig {
   config: {
     api_key?: string;            // Direct API key (e.g., "sk-xxx...")
     api_key_ref?: string;        // Secret reference (e.g., "env:ANTHROPIC_API_KEY")
-    model: string;
+    model?: string;              // Optional: can be set after discovering available models
     base_url?: string;
     custom_headers?: Record<string, string>;  // Custom HTTP headers (e.g., {"x-api-key": "..."})
     temperature?: number;
@@ -60,7 +60,7 @@ export interface OpenAIAdapterConfig extends BaseAdapterConfig {
   config: {
     api_key?: string;            // Direct API key (e.g., "sk-xxx...")
     api_key_ref?: string;        // Secret reference (e.g., "env:OPENAI_API_KEY")
-    model: string;
+    model?: string;              // Optional: can be set after discovering available models
     base_url?: string;
     temperature?: number;
     max_tokens?: number;
