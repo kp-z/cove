@@ -11,8 +11,6 @@ import { AdapterCard } from '@/features/settings/components/adapters/AdapterCard
 import { AdapterFormDialog, type AdapterFormData } from '@/features/settings/components/adapters/AdapterFormDialog'
 import { toast } from 'sonner'
 import type { Adapter } from '@/features/settings/types/adapter.types'
-import { SettingsCard } from '../common/SettingsCard'
-
 type AdapterType = 'anthropic-api' | 'openai-api' | 'claude-code-cli'
 
 export function AdaptersPanel() {
@@ -165,71 +163,63 @@ export function AdaptersPanel() {
 
   return (
     <div>
-      {/* Header */}
-      <h2 className="text-2xl font-bold text-white mb-6">{t('adapters.title')}</h2>
+      {/* Tabs + Add Button */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+        <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as AdapterType)}>
+          <Tabs.List className="flex items-center gap-1">
+            <Tabs.Trigger
+              value="anthropic-api"
+              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
+            >
+              Anthropic API
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="openai-api"
+              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
+            >
+              OpenAI API
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="claude-code-cli"
+              className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
+            >
+              Claude Code CLI
+            </Tabs.Trigger>
+          </Tabs.List>
+        </Tabs.Root>
 
-      <SettingsCard
-        title={t('adapters.description')}
-        description="Configure API adapters for different AI providers"
-      >
-        {/* Tabs + Add Button */}
-        <div className="flex items-center justify-between mb-4 border-b border-white/10">
-          <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as AdapterType)}>
-            <Tabs.List className="flex items-center gap-1">
-              <Tabs.Trigger
-                value="anthropic-api"
-                className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-              >
-                Anthropic API
-              </Tabs.Trigger>
-              <Tabs.Trigger
-                value="openai-api"
-                className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-              >
-                OpenAI API
-              </Tabs.Trigger>
-              <Tabs.Trigger
-                value="claude-code-cli"
-                className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-indigo-500 transition-colors"
-              >
-                Claude Code CLI
-              </Tabs.Trigger>
-            </Tabs.List>
-          </Tabs.Root>
+        <Button onClick={handleCreate} size="sm">
+          <Plus size={16} className="mr-2" />
+          {t('adapters.add')}
+        </Button>
+      </div>
 
-          <Button onClick={handleCreate} size="sm">
-            <Plus size={16} className="mr-2" />
-            {t('adapters.add')}
-          </Button>
-        </div>
+      {/* Adapter Cards */}
+      <div className="space-y-3">
+        {filteredAdapters.length > 0 ? (
+          filteredAdapters.map(adapter => {
+            const isDefault = defaultAdapterId === adapter.id
+            const canModify = adapter.scope === 'private' || adapter.owner_id === user?.id
 
-        {/* Adapter Cards */}
-        <div className="space-y-2">
-          {filteredAdapters.length > 0 ? (
-            filteredAdapters.map(adapter => {
-              const isDefault = defaultAdapterId === adapter.id
-              const canModify = adapter.scope === 'private' || adapter.owner_id === user?.id
-
-              return (
-                <AdapterCard
-                  key={adapter.id}
-                  adapter={adapter}
-                  isDefault={isDefault}
-                  canModify={canModify}
-                  onEdit={() => handleEdit(adapter)}
-                  onDelete={() => setDeleteConfirmId(adapter.id)}
-                  onSetDefault={() => handleSetDefault(adapter.id)}
-                  onTestConnection={() => handleTestConnection(adapter.id)}
-                />
-              )
-            })
-          ) : (
-            <div className="text-center py-8 text-white/60">
-              No {activeTab} adapters found. Create one to get started.
-            </div>
-          )}
-        </div>
-      </SettingsCard>
+            return (
+              <AdapterCard
+                key={adapter.id}
+                adapter={adapter}
+                isDefault={isDefault}
+                canModify={canModify}
+                onEdit={() => handleEdit(adapter)}
+                onDelete={() => setDeleteConfirmId(adapter.id)}
+                onSetDefault={() => handleSetDefault(adapter.id)}
+                onTestConnection={() => handleTestConnection(adapter.id)}
+              />
+            )
+          })
+        ) : (
+          <div className="text-center py-12 text-white/60">
+            No {activeTab} adapters found. Create one to get started.
+          </div>
+        )}
+      </div>
 
       {/* Adapter Form Dialog */}
       <AdapterFormDialog

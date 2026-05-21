@@ -49,6 +49,20 @@ export function AdapterCard({
     return adapter.config?.model || 'N/A'
   }
 
+  // Get adapter type display name
+  const getTypeDisplayName = () => {
+    switch (adapter.type) {
+      case 'anthropic-api':
+        return 'Anthropic API'
+      case 'openai-api':
+        return 'OpenAI API'
+      case 'claude-code-cli':
+        return 'Claude Code CLI'
+      default:
+        return adapter.type
+    }
+  }
+
   return (
     <GlassCard
       className={`
@@ -59,9 +73,9 @@ export function AdapterCard({
         }
       `}
     >
-      {/* Header: Name + Status Badge + Actions */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      {/* Header: Name + Type Badge + Status Badge */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1">
           <h3 className="text-lg font-medium text-white">{adapter.name}</h3>
           {isDefault && (
             <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300 border border-green-500/30">
@@ -75,83 +89,88 @@ export function AdapterCard({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* 测试连通性 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleTest}
-            disabled={isTesting}
-            className="text-white/60 hover:text-white hover:bg-white/10"
-          >
-            {isTesting ? (
-              <Loader2 size={14} className="mr-1 animate-spin" />
-            ) : (
-              <Zap size={14} className="mr-1" />
-            )}
-            测试
-          </Button>
-
-          {canModify && (
-            <>
-              {/* 编辑 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onEdit}
-                className="text-white/60 hover:text-white hover:bg-white/10"
-              >
-                <Edit2 size={14} className="mr-1" />
-                编辑
-              </Button>
-
-              {/* 激活为默认 / 当前激活 */}
-              {isDefault ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled
-                  className="bg-green-500/20 text-green-300 border border-green-500/30 cursor-not-allowed"
-                >
-                  <CheckCircle size={14} className="mr-1" />
-                  当前激活
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onSetDefault}
-                  className="text-white/60 hover:text-white hover:bg-white/10"
-                >
-                  <CheckCircle size={14} className="mr-1" />
-                  激活
-                </Button>
-              )}
-
-              {/* 删除 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onDelete}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <Trash2 size={14} className="mr-1" />
-                删除
-              </Button>
-            </>
-          )}
-        </div>
+        {/* Type Badge - Right Top */}
+        <span className="text-xs px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium whitespace-nowrap">
+          {getTypeDisplayName()}
+        </span>
       </div>
 
       {/* Content: URL + Model */}
-      <div className="space-y-2">
+      <div className="mb-4">
         <div className="flex items-center gap-2 text-sm text-white/60">
           <Globe size={14} className="flex-shrink-0" />
           <span className="truncate">{getDisplayUrl()}</span>
           <span className="text-white/40">·</span>
           <span className="text-white/80">{getModelInfo()}</span>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 pt-3 border-t border-white/5">
+        {/* 测试连通性 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleTest}
+          disabled={isTesting}
+          className="text-white/60 hover:text-white hover:bg-white/10"
+        >
+          {isTesting ? (
+            <Loader2 size={14} className="mr-1 animate-spin" />
+          ) : (
+            <Zap size={14} className="mr-1" />
+          )}
+          测试
+        </Button>
+
+        {canModify && (
+          <>
+            {/* 编辑 */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onEdit}
+              className="text-white/60 hover:text-white hover:bg-white/10"
+            >
+              <Edit2 size={14} className="mr-1" />
+              编辑
+            </Button>
+
+            {/* 激活为默认 / 当前激活 */}
+            {isDefault ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled
+                className="bg-green-500/20 text-green-300 border border-green-500/30 cursor-not-allowed"
+              >
+                <CheckCircle size={14} className="mr-1" />
+                当前激活
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSetDefault}
+                className="text-white/60 hover:text-white hover:bg-white/10"
+              >
+                <CheckCircle size={14} className="mr-1" />
+                激活
+              </Button>
+            )}
+
+            {/* 删除 */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              <Trash2 size={14} className="mr-1" />
+              删除
+            </Button>
+          </>
+        )}
       </div>
     </GlassCard>
   )
