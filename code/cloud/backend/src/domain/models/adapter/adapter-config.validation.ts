@@ -31,7 +31,7 @@ export const anthropicConfigSchema = z.object({
   config: z.object({
     api_key: apiKeySchema.optional(),
     api_key_ref: apiKeyRefSchema.optional(),
-    model: z.string().min(1, 'Model name is required'),
+    model: z.string().min(1, 'Model name is required').optional(),
     base_url: z.string().url('Base URL must be a valid URL').optional(),
     custom_headers: z.record(z.string()).optional(),
     temperature: z.number().min(0).max(2).optional(),
@@ -50,7 +50,7 @@ export const openaiConfigSchema = z.object({
   config: z.object({
     api_key: apiKeySchema.optional(),
     api_key_ref: apiKeyRefSchema.optional(),
-    model: z.string().min(1, 'Model name is required'),
+    model: z.string().min(1, 'Model name is required').optional(),
     base_url: z.string().url('Base URL must be a valid URL').optional(),
     temperature: z.number().min(0).max(2).optional(),
     max_tokens: z.number().int().positive().optional(),

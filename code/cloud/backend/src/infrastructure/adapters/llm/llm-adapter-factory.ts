@@ -33,6 +33,14 @@ export class LlmAdapterFactory {
           throw new Error('Anthropic adapter requires api_key, api_key_ref, or custom_headers');
         }
 
+        // Validate model is configured before use
+        if (!config.config.model) {
+          throw new Error(
+            `Anthropic adapter "${config.name}" (${config.id}) has no model configured. ` +
+            `Please call getAvailableModels to discover models, then update the adapter with your chosen model.`
+          );
+        }
+
         return new AnthropicAdapter(
           apiKey,
           config.config.model,
@@ -49,6 +57,15 @@ export class LlmAdapterFactory {
           throw new Error('OpenAI adapter requires api_key or api_key_ref');
         }
         const apiKey = await this.adapterService.resolveApiKey(apiKeySource);
+
+        // Validate model is configured before use
+        if (!config.config.model) {
+          throw new Error(
+            `OpenAI adapter "${config.name}" (${config.id}) has no model configured. ` +
+            `Please call getAvailableModels to discover models, then update the adapter with your chosen model.`
+          );
+        }
+
         return new OpenAIAdapter(
           apiKey,
           config.config.model,

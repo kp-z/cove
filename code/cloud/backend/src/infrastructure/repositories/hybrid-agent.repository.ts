@@ -14,7 +14,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import YAML from 'yaml';
 import deepmerge from 'deepmerge';
-import { CovePathResolver } from '../storage/cove-path-resolver';
 
 const DEFAULT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   model: {
