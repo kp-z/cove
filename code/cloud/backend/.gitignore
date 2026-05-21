@@ -3,6 +3,7 @@
 # Build outputs
 dist/
 *.tsbuildinfo
+src/**/*.js
 
 # Dependencies
 node_modules/
