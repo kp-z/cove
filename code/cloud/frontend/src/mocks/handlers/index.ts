@@ -7,5 +7,5 @@ export const handlers = [
   ...agentHandlers,
 
   // Passthrough all tRPC filesystem requests to real backend
-  http.get('*/trpc/filesystem.*', () => passthrough()),
+  http.all('*/trpc/filesystem.*', () => passthrough()),
 ];
