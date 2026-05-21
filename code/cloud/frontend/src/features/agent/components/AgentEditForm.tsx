@@ -40,7 +40,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
   // File system adapter for file editor
   const fileSystemAdapter = useMemo(() => new LocalFileSystemAdapter(trpc), []);
-  const agentFilesPath = agent ? `${process.env.HOME}/.cove/agents/${agent.name}` : '';
+  const agentFilesPath = agent ? `.cove/agents/${agent.name}` : '';
 
   // Form state management
   const formState = useAgentFormState(agent, defaultAdapterId);
