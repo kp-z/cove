@@ -1,326 +1,282 @@
-/**
- * Runtime Adapter Configuration Component
- *
- * Select an existing adapter and optionally override its configuration.
- * Changes will create a new private adapter on save.
- */
-
-import { useState, useEffect, useMemo } from 'react';
-import { Cpu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { trpc } from '@/lib/trpc';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
-import { FormField } from '@/shared/components/form/FormField';
-import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
-
-const INPUT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50';
-const SELECT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50';
-
-type AdapterConfig = Record<string, unknown>;
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Slider } from '@/shared/components/ui/slider';
+import { ChevronDown, ChevronUp, Settings, AlertCircle } from 'lucide-react';
 
 interface RuntimeAdapterConfigProps {
-  value?: {
-    adapter_id?: string;
-    overrides?: AdapterConfig;
+  agentId: string;
+  currentConfig?: {
+    adapterId?: string;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    apiKey?: string;
+    baseUrl?: string;
   };
-  onChange: (value: { adapter_id?: string; overrides?: AdapterConfig }) => void;
+  onConfigChange?: (config: any) => void;
 }
 
-export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigProps) {
-  const { data: adaptersData, isLoading: adaptersLoading, error: adaptersError } = useAdapters();
-  const adapters = adaptersData?.adapters || [];
+export const RuntimeAdapterConfig: React.FC<RuntimeAdapterConfigProps> = ({
+  agentId,
+  currentConfig,
+  onConfigChange,
+}) => {
+  const queryClient = useQueryClient();
+  const [selectedAdapterId, setSelectedAdapterId] = useState<string | undefined>(
+    currentConfig?.adapterId
+  );
+  const [model, setModel] = useState(currentConfig?.model || '');
+  const [temperature, setTemperature] = useState(currentConfig?.temperature || 0.7);
+  const [maxTokens, setMaxTokens] = useState(currentConfig?.maxTokens || 4096);
+  const [apiKey, setApiKey] = useState(currentConfig?.apiKey || '');
+  const [baseUrl, setBaseUrl] = useState(currentConfig?.baseUrl || '');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [selectedAdapterId, setSelectedAdapterId] = useState<string>(value?.adapter_id || '');
+  // Fetch available adapters
+  const { data: adapters, isLoading: adaptersLoading } = useQuery({
+    queryKey: ['adapters'],
+    queryFn: async () => {
+      const result = await trpc.adapter.list.query();
+      return result;
+    },
+  });
 
-  // Get selected adapter
-  const selectedAdapter = adapters.find(a => a.id === selectedAdapterId);
-  const adapterType = selectedAdapter?.type;
+  // Fetch available models for selected adapter
+  const { data: models, isLoading: modelsLoading } = useQuery({
+    queryKey: ['adapter-models', selectedAdapterId],
+    queryFn: async () => {
+      if (!selectedAdapterId) return [];
+      const result = await trpc.adapter.getModels.query({ adapterId: selectedAdapterId });
+      return result;
+    },
+    enabled: !!selectedAdapterId,
+  });
 
-  // Compute config from selected adapter
-  const adapterConfig = useMemo(() => {
-    if (selectedAdapter) {
-      const config = (selectedAdapter as { config?: AdapterConfig }).config;
-      return config ? { ...config } : {};
-    }
-    return {};
-  }, [selectedAdapter]);
+  // Update agent runtime config mutation
+  const updateConfigMutation = useMutation({
+    mutationFn: async (config: any) => {
+      return trpc.agent.updateRuntimeConfig.mutate({
+        agentId,
+        config,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+      onConfigChange?.({
+        adapterId: selectedAdapterId,
+        model,
+        temperature,
+        maxTokens,
+        apiKey,
+        baseUrl,
+      });
+    },
+  });
 
-  const [config, setConfig] = useState<AdapterConfig>(() => adapterConfig);
-  const [originalConfig] = useState<AdapterConfig>(() => adapterConfig);
-
-  // Use key to force remount when adapter changes instead of useEffect
-  const componentKey = selectedAdapterId || 'no-adapter';
-
-  // Discover models for the selected adapter
-  const {
-    data: discoveredModels,
-    isLoading: modelsLoading,
-  } = useAdapterModels(selectedAdapter?.id, !!selectedAdapter);
-
-  // Use discovered models if available, otherwise empty
-  const availableModels = useMemo(() => {
-    if (discoveredModels?.models && discoveredModels.models.length > 0) {
-      return discoveredModels.models.map(m => ({
-        value: m.id,
-        label: m.display_name || m.id,
-      }));
-    }
-    return [];
-  }, [discoveredModels]);
-
-  // Group adapters by scope
-  const sharedAdapters = adapters.filter(a => a.scope === 'shared');
-  const privateAdapters = adapters.filter(a => a.scope === 'private');
-
-  // Notify parent of changes
-  useEffect(() => {
-    if (!selectedAdapterId) {
-      onChange({ adapter_id: undefined, overrides: undefined });
-      return;
-    }
-
-    // Check if config has been modified
-    const hasChanges = JSON.stringify(config) !== JSON.stringify(originalConfig);
-
-    if (hasChanges) {
-      // Modified: will create new adapter on save
-      onChange({ adapter_id: selectedAdapterId, overrides: config });
-    } else {
-      // Unchanged: reference existing adapter
-      onChange({ adapter_id: selectedAdapterId, overrides: undefined });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAdapterId, config, originalConfig]);
-
-  const handleAdapterChange = (adapterId: string) => {
-    setSelectedAdapterId(adapterId);
+  const handleSave = () => {
+    updateConfigMutation.mutate({
+      adapterId: selectedAdapterId,
+      model,
+      temperature,
+      maxTokens,
+      apiKey,
+      baseUrl,
+    });
   };
 
-  const handleConfigChange = (key: string, value: unknown) => {
-    setConfig((prev: AdapterConfig) => ({ ...prev, [key]: value }));
-  };
+  const selectedAdapter = adapters?.find((a: any) => a.id === selectedAdapterId);
+  const hasChanges =
+    selectedAdapterId !== currentConfig?.adapterId ||
+    model !== currentConfig?.model ||
+    temperature !== currentConfig?.temperature ||
+    maxTokens !== currentConfig?.maxTokens ||
+    apiKey !== currentConfig?.apiKey ||
+    baseUrl !== currentConfig?.baseUrl;
 
   return (
-    <GlassCard className="p-6" key={componentKey}>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <Cpu size={20} />
-        Runtime Configuration
-      </h3>
+    <GlassCard className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Settings className="w-5 h-5 text-gray-400" />
+        <h3 className="text-lg font-semibold text-white">Runtime Configuration</h3>
+      </div>
 
-      <div className="space-y-4">
-        {/* Adapter Selection */}
-        <FormField label="Select Adapter" hint="Choose an adapter configuration">
-          <select
-            value={selectedAdapterId}
-            onChange={e => handleAdapterChange(e.target.value)}
-            className={SELECT_CLASS}
-            disabled={adaptersLoading}
-          >
-            <option value="">
-              {adaptersLoading ? 'Loading adapters...' : '-- Select an adapter --'}
-            </option>
+      {/* Adapter Selection */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-300">
+          Adapter Selection
+        </label>
 
-            {sharedAdapters.length > 0 && (
-              <optgroup label="🌐 Shared Adapters">
-                {sharedAdapters.map(adapter => (
-                  <option key={adapter.id} value={adapter.id}>
-                    {adapter.name} ({adapter.type})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-
-            {privateAdapters.length > 0 && (
-              <optgroup label="🔒 Private Adapters">
-                {privateAdapters.map(adapter => (
-                  <option key={adapter.id} value={adapter.id}>
-                    {adapter.name} ({adapter.type})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-
-          {adaptersError && (
-            <p className="text-sm text-red-500 mt-1">
-              Failed to load adapters
-            </p>
-          )}
-
-          {!adaptersLoading && !adaptersError && adapters.length === 0 && (
-            <p className="text-sm text-muted-foreground mt-1">
-              No adapters found. Create one in Settings first.
-            </p>
-          )}
-        </FormField>
-
-        {/* Configuration Fields (shown when adapter is selected) */}
-        {selectedAdapter && (
-          <div className="space-y-4 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              💡 Edit any field below. Changes will create a new private adapter on save.
-            </p>
-
-            {/* Anthropic API Config */}
-            {adapterType === 'anthropic-api' && (
-              <>
-                <FormField label="Model" hint="Select Claude model">
-                  <select
-                    value={config.model || ''}
-                    onChange={e => handleConfigChange('model', e.target.value)}
-                    className={SELECT_CLASS}
-                    disabled={modelsLoading}
-                  >
-                    <option value="">
-                      {modelsLoading ? 'Loading...' : '-- Select model --'}
-                    </option>
-                    {availableModels.map(m => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                </FormField>
-
-                <FormField label="API Key" hint="Leave empty to use environment variable">
-                  <input
-                    type="password"
-                    value={config.api_key || ''}
-                    onChange={e => handleConfigChange('api_key', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="sk-ant-..."
-                  />
-                </FormField>
-
-                <FormField label="Base URL" hint="Optional custom API endpoint">
-                  <input
-                    type="text"
-                    value={config.base_url || ''}
-                    onChange={e => handleConfigChange('base_url', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="https://api.anthropic.com"
-                  />
-                </FormField>
-
-                <FormField label="Temperature" hint="0.0 - 1.0">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={config.temperature ?? 0.7}
-                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-
-                <FormField label="Max Tokens" hint="Maximum response length">
-                  <input
-                    type="number"
-                    value={config.max_tokens ?? 4096}
-                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-              </>
-            )}
-
-            {/* OpenAI API Config */}
-            {adapterType === 'openai-api' && (
-              <>
-                <FormField label="Model" hint="Select OpenAI model">
-                  <select
-                    value={config.model || ''}
-                    onChange={e => handleConfigChange('model', e.target.value)}
-                    className={SELECT_CLASS}
-                    disabled={modelsLoading}
-                  >
-                    <option value="">
-                      {modelsLoading ? 'Loading...' : '-- Select model --'}
-                    </option>
-                    {availableModels.map(m => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                </FormField>
-
-                <FormField label="API Key" hint="Leave empty to use environment variable">
-                  <input
-                    type="password"
-                    value={config.api_key || ''}
-                    onChange={e => handleConfigChange('api_key', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="sk-..."
-                  />
-                </FormField>
-
-                <FormField label="Base URL" hint="Optional custom API endpoint">
-                  <input
-                    type="text"
-                    value={config.base_url || ''}
-                    onChange={e => handleConfigChange('base_url', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="https://api.openai.com/v1"
-                  />
-                </FormField>
-
-                <FormField label="Temperature" hint="0.0 - 2.0">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="2"
-                    value={config.temperature ?? 0.7}
-                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-
-                <FormField label="Max Tokens" hint="Maximum response length">
-                  <input
-                    type="number"
-                    value={config.max_tokens ?? 4096}
-                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-              </>
-            )}
-
-            {/* Claude Code CLI Config */}
-            {adapterType === 'claude-code-cli' && (
-              <>
-                <FormField label="Model" hint="Claude model to use">
-                  <input
-                    type="text"
-                    value={config.model || ''}
-                    onChange={e => handleConfigChange('model', e.target.value)}
-                    className={INPUT_CLASS}
-                    placeholder="claude-3-5-sonnet-20241022"
-                  />
-                </FormField>
-
-                <FormField label="Temperature" hint="0.0 - 1.0">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={config.temperature ?? 0.7}
-                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-
-                <FormField label="Max Tokens" hint="Maximum response length">
-                  <input
-                    type="number"
-                    value={config.max_tokens ?? 4096}
-                    onChange={e => handleConfigChange('max_tokens', parseInt(e.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </FormField>
-              </>
-            )}
+        {adaptersLoading ? (
+          <div className="animate-pulse bg-gray-700/50 h-20 rounded-lg" />
+        ) : (
+          <div className="space-y-2">
+            {adapters?.map((adapter: any) => (
+              <button
+                key={adapter.id}
+                onClick={() => setSelectedAdapterId(adapter.id)}
+                className={`
+                  w-full p-4 rounded-lg border-2 transition-all text-left
+                  ${
+                    selectedAdapterId === adapter.id
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                  }
+                `}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{adapter.icon || '🌐'}</span>
+                      <div>
+                        <div className="font-medium text-white">{adapter.name}</div>
+                        <div className="text-sm text-gray-400">
+                          {adapter.scope === 'shared' ? 'Shared' : 'Private'} • {adapter.model || 'No model set'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {selectedAdapterId === adapter.id && (
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-gray-700" />
+
+      {/* Model Configuration */}
+      {selectedAdapterId && (
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-gray-300">
+            Model Configuration
+          </label>
+
+          {/* Model Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm text-gray-400">Model</label>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={modelsLoading}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <option value="">Select a model</option>
+              {models?.map((m: any) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Temperature */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm text-gray-400">Temperature</label>
+              <span className="text-sm text-gray-500">{temperature.toFixed(1)}</span>
+            </div>
+            <Slider
+              value={[temperature]}
+              onValueChange={([value]) => setTemperature(value)}
+              min={0}
+              max={2}
+              step={0.1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Max Tokens */}
+          <div className="space-y-2">
+            <label className="block text-sm text-gray-400">Max Tokens</label>
+            <Input
+              type="number"
+              value={maxTokens}
+              onChange={(e) => setMaxTokens(Number(e.target.value))}
+              min={1}
+              max={200000}
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Divider */}
+      {selectedAdapterId && <div className="border-t border-gray-700" />}
+
+      {/* Advanced Settings */}
+      {selectedAdapterId && (
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center justify-between w-full text-sm font-medium text-gray-300 hover:text-white transition-colors"
+          >
+            <span>Advanced Settings</span>
+            {showAdvanced ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 pt-2">
+              {/* API Key */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-400">API Key</label>
+                <Input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter API key (optional)"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Base URL */}
+              <div className="space-y-2">
+                <label className="block text-sm text-gray-400">Base URL</label>
+                <Input
+                  type="text"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="https://api.anthropic.com"
+                  className="w-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Info Message */}
+      {hasChanges && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-blue-300">
+            Changes will create a new private adapter configuration
+          </p>
+        </div>
+      )}
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || updateConfigMutation.isPending}
+          variant="primary"
+        >
+          {updateConfigMutation.isPending ? 'Saving...' : 'Save Configuration'}
+        </Button>
+      </div>
     </GlassCard>
   );
-}
+};
