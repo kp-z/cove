@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Cpu } from 'lucide-react';
-import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
+import { SectionCard } from '@/shared/components/layout/SectionCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 
@@ -94,149 +94,145 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   };
 
   return (
-    <GlassCard className="p-6 space-y-6" key={componentKey}>
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Cpu className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-semibold">Runtime Configuration</h3>
-      </div>
-
-      {/* Adapter Selection - Simple Dropdown */}
-      <FormField
-        label="Select Adapter"
-        hint={adaptersLoading ? 'Loading...' : `${adapters.length} available`}
-      >
-        {adaptersError ? (
-          <div className="p-3 rounded-md border border-red-500/20 bg-red-500/5">
-            <p className="text-sm text-red-500">Failed to load adapters</p>
-          </div>
-        ) : (
-          <select
-            value={selectedAdapterId}
-            onChange={e => handleAdapterChange(e.target.value)}
-            className={INPUT_CLASS}
-            disabled={adaptersLoading}
-          >
-            <option value="">
-              {adaptersLoading ? 'Loading adapters...' : 'Select an adapter...'}
-            </option>
-            {adapters.map((adapter: any) => {
-              const scopeLabel = adapter.scope === 'shared' ? 'shared' : 'private';
-              return (
-                <option key={adapter.id} value={adapter.id}>
-                  {adapter.name} ({adapter.type}, {scopeLabel})
-                </option>
-              );
-            })}
-          </select>
-        )}
-      </FormField>
-
-      {/* Configuration Override Section */}
-      {selectedAdapter && (
-        <div className="space-y-4 pt-2 border-t border-border/50">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-muted-foreground">
-              Configuration Override
-            </h4>
-            <span className="text-xs text-muted-foreground">
-              {adapterType}
-            </span>
-          </div>
-
-          {/* Model Selection */}
-          {availableModels.length > 0 && (
-            <FormField label="Model" hint="Override the model for this agent">
-              <select
-                value={(config.model as string) || ''}
-                onChange={e => handleConfigChange('model', e.target.value)}
-                className={INPUT_CLASS}
-                disabled={modelsLoading}
-              >
-                <option value="">
-                  {modelsLoading ? 'Loading models...' : 'Use adapter default'}
-                </option>
-                {availableModels.map(model => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-          )}
-
-          {/* Temperature */}
-          <FormField
-            label="Temperature"
-            hint="Controls randomness in responses (0 = deterministic, 2 = creative)"
-          >
-            <div className="space-y-2">
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                value={(config.temperature as number) ?? 0.7}
-                onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                className="w-full h-2 bg-background/50 rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Precise (0)</span>
-                <span className="font-medium text-foreground">
-                  {((config.temperature as number) ?? 0.7).toFixed(1)}
-                </span>
-                <span>Creative (2)</span>
-              </div>
+    <SectionCard title="Runtime Configuration" icon={<Cpu size={20} />} key={componentKey}>
+      <div className="space-y-4">
+        {/* Adapter Selection - Simple Dropdown */}
+        <FormField
+          label="Select Adapter"
+          hint={adaptersLoading ? 'Loading...' : `${adapters.length} available`}
+        >
+          {adaptersError ? (
+            <div className="p-3 rounded-md border border-red-500/20 bg-red-500/5">
+              <p className="text-sm text-red-500">Failed to load adapters</p>
             </div>
-          </FormField>
-
-          {/* Max Tokens */}
-          <FormField
-            label="Max Tokens"
-            hint="Maximum length of the response"
-          >
-            <input
-              type="number"
-              value={(config.max_tokens as number) || ''}
-              onChange={e => handleConfigChange('max_tokens', e.target.value ? parseInt(e.target.value) : undefined)}
-              placeholder="Use adapter default"
-              min="1"
-              max="200000"
+          ) : (
+            <select
+              value={selectedAdapterId}
+              onChange={e => handleAdapterChange(e.target.value)}
               className={INPUT_CLASS}
-            />
-          </FormField>
+              disabled={adaptersLoading}
+            >
+              <option value="">
+                {adaptersLoading ? 'Loading adapters...' : 'Select an adapter...'}
+              </option>
+              {adapters.map((adapter: any) => {
+                const scopeLabel = adapter.scope === 'shared' ? 'shared' : 'private';
+                return (
+                  <option key={adapter.id} value={adapter.id}>
+                    {adapter.name} ({adapter.type}, {scopeLabel})
+                  </option>
+                );
+              })}
+            </select>
+          )}
+        </FormField>
 
-          {/* API Key Override */}
-          <FormField
-            label="API Key (Optional)"
-            hint="Override the adapter's API key for this agent"
-          >
-            <input
-              type="password"
-              value={(config.api_key as string) || ''}
-              onChange={e => handleConfigChange('api_key', e.target.value)}
-              placeholder="Use adapter default"
-              className={INPUT_CLASS}
-            />
-          </FormField>
+        {/* Configuration Override Section */}
+        {selectedAdapter && (
+          <div className="space-y-4 pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Configuration Override
+              </h4>
+              <span className="text-xs text-muted-foreground">
+                {adapterType}
+              </span>
+            </div>
 
-          {/* Base URL Override */}
-          {adapterType === 'anthropic' && (
+            {/* Model Selection */}
+            {availableModels.length > 0 && (
+              <FormField label="Model" hint="Override the model for this agent">
+                <select
+                  value={(config.model as string) || ''}
+                  onChange={e => handleConfigChange('model', e.target.value)}
+                  className={INPUT_CLASS}
+                  disabled={modelsLoading}
+                >
+                  <option value="">
+                    {modelsLoading ? 'Loading models...' : 'Use adapter default'}
+                  </option>
+                  {availableModels.map(model => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+
+            {/* Temperature */}
             <FormField
-              label="Base URL (Optional)"
-              hint="Override the API endpoint"
+              label="Temperature"
+              hint="Controls randomness in responses (0 = deterministic, 2 = creative)"
+            >
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={(config.temperature as number) ?? 0.7}
+                  onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-background/50 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Precise (0)</span>
+                  <span className="font-medium text-foreground">
+                    {((config.temperature as number) ?? 0.7).toFixed(1)}
+                  </span>
+                  <span>Creative (2)</span>
+                </div>
+              </div>
+            </FormField>
+
+            {/* Max Tokens */}
+            <FormField
+              label="Max Tokens"
+              hint="Maximum length of the response"
             >
               <input
-                type="text"
-                value={(config.base_url as string) || ''}
-                onChange={e => handleConfigChange('base_url', e.target.value)}
-                placeholder="https://api.anthropic.com"
+                type="number"
+                value={(config.max_tokens as number) || ''}
+                onChange={e => handleConfigChange('max_tokens', e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="Use adapter default"
+                min="1"
+                max="200000"
                 className={INPUT_CLASS}
               />
             </FormField>
-          )}
-        </div>
-      )}
-    </GlassCard>
+
+            {/* API Key Override */}
+            <FormField
+              label="API Key (Optional)"
+              hint="Override the adapter's API key for this agent"
+            >
+              <input
+                type="password"
+                value={(config.api_key as string) || ''}
+                onChange={e => handleConfigChange('api_key', e.target.value)}
+                placeholder="Use adapter default"
+                className={INPUT_CLASS}
+              />
+            </FormField>
+
+            {/* Base URL Override */}
+            {adapterType === 'anthropic' && (
+              <FormField
+                label="Base URL (Optional)"
+                hint="Override the API endpoint"
+              >
+                <input
+                  type="text"
+                  value={(config.base_url as string) || ''}
+                  onChange={e => handleConfigChange('base_url', e.target.value)}
+                  placeholder="https://api.anthropic.com"
+                  className={INPUT_CLASS}
+                />
+              </FormField>
+            )}
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
