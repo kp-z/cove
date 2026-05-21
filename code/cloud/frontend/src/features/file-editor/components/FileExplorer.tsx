@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Tree } from 'react-arborist';
+import type { NodeRendererProps } from 'react-arborist';
 import type { FileNode } from '@/features/file-editor/types';
 
 interface FileExplorerProps {
@@ -96,20 +97,24 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
       <div
         ref={dragHandle}
         style={style}
-        className={`file-node ${node.isSelected ? 'selected' : ''}`}
+        className={`flex items-center px-2 py-1 cursor-pointer select-none text-sm transition-colors duration-150 ${
+          node.isSelected
+            ? 'bg-white/[0.12] text-white'
+            : 'text-white/70 hover:bg-white/[0.06] hover:text-white/90'
+        }`}
         onClick={() => handleNodeClick(node.data)}
         onContextMenu={(e) => handleContextMenu(e, node.data)}
       >
-        <span className="file-icon">
+        <span className="mr-2 text-base">
           {node.data.type === 'directory' ? (node.isOpen ? '📂' : '📁') : '📄'}
         </span>
-        <span className="file-name">{node.data.name}</span>
+        <span className="truncate">{node.data.name}</span>
       </div>
     );
   };
 
   return (
-    <div className={`file-explorer ${className}`}>
+    <div className={`h-full overflow-auto ${className}`}>
       <Tree
         data={data}
         openByDefault={false}
@@ -125,129 +130,47 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
       {contextMenu && (
         <>
           <div
-            className="context-menu-overlay"
+            className="fixed inset-0 z-[999]"
             onClick={closeContextMenu}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 999,
-            }}
           />
           <div
-            className="context-menu"
+            className="fixed z-[1000] min-w-[150px] bg-[#2d2d2d] border border-white/[0.12] rounded-md shadow-lg overflow-hidden"
             style={{
-              position: 'fixed',
               top: contextMenu.y,
               left: contextMenu.x,
-              zIndex: 1000,
-              backgroundColor: 'white',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              minWidth: '150px',
             }}
           >
             {contextMenu.node.type === 'directory' && (
               <>
                 <button
-                  className="context-menu-item"
+                  className="block w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/[0.08] hover:text-white transition-colors duration-150"
                   onClick={handleCreateFile}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
                 >
                   New File
                 </button>
                 <button
-                  className="context-menu-item"
+                  className="block w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/[0.08] hover:text-white transition-colors duration-150"
                   onClick={handleCreateDirectory}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
                 >
                   New Folder
                 </button>
               </>
             )}
             <button
-              className="context-menu-item"
+              className="block w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/[0.08] hover:text-white transition-colors duration-150"
               onClick={handleRename}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
             >
               Rename
             </button>
             <button
-              className="context-menu-item"
+              className="block w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/[0.12] hover:text-red-300 transition-colors duration-150"
               onClick={handleDelete}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                color: 'red',
-              }}
             >
               Delete
             </button>
           </div>
         </>
       )}
-
-      <style>{`
-        .file-explorer {
-          height: 100%;
-          overflow: auto;
-        }
-        .file-node {
-          display: flex;
-          align-items: center;
-          padding: 4px 8px;
-          cursor: pointer;
-          user-select: none;
-        }
-        .file-node:hover {
-          background-color: rgba(0, 0, 0, 0.05);
-        }
-        .file-node.selected {
-          background-color: rgba(0, 120, 212, 0.1);
-        }
-        .file-icon {
-          margin-right: 6px;
-          font-size: 16px;
-        }
-        .file-name {
-          font-size: 14px;
-        }
-        .context-menu-item:hover {
-          background-color: rgba(0, 0, 0, 0.05);
-        }
-      `}</style>
     </div>
   );
 };
