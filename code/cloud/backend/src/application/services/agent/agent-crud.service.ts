@@ -21,6 +21,10 @@ export interface CreateAgentDTO {
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
   readonly createdBy: string;
+  readonly runtimeConfig?: {
+    readonly adapter_id?: string;
+    readonly overrides?: Record<string, unknown>;
+  };
 }
 
 export interface UpdateAgentDTO {
@@ -32,11 +36,17 @@ export interface UpdateAgentDTO {
   readonly capabilities?: readonly string[];
   readonly tags?: readonly string[];
 
-  // Runtime config
+  // Runtime config (legacy individual fields)
   readonly model?: string;
   readonly temperature?: number;
   readonly maxTokens?: number;
   readonly systemPrompt?: string;
+
+  // Runtime config (new adapter-based config)
+  readonly runtimeConfig?: {
+    readonly adapter_id?: string;
+    readonly overrides?: Record<string, unknown>;
+  };
 
   // Persona
   readonly personaName?: string;
@@ -78,6 +88,7 @@ export class AgentCrudService {
       projectIds: dto.projectIds,
       capabilities: dto.capabilities,
       tags: dto.tags,
+      runtimeConfig: dto.runtimeConfig as any,
       createdBy: dto.createdBy,
       createdAt: new Date(),
     });
@@ -108,16 +119,25 @@ export class AgentCrudService {
 
     const agent = await this.getAgentById(agentId);
 
-    // Build runtime config if any runtime fields are provided
-    const runtimeConfig = (dto.model !== undefined || dto.temperature !== undefined ||
-                          dto.maxTokens !== undefined || dto.systemPrompt !== undefined)
-      ? {
-          model: dto.model ?? agent.runtimeConfig?.model ?? 'opus',
-          temperature: dto.temperature ?? agent.runtimeConfig?.temperature,
-          maxTokens: dto.maxTokens ?? agent.runtimeConfig?.maxTokens,
-          systemPrompt: dto.systemPrompt ?? agent.runtimeConfig?.systemPrompt,
-        }
-      : agent.runtimeConfig;
+    // Build runtime config
+    // Priority: dto.runtimeConfig > legacy individual fields > existing config
+    let runtimeConfig;
+    if (dto.runtimeConfig !== undefined) {
+      // New adapter-based config provided
+      runtimeConfig = dto.runtimeConfig as any;
+    } else if (dto.model !== undefined || dto.temperature !== undefined ||
+               dto.maxTokens !== undefined || dto.systemPrompt !== undefined) {
+      // Legacy individual fields provided
+      runtimeConfig = {
+        model: dto.model ?? agent.runtimeConfig?.model ?? 'opus',
+        temperature: dto.temperature ?? agent.runtimeConfig?.temperature,
+        maxTokens: dto.maxTokens ?? agent.runtimeConfig?.maxTokens,
+        systemPrompt: dto.systemPrompt ?? agent.runtimeConfig?.systemPrompt,
+      };
+    } else {
+      // No runtime config changes
+      runtimeConfig = agent.runtimeConfig;
+    }
 
     // Build persona if any persona fields are provided
     const persona = (dto.personaName !== undefined || dto.role !== undefined ||

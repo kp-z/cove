@@ -14,6 +14,10 @@ const createAgentSchema = z.object({
   capabilities: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   createdBy: z.string().optional(),
+  runtimeConfig: z.object({
+    adapter_id: z.string().optional(),
+    overrides: z.any().optional(),
+  }).optional(),
 });
 
 const updateAgentSchema = z.object({
@@ -25,11 +29,17 @@ const updateAgentSchema = z.object({
   capabilities: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
 
-  // Runtime config
+  // Runtime config (legacy individual fields)
   model: z.string().optional(),
   temperature: z.number().optional(),
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
+
+  // Runtime config (new adapter-based config)
+  runtimeConfig: z.object({
+    adapter_id: z.string().optional(),
+    overrides: z.any().optional(),
+  }).optional(),
 
   // Persona
   personaName: z.string().optional(),
