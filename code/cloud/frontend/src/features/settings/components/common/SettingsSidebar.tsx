@@ -57,7 +57,7 @@ function SettingsCategoryItem({ category, isActive, onClick }: SettingsCategoryI
       {isActive && (
         <motion.div
           layoutId="activeCategory"
-          className="absolute inset-0 bg-white/10 rounded-lg"
+          className="absolute inset-0 bg-white/5 rounded-lg border border-white/10"
           transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
         />
       )}
