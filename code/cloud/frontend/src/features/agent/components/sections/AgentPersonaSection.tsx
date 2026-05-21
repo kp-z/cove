@@ -30,17 +30,17 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Persona Name">
-            <Input 
-              value={value.name} 
-              onChange={e => onChange({ name: e.target.value })} 
-              placeholder="Technical Expert" 
+            <Input
+              value={value.name}
+              onChange={e => onChange({ name: e.target.value })}
+              placeholder="Technical Expert"
             />
           </FormField>
           <FormField label="Title">
-            <Input 
-              value={value.title} 
-              onChange={e => onChange({ title: e.target.value })} 
-              placeholder="Senior Engineer" 
+            <Input
+              value={value.title}
+              onChange={e => onChange({ title: e.target.value })}
+              placeholder="Senior Engineer"
             />
           </FormField>
         </div>
@@ -53,16 +53,16 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
           />
         </FormField>
 
-        <div className="border-t pt-4">
+        <div className="pt-4 border-t border-border/30">
           <h4 className="text-sm font-medium mb-3">Language Style</h4>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Formality">
-                <select 
-                  value={value.languageStyle.formality} 
-                  onChange={e => onChange({ 
-                    languageStyle: { ...value.languageStyle, formality: e.target.value } 
-                  })} 
+                <select
+                  value={value.languageStyle.formality}
+                  onChange={e => onChange({
+                    languageStyle: { ...value.languageStyle, formality: e.target.value }
+                  })}
                   className={SELECT_CLASS}
                 >
                   {FORMALITY_OPTIONS.map(o => (
@@ -73,11 +73,11 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
                 </select>
               </FormField>
               <FormField label="Verbosity">
-                <select 
-                  value={value.languageStyle.verbosity} 
-                  onChange={e => onChange({ 
-                    languageStyle: { ...value.languageStyle, verbosity: e.target.value } 
-                  })} 
+                <select
+                  value={value.languageStyle.verbosity}
+                  onChange={e => onChange({
+                    languageStyle: { ...value.languageStyle, verbosity: e.target.value }
+                  })}
                   className={SELECT_CLASS}
                 >
                   {VERBOSITY_OPTIONS.map(o => (
@@ -91,8 +91,8 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
             <FormField label="Preferred Language">
               <Input
                 value={value.languageStyle.preferredLanguage}
-                onChange={e => onChange({ 
-                  languageStyle: { ...value.languageStyle, preferredLanguage: e.target.value } 
+                onChange={e => onChange({
+                  languageStyle: { ...value.languageStyle, preferredLanguage: e.target.value }
                 })}
                 placeholder="en, zh-CN"
               />
@@ -100,23 +100,23 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
           </div>
         </div>
 
-        <div className="border-t pt-4">
+        <div className="pt-4 border-t border-border/30">
           <h4 className="text-sm font-medium mb-3">Behavior</h4>
           <div className="space-y-3">
             <CheckboxField
               id="proactive"
               label="Proactive"
               checked={value.behavior.proactive}
-              onChange={checked => onChange({ 
-                behavior: { ...value.behavior, proactive: checked } 
+              onChange={checked => onChange({
+                behavior: { ...value.behavior, proactive: checked }
               })}
             />
             <CheckboxField
               id="askBeforeAction"
               label="Ask Before Action"
               checked={value.behavior.askBeforeAction}
-              onChange={checked => onChange({ 
-                behavior: { ...value.behavior, askBeforeAction: checked } 
+              onChange={checked => onChange({
+                behavior: { ...value.behavior, askBeforeAction: checked }
               })}
             />
           </div>

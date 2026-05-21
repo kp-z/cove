@@ -27,7 +27,7 @@ export function AgentSkillsToolsSection({ value, onChange }: AgentSkillsToolsSec
 
   return (
     <SectionCard title="Skills & Tools" icon={<Wrench size={20} />}>
-      <div className="space-y-5">
+      <div className="space-y-4">
         <TagInput
           label="Skill IDs"
           tags={value.skillIds}

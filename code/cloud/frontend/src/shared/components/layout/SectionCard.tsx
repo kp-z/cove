@@ -9,8 +9,8 @@ interface SectionCardProps {
 
 export function SectionCard({ title, icon, children, className }: SectionCardProps) {
   return (
-    <GlassCard className={`p-6 ${className || ''}`}>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+    <GlassCard className={`p-4 ${className || ''}`}>
+      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         {icon}
         {title}
       </h3>
