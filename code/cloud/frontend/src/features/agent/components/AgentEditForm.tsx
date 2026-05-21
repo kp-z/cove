@@ -164,7 +164,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
             </div>
           </div>
         ) : (
-          <div className="py-6">
+          <>
             {!isCreateMode && agent && agentFilesPath ? (
               <FileEditorWorkspace
                 adapter={fileSystemAdapter}
@@ -175,7 +175,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                 <p className="text-muted-foreground">Save the agent first to access files</p>
               </div>
             )}
-          </div>
+          </>
         )}
       </PageContent>
     </PageShell>
