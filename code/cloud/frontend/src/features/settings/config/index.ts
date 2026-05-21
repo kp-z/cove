@@ -1,1 +1,1 @@
-export { settingsCategories, type SettingsCategory } from './settingsCategories'
+export { settingsCategories, settingsCategoryGroups, type SettingsCategory, type SettingsCategoryGroup } from './settingsCategories'

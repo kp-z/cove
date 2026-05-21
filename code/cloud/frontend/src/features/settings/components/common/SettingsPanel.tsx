@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { AccountPanel } from '../panels/AccountPanel'
+import { SecurityPanel } from '../panels/SecurityPanel'
 import { GeneralPanel } from '../panels/GeneralPanel'
 import { AppearancePanel } from '../panels/AppearancePanel'
 import { NotificationsPanel } from '../panels/NotificationsPanel'
-import { AccountPanel } from '../panels/AccountPanel'
-import { SecurityPanel } from '../panels/SecurityPanel'
 import { AdaptersPanel } from '../panels/AdaptersPanel'
 
 interface SettingsPanelProps {
@@ -22,11 +22,11 @@ export function SettingsPanel({ activeCategory }: SettingsPanelProps) {
           transition={{ duration: 0.2 }}
           className="pb-8"
         >
+          {activeCategory === 'account' && <AccountPanel />}
+          {activeCategory === 'security' && <SecurityPanel />}
           {activeCategory === 'general' && <GeneralPanel />}
           {activeCategory === 'appearance' && <AppearancePanel />}
           {activeCategory === 'notifications' && <NotificationsPanel />}
-          {activeCategory === 'account' && <AccountPanel />}
-          {activeCategory === 'security' && <SecurityPanel />}
           {activeCategory === 'adapters' && <AdaptersPanel />}
         </motion.div>
       </AnimatePresence>

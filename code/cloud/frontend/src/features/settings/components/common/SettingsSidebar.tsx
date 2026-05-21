@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { settingsCategories, type SettingsCategory } from '../../config'
+import { settingsCategoryGroups, type SettingsCategory } from '../../config'
 
 interface SettingsSidebarProps {
   activeCategory: string
@@ -9,14 +9,25 @@ interface SettingsSidebarProps {
 export function SettingsSidebar({ activeCategory, onCategoryChange }: SettingsSidebarProps) {
   return (
     <div className="w-64 flex-shrink-0">
-      <nav className="space-y-1">
-        {settingsCategories.map((category) => (
-          <SettingsCategoryItem
-            key={category.id}
-            category={category}
-            isActive={activeCategory === category.id}
-            onClick={() => onCategoryChange(category.id)}
-          />
+      <nav className="space-y-6">
+        {settingsCategoryGroups.map((group) => (
+          <div key={group.id}>
+            <div className="px-4 mb-2">
+              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+                {group.name}
+              </h3>
+            </div>
+            <div className="space-y-1">
+              {group.categories.map((category) => (
+                <SettingsCategoryItem
+                  key={category.id}
+                  category={category}
+                  isActive={activeCategory === category.id}
+                  onClick={() => onCategoryChange(category.id)}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
     </div>

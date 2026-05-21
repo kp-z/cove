@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/stores/settingsStore'
-import { SettingsSection, SettingsItem } from '../common/SettingsItem'
-import { FormSelect } from '@/shared/components/ui/FormControls'
+import { SettingsCard } from '../common/SettingsCard'
+import { SettingsRow, SettingsSelect } from '../common/SettingsControls'
 
 export function GeneralPanel() {
   const { t } = useTranslation('settings')
@@ -11,54 +11,52 @@ export function GeneralPanel() {
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">{t('general.title')}</h2>
 
-      <SettingsSection
-        title={t('general.language.label')}
-        description={t('general.language.description')}
+      <SettingsCard
+        title={t('general.preferences.title')}
+        description={t('general.preferences.description')}
       >
-        <SettingsItem
+        <SettingsRow
           label={t('general.language.label')}
           description={t('general.language.description')}
         >
-          <FormSelect
+          <SettingsSelect
             value={language}
-            onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
-          >
-            <option value="en">{t('general.language.options.en')}</option>
-            <option value="zh">{t('general.language.options.zh')}</option>
-          </FormSelect>
-        </SettingsItem>
+            onChange={(value) => setLanguage(value as 'en' | 'zh')}
+            options={[
+              { value: 'en', label: t('general.language.options.en') },
+              { value: 'zh', label: t('general.language.options.zh') },
+            ]}
+          />
+        </SettingsRow>
 
-        <SettingsItem
+        <SettingsRow
           label={t('general.timezone.label')}
           description={t('general.timezone.description')}
         >
-          <FormSelect
+          <SettingsSelect
             value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-          >
-            <option value="auto">{t('general.timezone.auto')}</option>
-            <option value="utc">UTC</option>
-          </FormSelect>
-        </SettingsItem>
-      </SettingsSection>
+            onChange={setTimezone}
+            options={[
+              { value: 'auto', label: t('general.timezone.auto') },
+              { value: 'utc', label: 'UTC' },
+            ]}
+          />
+        </SettingsRow>
 
-      <SettingsSection
-        title={t('general.projectView.label')}
-        description={t('general.projectView.description')}
-      >
-        <SettingsItem
+        <SettingsRow
           label={t('general.projectView.label')}
           description={t('general.projectView.description')}
         >
-          <FormSelect
+          <SettingsSelect
             value={defaultProjectView}
-            onChange={(e) => setDefaultProjectView(e.target.value as 'grid' | 'list')}
-          >
-            <option value="grid">{t('general.projectView.grid')}</option>
-            <option value="list">{t('general.projectView.list')}</option>
-          </FormSelect>
-        </SettingsItem>
-      </SettingsSection>
+            onChange={(value) => setDefaultProjectView(value as 'grid' | 'list')}
+            options={[
+              { value: 'grid', label: t('general.projectView.grid') },
+              { value: 'list', label: t('general.projectView.list') },
+            ]}
+          />
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }
