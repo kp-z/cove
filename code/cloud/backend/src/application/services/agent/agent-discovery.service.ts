@@ -16,21 +16,6 @@ interface AgentMetadata {
   created_at?: string;
 }
 
-interface PersonaConfig {
-  name?: string;
-  title?: string;
-  description?: string;
-  language_style?: {
-    formality?: string;
-    verbosity?: string;
-    preferred_language?: string;
-  };
-  behavior?: {
-    proactive?: boolean;
-    ask_before_action?: boolean;
-  };
-}
-
 export class AgentDiscoveryService {
   private readonly agentsDir: string;
 
@@ -83,18 +68,16 @@ export class AgentDiscoveryService {
         return;
       }
 
-      const persona = await this.readPersonaConfig(agentDir);
-
       const existingAgent = await this.prisma.agent.findUnique({
         where: { id: metadata.agent_id },
       });
 
       if (existingAgent) {
         console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} exists in database, updating (filesystem wins)...`);
-        await this.updateAgent(metadata, persona);
+        await this.updateAgent(metadata);
       } else {
         console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} not in database, creating...`);
-        await this.createAgent(metadata, persona);
+        await this.createAgent(metadata);
       }
     } catch (error) {
       console.error(`[AgentDiscoveryService] Failed to sync agent ${agentDirName}`, error);
@@ -131,41 +114,12 @@ export class AgentDiscoveryService {
     }
   }
 
-  private async readPersonaConfig(agentDir: string): Promise<PersonaConfig | null> {
-    const personaPath = path.join(agentDir, 'persona.yaml');
-
-    try {
-      const content = await fs.readFile(personaPath, 'utf-8');
-      return yaml.load(content) as PersonaConfig;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.error(`[AgentDiscoveryService] Failed to read persona.yaml in ${agentDir}`, error);
-      }
-      return null;
-    }
-  }
-
   private async createAgent(
     metadata: AgentMetadata,
-    persona: PersonaConfig | null,
   ): Promise<void> {
     const now = new Date();
-    const coveRoot = path.join(os.homedir(), '.cove');
-    const configPath = path.join('storage', 'agents', `${metadata.agent_id}.json`);
-
-    // Create config file with persona data
-    const configData = {
-      description: persona?.description || '',
-      role: metadata.category || 'custom',
-      capabilities: metadata.capabilities || [],
-      tags: metadata.tags || [],
-      createdBy: metadata.created_by || 'system',
-      scope: 'user',
-    };
-
-    const configFullPath = path.join(coveRoot, configPath);
-    await fs.mkdir(path.dirname(configFullPath), { recursive: true });
-    await fs.writeFile(configFullPath, JSON.stringify(configData, null, 2), 'utf-8');
+    const agentDir = path.join(os.homedir(), '.cove', 'agents', metadata.agent_id);
+    const configPath = path.join('storage', 'agents', metadata.agent_id);
 
     await this.prisma.agent.create({
       data: {
@@ -183,37 +137,13 @@ export class AgentDiscoveryService {
       },
     });
 
-    console.log(`[AgentDiscoveryService] Created agent ${metadata.agent_id} in database`);
+    console.log(`[AgentDiscoveryService] Created agent ${metadata.agent_id} in database (workspace: ${agentDir})`);
   }
 
   private async updateAgent(
     metadata: AgentMetadata,
-    persona: PersonaConfig | null,
   ): Promise<void> {
-    const coveRoot = path.join(os.homedir(), '.cove');
-
-    // Get existing agent to find configPath
-    const existingAgent = await this.prisma.agent.findUnique({
-      where: { id: metadata.agent_id },
-    });
-
-    if (!existingAgent) {
-      throw new Error(`Agent ${metadata.agent_id} not found`);
-    }
-
-    // Update config file with persona data
-    const configData = {
-      description: persona?.description || '',
-      role: metadata.category || 'custom',
-      capabilities: metadata.capabilities || [],
-      tags: metadata.tags || [],
-      createdBy: metadata.created_by || 'system',
-      scope: 'user',
-    };
-
-    const configFullPath = path.join(coveRoot, existingAgent.configPath);
-    await fs.mkdir(path.dirname(configFullPath), { recursive: true });
-    await fs.writeFile(configFullPath, JSON.stringify(configData, null, 2), 'utf-8');
+    const agentDir = path.join(os.homedir(), '.cove', 'agents', metadata.agent_id);
 
     await this.prisma.agent.update({
       where: { id: metadata.agent_id },
@@ -224,6 +154,6 @@ export class AgentDiscoveryService {
       },
     });
 
-    console.log(`[AgentDiscoveryService] Updated agent ${metadata.agent_id} in database (filesystem wins)`);
+    console.log(`[AgentDiscoveryService] Updated agent ${metadata.agent_id} in database (filesystem wins, workspace: ${agentDir})`);
   }
 }

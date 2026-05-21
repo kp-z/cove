@@ -120,23 +120,7 @@ ${config.tags.join(', ')}
 `;
     await fs.writeFile(agentMdPath, agentMdContent, 'utf-8');
 
-    // 5. Create agent.json metadata
-    const metadataPath = path.join(this.storageRoot, 'storage', 'agents', `${config.id}.json`);
-    const metadata = {
-      description: config.description,
-      role: config.role,
-      capabilities: config.capabilities,
-      tags: config.tags,
-      createdBy: 'system',
-      scope: 'built-in',
-    };
-    await fs.writeFile(
-      metadataPath,
-      JSON.stringify(metadata, null, 2),
-      'utf-8'
-    );
-
-    // 6. Create runtime.yaml if it doesn't exist (don't overwrite user customizations)
+    // 5. Create runtime.yaml if it doesn't exist (don't overwrite user customizations)
     const runtimePath = path.join(agentDir, 'runtime.yaml');
     try {
       await fs.access(runtimePath);
