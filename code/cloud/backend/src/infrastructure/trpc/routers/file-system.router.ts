@@ -52,18 +52,36 @@ interface FileNode {
 }
 
 /**
- * Resolve a path to an absolute path
+ * Resolve a path to an absolute path with security checks
  * Handles relative paths by resolving them from the user's home directory
+ * Ensures the resolved path stays within the allowed base directory (.cove)
+ *
+ * @throws Error if path attempts to escape the base directory
  */
 function resolveAbsolutePath(inputPath: string): string {
-  // If already absolute, return as-is
+  const homeDir = os.homedir();
+  const baseDir = path.join(homeDir, '.cove');
+
+  // Resolve the input path
+  let resolvedPath: string;
   if (path.isAbsolute(inputPath)) {
-    return inputPath;
+    resolvedPath = path.normalize(inputPath);
+  } else {
+    resolvedPath = path.resolve(homeDir, inputPath);
   }
 
-  // Resolve relative paths from home directory
-  const homeDir = os.homedir();
-  return path.resolve(homeDir, inputPath);
+  // Security check: ensure the resolved path is within the base directory
+  const relativePath = path.relative(baseDir, resolvedPath);
+
+  // If relative path starts with '..' or is absolute, it's outside base directory
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error(
+      `Access denied: Path "${inputPath}" resolves outside allowed directory. ` +
+      `All file operations must be within ${baseDir}`
+    );
+  }
+
+  return resolvedPath;
 }
 
 async function buildFileTree(dirPath: string): Promise<FileNode[]> {
