@@ -74,24 +74,20 @@ export function AdaptersPanel() {
   }
 
   const handleTestConnection = async (adapterId: string) => {
-    try {
-      const result = await testConnection.mutateAsync({ adapterId })
+    const result = await testConnection.mutateAsync({ adapterId })
 
-      if (result.success) {
-        toast.success(result.message, {
-          description: result.details?.modelCount
-            ? `Found ${result.details.modelCount} models (${result.details.latency}ms)`
-            : `Latency: ${result.details?.latency}ms`,
-        })
-      } else {
-        toast.error('Connection test failed', {
-          description: result.message,
-        })
-      }
-    } catch (error) {
-      toast.error('Connection test failed', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+    if (result.success) {
+      toast.success(result.message, {
+        description: result.details?.modelCount
+          ? `Found ${result.details.modelCount} models (${result.details.latency}ms)`
+          : `Latency: ${result.details?.latency}ms`,
       })
+    } else {
+      const errorMessage = result.message || 'Unknown error'
+      toast.error('Connection test failed', {
+        description: errorMessage,
+      })
+      throw new Error(errorMessage)
     }
   }
 
