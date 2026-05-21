@@ -23,7 +23,6 @@ export function useFileSystem({
     openTabs: [],
     activeTabId: null,
     isLoading: false,
-    error: null,
   });
 
   const loadFileTree = useCallback(async () => {
@@ -38,10 +37,10 @@ export function useFileSystem({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load file tree';
       notify.toast.error('Failed to load file tree', errorMessage);
+      notify.persistent.error('Failed to load file tree', errorMessage);
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: null,
       }));
     }
   }, [adapter, rootPath]);
@@ -87,10 +86,7 @@ export function useFileSystem({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to open file';
         notify.toast.error('Failed to open file', errorMessage);
-        setState((prev) => ({
-          ...prev,
-          error: null,
-        }));
+        notify.persistent.error('Failed to open file', errorMessage);
       }
     },
     [adapter, state.openTabs]
@@ -134,10 +130,7 @@ export function useFileSystem({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to save file';
         notify.toast.error('Failed to save file', errorMessage);
-        setState((prev) => ({
-          ...prev,
-          error: null,
-        }));
+        notify.persistent.error('Failed to save file', errorMessage);
       }
     },
     [adapter, state.openTabs]
@@ -151,10 +144,7 @@ export function useFileSystem({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to create file';
         notify.toast.error('Failed to create file', errorMessage);
-        setState((prev) => ({
-          ...prev,
-          error: null,
-        }));
+        notify.persistent.error('Failed to create file', errorMessage);
       }
     },
     [adapter, loadFileTree]
@@ -168,10 +158,7 @@ export function useFileSystem({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to create directory';
         notify.toast.error('Failed to create directory', errorMessage);
-        setState((prev) => ({
-          ...prev,
-          error: null,
-        }));
+        notify.persistent.error('Failed to create directory', errorMessage);
       }
     },
     [adapter, loadFileTree]
@@ -196,10 +183,9 @@ export function useFileSystem({
 
         await loadFileTree();
       } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: error instanceof Error ? error.message : 'Failed to delete',
-        }));
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete';
+        notify.toast.error('Failed to delete', errorMessage);
+        notify.persistent.error('Failed to delete', errorMessage);
       }
     },
     [adapter, loadFileTree, state.fileTree]
@@ -232,10 +218,9 @@ export function useFileSystem({
 
         await loadFileTree();
       } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          error: error instanceof Error ? error.message : 'Failed to rename',
-        }));
+        const errorMessage = error instanceof Error ? error.message : 'Failed to rename';
+        notify.toast.error('Failed to rename', errorMessage);
+        notify.persistent.error('Failed to rename', errorMessage);
       }
     },
     [adapter, loadFileTree]

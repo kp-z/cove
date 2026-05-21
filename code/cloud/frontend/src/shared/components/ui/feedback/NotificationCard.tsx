@@ -103,9 +103,10 @@ export const NotificationCard = React.memo(
           {showDismiss && onDismiss && (
             <button
               onClick={onDismiss}
-              className="flex-shrink-0 w-5 h-5 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+              className="flex-shrink-0 w-5 h-5 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+              aria-label="Dismiss notification"
             >
-              <X size={12} className="text-slate-400" />
+              <X size={12} className="text-slate-400 hover:text-slate-200" />
             </button>
           )}
         </div>

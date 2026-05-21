@@ -37,7 +37,6 @@ export interface FileEditorState {
   openTabs: EditorTab[];
   activeTabId: string | null;
   isLoading: boolean;
-  error: string | null;
 }
 
 export interface FileEditorActions {
