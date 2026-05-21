@@ -55,6 +55,7 @@ import { AgentConfigService } from './application/services/agent/agent-config.se
 import { AgentTaskService } from './application/services/agent/agent-task.service';
 import { AgentResponseService } from './application/services/agent/agent-response.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
+import { AgentDiscoveryService } from './application/services/agent/agent-discovery.service';
 import { AdapterService } from './application/services/adapter/adapter.service';
 import { ThreadService } from './application/services/thread/thread.service';
 import { TaskService } from './application/services/task/task.service';
@@ -609,6 +610,12 @@ async function startServer() {
       logger,
     });
     await presetAvatarsInitializer.initialize();
+
+    // Discover and sync agents from filesystem
+    logger.info('Starting agent discovery and sync...');
+    const agentDiscoveryService = new AgentDiscoveryService(prisma);
+    await agentDiscoveryService.discoverAndSyncAgents();
+    logger.info('Agent discovery and sync completed');
 
     const deps = initializeDependencies();
 
