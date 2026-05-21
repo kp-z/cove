@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Cpu, Check } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
@@ -22,14 +22,6 @@ interface RuntimeAdapterConfigProps {
   };
   onChange: (value: { adapter_id?: string; overrides?: AdapterConfig }) => void;
 }
-
-// Adapter type icons
-const ADAPTER_ICONS: Record<string, string> = {
-  anthropic: '🤖',
-  openai: '🧠',
-  ollama: '🦙',
-  default: '⚡',
-};
 
 export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigProps) {
   const { data: adaptersData, isLoading: adaptersLoading, error: adaptersError } = useAdapters();
@@ -109,91 +101,36 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
         <h3 className="text-lg font-semibold">Runtime Configuration</h3>
       </div>
 
-      {/* Adapter Selection - Card Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Select Adapter</label>
-          <span className="text-xs text-muted-foreground">
-            {adapters.length} available
-          </span>
-        </div>
-
-        {adaptersLoading ? (
-          <div className="grid grid-cols-1 gap-3">
-            {[1, 2].map(i => (
-              <div key={i} className="animate-pulse bg-background/50 h-20 rounded-lg border border-border" />
-            ))}
-          </div>
-        ) : adaptersError ? (
-          <div className="p-4 rounded-lg border border-red-500/20 bg-red-500/5">
+      {/* Adapter Selection - Simple Dropdown */}
+      <FormField
+        label="Select Adapter"
+        hint={adaptersLoading ? 'Loading...' : `${adapters.length} available`}
+      >
+        {adaptersError ? (
+          <div className="p-3 rounded-md border border-red-500/20 bg-red-500/5">
             <p className="text-sm text-red-500">Failed to load adapters</p>
           </div>
-        ) : adapters.length === 0 ? (
-          <div className="p-4 rounded-lg border border-border bg-background/30">
-            <p className="text-sm text-muted-foreground">
-              No adapters found. Create one in Settings first.
-            </p>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
+          <select
+            value={selectedAdapterId}
+            onChange={e => handleAdapterChange(e.target.value)}
+            className={INPUT_CLASS}
+            disabled={adaptersLoading}
+          >
+            <option value="">
+              {adaptersLoading ? 'Loading adapters...' : 'Select an adapter...'}
+            </option>
             {adapters.map((adapter: any) => {
-              const isSelected = selectedAdapterId === adapter.id;
-              const icon = ADAPTER_ICONS[adapter.type] || ADAPTER_ICONS.default;
-
+              const scopeLabel = adapter.scope === 'shared' ? 'shared' : 'private';
               return (
-                <button
-                  key={adapter.id}
-                  onClick={() => handleAdapterChange(adapter.id)}
-                  className={`
-                    relative p-4 rounded-lg border-2 transition-all text-left
-                    hover:border-primary/50
-                    ${isSelected
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-background/30'
-                    }
-                  `}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div className="text-2xl flex-shrink-0">{icon}</div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground truncate">
-                          {adapter.name}
-                        </span>
-                        {adapter.scope === 'shared' && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                            Shared
-                          </span>
-                        )}
-                        {adapter.scope === 'private' && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                            Private
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-0.5">
-                        {adapter.type}
-                      </div>
-                    </div>
-
-                    {/* Selected Indicator */}
-                    {isSelected && (
-                      <div className="flex-shrink-0">
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </button>
+                <option key={adapter.id} value={adapter.id}>
+                  {adapter.name} ({adapter.type}, {scopeLabel})
+                </option>
               );
             })}
-          </div>
+          </select>
         )}
-      </div>
+      </FormField>
 
       {/* Configuration Override Section */}
       {selectedAdapter && (
