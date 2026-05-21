@@ -39,7 +39,10 @@ export class FileSystemClient implements FileSystemAdapter {
   async readFile(path: string): Promise<string> {
     try {
       const result = await this.trpc.filesystem.readFile.query({ path });
-      return result.content;
+
+      // Handle wrapped response format {success: true, data: {content, encoding, size, modifiedAt}}
+      const data = result?.data ?? result;
+      return data.content;
     } catch (error) {
       console.error('Failed to read file:', error);
       throw new Error(`Failed to read file: ${path}`);
