@@ -9,7 +9,7 @@ import { PageContent } from '@/shared/components/layout/PageContent';
 import { SectionCard } from '@/shared/components/layout/SectionCard';
 import { InfoField } from '@/shared/components/display';
 import { useRealm } from '@/lib/trpc/hooks/realm.hooks';
-import { trpc } from '@/lib/trpc';
+import { trpcVanillaClient } from '@/lib/trpc/client';
 import { FileEditorWorkspace } from '@/features/file-editor';
 import { LocalFileSystemAdapter } from '@/features/file-editor/adapters/LocalFileSystemAdapter';
 import { useAgentFormState, useAgentFormSubmit } from '../hooks';
@@ -40,7 +40,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
   const defaultAdapterId = realm?.settings?.default_adapter_id;
 
   // File system adapter for file editor
-  const fileSystemAdapter = useMemo(() => new LocalFileSystemAdapter(trpc), []);
+  const fileSystemAdapter = useMemo(() => new LocalFileSystemAdapter(trpcVanillaClient), []);
   const agentFilesPath = agent?.repository_path || (agent ? `.cove/agents/${agent.name}` : '');
 
   // Form state management
