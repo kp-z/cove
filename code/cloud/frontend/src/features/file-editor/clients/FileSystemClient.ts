@@ -15,16 +15,22 @@ export class FileSystemClient implements FileSystemAdapter {
     try {
       const result = await this.trpc.filesystem.readDirectory.query({ path });
 
+      // Check if backend returned an error object
+      if (result && typeof result === 'object' && 'error' in result) {
+        throw new Error(`Backend error: ${(result as any).error}`);
+      }
+
       // Type guard: check if result is an array
       if (!Array.isArray(result)) {
-        console.error('API returned non-array:', result);
-        throw new Error(`Invalid response format from readDirectory API`);
+        console.error('Invalid response format:', result);
+        // Return empty array to prevent UI crash
+        return [];
       }
 
       return result.map((item: any) => this.mapToFileNode(item));
     } catch (error) {
       console.error('Failed to read directory:', error);
-      throw new Error(`Failed to read directory: ${path}`);
+      throw error;
     }
   }
 
