@@ -295,6 +295,18 @@ export class AgentEntity {
   // --- Serialization ---
 
   toJSON(): AgentEntityJSON {
+    // Convert persona avatar fields to snake_case
+    const persona = this.props.persona ? {
+      name: this.props.persona.name,
+      role: this.props.persona.role,
+      tone: this.props.persona.tone,
+      instructions: this.props.persona.instructions,
+      avatar_url: this.props.persona.avatarUrl,
+      avatar_type: this.props.persona.avatarType,
+      avatar_seed: this.props.persona.avatarSeed,
+      avatar_style: this.props.persona.avatarStyle,
+    } : undefined;
+
     return {
       agent_id: this.props.agentId,
       name: this.props.name,
@@ -306,7 +318,7 @@ export class AgentEntity {
       capabilities: [...this.capabilities],
       tags: [...this.tags],
       runtime_config: this.props.runtimeConfig,
-      persona: this.props.persona,
+      persona: persona as any,
       skills: this.props.skills,
       tools: this.props.tools,
       triggers: this.props.triggers,
