@@ -101,11 +101,24 @@ export class BuiltInAgentsInitializer {
       'utf-8'
     );
 
-    // 4. Create agent.md
+    // 4. Create agent.md with YAML frontmatter for AgentDiscoveryService
     const agentMdPath = path.join(agentDir, 'agent.md');
-    const agentMdContent = `# ${config.displayName}
+    const frontmatter = {
+      agent_id: config.id,
+      name: config.name,
+      display_name: config.displayName,
+      description: config.description,
+      status: 'active',
+      category: config.role,
+      capabilities: config.capabilities,
+      tags: config.tags,
+    };
+    const agentMdContent = `---
+${yaml.dump(frontmatter, { indent: 2 }).trim()}
+---
 
-**Name**: ${config.name}
+# ${config.displayName}
+
 **Role**: ${config.role}
 **Description**: ${config.description}
 
