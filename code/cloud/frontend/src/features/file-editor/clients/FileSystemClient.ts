@@ -134,7 +134,7 @@ export class FileSystemClient implements FileSystemAdapter {
       id: item.path,
       name: item.name,
       path: item.path,
-      type: item.type,
+      type: item.isDirectory ? 'directory' : 'file',
       children: item.children?.map((child: any) => this.mapToFileNode(child)),
     };
   }
