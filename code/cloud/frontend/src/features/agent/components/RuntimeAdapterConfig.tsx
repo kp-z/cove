@@ -6,13 +6,12 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Cpu, ChevronDown } from 'lucide-react';
+import { Cpu, Check } from 'lucide-react';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 
 const INPUT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50';
-const SELECT_CLASS = 'w-full px-3 py-2 bg-background/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none';
 
 type AdapterConfig = Record<string, unknown>;
 
@@ -23,6 +22,14 @@ interface RuntimeAdapterConfigProps {
   };
   onChange: (value: { adapter_id?: string; overrides?: AdapterConfig }) => void;
 }
+
+// Adapter type icons
+const ADAPTER_ICONS: Record<string, string> = {
+  anthropic: '🤖',
+  openai: '🧠',
+  ollama: '🦙',
+  default: '⚡',
+};
 
 export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigProps) {
   const { data: adaptersData, isLoading: adaptersLoading, error: adaptersError } = useAdapters();
@@ -66,10 +73,6 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
     return [];
   }, [discoveredModels]);
 
-  // Group adapters by scope
-  const sharedAdapters = adapters.filter(a => a.scope === 'shared');
-  const privateAdapters = adapters.filter(a => a.scope === 'private');
-
   // Notify parent of changes
   useEffect(() => {
     if (!selectedAdapterId) {
@@ -106,57 +109,91 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
         <h3 className="text-lg font-semibold">Runtime Configuration</h3>
       </div>
 
-      {/* Adapter Selection */}
-      <FormField
-        label="Select Adapter"
-        hint="Choose an adapter configuration to use for this agent"
-      >
-        <div className="relative">
-          <select
-            value={selectedAdapterId}
-            onChange={e => handleAdapterChange(e.target.value)}
-            className={SELECT_CLASS}
-            disabled={adaptersLoading}
-          >
-            <option value="">
-              {adaptersLoading ? 'Loading adapters...' : '-- Select an adapter --'}
-            </option>
-
-            {sharedAdapters.length > 0 && (
-              <optgroup label="🌐 Shared Adapters">
-                {sharedAdapters.map(adapter => (
-                  <option key={adapter.id} value={adapter.id}>
-                    {adapter.name} ({adapter.type})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-
-            {privateAdapters.length > 0 && (
-              <optgroup label="🔒 Private Adapters">
-                {privateAdapters.map(adapter => (
-                  <option key={adapter.id} value={adapter.id}>
-                    {adapter.name} ({adapter.type})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+      {/* Adapter Selection - Card Grid */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">Select Adapter</label>
+          <span className="text-xs text-muted-foreground">
+            {adapters.length} available
+          </span>
         </div>
 
-        {adaptersError && (
-          <p className="text-sm text-red-500 mt-1">
-            Failed to load adapters
-          </p>
-        )}
+        {adaptersLoading ? (
+          <div className="grid grid-cols-1 gap-3">
+            {[1, 2].map(i => (
+              <div key={i} className="animate-pulse bg-background/50 h-20 rounded-lg border border-border" />
+            ))}
+          </div>
+        ) : adaptersError ? (
+          <div className="p-4 rounded-lg border border-red-500/20 bg-red-500/5">
+            <p className="text-sm text-red-500">Failed to load adapters</p>
+          </div>
+        ) : adapters.length === 0 ? (
+          <div className="p-4 rounded-lg border border-border bg-background/30">
+            <p className="text-sm text-muted-foreground">
+              No adapters found. Create one in Settings first.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {adapters.map((adapter: any) => {
+              const isSelected = selectedAdapterId === adapter.id;
+              const icon = ADAPTER_ICONS[adapter.type] || ADAPTER_ICONS.default;
 
-        {!adaptersLoading && !adaptersError && adapters.length === 0 && (
-          <p className="text-sm text-muted-foreground mt-1">
-            No adapters found. Create one in Settings first.
-          </p>
+              return (
+                <button
+                  key={adapter.id}
+                  onClick={() => handleAdapterChange(adapter.id)}
+                  className={`
+                    relative p-4 rounded-lg border-2 transition-all text-left
+                    hover:border-primary/50
+                    ${isSelected
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-background/30'
+                    }
+                  `}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className="text-2xl flex-shrink-0">{icon}</div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground truncate">
+                          {adapter.name}
+                        </span>
+                        {adapter.scope === 'shared' && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            Shared
+                          </span>
+                        )}
+                        {adapter.scope === 'private' && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            Private
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {adapter.type}
+                      </div>
+                    </div>
+
+                    {/* Selected Indicator */}
+                    {isSelected && (
+                      <div className="flex-shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         )}
-      </FormField>
+      </div>
 
       {/* Configuration Override Section */}
       {selectedAdapter && (
@@ -173,24 +210,21 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
           {/* Model Selection */}
           {availableModels.length > 0 && (
             <FormField label="Model" hint="Override the model for this agent">
-              <div className="relative">
-                <select
-                  value={(config.model as string) || ''}
-                  onChange={e => handleConfigChange('model', e.target.value)}
-                  className={SELECT_CLASS}
-                  disabled={modelsLoading}
-                >
-                  <option value="">
-                    {modelsLoading ? 'Loading models...' : 'Use adapter default'}
+              <select
+                value={(config.model as string) || ''}
+                onChange={e => handleConfigChange('model', e.target.value)}
+                className={INPUT_CLASS}
+                disabled={modelsLoading}
+              >
+                <option value="">
+                  {modelsLoading ? 'Loading models...' : 'Use adapter default'}
+                </option>
+                {availableModels.map(model => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
                   </option>
-                  {availableModels.map(model => (
-                    <option key={model.value} value={model.value}>
-                      {model.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              </div>
+                ))}
+              </select>
             </FormField>
           )}
 
