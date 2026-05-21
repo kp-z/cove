@@ -14,6 +14,13 @@ export class FileSystemClient implements FileSystemAdapter {
   async readDirectory(path: string): Promise<FileNode[]> {
     try {
       const result = await this.trpc.filesystem.readDirectory.query({ path });
+
+      // Type guard: check if result is an array
+      if (!Array.isArray(result)) {
+        console.error('API returned non-array:', result);
+        throw new Error(`Invalid response format from readDirectory API`);
+      }
+
       return result.map((item: any) => this.mapToFileNode(item));
     } catch (error) {
       console.error('Failed to read directory:', error);
