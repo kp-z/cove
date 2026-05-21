@@ -25,8 +25,8 @@ import {
   BookOpen,
   type LucideIcon,
 } from 'lucide-react';
-import { useAgents } from '@/lib/trpc/hooks';
-import type { Agent } from '@/lib/trpc-types';
+import { useAgents, useUsers } from '@/lib/trpc/hooks';
+import type { Agent, User } from '@/lib/trpc-types';
 
 // ── Tool → Icon 映射 ──
 const TOOL_ICON_MAP: Record<string, LucideIcon> = {
@@ -82,6 +82,13 @@ function getAgentAvatarUrl(agent: Agent): string {
   // TODO: 实现真实的头像 URL 逻辑
   // 暂时使用 placeholder
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.agent_id}`;
+}
+
+// ── 获取 User 头像 URL ──
+function getUserAvatarUrl(user: User): string {
+  // TODO: 实现真实的头像 URL 逻辑
+  // 暂时使用 placeholder
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.user_id}`;
 }
 
 // ── 叠层图标（Skills + Tools）──
@@ -140,33 +147,57 @@ function StackedIcons({
 // ── 叠层头像 ──
 function StackedAvatars({
   agents,
+  users,
   max = 3
 }: {
   agents: Agent[];
+  users: User[];
   max?: number;
 }) {
-  // 防御性检查：确保 agents 是数组
-  if (!Array.isArray(agents) || agents.length === 0) return null;
+  // 防御性检查：确保 agents 和 users 是数组
+  const validAgents = Array.isArray(agents) ? agents : [];
+  const validUsers = Array.isArray(users) ? users : [];
+  const totalMembers = validAgents.length + validUsers.length;
 
-  const visible = agents.slice(0, max);
-  const overflow = agents.length - max;
+  if (totalMembers === 0) return null;
+
+  // 合并 agents 和 users，agents 优先显示
+  const allMembers: Array<{ type: 'agent' | 'user'; data: Agent | User }> = [
+    ...validAgents.map(agent => ({ type: 'agent' as const, data: agent })),
+    ...validUsers.map(user => ({ type: 'user' as const, data: user })),
+  ];
+
+  const visible = allMembers.slice(0, max);
+  const overflow = totalMembers - max;
 
   return (
     <div className="flex items-center">
-      {visible.map((agent, i) => (
-        <div
-          key={agent.agent_id}
-          className={`w-6 h-6 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${i > 0 ? '-ml-2' : ''}`}
-          style={{ zIndex: max - i }}
-          title={agent.display_name || agent.name}
-        >
-          <img
-            src={getAgentAvatarUrl(agent)}
-            alt={agent.display_name || agent.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      ))}
+      {visible.map((member, i) => {
+        const isAgent = member.type === 'agent';
+        const data = member.data;
+        const id = isAgent ? (data as Agent).agent_id : (data as User).user_id;
+        const name = isAgent
+          ? ((data as Agent).display_name || (data as Agent).name)
+          : ((data as User).username || (data as User).email);
+        const avatarUrl = isAgent
+          ? getAgentAvatarUrl(data as Agent)
+          : getUserAvatarUrl(data as User);
+
+        return (
+          <div
+            key={`${member.type}-${id}`}
+            className={`w-6 h-6 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${i > 0 ? '-ml-2' : ''}`}
+            style={{ zIndex: max - i }}
+            title={name}
+          >
+            <img
+              src={avatarUrl}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        );
+      })}
       {overflow > 0 && (
         <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center ring-1 ring-[#0f111a] -ml-2 text-[9px] text-gray-400 font-bold flex-shrink-0">
           +{overflow}
@@ -214,6 +245,35 @@ function AgentRow({ agent }: { agent: Agent }) {
   );
 }
 
+// ── User 行（展开态每行） ──
+function UserRow({ user }: { user: User }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
+      {/* 头像 */}
+      <div
+        className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
+        title={user.username || user.email}
+      >
+        <img
+          src={getUserAvatarUrl(user)}
+          alt={user.username || user.email}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* 名称 */}
+      <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
+        {user.username || user.email}
+      </span>
+
+      {/* 用户标识 */}
+      <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
+        <span>User</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Props ──
 export interface ChannelMemberBarProps {
   channelId?: string;
@@ -225,7 +285,8 @@ export function ChannelMemberBar({
   className = ''
 }: ChannelMemberBarProps) {
   const [expanded, setExpanded] = useState(false);
-  const { data: agentsResponse, isLoading } = useAgents();
+  const { data: agentsResponse, isLoading: isLoadingAgents } = useAgents();
+  const { data: usersResponse, isLoading: isLoadingUsers } = useUsers();
 
   const handleToggleExpand = useCallback(() => {
     setExpanded(prev => !prev);
@@ -238,10 +299,19 @@ export function ChannelMemberBar({
     : Array.isArray(agentsResponse?.agents)
     ? agentsResponse.agents
     : [];
+
+  // 获取 users
+  const channelUsers = Array.isArray(usersResponse)
+    ? usersResponse
+    : Array.isArray(usersResponse?.users)
+    ? usersResponse.users
+    : [];
+
   const primaryAgent = channelAgents[0] || null;
+  const totalMembers = channelAgents.length + channelUsers.length;
 
   // 加载态
-  if (isLoading) {
+  if (isLoadingAgents || isLoadingUsers) {
     return (
       <div className={`px-4 py-3 border-b border-white/10 flex items-center gap-2 ${className}`}>
         <div className="w-6 h-6 rounded-lg flex items-center justify-center bg-indigo-500/20 flex-shrink-0">
@@ -263,18 +333,39 @@ export function ChannelMemberBar({
             className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
           >
             <ChevronDown className="w-3.5 h-3.5" />
-            <span className="font-medium">Agents</span>
-            <span className="text-gray-600">({channelAgents.length})</span>
+            <span className="font-medium">Members</span>
+            <span className="text-gray-600">({totalMembers})</span>
           </button>
         </div>
 
-        {/* Agent 列表 */}
+        {/* Agent 和 User 列表 */}
         <div className="max-h-48 overflow-y-auto border-t border-white/5">
-          {channelAgents.map(agent => (
-            <AgentRow key={agent.agent_id} agent={agent} />
-          ))}
-          {channelAgents.length === 0 && (
-            <div className="px-3 py-2 text-xs text-gray-600">无 Agent</div>
+          {/* Agents 部分 */}
+          {channelAgents.length > 0 && (
+            <>
+              <div className="px-3 py-1 text-[10px] text-gray-500 font-medium">
+                Agents ({channelAgents.length})
+              </div>
+              {channelAgents.map(agent => (
+                <AgentRow key={agent.agent_id} agent={agent} />
+              ))}
+            </>
+          )}
+
+          {/* Users 部分 */}
+          {channelUsers.length > 0 && (
+            <>
+              <div className="px-3 py-1 text-[10px] text-gray-500 font-medium">
+                Users ({channelUsers.length})
+              </div>
+              {channelUsers.map(user => (
+                <UserRow key={user.user_id} user={user} />
+              ))}
+            </>
+          )}
+
+          {totalMembers === 0 && (
+            <div className="px-3 py-2 text-xs text-gray-600">无成员</div>
           )}
         </div>
       </div>
@@ -296,7 +387,7 @@ export function ChannelMemberBar({
       </button>
 
       {/* 叠层头像 */}
-      <StackedAvatars agents={channelAgents} />
+      <StackedAvatars agents={channelAgents} users={channelUsers} />
 
       {/* 名称 + 模型 */}
       {primaryAgent && (
@@ -314,6 +405,13 @@ export function ChannelMemberBar({
       {/* 叠层 skill/tool 图标 */}
       {primaryAgent && (primarySkills.length > 0 || primaryTools.length > 0) && (
         <StackedIcons skills={primarySkills} tools={primaryTools} />
+      )}
+
+      {/* 成员数量 */}
+      {totalMembers > 1 && (
+        <span className="text-[10px] text-gray-500 flex-shrink-0">
+          +{totalMembers - 1}
+        </span>
       )}
 
       {/* 占位 flex-1 推按钮到右侧 */}
