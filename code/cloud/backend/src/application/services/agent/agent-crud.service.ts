@@ -147,6 +147,7 @@ export class AgentCrudService {
           role: dto.role ?? agent.persona?.role ?? 'assistant',
           tone: dto.tone ?? agent.persona?.tone,
           instructions: dto.instructions ?? agent.persona?.instructions,
+          avatar: agent.persona?.avatar, // Preserve existing avatar
         }
       : agent.persona;
 
