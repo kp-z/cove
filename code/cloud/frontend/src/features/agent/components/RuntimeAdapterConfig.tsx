@@ -87,7 +87,8 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
       // Unchanged: reference existing adapter
       onChange({ adapter_id: selectedAdapterId, overrides: undefined });
     }
-  }, [selectedAdapterId, config, originalConfig, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAdapterId, config, originalConfig]);
 
   const handleAdapterChange = (adapterId: string) => {
     setSelectedAdapterId(adapterId);
