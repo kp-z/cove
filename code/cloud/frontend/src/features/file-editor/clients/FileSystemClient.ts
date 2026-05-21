@@ -1,10 +1,10 @@
 import type { FileSystemAdapter, FileNode } from '@/features/file-editor/types';
 
 /**
- * Local file system adapter using tRPC API
- * This adapter communicates with the backend to perform file operations
+ * File system client using tRPC API
+ * This client communicates with the backend to perform file operations
  */
-export class LocalFileSystemAdapter implements FileSystemAdapter {
+export class FileSystemClient implements FileSystemAdapter {
   private trpc: any; // TODO: Replace with proper tRPC client type
 
   constructor(trpc: any) {
