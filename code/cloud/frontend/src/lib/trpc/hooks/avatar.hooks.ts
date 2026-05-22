@@ -8,7 +8,12 @@ import { trpc } from '@/lib/trpc';
  * Get all preset avatars
  */
 export function usePresetAvatars() {
-  return trpc.avatar.getPresetAvatars.useQuery();
+  const query = trpc.avatar.getPresetAvatars.useQuery();
+
+  return {
+    ...query,
+    data: query.data?.presets || [],
+  };
 }
 
 /**

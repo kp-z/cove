@@ -3,7 +3,7 @@ import { notify } from '@/core/services/notificationService';
 import { useAuthStore } from '@/core/auth/authStore';
 
 export function useRealmList(options?: { status?: 'active' | 'archived' }) {
-  return trpc.realm.getUserRealms.useQuery(
+  return trpc.realm.list.useQuery(
     { status: options?.status },
     { enabled: true }
   );
@@ -12,10 +12,13 @@ export function useRealmList(options?: { status?: 'active' | 'archived' }) {
 export function useCurrentRealmRole() {
   const { currentRealmId } = useAuthStore();
 
-  return trpc.realm.getUserRole.useQuery(
-    { realmId: currentRealmId! },
-    { enabled: !!currentRealmId }
-  );
+  // TODO: 后端需要实现 getUserRole API
+  // 临时返回 mock 数据避免崩溃
+  return {
+    data: 'member' as const,
+    isLoading: false,
+    error: null,
+  };
 }
 
 export function useRealm(realmId: string, options?: { enabled?: boolean }) {

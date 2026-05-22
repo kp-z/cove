@@ -22,8 +22,8 @@ export function RealmPanel() {
   }
 
   const realmOptions = allRealms.map(realm => ({
-    value: realm.id,
-    label: realm.displayName || realm.display_name || realm.name,
+    value: realm.realm_id,
+    label: realm.display_name || realm.name,
   }))
 
   return (
@@ -56,17 +56,17 @@ export function RealmPanel() {
               {currentRealm.logo_url ? (
                 <img
                   src={getAvatarUrl(currentRealm.logo_url)}
-                  alt={currentRealm.displayName || currentRealm.display_name}
+                  alt={currentRealm.display_name}
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-xl bg-gradient-to-br from-purple-500 to-pink-600">
-                  {(currentRealm.displayName || currentRealm.display_name || 'R').charAt(0).toUpperCase()}
+                  {(currentRealm.display_name || 'R').charAt(0).toUpperCase()}
                 </div>
               )}
               <div>
                 <h3 className="text-lg font-semibold text-white">
-                  {currentRealm.displayName || currentRealm.display_name}
+                  {currentRealm.display_name}
                 </h3>
                 {currentRealm.description && (
                   <p className="text-sm text-white/60">{currentRealm.description}</p>
