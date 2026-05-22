@@ -1,15 +1,17 @@
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/core/auth/authStore'
-import { useRealm, useRealmList, useUpdateRealm } from '@/lib/trpc/hooks/realm.hooks'
+import { useRealm, useRealmList, useUpdateRealm, useCurrentRealmRole } from '@/lib/trpc/hooks/realm.hooks'
 import { SettingsCard } from '../common/SettingsCard'
 import { SettingsRow, SettingsSelect } from '../common/SettingsControls'
 import { getAvatarUrl } from '@/shared/utils/avatar'
+import { canManageRealm, canInviteMembers, canEditContent } from '@/shared/utils/permissions'
 
 export function RealmPanel() {
   const { t } = useTranslation('settings')
   const { currentRealmId, setCurrentRealmId } = useAuthStore()
   const { data: currentRealm } = useRealm(currentRealmId || '')
   const { data: realmsData } = useRealmList({ status: 'active' })
+  const { data: userRole } = useCurrentRealmRole()
   const updateRealm = useUpdateRealm()
 
   const allRealms = realmsData?.realms || []
@@ -81,10 +83,58 @@ export function RealmPanel() {
                 <p className="text-xs text-white/50 mb-1">Visibility</p>
                 <p className="text-sm text-white capitalize">{currentRealm.visibility}</p>
               </div>
+              {userRole && (
+                <div>
+                  <p className="text-xs text-white/50 mb-1">Your Role</p>
+                  <p className="text-sm text-white capitalize">{userRole}</p>
+                </div>
+              )}
             </div>
           </div>
         </SettingsCard>
       )}
+
+      {userRole && (
+        <SettingsCard
+          title="Your Permissions"
+          description="What you can do in this realm based on your role"
+        >
+          <div className="space-y-3">
+            <PermissionItem
+              label="Manage Realm Settings"
+              granted={canManageRealm(userRole)}
+            />
+            <PermissionItem
+              label="Invite Members"
+              granted={canInviteMembers(userRole)}
+            />
+            <PermissionItem
+              label="Edit Content"
+              granted={canEditContent(userRole)}
+            />
+          </div>
+        </SettingsCard>
+      )}
+    </div>
+  )
+}
+
+interface PermissionItemProps {
+  label: string
+  granted: boolean
+}
+
+function PermissionItem({ label, granted }: PermissionItemProps) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-sm text-white/80">{label}</span>
+      <span className={`text-xs font-medium px-2 py-1 rounded ${
+        granted
+          ? 'bg-green-500/20 text-green-400'
+          : 'bg-red-500/20 text-red-400'
+      }`}>
+        {granted ? 'Granted' : 'Denied'}
+      </span>
     </div>
   )
 }
