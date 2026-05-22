@@ -533,6 +533,72 @@ function createStandaloneServer(deps: {
         return;
       }
 
+      // Handle static file requests for storage
+      if (req.url?.startsWith('/storage') && (req.method === 'GET' || req.method === 'HEAD')) {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const os = await import('os');
+
+        try {
+          // Remove query string if present
+          const urlPath = req.url.split('?')[0];
+          // Construct file path: /storage/... -> ~/.cove/storage/...
+          const filePath = path.join(os.homedir(), '.cove', urlPath);
+
+          // Check if file exists
+          await fs.access(filePath);
+
+          // Determine content type based on file extension
+          const ext = path.extname(filePath).toLowerCase();
+          const contentTypeMap: Record<string, string> = {
+            '.svg': 'image/svg+xml',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.webp': 'image/webp',
+            '.gif': 'image/gif',
+          };
+          const contentType = contentTypeMap[ext] || 'application/octet-stream';
+
+          if (req.method === 'HEAD') {
+            res.writeHead(200, {
+              'Content-Type': contentType,
+              'Access-Control-Allow-Origin': '*',
+              'Cache-Control': 'public, max-age=31536000',
+            });
+            res.end();
+            return;
+          }
+
+          // Read file for GET request
+          const fileBuffer = await fs.readFile(filePath);
+
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+          });
+          res.end(fileBuffer);
+          return;
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            res.writeHead(404, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify({ error: 'File not found' }));
+          } else {
+            deps.logger.error('Error serving static file', error);
+            res.writeHead(500, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
+          return;
+        }
+      }
+
       // Handle tRPC requests
       if (req.url?.startsWith('/trpc')) {
         // Remove /trpc prefix for the handler
