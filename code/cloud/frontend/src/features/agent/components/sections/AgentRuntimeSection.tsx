@@ -23,7 +23,7 @@ export function AgentRuntimeSection({ value, onChange }: AgentRuntimeSectionProp
         })}
       />
 
-      <CollapsibleSectionCard title="System Prompt" icon={<FileText size={20} />} defaultExpanded={false}>
+      <CollapsibleSectionCard title="System Prompt" icon={<FileText size={20} />} defaultExpanded={true}>
         <Textarea
           value={value.systemPrompt}
           onChange={e => onChange({ systemPrompt: e.target.value })}

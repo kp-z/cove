@@ -26,7 +26,7 @@ export function AgentCapabilitiesSection({ value, onChange }: AgentCapabilitiesS
   };
 
   return (
-    <CollapsibleSectionCard title="Capabilities & Tags" icon={<Tag size={20} />} defaultExpanded={false}>
+    <CollapsibleSectionCard title="Capabilities & Tags" icon={<Tag size={20} />} defaultExpanded={true}>
       <div className="space-y-4">
         <TagInput
           label="Capabilities"

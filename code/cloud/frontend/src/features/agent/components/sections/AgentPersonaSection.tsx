@@ -26,7 +26,7 @@ interface AgentPersonaSectionProps {
 
 export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProps) {
   return (
-    <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={false}>
+    <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={true}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Persona Name">

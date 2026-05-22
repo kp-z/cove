@@ -10,6 +10,7 @@ interface CollapsibleSectionCardProps {
   className?: string;
   defaultExpanded?: boolean;
   badge?: React.ReactNode;
+  preview?: React.ReactNode; // Preview content shown when collapsed
 }
 
 export function CollapsibleSectionCard({
@@ -19,6 +20,7 @@ export function CollapsibleSectionCard({
   className,
   defaultExpanded = true,
   badge,
+  preview,
 }: CollapsibleSectionCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -43,6 +45,13 @@ export function CollapsibleSectionCard({
           )}
         </div>
       </button>
+
+      {/* Preview - Shown when collapsed */}
+      {!isExpanded && preview && (
+        <div className="px-4 pb-4 text-sm text-muted-foreground">
+          {preview}
+        </div>
+      )}
 
       {/* Content - Collapsible */}
       {isExpanded && (

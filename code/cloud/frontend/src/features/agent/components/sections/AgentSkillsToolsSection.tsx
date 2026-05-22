@@ -26,7 +26,7 @@ export function AgentSkillsToolsSection({ value, onChange }: AgentSkillsToolsSec
   };
 
   return (
-    <CollapsibleSectionCard title="Skills & Tools" icon={<Wrench size={20} />} defaultExpanded={false}>
+    <CollapsibleSectionCard title="Skills & Tools" icon={<Wrench size={20} />} defaultExpanded={true}>
       <div className="space-y-4">
         <TagInput
           label="Skill IDs"
