@@ -165,56 +165,53 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
               </FormField>
             )}
 
-            {/* Temperature */}
-            <FormField
-              label={
-                <div className="flex items-center gap-2">
-                  <Thermometer size={14} className="text-muted-foreground" />
-                  <span>Temperature</span>
-                </div>
-              }
-              hint="Controls randomness (0 = deterministic, 2 = creative)"
-            >
-              <div className="space-y-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  value={(config.temperature as number) ?? 0.7}
-                  onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
-                  className="w-full h-2 bg-background/50 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Precise (0)</span>
-                  <span className="font-medium text-foreground">
+            {/* Temperature & Max Tokens - Side by Side */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                label={
+                  <div className="flex items-center gap-2">
+                    <Thermometer size={14} className="text-muted-foreground" />
+                    <span>Temperature</span>
+                  </div>
+                }
+                hint="0 = precise, 2 = creative"
+              >
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={(config.temperature as number) ?? 0.7}
+                    onChange={e => handleConfigChange('temperature', parseFloat(e.target.value))}
+                    className="w-full h-2 bg-background/50 rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                  <div className="text-center text-sm font-medium text-foreground">
                     {((config.temperature as number) ?? 0.7).toFixed(1)}
-                  </span>
-                  <span>Creative (2)</span>
+                  </div>
                 </div>
-              </div>
-            </FormField>
+              </FormField>
 
-            {/* Max Tokens */}
-            <FormField
-              label={
-                <div className="flex items-center gap-2">
-                  <Hash size={14} className="text-muted-foreground" />
-                  <span>Max Tokens</span>
-                </div>
-              }
-              hint="Maximum length of the response"
-            >
-              <input
-                type="number"
-                value={(config.max_tokens as number) || ''}
-                onChange={e => handleConfigChange('max_tokens', e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Use adapter default"
-                min="1"
-                max="200000"
-                className={INPUT_CLASS}
-              />
-            </FormField>
+              <FormField
+                label={
+                  <div className="flex items-center gap-2">
+                    <Hash size={14} className="text-muted-foreground" />
+                    <span>Max Tokens</span>
+                  </div>
+                }
+                hint="Max response length"
+              >
+                <input
+                  type="number"
+                  value={(config.max_tokens as number) || ''}
+                  onChange={e => handleConfigChange('max_tokens', e.target.value ? parseInt(e.target.value) : undefined)}
+                  placeholder="Default"
+                  min="1"
+                  max="200000"
+                  className={INPUT_CLASS}
+                />
+              </FormField>
+            </div>
 
             {/* API Key Override */}
             <FormField
