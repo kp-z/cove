@@ -26,6 +26,7 @@ export interface JWTPayload {
 export interface LoginResult {
   token: string;
   user: UserEntity;
+  defaultRealmId: string | null;
 }
 
 export class AuthService {
@@ -123,6 +124,18 @@ export class AuthService {
     // 确保用户已加入 Nexus（兜底检查）
     await this.ensureUserInPlatformRealm(loggedInUser.userId);
 
+    // 获取用户的默认 realm（最早加入的 realm）
+    let defaultRealmId: string | null = null;
+    if (this.realmMemberRepository) {
+      const memberships = await this.realmMemberRepository.findByUser(loggedInUser.userId);
+      const activeMemberships = memberships.filter(m => m.status === 'active');
+      if (activeMemberships.length > 0) {
+        // 按 joinedAt 排序，取最早加入的
+        activeMemberships.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
+        defaultRealmId = activeMemberships[0].realmId;
+      }
+    }
+
     // 生成 JWT
     const token = this.generateToken(loggedInUser);
 
@@ -139,9 +152,9 @@ export class AuthService {
       userAgent
     );
 
-    this.logger.info('Login successful', { userId: loggedInUser.userId, username: loggedInUser.username });
+    this.logger.info('Login successful', { userId: loggedInUser.userId, username: loggedInUser.username, defaultRealmId });
 
-    return { token, user: loggedInUser };
+    return { token, user: loggedInUser, defaultRealmId };
   }
 
   /**
@@ -195,7 +208,7 @@ export class AuthService {
     },
     ipAddress?: string,
     userAgent?: string
-  ): Promise<{ user: UserEntity; token: string }> {
+  ): Promise<{ user: UserEntity; token: string; defaultRealmId: string | null }> {
     this.logger.info('User registration attempt', { username: dto.username, email: dto.email });
 
     // 检查用户名是否已存在
@@ -244,6 +257,18 @@ export class AuthService {
     // 自动加入 Nexus Realm
     await this.addUserToPlatformRealm(user.userId);
 
+    // 获取用户的默认 realm（刚注册的用户应该只有 Nexus）
+    let defaultRealmId: string | null = null;
+    if (this.realmMemberRepository) {
+      const memberships = await this.realmMemberRepository.findByUser(user.userId);
+      const activeMemberships = memberships.filter(m => m.status === 'active');
+      if (activeMemberships.length > 0) {
+        // 按 joinedAt 排序，取最早加入的
+        activeMemberships.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
+        defaultRealmId = activeMemberships[0].realmId;
+      }
+    }
+
     // 记录审计日志
     await this.auditService.log(
       user.userId,
@@ -260,9 +285,9 @@ export class AuthService {
     // 生成 JWT token（自动登录）
     const token = this.generateToken(user);
 
-    this.logger.info('User registration successful', { userId: user.userId, username: user.username });
+    this.logger.info('User registration successful', { userId: user.userId, username: user.username, defaultRealmId });
 
-    return { user, token };
+    return { user, token, defaultRealmId };
   }
 
   /**

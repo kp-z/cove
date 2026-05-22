@@ -66,6 +66,7 @@ export function createAuthRouter(authService: AuthService) {
             success: true,
             user: result.user.toJSON(),
             token: result.token,
+            defaultRealmId: result.defaultRealmId,
             message: 'Registration successful',
           };
         } catch (error: any) {
@@ -97,6 +98,7 @@ export function createAuthRouter(authService: AuthService) {
           return {
             token: result.token,
             user: result.user.toJSON(),
+            defaultRealmId: result.defaultRealmId,
           };
         } catch (error: any) {
           if (error instanceof InvalidCredentialsError) {
