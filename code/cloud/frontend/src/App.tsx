@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -48,7 +49,9 @@ function App() {
           </AnimatePresence>
 
           {/* Router */}
-          <RouterProvider router={router} />
+          <Suspense fallback={<GlobalLoader message="Loading..." />}>
+            <RouterProvider router={router} />
+          </Suspense>
         </QueryClientProvider>
       </trpc.Provider>
     </I18nextProvider>
