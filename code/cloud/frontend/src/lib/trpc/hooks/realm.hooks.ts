@@ -27,10 +27,6 @@ export function useRealm(realmId: string, options?: { enabled?: boolean }) {
   );
 }
 
-export function useRealmList(filters?: { ownerId?: string; status?: 'active' | 'archived' }) {
-  return trpc.realm.list.useQuery(filters);
-}
-
 export function useUpdateRealm() {
   const utils = trpc.useUtils();
 
