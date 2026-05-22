@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Info } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { Badge } from '@/shared/components/ui/badge';
 import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { FormField } from '@/shared/components/form';
-import { Avatar } from '@/shared/components/display/Avatar/Avatar';
-import { AvatarSelector } from '@/features/settings/components/AvatarSelector';
+import { InfoField } from '@/shared/components/display';
 import type { AgentBasicInfo, AgentScope } from '../../types/agent.types';
 
 const SCOPE_OPTIONS: { value: AgentScope; label: string }[] = [
@@ -22,36 +22,32 @@ interface AgentBasicInfoSectionProps {
   onChange: (value: Partial<AgentBasicInfo>) => void;
   agentId?: string;
   agentName?: string;
+  agent?: any; // Full agent object for system info
 }
 
-export function AgentBasicInfoSection({ value, onChange, agentId, agentName }: AgentBasicInfoSectionProps) {
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+export function AgentBasicInfoSection({ value, onChange, agentId, agentName, agent }: AgentBasicInfoSectionProps) {
+  const isEditMode = !!agent;
 
   return (
     <CollapsibleSectionCard title="Basic Information" icon={<Info size={20} />} defaultExpanded={true}>
       <div className="space-y-4">
-        {/* Avatar Section */}
-        {agentId && (
-          <div className="flex items-center gap-4 pb-4 border-b border-border/30">
-            <button
-              type="button"
-              onClick={() => setShowAvatarSelector(true)}
-              className="relative group cursor-pointer"
-            >
-              <Avatar
-                type="agent"
-                id={agentId}
-                name={agentName || value.displayName}
-                size="lg"
-                className="transition-opacity group-hover:opacity-80"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                <span className="text-xs text-white font-medium">Edit</span>
+        {/* System Information (Edit Mode Only) */}
+        {isEditMode && agent && (
+          <div className="pb-4 mb-4 border-b border-border/30">
+            <h4 className="text-sm font-medium mb-3 text-muted-foreground">System Information</h4>
+            <div className="space-y-3">
+              <InfoField label="Agent ID" value={agent.agent_id} mono />
+              <InfoField label="Name" value={agent.name} mono />
+              <div>
+                <label className="text-xs text-muted-foreground">Status</label>
+                <div className="mt-1">
+                  <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
+                    {agent.status}
+                  </Badge>
+                </div>
               </div>
-            </button>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Agent Avatar</p>
-              <p className="text-xs text-muted-foreground">Click to change avatar</p>
+              <InfoField label="Created By" value={agent.created_by} />
+              <InfoField label="Created At" value={new Date(agent.created_at).toLocaleString()} />
             </div>
           </div>
         )}
@@ -85,15 +81,6 @@ export function AgentBasicInfoSection({ value, onChange, agentId, agentName }: A
           </select>
         </FormField>
       </div>
-
-      {/* Avatar Selector Modal */}
-      {showAvatarSelector && agentId && (
-        <AvatarSelector
-          entityType="agent"
-          entityId={agentId}
-          onClose={() => setShowAvatarSelector(false)}
-        />
-      )}
     </CollapsibleSectionCard>
   );
 }

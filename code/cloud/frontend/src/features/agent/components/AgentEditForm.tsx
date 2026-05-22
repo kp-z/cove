@@ -110,6 +110,7 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                 onChange={formState.actions.updateBasicInfo}
                 agentId={agent?.agent_id}
                 agentName={agent?.name}
+                agent={agent}
               />
 
               {/* Runtime Configuration - Frequently Used */}
@@ -127,30 +128,12 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Right Column */}
             <div className="flex flex-col gap-6">
-              {/* System Information (Edit Mode Only) */}
-              {!isCreateMode && agent && (
-                <SectionCard title="System Information" icon={<Settings size={20} />}>
-                  <div className="space-y-3">
-                    <InfoField label="Agent ID" value={agent.agent_id} mono />
-                    <InfoField label="Name" value={agent.name} mono />
-                    <div>
-                      <label className="text-xs text-muted-foreground">Status</label>
-                      <div className="mt-1">
-                        <Badge variant={agent.status === 'active' ? 'default' : 'secondary'}>
-                          {agent.status}
-                        </Badge>
-                      </div>
-                    </div>
-                    <InfoField label="Created By" value={agent.created_by} />
-                    <InfoField label="Created At" value={new Date(agent.created_at).toLocaleString()} />
-                  </div>
-                </SectionCard>
-              )}
-
               {/* Persona Configuration */}
               <AgentPersonaSection
                 value={formState.persona}
                 onChange={formState.actions.updatePersona}
+                agentId={agent?.agent_id}
+                agentName={agent?.name}
               />
 
               {/* Skills & Tools */}

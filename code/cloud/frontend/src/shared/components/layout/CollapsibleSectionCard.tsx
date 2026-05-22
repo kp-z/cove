@@ -30,7 +30,10 @@ export function CollapsibleSectionCard({
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+        className={cn(
+          "w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors",
+          !isExpanded && !preview && "pb-4" // No extra padding if collapsed without preview
+        )}
       >
         <div className="flex items-center gap-2">
           {icon}
