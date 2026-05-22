@@ -7,8 +7,11 @@ import { trpc } from '@/lib/trpc';
 /**
  * Get all preset avatars
  */
-export function usePresetAvatars() {
-  const query = trpc.avatar.getPresetAvatars.useQuery();
+export function usePresetAvatars(entityType?: 'user' | 'agent' | 'channel' | 'realm') {
+  const query = trpc.avatar.getPresetAvatars.useQuery(
+    entityType ? { entityType } : undefined,
+    { enabled: !!entityType }
+  );
 
   return {
     ...query,

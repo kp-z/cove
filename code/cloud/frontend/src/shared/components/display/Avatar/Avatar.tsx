@@ -26,7 +26,9 @@ export function Avatar({ type, id, name, size = 'md', className }: AvatarProps) 
   let initials: string;
 
   if (type === 'agent' && agent) {
-    avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
+    // Try multiple possible avatar locations
+    const agentAvatarUrl = agent.persona?.avatar?.url || (agent as any).avatar_url || (agent as any).avatarUrl;
+    avatarUrl = getAgentAvatarUrl(agentAvatarUrl);
     initials = getAgentInitials(name);
   } else if (type === 'user' && user) {
     avatarUrl = getAvatarUrl(user.avatar);

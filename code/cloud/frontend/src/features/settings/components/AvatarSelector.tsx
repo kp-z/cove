@@ -94,7 +94,7 @@ export function AvatarSelector({ entityType, entityId, currentAvatar, onClose }:
       <div>
         <h3 className="text-sm font-semibold text-white mb-3">Upload Custom Avatar</h3>
         <div className="flex items-center gap-3">
-          <label htmlFor="avatar-upload" className="cursor-pointer">
+          <div className="flex items-center gap-3">
             <input
               id="avatar-upload"
               type="file"
@@ -108,14 +108,12 @@ export function AvatarSelector({ entityType, entityId, currentAvatar, onClose }:
               variant="outline"
               size="sm"
               disabled={uploadMutation.isPending}
-              asChild
+              onClick={() => document.getElementById('avatar-upload')?.click()}
             >
-              <span>
-                <Upload className="w-4 h-4 mr-2" />
-                {uploadMutation.isPending ? 'Uploading...' : 'Upload Image'}
-              </span>
+              <Upload className="w-4 h-4 mr-2" />
+              {uploadMutation.isPending ? 'Uploading...' : 'Upload Image'}
             </Button>
-          </label>
+          </div>
 
           {currentAvatar && (
             <Button
@@ -148,14 +146,14 @@ export function AvatarSelector({ entityType, entityId, currentAvatar, onClose }:
         ) : (
           <ScrollArea className="h-[400px] pr-4">
             <div className="grid grid-cols-4 gap-3">
-              {presets?.map((presetPath) => {
+              {presets?.map((presetPath, index) => {
                 const isCurrent = isCurrentAvatar(presetPath);
                 const isSelected = selectedPreset === presetPath;
                 const avatarUrl = `${import.meta.env.VITE_API_URL}/${presetPath}`;
 
                 return (
                   <button
-                    key={presetPath}
+                    key={`${presetPath}-${index}`}
                     type="button"
                     onClick={() => handleSelectPreset(presetPath)}
                     disabled={setPresetMutation.isPending}
