@@ -172,7 +172,28 @@ export class HybridAgentRepository
       const agentMd = this.generateAgentMd(entity, content);
       await fs.writeFile(path.join(agentDir, 'agent.md'), agentMd, 'utf-8');
 
-      // 3. Write YAML configs if they exist
+      // 3. Write index.json (lightweight index file)
+      const indexJson = {
+        id: entityId,
+        name: entity.name,
+        displayName: entity.displayName,
+        status: entity.status,
+        configFiles: {
+          main: 'agent.md',
+          runtime: 'runtime.yaml',
+          persona: 'persona.yaml',
+          skills: 'config/skills.yaml',
+          tools: 'config/tools.yaml',
+          triggers: 'config/triggers.yaml',
+        },
+      };
+      await fs.writeFile(
+        path.join(agentDir, `${entityId}.json`),
+        JSON.stringify(indexJson, null, 2),
+        'utf-8'
+      );
+
+      // 4. Write YAML configs if they exist
       if (content.runtimeConfig) {
         await this.writeYamlAtomic(agentDir, 'runtime.yaml', content.runtimeConfig);
       }
@@ -189,7 +210,7 @@ export class HybridAgentRepository
         await this.writeYamlAtomic(path.join(agentDir, 'config'), 'triggers.yaml', content.triggers);
       }
 
-      // 4. Save to database with relative path
+      // 5. Save to database with relative path
       const relativePath = path.join('storage', entityType, entityId);
       const dbRecord = this.toDatabase(entity);
       await this.saveToDatabase(dbRecord, relativePath);
