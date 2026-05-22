@@ -2,7 +2,7 @@
  * Avatar tRPC Hooks
  */
 
-import { trpc } from '../client';
+import { trpc } from '@/lib/trpc';
 
 /**
  * Get all preset avatars

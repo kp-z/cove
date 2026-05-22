@@ -28,3 +28,13 @@ export function canPostMessages(role: RealmRole | null | undefined): boolean {
 export function canViewRealm(role: RealmRole | null | undefined): boolean {
   return !!role;
 }
+
+export function canManageRealm(role: RealmRole | null | undefined): boolean {
+  if (!role) return false;
+  return role === 'owner' || role === 'admin';
+}
+
+export function canEditContent(role: RealmRole | null | undefined): boolean {
+  if (!role) return false;
+  return role === 'owner' || role === 'admin' || role === 'member';
+}
