@@ -200,11 +200,11 @@ export class HybridRealmMemberRepository
   }
 
   async save(member: RealmMemberEntity, realmId: string): Promise<void> {
-    await this.saveEntity(member, realmId);
+    await this.saveEntity(member, this.realmId);
   }
 
   async update(member: RealmMemberEntity, realmId: string): Promise<void> {
-    await this.updateEntity(member, realmId);
+    await this.updateEntity(member, this.realmId);
   }
 
   async delete(memberId: string): Promise<void> {
