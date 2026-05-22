@@ -1,7 +1,7 @@
 /**
  * Get API URL based on environment
  * - Uses VITE_API_URL if set
- * - In development: uses localhost:3002
+ * - In development: uses localhost:3003
  * - In production: auto-detects from window.location
  */
 const getApiUrl = (): string => {
@@ -12,19 +12,19 @@ const getApiUrl = (): string => {
 
   // Development: use localhost
   if (import.meta.env.DEV) {
-    return 'http://localhost:3002';
+    return 'http://localhost:3003';
   }
 
   // Production: auto-detect from current host
   const protocol = window.location.protocol;
   const host = window.location.hostname;
-  return `${protocol}//${host}:3002`;
+  return `${protocol}//${host}:3003`;
 };
 
 /**
  * Get WebSocket URL based on environment
  * - Uses VITE_WS_URL if set
- * - In development: uses ws://localhost:3002
+ * - In development: uses ws://localhost:3003
  * - In production: auto-detects from window.location (ws:// or wss://)
  */
 const getWsUrl = (): string => {
@@ -35,13 +35,13 @@ const getWsUrl = (): string => {
 
   // Development: use ws://localhost
   if (import.meta.env.DEV) {
-    return 'ws://localhost:3002';
+    return 'ws://localhost:3003';
   }
 
   // Production: auto-detect protocol and host
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.hostname;
-  return `${protocol}//${host}:3002`;
+  return `${protocol}//${host}:3003`;
 };
 
 export const env = {
