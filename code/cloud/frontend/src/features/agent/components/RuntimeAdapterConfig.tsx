@@ -94,9 +94,9 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   };
 
   return (
-    <GlassCard className="p-6 space-y-6" key={componentKey}>
+    <GlassCard className="p-4 space-y-4" key={componentKey}>
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/30">
         <Cpu className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold">Runtime Configuration</h3>
       </div>
@@ -135,12 +135,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
         {/* Configuration Override Section */}
         {selectedAdapter && (
-          <div className="space-y-4 pt-4 border-t border-border/50">
-            <div className="flex items-center justify-between mb-2">
+          <div className="space-y-4 pt-4 mt-2 border-t border-border/50 bg-background/30 -mx-4 px-4 pb-4 rounded-b-lg">
+            <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-muted-foreground">
                 Configuration Override
               </h4>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-background/50 rounded border border-border/30">
                 {adapterType}
               </span>
             </div>

@@ -27,7 +27,7 @@ export function AgentCapabilitiesSection({ value, onChange }: AgentCapabilitiesS
 
   return (
     <SectionCard title="Capabilities & Tags" icon={<Tag size={20} />}>
-      <div className="space-y-5">
+      <div className="space-y-4">
         <TagInput
           label="Capabilities"
           tags={value.capabilities}

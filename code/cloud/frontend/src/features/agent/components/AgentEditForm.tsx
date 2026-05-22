@@ -127,6 +127,8 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
               <AgentBasicInfoSection
                 value={formState.basicInfo}
                 onChange={formState.actions.updateBasicInfo}
+                agentId={agent?.agent_id}
+                agentName={agent?.name}
               />
 
               <AgentProjectSection
