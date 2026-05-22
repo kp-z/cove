@@ -19,7 +19,8 @@ export function useLogin() {
         createdAt: data.user.created_at,
       };
       const rememberMe = useAuthStore.getState().rememberMe;
-      login(user, data.token, rememberMe);
+      const defaultRealmId = data.defaultRealmId ?? undefined;
+      login(user, data.token, rememberMe, defaultRealmId);
     },
   });
 }
@@ -41,7 +42,8 @@ export function useRegister() {
         createdAt: data.user.created_at,
       };
       const rememberMe = useAuthStore.getState().rememberMe;
-      login(user, data.token, rememberMe);
+      const defaultRealmId = data.defaultRealmId ?? undefined;
+      login(user, data.token, rememberMe, defaultRealmId);
     },
   });
 }

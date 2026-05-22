@@ -1,5 +1,22 @@
 import { trpc } from '@/lib/trpc';
 import { notify } from '@/core/services/notificationService';
+import { useAuthStore } from '@/core/auth/authStore';
+
+export function useRealmList(options?: { status?: 'active' | 'archived' }) {
+  return trpc.realm.getUserRealms.useQuery(
+    { status: options?.status },
+    { enabled: true }
+  );
+}
+
+export function useCurrentRealmRole() {
+  const { currentRealmId } = useAuthStore();
+
+  return trpc.realm.getUserRole.useQuery(
+    { realmId: currentRealmId! },
+    { enabled: !!currentRealmId }
+  );
+}
 
 export function useRealm(realmId: string, options?: { enabled?: boolean }) {
   return trpc.realm.getById.useQuery(
