@@ -3,10 +3,11 @@ import { useAuthStore } from '@/core/auth/authStore';
 import type { User } from '@/core/auth/authStore';
 
 export function useLogin() {
-  const { login } = useAuthStore();
+  const { login, setCurrentRealmId } = useAuthStore();
+  const utils = trpc.useUtils();
 
   return trpc.auth.login.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const user: User = {
         id: data.user.user_id,
         username: data.user.username,
@@ -20,16 +21,31 @@ export function useLogin() {
       };
       const rememberMe = useAuthStore.getState().rememberMe;
       const defaultRealmId = data.defaultRealmId ?? undefined;
+
+      // 先登录
       login(user, data.token, rememberMe, defaultRealmId);
+
+      // 如果后端没有返回 defaultRealmId，自动选择第一个 realm
+      if (!defaultRealmId) {
+        try {
+          const realmsData = await utils.realm.list.fetch();
+          if (realmsData && realmsData.length > 0) {
+            setCurrentRealmId(realmsData[0].realm_id);
+          }
+        } catch (error) {
+          console.error('Failed to fetch realms after login:', error);
+        }
+      }
     },
   });
 }
 
 export function useRegister() {
-  const { login } = useAuthStore();
+  const { login, setCurrentRealmId } = useAuthStore();
+  const utils = trpc.useUtils();
 
   return trpc.auth.register.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const user: User = {
         id: data.user.user_id,
         username: data.user.username,
@@ -43,7 +59,21 @@ export function useRegister() {
       };
       const rememberMe = useAuthStore.getState().rememberMe;
       const defaultRealmId = data.defaultRealmId ?? undefined;
+
+      // 先登录
       login(user, data.token, rememberMe, defaultRealmId);
+
+      // 如果后端没有返回 defaultRealmId，自动选择第一个 realm
+      if (!defaultRealmId) {
+        try {
+          const realmsData = await utils.realm.list.fetch();
+          if (realmsData && realmsData.length > 0) {
+            setCurrentRealmId(realmsData[0].realm_id);
+          }
+        } catch (error) {
+          console.error('Failed to fetch realms after registration:', error);
+        }
+      }
     },
   });
 }
