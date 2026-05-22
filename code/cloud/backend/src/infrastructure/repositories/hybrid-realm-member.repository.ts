@@ -199,12 +199,12 @@ export class HybridRealmMemberRepository
     return await this.loadEntities(records);
   }
 
-  async save(member: RealmMemberEntity): Promise<void> {
-    await this.saveEntity(member, this.realmId);
+  async save(member: RealmMemberEntity, realmId: string): Promise<void> {
+    await this.saveEntity(member, realmId);
   }
 
-  async update(member: RealmMemberEntity): Promise<void> {
-    await this.updateEntity(member, this.realmId);
+  async update(member: RealmMemberEntity, realmId: string): Promise<void> {
+    await this.updateEntity(member, realmId);
   }
 
   async delete(memberId: string): Promise<void> {
