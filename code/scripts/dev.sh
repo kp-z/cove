@@ -76,6 +76,10 @@ start_backend() {
     print_info "Running database migrations..."
     npx prisma migrate deploy 2>/dev/null || npx prisma db push --accept-data-loss
 
+    # Force rebuild to ensure latest code is used
+    print_info "Building backend..."
+    npm run build:esbuild
+
     # Start backend
     nohup npm run dev > "$LOG_DIR/backend.log" 2>&1 &
     echo $! > "$PID_DIR/backend.pid"
