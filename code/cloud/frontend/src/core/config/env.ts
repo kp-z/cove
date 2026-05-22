@@ -12,13 +12,13 @@ const getApiUrl = (): string => {
 
   // Development: use localhost
   if (import.meta.env.DEV) {
-    return 'http://localhost:3003';
+    return 'http://localhost:3002';
   }
 
   // Production: auto-detect from current host
   const protocol = window.location.protocol;
   const host = window.location.hostname;
-  return `${protocol}//${host}:3003`;
+  return `${protocol}//${host}:3002`;
 };
 
 /**
@@ -35,13 +35,13 @@ const getWsUrl = (): string => {
 
   // Development: use ws://localhost
   if (import.meta.env.DEV) {
-    return 'ws://localhost:3003';
+    return 'ws://localhost:3002';
   }
 
   // Production: auto-detect protocol and host
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.hostname;
-  return `${protocol}//${host}:3003`;
+  return `${protocol}//${host}:3002`;
 };
 
 export const env = {
