@@ -1,5 +1,5 @@
 import { Tag } from 'lucide-react';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { TagInput } from '@/shared/components/form';
 import type { AgentCapabilitiesInfo } from '../../types/agent-form.types';
 
@@ -26,7 +26,7 @@ export function AgentCapabilitiesSection({ value, onChange }: AgentCapabilitiesS
   };
 
   return (
-    <SectionCard title="Capabilities & Tags" icon={<Tag size={20} />}>
+    <CollapsibleSectionCard title="Capabilities & Tags" icon={<Tag size={20} />} defaultExpanded={false}>
       <div className="space-y-4">
         <TagInput
           label="Capabilities"
@@ -42,6 +42,6 @@ export function AgentCapabilitiesSection({ value, onChange }: AgentCapabilitiesS
           variant="outline"
         />
       </div>
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

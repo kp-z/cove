@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { FormField } from '@/shared/components/form';
 import { Avatar } from '@/shared/components/display/Avatar/Avatar';
 import { AvatarSelector } from '@/features/settings/components/AvatarSelector';
@@ -28,7 +28,7 @@ export function AgentBasicInfoSection({ value, onChange, agentId, agentName }: A
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   return (
-    <SectionCard title="Basic Information" icon={<FileText size={20} />}>
+    <CollapsibleSectionCard title="Basic Information" icon={<Info size={20} />} defaultExpanded={true}>
       <div className="space-y-4">
         {/* Avatar Section */}
         {agentId && (
@@ -94,6 +94,6 @@ export function AgentBasicInfoSection({ value, onChange, agentId, agentName }: A
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

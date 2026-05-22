@@ -1,7 +1,7 @@
 import { User } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { FormField, CheckboxField } from '@/shared/components/form';
 import type { AgentPersonaInfo } from '../../types/agent-form.types';
 
@@ -26,7 +26,7 @@ interface AgentPersonaSectionProps {
 
 export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProps) {
   return (
-    <SectionCard title="Persona Configuration" icon={<User size={20} />}>
+    <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={false}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Persona Name">
@@ -122,6 +122,6 @@ export function AgentPersonaSection({ value, onChange }: AgentPersonaSectionProp
           </div>
         </div>
       </div>
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

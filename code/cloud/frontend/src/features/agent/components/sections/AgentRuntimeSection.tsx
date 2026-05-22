@@ -1,6 +1,6 @@
 import { Settings, FileText } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { RuntimeAdapterConfig } from '../RuntimeAdapterConfig';
 import type { AgentRuntimeConfigInfo } from '../../types/agent-form.types';
 
@@ -23,14 +23,14 @@ export function AgentRuntimeSection({ value, onChange }: AgentRuntimeSectionProp
         })}
       />
 
-      <SectionCard title="System Prompt" icon={<FileText size={20} />}>
+      <CollapsibleSectionCard title="System Prompt" icon={<FileText size={20} />} defaultExpanded={false}>
         <Textarea
           value={value.systemPrompt}
           onChange={e => onChange({ systemPrompt: e.target.value })}
           rows={6}
           placeholder="Custom system prompt (optional)"
         />
-      </SectionCard>
+      </CollapsibleSectionCard>
     </>
   );
 }

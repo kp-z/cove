@@ -104,6 +104,29 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1400px] mx-auto">
             {/* Left Column */}
             <div className="flex flex-col gap-6">
+              {/* Basic Information - Most Important */}
+              <AgentBasicInfoSection
+                value={formState.basicInfo}
+                onChange={formState.actions.updateBasicInfo}
+                agentId={agent?.agent_id}
+                agentName={agent?.name}
+              />
+
+              {/* Runtime Configuration - Frequently Used */}
+              <AgentRuntimeSection
+                value={formState.runtimeConfig}
+                onChange={formState.actions.updateRuntimeConfig}
+              />
+
+              {/* Capabilities & Tags */}
+              <AgentCapabilitiesSection
+                value={formState.capabilities}
+                onChange={formState.actions.updateCapabilities}
+              />
+            </div>
+
+            {/* Right Column */}
+            <div className="flex flex-col gap-6">
               {/* System Information (Edit Mode Only) */}
               {!isCreateMode && agent && (
                 <SectionCard title="System Information" icon={<Settings size={20} />}>
@@ -124,41 +147,25 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                 </SectionCard>
               )}
 
-              <AgentBasicInfoSection
-                value={formState.basicInfo}
-                onChange={formState.actions.updateBasicInfo}
-                agentId={agent?.agent_id}
-                agentName={agent?.name}
-              />
-
-              <AgentProjectSection
-                value={formState.projectInfo}
-                onChange={formState.actions.updateProjectInfo}
-              />
-
-              <AgentCapabilitiesSection
-                value={formState.capabilities}
-                onChange={formState.actions.updateCapabilities}
-              />
-            </div>
-
-            {/* Right Column */}
-            <div className="flex flex-col gap-6">
-              <AgentRuntimeSection
-                value={formState.runtimeConfig}
-                onChange={formState.actions.updateRuntimeConfig}
-              />
-
+              {/* Persona Configuration */}
               <AgentPersonaSection
                 value={formState.persona}
                 onChange={formState.actions.updatePersona}
               />
 
+              {/* Skills & Tools */}
               <AgentSkillsToolsSection
                 value={formState.skills}
                 onChange={formState.actions.updateSkills}
               />
 
+              {/* Project Association */}
+              <AgentProjectSection
+                value={formState.projectInfo}
+                onChange={formState.actions.updateProjectInfo}
+              />
+
+              {/* Triggers */}
               <AgentTriggersSection
                 value={formState.triggers}
                 onChange={formState.actions.updateTriggers}

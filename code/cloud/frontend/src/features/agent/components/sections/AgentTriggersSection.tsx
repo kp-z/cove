@@ -1,6 +1,6 @@
 import { Zap } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { FormField, CheckboxField, TagInput } from '@/shared/components/form';
 import type { AgentTriggersInfo } from '../../types/agent-form.types';
 
@@ -19,7 +19,7 @@ export function AgentTriggersSection({ value, onChange }: AgentTriggersSectionPr
   };
 
   return (
-    <SectionCard title="Triggers" icon={<Zap size={20} />}>
+    <CollapsibleSectionCard title="Triggers" icon={<Zap size={20} />} defaultExpanded={false}>
       <div className="space-y-4">
         <CheckboxField
           id="onMention"
@@ -48,6 +48,6 @@ export function AgentTriggersSection({ value, onChange }: AgentTriggersSectionPr
           variant="outline"
         />
       </div>
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

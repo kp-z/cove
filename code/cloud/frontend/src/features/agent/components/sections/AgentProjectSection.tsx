@@ -1,5 +1,5 @@
 import { FolderOpen } from 'lucide-react';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { TagInput } from '@/shared/components/form';
 import type { AgentProjectInfo } from '../../types/agent-form.types';
 
@@ -18,13 +18,13 @@ export function AgentProjectSection({ value, onChange }: AgentProjectSectionProp
   };
 
   return (
-    <SectionCard title="Project Association" icon={<FolderOpen size={20} />}>
+    <CollapsibleSectionCard title="Project Association" icon={<FolderOpen size={20} />} defaultExpanded={false}>
       <TagInput
         label="Project IDs"
         tags={value.projectIds}
         onAdd={handleAddProject}
         onRemove={handleRemoveProject}
       />
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

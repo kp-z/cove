@@ -1,5 +1,5 @@
 import { Wrench } from 'lucide-react';
-import { SectionCard } from '@/shared/components/layout/SectionCard';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { TagInput } from '@/shared/components/form';
 import type { AgentSkillsInfo } from '../../types/agent-form.types';
 
@@ -26,7 +26,7 @@ export function AgentSkillsToolsSection({ value, onChange }: AgentSkillsToolsSec
   };
 
   return (
-    <SectionCard title="Skills & Tools" icon={<Wrench size={20} />}>
+    <CollapsibleSectionCard title="Skills & Tools" icon={<Wrench size={20} />} defaultExpanded={false}>
       <div className="space-y-4">
         <TagInput
           label="Skill IDs"
@@ -43,6 +43,6 @@ export function AgentSkillsToolsSection({ value, onChange }: AgentSkillsToolsSec
           onRemove={handleRemoveTool}
         />
       </div>
-    </SectionCard>
+    </CollapsibleSectionCard>
   );
 }

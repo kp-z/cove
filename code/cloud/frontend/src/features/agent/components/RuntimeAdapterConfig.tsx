@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Cpu } from 'lucide-react';
-import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
+import { Cpu, Thermometer, Hash, Key, Link } from 'lucide-react';
+import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
 import { FormField } from '@/shared/components/form/FormField';
 import { useAdapters, useAdapterModels } from '@/lib/trpc/hooks';
 
@@ -94,13 +94,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
   };
 
   return (
-    <GlassCard className="p-4 space-y-4" key={componentKey}>
-      {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b border-border/30">
-        <Cpu className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-semibold">Runtime Configuration</h3>
-      </div>
-
+    <CollapsibleSectionCard
+      title="Runtime Configuration"
+      icon={<Cpu className="w-5 h-5 text-primary" />}
+      defaultExpanded={true}
+      key={componentKey}
+    >
       <div className="space-y-4">
         {/* Adapter Selection - Simple Dropdown */}
         <FormField
@@ -135,8 +134,8 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
         {/* Configuration Override Section */}
         {selectedAdapter && (
-          <div className="space-y-4 pt-4 mt-2 border-t border-border/50 bg-background/30 -mx-4 px-4 pb-4 rounded-b-lg">
-            <div className="flex items-center justify-between">
+          <div className="space-y-4 pt-4 border-t border-border/30">
+            <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-medium text-muted-foreground">
                 Configuration Override
               </h4>
@@ -168,8 +167,13 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
             {/* Temperature */}
             <FormField
-              label="Temperature"
-              hint="Controls randomness in responses (0 = deterministic, 2 = creative)"
+              label={
+                <div className="flex items-center gap-2">
+                  <Thermometer size={14} className="text-muted-foreground" />
+                  <span>Temperature</span>
+                </div>
+              }
+              hint="Controls randomness (0 = deterministic, 2 = creative)"
             >
               <div className="space-y-2">
                 <input
@@ -193,7 +197,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
             {/* Max Tokens */}
             <FormField
-              label="Max Tokens"
+              label={
+                <div className="flex items-center gap-2">
+                  <Hash size={14} className="text-muted-foreground" />
+                  <span>Max Tokens</span>
+                </div>
+              }
               hint="Maximum length of the response"
             >
               <input
@@ -209,7 +218,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
 
             {/* API Key Override */}
             <FormField
-              label="API Key (Optional)"
+              label={
+                <div className="flex items-center gap-2">
+                  <Key size={14} className="text-muted-foreground" />
+                  <span>API Key (Optional)</span>
+                </div>
+              }
               hint="Override the adapter's API key for this agent"
             >
               <input
@@ -224,7 +238,12 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
             {/* Base URL Override */}
             {adapterType === 'anthropic' && (
               <FormField
-                label="Base URL (Optional)"
+                label={
+                  <div className="flex items-center gap-2">
+                    <Link size={14} className="text-muted-foreground" />
+                    <span>Base URL (Optional)</span>
+                  </div>
+                }
                 hint="Override the API endpoint"
               >
                 <input
@@ -239,6 +258,6 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
           </div>
         )}
       </div>
-    </GlassCard>
+    </CollapsibleSectionCard>
   );
 }
