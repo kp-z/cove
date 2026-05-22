@@ -1,7 +1,7 @@
 /**
  * Get API URL based on environment
  * - Uses VITE_API_URL if set
- * - In development: uses localhost:3003
+ * - In development: uses localhost:3002
  * - In production: auto-detects from window.location
  */
 const getApiUrl = (): string => {
@@ -24,7 +24,7 @@ const getApiUrl = (): string => {
 /**
  * Get WebSocket URL based on environment
  * - Uses VITE_WS_URL if set
- * - In development: uses ws://localhost:3003
+ * - In development: uses ws://localhost:3002
  * - In production: auto-detects from window.location (ws:// or wss://)
  */
 const getWsUrl = (): string => {
