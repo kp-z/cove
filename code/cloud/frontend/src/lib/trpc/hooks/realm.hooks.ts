@@ -10,12 +10,17 @@ export function useRealm(realmId: string, options?: { enabled?: boolean }) {
   );
 }
 
+export function useRealmList(filters?: { ownerId?: string; status?: 'active' | 'archived' }) {
+  return trpc.realm.list.useQuery(filters);
+}
+
 export function useUpdateRealm() {
   const utils = trpc.useUtils();
 
   return trpc.realm.update.useMutation({
     onSuccess: (_result, variables) => {
       utils.realm.getById.invalidate({ realmId: variables.realmId });
+      utils.realm.list.invalidate();
       notify.toast.success('Realm updated', 'The realm settings have been updated successfully');
     },
     onError: (error) => {
