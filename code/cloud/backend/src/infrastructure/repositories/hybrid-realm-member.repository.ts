@@ -41,7 +41,7 @@ export class HybridRealmMemberRepository
   }
 
   getEntityType(): string {
-    return `server-members/${this.realmId}`;
+    return `realm-members/${this.realmId}`;
   }
 
   getEntityId(entity: RealmMemberEntity): string {
