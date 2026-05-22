@@ -80,8 +80,14 @@ export class HybridUserRepository
   }
 
   toStorage(entity: UserEntity): UserContent {
+    // Ensure avatar is always present (use default if undefined)
+    const avatar = entity.avatar || {
+      url: 'storage/avatars/presets/default-user.svg',
+      type: 'default' as const,
+    };
+
     return {
-      avatar: entity.avatar,
+      avatar,
       permissions: Array.from(entity.permissions || []),
       preference: entity.preference,
     };

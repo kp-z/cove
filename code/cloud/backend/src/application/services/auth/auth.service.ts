@@ -227,6 +227,10 @@ export class AuthService {
       displayName: dto.displayName,
       role: 'user',
       status: 'active',
+      avatar: {
+        url: 'storage/avatars/presets/default-user.svg',
+        type: 'default' as const,
+      },
       permissions: [],
       createdAt: new Date(),
     });
