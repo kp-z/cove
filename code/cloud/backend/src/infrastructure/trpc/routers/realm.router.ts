@@ -217,4 +217,48 @@ export const realmRouter = (realmService: RealmService) =>
           throw mapErrorToTRPC(error);
         }
       }),
+
+    // 获取用户所属的所有 realm
+    getUserRealms: publicProcedure
+      .input(z.object({
+        userId: z.string(),
+        status: z.enum(['active', 'archived']).optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const realms = await realmService.getUserRealms(input.userId, {
+              status: input.status,
+            });
+            return {
+              realms: realms.map(r => r.toJSON()),
+              total: realms.length,
+            };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 获取用户在 realm 中的角色
+    getUserRole: publicProcedure
+      .input(z.object({
+        realmId: z.string(),
+        userId: z.string(),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(input.realmId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const role = await realmService.getUserRole(input.realmId, input.userId);
+            return {
+              role,
+              hasAccess: role !== null,
+            };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
   });

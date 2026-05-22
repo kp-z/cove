@@ -26,7 +26,7 @@ export interface JWTPayload {
 export interface LoginResult {
   token: string;
   user: UserEntity;
-  defaultRealmId: string | null;
+  defaultRealmId?: string;
 }
 
 export class AuthService {
@@ -124,17 +124,8 @@ export class AuthService {
     // 确保用户已加入 Nexus（兜底检查）
     await this.ensureUserInPlatformRealm(loggedInUser.userId);
 
-    // 获取用户的默认 realm（最早加入的 realm）
-    let defaultRealmId: string | null = null;
-    if (this.realmMemberRepository) {
-      const memberships = await this.realmMemberRepository.findByUser(loggedInUser.userId);
-      const activeMemberships = memberships.filter(m => m.status === 'active');
-      if (activeMemberships.length > 0) {
-        // 按 joinedAt 排序，取最早加入的
-        activeMemberships.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
-        defaultRealmId = activeMemberships[0].realmId;
-      }
-    }
+    // 获取用户的默认 realm（第一个加入的 realm）
+    const defaultRealmId = await this.getUserDefaultRealm(loggedInUser.userId);
 
     // 生成 JWT
     const token = this.generateToken(loggedInUser);
@@ -208,7 +199,7 @@ export class AuthService {
     },
     ipAddress?: string,
     userAgent?: string
-  ): Promise<{ user: UserEntity; token: string; defaultRealmId: string | null }> {
+  ): Promise<{ user: UserEntity; token: string; defaultRealmId?: string }> {
     this.logger.info('User registration attempt', { username: dto.username, email: dto.email });
 
     // 检查用户名是否已存在
@@ -257,17 +248,8 @@ export class AuthService {
     // 自动加入 Nexus Realm
     await this.addUserToPlatformRealm(user.userId);
 
-    // 获取用户的默认 realm（刚注册的用户应该只有 Nexus）
-    let defaultRealmId: string | null = null;
-    if (this.realmMemberRepository) {
-      const memberships = await this.realmMemberRepository.findByUser(user.userId);
-      const activeMemberships = memberships.filter(m => m.status === 'active');
-      if (activeMemberships.length > 0) {
-        // 按 joinedAt 排序，取最早加入的
-        activeMemberships.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
-        defaultRealmId = activeMemberships[0].realmId;
-      }
-    }
+    // 获取用户的默认 realm（第一个加入的 realm）
+    const defaultRealmId = await this.getUserDefaultRealm(user.userId);
 
     // 记录审计日志
     await this.auditService.log(
@@ -530,6 +512,40 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Failed to ensure user in platform realm', error as Error);
       // Don't throw - this shouldn't block login
+    }
+  }
+
+  /**
+   * 获取用户的默认 realm（第一个加入的 realm）
+   */
+  private async getUserDefaultRealm(userId: string): Promise<string | undefined> {
+    if (!this.realmMemberRepository) {
+      return undefined;
+    }
+
+    try {
+      // 获取用户所有的 realm 成员关系，按加入时间排序
+      const members = await this.realmMemberRepository.findByUser(userId);
+
+      if (members.length === 0) {
+        this.logger.warn('User has no realm memberships', { userId });
+        return undefined;
+      }
+
+      // 返回第一个加入的 realm（按 joined_at 排序）
+      const sortedMembers = members
+        .filter((m: RealmMemberEntity) => m.status === 'active')
+        .sort((a: RealmMemberEntity, b: RealmMemberEntity) => a.joinedAt.getTime() - b.joinedAt.getTime());
+
+      if (sortedMembers.length === 0) {
+        this.logger.warn('User has no active realm memberships', { userId });
+        return undefined;
+      }
+
+      return sortedMembers[0]!.realmId;
+    } catch (error) {
+      this.logger.error('Failed to get user default realm', error as Error);
+      return undefined;
     }
   }
 }
