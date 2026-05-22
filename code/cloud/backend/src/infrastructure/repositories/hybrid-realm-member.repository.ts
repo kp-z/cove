@@ -163,10 +163,24 @@ export class HybridRealmMemberRepository
       },
     });
     if (!record) return null;
-    const contentPath = this.getContentPath(record);
-    const contentWithServerId = await this.storage.loadJson(contentPath);
-    const { _realm_id, ...content } = contentWithServerId;
-    return this.toDomain(record, content as RealmMemberContent);
+
+    try {
+      const contentPath = this.getContentPath(record);
+      const contentWithServerId = await this.storage.loadJson(contentPath);
+      const { _realm_id, ...content } = contentWithServerId;
+      return this.toDomain(record, content as RealmMemberContent);
+    } catch (error: any) {
+      // If content file doesn't exist, return null (data inconsistency)
+      if (error.code === 'ENOENT') {
+        this.logger.warn('RealmMember content file not found, returning null', {
+          realmId,
+          userId,
+          contentPath: this.getContentPath(record),
+        });
+        return null;
+      }
+      throw error;
+    }
   }
 
   async findByRole(realmId: string, role: RealmRole): Promise<RealmMemberEntity[]> {

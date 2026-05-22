@@ -184,8 +184,8 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
 
     try {
       // 并行加载所有内容文件
-      const entities = await Promise.all(
-        dbRecords.map(async (record) => {
+      const entityPromises = dbRecords.map(async (record) => {
+        try {
           const contentPath = this.getContentPath(record);
           const contentWithServerId = await this.storage.loadJson(contentPath);
 
@@ -193,8 +193,22 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
           const { _realm_id, ...content } = contentWithServerId;
 
           return this.toDomain(record, content as TContent);
-        })
-      );
+        } catch (error: any) {
+          // If content file doesn't exist, skip this entity
+          if (error.code === 'ENOENT') {
+            this.logger.warn(`Content file not found for ${entityType}, skipping`, {
+              entityId: this.getEntityId(record as any),
+              contentPath: this.getContentPath(record),
+            });
+            return null;
+          }
+          throw error;
+        }
+      });
+
+      const results = await Promise.all(entityPromises);
+      // Filter out null values (entities with missing content files)
+      const entities = results.filter((e): e is TEntity => e !== null);
 
       // 性能监控
       const duration = Date.now() - startTime;
