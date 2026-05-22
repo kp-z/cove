@@ -84,7 +84,7 @@ export class HybridRealmMemberRepository
   }
 
   getContentPath(dbRecord: RealmMemberDbRecord): string {
-    return `${this.getEntityType()}/${dbRecord.id}.json`;
+    return `storage/${this.getEntityType()}/${dbRecord.id}.json`;
   }
 
   // ============================================
