@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from '../Sidebar';
@@ -71,6 +71,10 @@ export function MainLayout() {
   const { isOpen, toggle } = useSidebar();
   const { isMobile } = useResponsive();
   const { isOpen: channelOpen } = useChannelPanelStore();
+  const location = useLocation();
+
+  // 移动端在 channel 详情页时隐藏 MobileNav
+  const shouldHideMobileNav = isMobile && location.pathname.startsWith('/channel/') && location.pathname !== '/channels';
 
   return (
     <div className="flex h-screen bg-[#0f111a] text-[#e4e4e7]">
@@ -101,7 +105,7 @@ export function MainLayout() {
         </div>
       </main>
 
-      {isMobile && <MobileNav />}
+      {isMobile && !shouldHideMobileNav && <MobileNav />}
     </div>
   );
 }
