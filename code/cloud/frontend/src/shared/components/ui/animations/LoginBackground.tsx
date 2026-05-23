@@ -19,13 +19,8 @@ export function LoginBackground() {
           className="absolute inset-0 w-full h-full object-cover"
         />
       </video>
-      {/* Gradient Overlay - redesigned for optimal card visibility */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to right, rgba(15, 17, 26, 0.05) 0%, rgba(15, 17, 26, 0.1) 40%, rgba(15, 17, 26, 0.4) 55%, rgba(15, 17, 26, 0.85) 70%, rgba(15, 17, 26, 1) 80%)',
-        }}
-      />
+      {/* Uniform dark overlay for better card visibility */}
+      <div className="absolute inset-0 bg-black/40" />
     </div>
   );
 }
