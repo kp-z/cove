@@ -85,24 +85,17 @@ export const UserMenu = React.memo(() => {
         title={displayName}
         aria-label={t('userMenu.ariaLabel')}
         aria-expanded={open}
-        className={`group relative flex shrink-0 items-center gap-0 rounded-full p-0 transition-all duration-200 ease-out ${
-          open ? 'bg-white/[0.04] border border-white/[0.08] ring-1 ring-white/20 pl-3.5 pr-2.5 gap-2' : 'bg-transparent border-0'
-        } sm:hover:bg-white/[0.04] sm:hover:border sm:hover:border-white/[0.08] sm:hover:gap-2 sm:hover:pl-3.5 sm:hover:pr-2.5`}
+        className={`group relative flex shrink-0 items-center gap-0 rounded-full p-0 transition-all duration-150 ease-out ${
+          open ? 'bg-white/[0.08] border border-white/[0.12] ring-1 ring-white/20 pl-3 pr-2 gap-2' : 'bg-transparent border-0'
+        } hover:bg-white/[0.04] hover:border hover:border-white/[0.08] hover:gap-2 hover:pl-3 hover:pr-2`}
       >
         <HoverGradient rounded="rounded-full" />
-        <div className={`pointer-events-none hidden max-w-0 min-w-0 flex-row items-center gap-1.5 justify-start overflow-hidden pl-0 opacity-0 transition-all duration-200 ease-out sm:flex ${
-          open ? 'max-w-[220px] pl-1 opacity-100' : 'sm:group-hover:max-w-[220px] sm:group-hover:pl-1 sm:group-hover:opacity-100'
+        <div className={`pointer-events-none max-w-0 min-w-0 flex flex-row items-center justify-start overflow-hidden pl-0 opacity-0 transition-all duration-150 ease-out ${
+          open ? 'max-w-[120px] pl-1 opacity-100' : 'group-hover:max-w-[120px] group-hover:pl-1 group-hover:opacity-100'
         }`}>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-left text-[11px] font-semibold leading-none text-white">
-              {displayName}
-            </p>
-          </div>
-          <span
-            className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0 text-[9px] font-medium ${badgeClass}`}
-          >
-            {roleDisplayLabel}
-          </span>
+          <p className="truncate text-left text-[11px] font-semibold leading-none text-white whitespace-nowrap">
+            {displayName}
+          </p>
         </div>
         <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
       </button>
@@ -113,9 +106,12 @@ export const UserMenu = React.memo(() => {
           sideOffset={8}
           className="w-52 bg-[#111114] border border-white/[0.10] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1 z-50"
         >
-          <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-white/10 mb-1">
+          <div className="flex flex-col gap-1 py-2 px-3 border-b border-white/10 mb-1">
             <span className="text-sm font-semibold text-white">{user.username}</span>
             <span className="text-xs font-normal text-gray-400">{user.email}</span>
+            <span className={`inline-flex self-start mt-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-medium ${badgeClass}`}>
+              {roleDisplayLabel}
+            </span>
           </div>
 
           <DropdownMenu.Item
