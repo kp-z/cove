@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useRealm, useRealmList, useUpdateRealm, useCurrentRealmRole } from '@/lib/trpc/hooks/realm.hooks';
 import { SettingsCard } from '../common/SettingsCard';
-import { RealmCard, RealmSwitcher, RealmEditForm, type RealmUpdateData } from './RealmPanel';
+import { RealmCard, RealmSwitcher, RealmEditForm, type RealmUpdateData } from './RealmPanel/';
 import { canManageRealm } from '@/shared/utils/permissions';
 
 export function RealmPanel() {
