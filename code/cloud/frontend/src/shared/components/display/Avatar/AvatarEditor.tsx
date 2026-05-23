@@ -242,29 +242,6 @@ export function AvatarEditor({
               </div>
             </ScrollArea>
           )}
-
-          {/* Helper Text */}
-          <p className="text-xs text-white/40 text-center">
-            Max 2MB • JPG, PNG, GIF, WebP
-          </p>
-
-          {/* Remove Avatar */}
-          {currentAvatar && (
-            <>
-              <div className="h-px bg-white/10" />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleDeleteAvatar}
-                disabled={deleteMutation.isPending}
-                className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {deleteMutation.isPending ? 'Removing...' : 'Remove Avatar'}
-              </Button>
-            </>
-          )}
         </div>
       </Popover.Content>
     </Popover>

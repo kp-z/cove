@@ -55,6 +55,10 @@ export interface UpdateAgentDTO {
   readonly role?: string;
   readonly tone?: string;
   readonly instructions?: string;
+  readonly avatar?: {
+    readonly url: string;
+    readonly type: 'uploaded' | 'dicebear' | 'default';
+  };
 
   // Skills & Tools
   readonly skillIds?: readonly string[];
@@ -147,13 +151,13 @@ export class AgentCrudService {
 
     // Build persona if any persona fields are provided
     const persona = (dto.personaName !== undefined || dto.role !== undefined ||
-                    dto.tone !== undefined || dto.instructions !== undefined)
+                    dto.tone !== undefined || dto.instructions !== undefined || dto.avatar !== undefined)
       ? {
           name: dto.personaName ?? agent.persona?.name ?? agent.name,
           role: dto.role ?? agent.persona?.role ?? 'assistant',
           tone: dto.tone ?? agent.persona?.tone,
           instructions: dto.instructions ?? agent.persona?.instructions,
-          avatar: agent.persona?.avatar, // Preserve existing avatar
+          avatar: dto.avatar ?? agent.persona?.avatar, // Use new avatar if provided
         }
       : agent.persona;
 

@@ -78,7 +78,7 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     audit: createAuditRouter(deps.auditService),
 
     // Avatar router
-    avatar: createAvatarRouter(deps.avatarService),
+    avatar: createAvatarRouter(deps.avatarService, deps.userService, deps.agentService),
 
     // Agent router
     agent: createAgentRouter({

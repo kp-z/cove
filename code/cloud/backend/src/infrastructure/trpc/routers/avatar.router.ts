@@ -6,8 +6,14 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { AvatarService } from '../../../application/services/avatar/avatar.service';
+import { UserService } from '../../../application/services/user/user.service';
+import { AgentService } from '../../../application/services/agent/agent.service';
 
-export function createAvatarRouter(avatarService: AvatarService) {
+export function createAvatarRouter(
+  avatarService: AvatarService,
+  userService: UserService,
+  agentService: AgentService
+) {
   return router({
     /**
      * 获取所有预设头像
@@ -54,6 +60,23 @@ export function createAvatarRouter(avatarService: AvatarService) {
             mimeType,
           });
 
+          // Update entity's avatar field in database
+          if (entityType === 'user') {
+            await userService.updateUser(entityId, {
+              avatar: {
+                url: avatarInfo.avatarUrl,
+                type: 'uploaded',
+              },
+            });
+          } else if (entityType === 'agent') {
+            await agentService.updateAgent(entityId, {
+              avatar: {
+                url: avatarInfo.avatarUrl,
+                type: 'uploaded',
+              },
+            });
+          }
+
           return avatarInfo;
         } catch (error) {
           if (error instanceof Error) {
@@ -94,6 +117,23 @@ export function createAvatarRouter(avatarService: AvatarService) {
             entityId,
             presetId,
           });
+
+          // Update entity's avatar field in database
+          if (entityType === 'user') {
+            await userService.updateUser(entityId, {
+              avatar: {
+                url: avatarInfo.avatarUrl,
+                type: 'dicebear',
+              },
+            });
+          } else if (entityType === 'agent') {
+            await agentService.updateAgent(entityId, {
+              avatar: {
+                url: avatarInfo.avatarUrl,
+                type: 'dicebear',
+              },
+            });
+          }
 
           return avatarInfo;
         } catch (error) {
