@@ -77,7 +77,19 @@ export interface ClaudeCodeCLIAdapterConfig extends BaseAdapterConfig {
   config: {
     cli_path?: string;
     model?: string;
+    working_dir?: string;
+    timeout_ms?: number;
+    temperature?: number;
+    max_tokens?: number;
     context_window?: number;
+    enable_thinking?: boolean;
+    thinking_budget?: number;
+    enable_streaming?: boolean;
+    allowed_tools?: string[];
+    files?: Array<{
+      fileId: string;
+      path: string;
+    }>;
     retry?: RetryConfig;
   };
 }

@@ -631,4 +631,50 @@ export class RealmService {
       // Don't throw - this shouldn't block realm creation
     }
   }
+
+  /**
+   * 获取用户所属的所有 realm
+   */
+  async getUserRealms(userId: string, filters?: { status?: RealmStatus }): Promise<RealmEntity[]> {
+    this.logger.info('Getting user realms', { userId, filters });
+
+    // 获取用户的所有 realm 成员关系
+    const members = await this.serverMemberRepository.findByUser(userId);
+
+    if (members.length === 0) {
+      return [];
+    }
+
+    // 获取所有 realm 的详细信息
+    const realmIds = members
+      .filter((m: RealmMemberEntity) => m.status === 'active')
+      .map((m: RealmMemberEntity) => m.realmId);
+
+    const allRealms = await this.serverRepository.find();
+    let userRealms = allRealms.filter(realm => realmIds.includes(realm.realm_id));
+
+    // 应用状态过滤
+    if (filters?.status) {
+      userRealms = userRealms.filter(realm => realm.status === filters.status);
+    }
+
+    this.logger.info('User realms retrieved', { userId, count: userRealms.length });
+    return userRealms;
+  }
+
+  /**
+   * 获取用户在指定 realm 中的角色
+   */
+  async getUserRole(realmId: string, userId: string): Promise<RealmRole | null> {
+    this.logger.info('Getting user role in realm', { realmId, userId });
+
+    const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
+
+    if (!member || member.status !== 'active') {
+      this.logger.warn('User is not an active member of realm', { realmId, userId });
+      return null;
+    }
+
+    return member.role;
+  }
 }
