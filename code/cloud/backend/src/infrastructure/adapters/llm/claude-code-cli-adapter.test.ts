@@ -17,7 +17,12 @@ describe('ClaudeCodeCLIAdapter', () => {
   const mockSpawn = vi.mocked(spawn);
 
   beforeEach(() => {
-    adapter = new ClaudeCodeCLIAdapter('claude', 'opus', '/tmp', 5000);
+    adapter = new ClaudeCodeCLIAdapter({
+      cliPath: 'claude',
+      model: 'opus',
+      workingDir: '/tmp',
+      timeout: 5000,
+    });
   });
 
   afterEach(() => {
@@ -51,13 +56,14 @@ describe('ClaudeCodeCLIAdapter', () => {
     });
 
     it('should initialize with custom values', () => {
-      const customAdapter = new ClaudeCodeCLIAdapter(
-        '/usr/local/bin/claude',
-        'sonnet',
-        8192,
-        '/custom/dir',
-        60000
-      );
+      const customAdapter = new ClaudeCodeCLIAdapter({
+        cliPath: '/usr/local/bin/claude',
+        model: 'sonnet',
+        workingDir: '/custom/dir',
+        timeout: 60000,
+        temperature: 0.7,
+        maxTokens: 8192,
+      });
       expect(customAdapter).toBeDefined();
     });
   });

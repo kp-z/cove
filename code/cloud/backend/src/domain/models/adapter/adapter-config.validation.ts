@@ -68,7 +68,11 @@ export const claudeCodeCLIConfigSchema = z.object({
   config: z.object({
     cli_path: z.string().optional(),
     model: z.string().optional(),
+    working_dir: z.string().optional(),
+    timeout_ms: z.number().int().positive().optional(),
     context_window: z.number().int().positive().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    max_tokens: z.number().int().positive().optional(),
     retry: retrySchema,
   }),
 });
