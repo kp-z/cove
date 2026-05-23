@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/ui/button';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { usePresetAvatars, useUploadAvatar, useSetPresetAvatar, useDeleteAvatar } from '@/lib/trpc/hooks/avatar.hooks';
 import { cn } from '@/shared/utils/cn';
+import { env } from '@/core/config/env';
 
 interface AvatarEditorProps {
   type: 'user' | 'agent' | 'channel' | 'realm';
@@ -202,6 +203,10 @@ export function AvatarEditor({
                 {presets?.map((preset) => {
                   const isCurrent = isCurrentAvatar(preset.id);
                   const isSelected = selectedPreset === preset.id;
+                  // Add API URL prefix to previewUrl
+                  const avatarUrl = preset.previewUrl.startsWith('http')
+                    ? preset.previewUrl
+                    : `${env.apiUrl}${preset.previewUrl}`;
 
                   return (
                     <button
@@ -219,7 +224,7 @@ export function AvatarEditor({
                       title={preset.name}
                     >
                       <img
-                        src={preset.previewUrl}
+                        src={avatarUrl}
                         alt={preset.description}
                         className="w-full h-full object-cover"
                         loading="lazy"
