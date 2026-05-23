@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { User } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { CollapsibleSectionCard } from '@/shared/components/layout/CollapsibleSectionCard';
-import { FormField } from '@/shared/components/form';
-import { Avatar } from '@/shared/components/display/Avatar/Avatar';
-import { AvatarSelector } from '@/features/settings/components/AvatarSelector';
+import { FormField, CheckboxField } from '@/shared/components/form';
+import { AvatarEditor } from '@/shared/components/display/Avatar';
 import type { AgentPersonaInfo } from '../../types/agent-form.types';
 
 interface AgentPersonaSectionProps {
@@ -16,30 +14,19 @@ interface AgentPersonaSectionProps {
 }
 
 export function AgentPersonaSection({ value, onChange, agentId, agentName }: AgentPersonaSectionProps) {
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-
   return (
     <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={true} collapsible={false}>
       <div className="space-y-4">
         {/* Avatar Section */}
         {agentId && (
           <div className="flex items-center gap-4 pb-4 mb-4 border-b border-border/30">
-            <button
-              type="button"
-              onClick={() => setShowAvatarSelector(true)}
-              className="relative group cursor-pointer"
-            >
-              <Avatar
-                type="agent"
-                id={agentId}
-                name={agentName || value.name}
-                size="lg"
-                className="transition-opacity group-hover:opacity-80"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                <span className="text-xs text-white font-medium">Edit</span>
-              </div>
-            </button>
+            <AvatarEditor
+              type="agent"
+              id={agentId}
+              name={agentName || value.name}
+              size="lg"
+              editable={true}
+            />
             <div className="flex-1">
               <p className="text-sm font-medium">Agent Avatar</p>
               <p className="text-xs text-muted-foreground">Click to change avatar</p>
@@ -81,15 +68,6 @@ export function AgentPersonaSection({ value, onChange, agentId, agentName }: Age
           />
         </FormField>
       </div>
-
-      {/* Avatar Selector Modal */}
-      {showAvatarSelector && agentId && (
-        <AvatarSelector
-          entityType="agent"
-          entityId={agentId}
-          onClose={() => setShowAvatarSelector(false)}
-        />
-      )}
     </CollapsibleSectionCard>
   );
 }
