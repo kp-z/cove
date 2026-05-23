@@ -15,10 +15,8 @@ export interface PresetAvatarInfo {
  * Get all preset avatars
  */
 export function usePresetAvatars(entityType?: 'user' | 'agent' | 'channel' | 'realm') {
-  const query = trpc.avatar.getPresetAvatars.useQuery(
-    entityType ? { entityType } : undefined,
-    { enabled: !!entityType }
-  );
+  // Backend API doesn't need entityType parameter, it returns all presets
+  const query = trpc.avatar.getPresetAvatars.useQuery();
 
   return {
     ...query,
