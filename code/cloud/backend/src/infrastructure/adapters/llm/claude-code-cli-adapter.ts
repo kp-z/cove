@@ -12,22 +12,39 @@ interface ClaudeCliOutput {
   total_cost_usd?: number;
 }
 
+interface ClaudeCodeCLIOptions {
+  cliPath?: string;
+  model?: string;
+  workingDir?: string;
+  timeout?: number;
+  temperature?: number;
+  maxTokens?: number;
+  contextWindow?: number;
+  thinkingEnabled?: boolean;
+  thinkingBudget?: number;
+}
+
 export class ClaudeCodeCLIAdapter implements LlmAdapter {
   private readonly cliPath: string;
   private readonly model: string;
   private readonly workingDir: string;
   private readonly timeout: number;
+  private readonly temperature?: number;
+  private readonly maxTokens?: number;
+  private readonly contextWindow?: number;
+  private readonly thinkingEnabled: boolean;
+  private readonly thinkingBudget?: number;
 
-  constructor(
-    cliPath?: string,
-    model?: string,
-    workingDir?: string,
-    timeout?: number
-  ) {
-    this.cliPath = cliPath || 'claude';
-    this.model = model || 'opus';
-    this.workingDir = workingDir || process.cwd();
-    this.timeout = timeout || 120000; // 默认 2 分钟超时
+  constructor(options: ClaudeCodeCLIOptions = {}) {
+    this.cliPath = options.cliPath || 'claude';
+    this.model = options.model || 'opus';
+    this.workingDir = options.workingDir || process.cwd();
+    this.timeout = options.timeout || 120000; // 默认 2 分钟超时
+    this.temperature = options.temperature;
+    this.maxTokens = options.maxTokens;
+    this.contextWindow = options.contextWindow;
+    this.thinkingEnabled = options.thinkingEnabled ?? true;
+    this.thinkingBudget = options.thinkingBudget;
   }
 
   async generateResponse(params: GenerateParams): Promise<string> {
@@ -46,6 +63,27 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     // 如果有系统提示，添加 --system-prompt
     if (params.systemPrompt) {
       args.push('--system-prompt', params.systemPrompt);
+    }
+
+    // 添加可选参数
+    if (this.temperature !== undefined) {
+      args.push('--temperature', this.temperature.toString());
+    }
+
+    if (this.maxTokens !== undefined) {
+      args.push('--max-tokens', this.maxTokens.toString());
+    }
+
+    if (this.contextWindow !== undefined) {
+      args.push('--context-window', this.contextWindow.toString());
+    }
+
+    // Extended thinking 支持
+    if (this.thinkingEnabled) {
+      args.push('--thinking');
+      if (this.thinkingBudget !== undefined) {
+        args.push('--thinking-budget', this.thinkingBudget.toString());
+      }
     }
 
     // 添加 prompt 作为最后一个参数

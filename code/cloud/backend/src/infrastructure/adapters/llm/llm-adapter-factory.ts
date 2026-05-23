@@ -75,10 +75,15 @@ export class LlmAdapterFactory {
       }
 
       case 'claude-code-cli': {
-        return new ClaudeCodeCLIAdapter(
-          config.config.cli_path,
-          config.config.model,
-        );
+        return new ClaudeCodeCLIAdapter({
+          cliPath: config.config.cli_path,
+          model: config.config.model,
+          workingDir: config.config.working_dir,
+          timeout: config.config.timeout_ms,
+          temperature: config.config.temperature,
+          maxTokens: config.config.max_tokens,
+          contextWindow: config.config.context_window,
+        });
       }
 
       default:
@@ -147,10 +152,14 @@ export async function createLlmAdapterFromConfig(
     }
 
     case 'claude-code-cli': {
-      return new ClaudeCodeCLIAdapter(
-        config.cli?.command,
-        config.model_name || config.model?.model_name,
-      );
+      return new ClaudeCodeCLIAdapter({
+        cliPath: config.cli?.command,
+        model: config.model_name || config.model?.model_name,
+        workingDir: config.cli?.working_dir,
+        timeout: config.cli?.timeout_ms,
+        temperature: config.temperature,
+        maxTokens: config.max_tokens || config.model?.max_tokens,
+      });
     }
 
     default:
