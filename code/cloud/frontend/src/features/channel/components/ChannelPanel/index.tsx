@@ -48,6 +48,7 @@ interface ChannelPanelProps {
   message_id?: string | null;
   onClose?: () => void;
   className?: string;
+  hideTabs?: boolean;
 }
 
 function messageEntityToMessage(entity: MessageEntity): Message {
@@ -68,6 +69,7 @@ export function ChannelPanel({
   thread_id: initialThreadId,
   message_id,
   className = '',
+  hideTabs = false,
 }: ChannelPanelProps) {
   const { t } = useTranslation('channel');
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -193,15 +195,17 @@ export function ChannelPanel({
 
   return (
     <div className={`flex flex-col h-full bg-[#1a1d2e] ${className}`}>
-      <ChannelTabs
-        channel={channel}
-        threads={threads}
-        activeThreadId={activeThreadId}
-        onThreadChange={handleThreadChange}
-        onNewThread={handleNewThread}
-        onCloseThread={handleCloseThread}
-        leftActions={leftActions}
-      />
+      {!hideTabs && (
+        <ChannelTabs
+          channel={channel}
+          threads={threads}
+          activeThreadId={activeThreadId}
+          onThreadChange={handleThreadChange}
+          onNewThread={handleNewThread}
+          onCloseThread={handleCloseThread}
+          leftActions={leftActions}
+        />
+      )}
       <ChannelMemberBar channelId={channel_id} />
       <MessageList
         messages={messages}
