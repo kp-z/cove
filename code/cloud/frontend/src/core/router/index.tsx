@@ -7,7 +7,7 @@ import { lazy } from 'react';
 // eslint-disable-next-line react-refresh/only-export-components
 const DashboardPage = lazy(() => import('@/features/dashboard/components/DashboardPage'));
 // eslint-disable-next-line react-refresh/only-export-components
-const ChannelPage = lazy(() => import('@/features/channel/components/ChannelPage'));
+const ChannelPageWrapper = lazy(() => import('@/features/channel/components/ChannelPageWrapper'));
 // eslint-disable-next-line react-refresh/only-export-components
 const ChannelEditPage = lazy(() => import('@/features/channel/components/ChannelEditPage'));
 // eslint-disable-next-line react-refresh/only-export-components
@@ -48,11 +48,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'channel',
-        element: <ChannelPage />,
+        element: <ChannelPageWrapper />,
       },
       {
         path: 'channels',
-        element: <ChannelPage />,
+        element: <ChannelPageWrapper />,
       },
       {
         path: 'channels/new',
@@ -64,11 +64,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'channel/:channelId',
-        element: <ChannelPage />,
+        element: <ChannelPageWrapper />,
       },
       {
         path: 'channel/:channelId/:threadId',
-        element: <ChannelPage />,
+        element: <ChannelPageWrapper />,
       },
       {
         path: 'agents',
