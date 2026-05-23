@@ -54,17 +54,9 @@ export function useAgentFormState(
   // Persona
   const [persona, setPersona] = useState<AgentPersonaInfo>({
     name: agent?.persona?.name ?? '',
-    title: agent?.persona?.title ?? '',
-    description: agent?.persona?.description ?? '',
-    languageStyle: {
-      formality: agent?.persona?.language_style?.formality ?? 'professional',
-      verbosity: agent?.persona?.language_style?.verbosity ?? 'balanced',
-      preferredLanguage: agent?.persona?.language_style?.preferred_language ?? 'en',
-    },
-    behavior: {
-      proactive: agent?.persona?.behavior?.proactive ?? false,
-      askBeforeAction: agent?.persona?.behavior?.ask_before_action ?? true,
-    },
+    role: agent?.persona?.role ?? '',
+    tone: agent?.persona?.tone ?? '',
+    instructions: agent?.persona?.instructions ?? '',
   });
 
   // Skills

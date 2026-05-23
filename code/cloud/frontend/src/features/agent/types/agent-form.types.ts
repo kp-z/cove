@@ -24,17 +24,9 @@ export interface AgentRuntimeConfigInfo {
 
 export interface AgentPersonaInfo {
   name: string;
-  title: string;
-  description: string;
-  languageStyle: {
-    formality: string;
-    verbosity: string;
-    preferredLanguage: string;
-  };
-  behavior: {
-    proactive: boolean;
-    askBeforeAction: boolean;
-  };
+  role: string;
+  tone?: string;
+  instructions?: string;
 }
 
 export interface AgentSkillsInfo {
