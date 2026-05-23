@@ -12,6 +12,8 @@ import { DockCapsuleItem } from './DockCapsuleItem';
 import { AnimatedBorder } from './AnimatedBorder';
 import { useDockMagnification } from '@/shared/hooks/useDockMagnification';
 import { useNotificationStore } from '@/core/stores/notificationStore';
+import coveLogo from '@/assets/cove-logo.svg';
+import { branding } from '@/core/config';
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -64,9 +66,11 @@ export function TopBar() {
       <div className="relative flex items-center gap-4 flex-1">
         {/* Logo (mobile only) */}
         <div className="md:hidden flex items-center">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-            C
-          </div>
+          <img
+            src={coveLogo}
+            alt={branding.logo.alt}
+            className="w-7 h-7 object-contain"
+          />
         </div>
 
         {/* Navigation buttons (desktop only) */}
