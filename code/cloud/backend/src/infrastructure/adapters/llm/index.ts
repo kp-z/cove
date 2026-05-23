@@ -34,7 +34,12 @@ export function createLlmAdapter(): LlmAdapter {
       const timeout = process.env.CLAUDE_CLI_TIMEOUT
         ? parseInt(process.env.CLAUDE_CLI_TIMEOUT, 10)
         : undefined;
-      return new ClaudeCodeCLIAdapter(cliPath, model, workingDir, timeout);
+      return new ClaudeCodeCLIAdapter({
+        cliPath,
+        model,
+        workingDir,
+        timeout,
+      });
     }
     default:
       throw new Error(`Unknown LLM provider: ${provider}. Use "anthropic", "openai", or "claude-code-cli".`);
