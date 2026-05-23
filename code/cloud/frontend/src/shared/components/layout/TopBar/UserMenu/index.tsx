@@ -106,12 +106,14 @@ export const UserMenu = React.memo(() => {
           sideOffset={8}
           className="w-52 bg-[#111114] border border-white/[0.10] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1 z-50"
         >
-          <div className="flex flex-col gap-1 py-2 px-3 border-b border-white/10 mb-1">
-            <span className="text-sm font-semibold text-white">{user.username}</span>
+          <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-white/10 mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">{user.username}</span>
+              <span className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-medium ${badgeClass}`}>
+                {roleDisplayLabel}
+              </span>
+            </div>
             <span className="text-xs font-normal text-gray-400">{user.email}</span>
-            <span className={`inline-flex self-start mt-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-medium ${badgeClass}`}>
-              {roleDisplayLabel}
-            </span>
           </div>
 
           <DropdownMenu.Item
