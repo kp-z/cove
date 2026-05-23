@@ -142,32 +142,32 @@ export default function LoginPage() {
     <div className="fixed inset-0 bg-gray-950">
       <LoginBackground />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-end p-4 pr-20">
+      <div className="relative z-10 flex min-h-screen items-center justify-center md:justify-end p-4 md:pr-20">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
+          className="w-full max-w-sm md:max-w-md"
         >
           <GlassCard {...GlassCardVariants.hero} className="rounded-2xl">
             <div>
               {/* Header */}
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
                 <img
                   src={branding.logo.svg}
                   alt={branding.logo.alt}
-                  className="w-16 h-16 flex-shrink-0"
+                  className="w-12 h-12 md:w-16 md:h-16 flex-shrink-0"
                 />
                 <div>
-                  <h1 className="text-2xl font-bold mb-1">{branding.app.slogan}</h1>
-                  <p className="text-muted-foreground text-sm">
+                  <h1 className="text-xl md:text-2xl font-bold mb-1">{branding.app.slogan}</h1>
+                  <p className="text-muted-foreground text-xs md:text-sm">
                     {mode === 'login' ? t('welcome.subtitle') : t('auth.createAccount')}
                   </p>
                 </div>
               </div>
 
               {/* Form */}
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-3 md:space-y-4" onSubmit={handleSubmit}>
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
