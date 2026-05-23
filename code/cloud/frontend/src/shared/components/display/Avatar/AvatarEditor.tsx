@@ -68,7 +68,7 @@ export function AvatarEditor({
         await uploadMutation.mutateAsync({
           entityType: type,
           entityId: id,
-          fileData: base64Data,
+          file: base64Data,
           mimeType: file.type,
         });
         setPopoverOpen(false);
@@ -81,13 +81,13 @@ export function AvatarEditor({
   };
 
   // Handle preset selection
-  const handleSelectPreset = async (presetPath: string) => {
-    setSelectedPreset(presetPath);
+  const handleSelectPreset = async (presetId: string) => {
+    setSelectedPreset(presetId);
     try {
       await setPresetMutation.mutateAsync({
         entityType: type,
         entityId: id,
-        presetPath,
+        presetId,
       });
       setPopoverOpen(false);
     } catch (error) {
@@ -115,12 +115,12 @@ export function AvatarEditor({
     }
   };
 
-  const isCurrentAvatar = (presetPath: string) => {
+  const isCurrentAvatar = (presetId: string) => {
     if (!currentAvatar) return false;
 
     // Handle case where currentAvatar is an object
     if (typeof currentAvatar === 'object' && (currentAvatar as any).url) {
-      return (currentAvatar as any).url.includes(presetPath);
+      return (currentAvatar as any).url.includes(presetId);
     }
 
     // Ensure currentAvatar is a string
@@ -128,7 +128,7 @@ export function AvatarEditor({
       return false;
     }
 
-    return currentAvatar.includes(presetPath);
+    return currentAvatar.includes(presetId);
   };
 
   // If not editable, just show the avatar
@@ -198,16 +198,15 @@ export function AvatarEditor({
             ) : (
               <ScrollArea className="h-48">
                 <div className="grid grid-cols-4 gap-2 pr-2">
-                  {presets?.map((presetPath, index) => {
-                    const isCurrent = isCurrentAvatar(presetPath);
-                    const isSelected = selectedPreset === presetPath;
-                    const avatarUrl = `${import.meta.env.VITE_API_URL}/${presetPath}`;
+                  {presets?.map((preset) => {
+                    const isCurrent = isCurrentAvatar(preset.id);
+                    const isSelected = selectedPreset === preset.id;
 
                     return (
                       <button
-                        key={`${presetPath}-${index}`}
+                        key={preset.id}
                         type="button"
-                        onClick={() => handleSelectPreset(presetPath)}
+                        onClick={() => handleSelectPreset(preset.id)}
                         disabled={setPresetMutation.isPending}
                         className={cn(
                           'relative aspect-square rounded-lg overflow-hidden border-2 transition-all',
@@ -216,10 +215,11 @@ export function AvatarEditor({
                           isSelected && 'border-blue-400 ring-2 ring-blue-400/20',
                           !isCurrent && !isSelected && 'border-white/10'
                         )}
+                        title={preset.name}
                       >
                         <img
-                          src={avatarUrl}
-                          alt="Preset avatar"
+                          src={preset.previewUrl}
+                          alt={preset.description}
                           className="w-full h-full object-cover"
                           loading="lazy"
                         />

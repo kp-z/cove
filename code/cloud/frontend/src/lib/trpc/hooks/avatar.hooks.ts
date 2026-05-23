@@ -4,6 +4,13 @@
 
 import { trpc } from '@/lib/trpc';
 
+export interface PresetAvatarInfo {
+  id: string;
+  name: string;
+  description: string;
+  previewUrl: string;
+}
+
 /**
  * Get all preset avatars
  */
@@ -15,7 +22,7 @@ export function usePresetAvatars(entityType?: 'user' | 'agent' | 'channel' | 're
 
   return {
     ...query,
-    data: query.data?.presets || [],
+    data: query.data?.presets as PresetAvatarInfo[] | undefined,
   };
 }
 
