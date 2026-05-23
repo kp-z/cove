@@ -55,18 +55,26 @@ export function TopBar() {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-      className="relative z-30 hidden md:flex shrink-0 min-h-12 h-12 box-border items-center justify-between px-6 bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-visible"
+      className="relative z-30 flex shrink-0 min-h-10 h-10 md:min-h-12 md:h-12 box-border items-center justify-between px-4 md:px-6 bg-white/[0.03] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-visible"
     >
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
 
+      {/* Left side */}
       <div className="relative flex items-center gap-4 flex-1">
-        {/* Navigation buttons */}
+        {/* Logo (mobile only) */}
+        <div className="md:hidden flex items-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+            C
+          </div>
+        </div>
+
+        {/* Navigation buttons (desktop only) */}
         <motion.div
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
-          className="hidden sm:flex items-center gap-1"
+          className="hidden md:flex items-center gap-1"
         >
           <button
             onClick={() => navigate(-1)}
@@ -84,8 +92,8 @@ export function TopBar() {
           </button>
         </motion.div>
 
-        {/* Search box */}
-        <div className="relative hidden sm:flex items-center">
+        {/* Search box (desktop only) */}
+        <div className="relative hidden md:flex items-center">
           <motion.div
             initial={false}
             animate={{ width: isSearchOpen ? 320 : 42 }}
@@ -127,32 +135,44 @@ export function TopBar() {
         </div>
       </div>
 
+      {/* Right side - Capsules */}
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative flex items-center gap-4 overflow-visible"
+        className="relative flex items-center gap-2 md:gap-4 overflow-visible"
       >
+        {/* AgentRunCapsule - always visible */}
         <DockCapsuleItem mouseX={mouseX} index={0}>
           <AgentRunCapsule runningCount={0} />
         </DockCapsuleItem>
 
-        <DockCapsuleItem mouseX={mouseX} index={1}>
-          <NotificationBubble
-            notifications={notifications}
-            onDismiss={removeNotification}
-            onClearAll={clearAll}
-          />
-        </DockCapsuleItem>
+        {/* NotificationBubble - desktop only */}
+        <div className="hidden md:block">
+          <DockCapsuleItem mouseX={mouseX} index={1}>
+            <NotificationBubble
+              notifications={notifications}
+              onDismiss={removeNotification}
+              onClearAll={clearAll}
+            />
+          </DockCapsuleItem>
+        </div>
 
-        <DockCapsuleItem mouseX={mouseX} index={2}>
-          <TimeCapsule lang="en" />
-        </DockCapsuleItem>
+        {/* TimeCapsule - desktop only */}
+        <div className="hidden md:block">
+          <DockCapsuleItem mouseX={mouseX} index={2}>
+            <TimeCapsule lang="en" />
+          </DockCapsuleItem>
+        </div>
 
-        <DockCapsuleItem mouseX={mouseX} index={3}>
-          <TokenPill data={tokenUsage} isLoading={isTokenLoading} />
-        </DockCapsuleItem>
+        {/* TokenPill - desktop only */}
+        <div className="hidden md:block">
+          <DockCapsuleItem mouseX={mouseX} index={3}>
+            <TokenPill data={tokenUsage} isLoading={isTokenLoading} />
+          </DockCapsuleItem>
+        </div>
 
+        {/* UserMenu - always visible */}
         <DockCapsuleItem mouseX={mouseX} index={4}>
           <UserMenu />
         </DockCapsuleItem>
