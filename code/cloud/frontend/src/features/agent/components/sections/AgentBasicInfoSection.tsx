@@ -29,7 +29,7 @@ export function AgentBasicInfoSection({ value, onChange, agentId, agentName, age
   const isEditMode = !!agent;
 
   return (
-    <CollapsibleSectionCard title="Basic Information" icon={<Info size={20} />} defaultExpanded={true}>
+    <CollapsibleSectionCard title="Basic Information" icon={<Info size={20} />} defaultExpanded={true} collapsible={false}>
       <div className="space-y-4">
         {/* System Information (Edit Mode Only) */}
         {isEditMode && agent && (

@@ -98,6 +98,7 @@ export function RuntimeAdapterConfig({ value, onChange }: RuntimeAdapterConfigPr
       title="Runtime Configuration"
       icon={<Cpu className="w-5 h-5 text-primary" />}
       defaultExpanded={true}
+      collapsible={false}
       key={componentKey}
     >
       <div className="space-y-4">

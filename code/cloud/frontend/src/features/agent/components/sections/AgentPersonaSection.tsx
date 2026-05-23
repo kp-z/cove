@@ -33,7 +33,7 @@ export function AgentPersonaSection({ value, onChange, agentId, agentName }: Age
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   return (
-    <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={true}>
+    <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={true} collapsible={false}>
       <div className="space-y-4">
         {/* Avatar Section */}
         {agentId && (

@@ -18,7 +18,7 @@ export function AgentProjectSection({ value, onChange }: AgentProjectSectionProp
   };
 
   return (
-    <CollapsibleSectionCard title="Project Association" icon={<FolderOpen size={20} />} defaultExpanded={true}>
+    <CollapsibleSectionCard title="Project Association" icon={<FolderOpen size={20} />} defaultExpanded={true} collapsible={false}>
       <TagInput
         label="Project IDs"
         tags={value.projectIds}

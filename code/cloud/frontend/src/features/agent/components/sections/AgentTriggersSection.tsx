@@ -19,7 +19,7 @@ export function AgentTriggersSection({ value, onChange }: AgentTriggersSectionPr
   };
 
   return (
-    <CollapsibleSectionCard title="Triggers" icon={<Zap size={20} />} defaultExpanded={true}>
+    <CollapsibleSectionCard title="Triggers" icon={<Zap size={20} />} defaultExpanded={true} collapsible={false}>
       <div className="space-y-4">
         <CheckboxField
           id="onMention"
