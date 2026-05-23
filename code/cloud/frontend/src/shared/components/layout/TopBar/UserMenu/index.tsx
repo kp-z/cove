@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/core/auth/authStore';
 import { Capsule } from '@/shared/components/ui/Capsule';
 import { HoverGradient } from '@/shared/components/ui/HoverGradient';
+import { getAvatarUrl } from '@/shared/utils/avatar';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
@@ -20,19 +21,21 @@ const ROLE_BADGE: Record<string, string> = {
 };
 
 interface UserAvatarProps {
-  user: { username: string; avatar?: string };
+  user: { username: string; displayName?: string; avatar?: string };
   className?: string;
   showRing?: boolean;
 }
 
 function UserAvatar({ user, className = '', showRing = false }: UserAvatarProps) {
-  const initial = user.username.charAt(0).toUpperCase();
+  const displayName = user.displayName || user.username;
+  const initial = displayName.charAt(0).toUpperCase();
+  const avatarUrl = getAvatarUrl(user.avatar);
 
-  if (user.avatar) {
+  if (avatarUrl) {
     return (
       <img
-        src={user.avatar}
-        alt={user.username}
+        src={avatarUrl}
+        alt={displayName}
         className={`${className} rounded-full object-cover ${showRing ? 'ring-1 ring-white/10' : ''}`}
       />
     );
@@ -67,7 +70,7 @@ export const UserMenu = React.memo(() => {
     );
   }
 
-  const displayName = user.username;
+  const displayName = user.displayName || user.username;
   const role = 'user';
   const roleDisplayLabel = ROLE_LABEL[role] ?? role;
   const badgeClass = ROLE_BADGE[role] ?? ROLE_BADGE.guest;
@@ -79,26 +82,26 @@ export const UserMenu = React.memo(() => {
 
   return (
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        title={displayName}
-        aria-label={t('userMenu.ariaLabel')}
-        aria-expanded={open}
-        className={`group relative flex shrink-0 items-center gap-0 rounded-full p-0 transition-all duration-150 ease-out ${
-          open ? 'bg-white/[0.08] border border-white/[0.12] ring-1 ring-white/20 pl-3 pr-2 gap-2' : 'bg-transparent border-0'
-        } hover:bg-white/[0.04] hover:border hover:border-white/[0.08] hover:gap-2 hover:pl-3 hover:pr-2`}
-      >
-        <HoverGradient rounded="rounded-full" />
-        <div className={`pointer-events-none max-w-0 min-w-0 flex flex-row items-center justify-start overflow-hidden pl-0 opacity-0 transition-all duration-150 ease-out ${
-          open ? 'max-w-[120px] pl-1 opacity-100' : 'group-hover:max-w-[120px] group-hover:pl-1 group-hover:opacity-100'
-        }`}>
-          <p className="truncate text-left text-[11px] font-semibold leading-none text-white whitespace-nowrap">
-            {displayName}
-          </p>
-        </div>
-        <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
-      </button>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          title={displayName}
+          aria-label={t('userMenu.ariaLabel')}
+          className={`group relative flex shrink-0 items-center gap-0 rounded-full p-0 transition-all duration-150 ease-out ${
+            open ? 'bg-white/[0.08] border border-white/[0.12] ring-1 ring-white/20 pl-3 pr-2 gap-2' : 'bg-transparent border-0'
+          } hover:bg-white/[0.04] hover:border hover:border-white/[0.08] hover:gap-2 hover:pl-3 hover:pr-2`}
+        >
+          <HoverGradient rounded="rounded-full" />
+          <div className={`pointer-events-none max-w-0 min-w-0 flex flex-row items-center justify-start overflow-hidden pl-0 opacity-0 transition-all duration-150 ease-out ${
+            open ? 'max-w-[120px] pl-1 opacity-100' : 'group-hover:max-w-[120px] group-hover:pl-1 group-hover:opacity-100'
+          }`}>
+            <p className="truncate text-left text-[11px] font-semibold leading-none text-white whitespace-nowrap">
+              {displayName}
+            </p>
+          </div>
+          <UserAvatar user={user} className="h-7 w-7 shrink-0" showRing />
+        </button>
+      </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
@@ -108,7 +111,7 @@ export const UserMenu = React.memo(() => {
         >
           <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-white/10 mb-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white">{user.username}</span>
+              <span className="text-sm font-semibold text-white">{displayName}</span>
               <span className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-medium ${badgeClass}`}>
                 {roleDisplayLabel}
               </span>
