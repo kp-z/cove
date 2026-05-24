@@ -59,7 +59,7 @@ export function useEntityAvatarData(
   type: 'user' | 'agent' | 'channel',
   id: string
 ): AvatarData {
-  const { data: user } = useUser(type === 'user' ? id : '', { enabled: type === 'user' });
+  const { data: user } = useUser(type === 'user' ? id : '');
   const { data: agent } = useAgent(id, { enabled: type === 'agent' });
 
   if (type === 'user' && user) {

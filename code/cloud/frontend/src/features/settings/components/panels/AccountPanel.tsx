@@ -79,7 +79,7 @@ export function AccountPanel() {
             <AvatarEditor
               type="user"
               id={(user as any).user_id || user.id}
-              name={user.displayName}
+              name={user.displayName || (user as any).display_name || user.username}
               currentAvatar={typeof user.avatar === 'object' ? (user.avatar as any)?.url : user.avatar}
               size="xl"
               editable={true}
