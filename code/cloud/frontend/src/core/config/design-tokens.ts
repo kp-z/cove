@@ -22,7 +22,7 @@ export const borderRadius = {
   // 特殊用途
   card: '0.75rem',          // 12px - Dashboard 卡片标准圆角（参考 Apple 设计）
   panel: '1rem',            // 16px - 侧边面板圆角
-  mobileNav: '2.75rem',     // 44px - 移动端导航栏圆角（iOS 风格）
+  mobileNav: '0.75rem',     // 12px - 移动端导航栏圆角（与 card 一致）
   button: '0.5rem',         // 8px - 按钮圆角
   input: '0.5rem',          // 8px - 输入框圆角
   modal: '1rem',            // 16px - 模态框圆角
