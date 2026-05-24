@@ -7,7 +7,7 @@ import { cn } from '@/shared/utils/cn';
 export interface AvatarProps {
   type: 'user' | 'agent' | 'channel';
   id: string;
-  name: string;
+  name?: string; // Make name optional to handle undefined cases
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -25,19 +25,22 @@ export function Avatar({ type, id, name, size = 'md', className }: AvatarProps) 
   let avatarUrl: string | undefined;
   let initials: string;
 
+  // Fallback name if not provided
+  const displayName = name || 'Unknown';
+
   if (type === 'agent' && agent) {
     // Try multiple possible avatar locations
     const agentAvatarUrl = agent.persona?.avatar?.url || (agent as any).avatar_url || (agent as any).avatarUrl;
     avatarUrl = getAgentAvatarUrl(agentAvatarUrl);
-    initials = getAgentInitials(name);
+    initials = getAgentInitials(agent.display_name || agent.name || displayName);
   } else if (type === 'user' && user) {
     avatarUrl = getAvatarUrl(user.avatar);
-    initials = getAgentInitials(name);
+    initials = getAgentInitials(user.displayName || user.username || displayName);
   } else if (type === 'channel') {
     // TODO: Implement channel avatar logic when needed
-    initials = name.slice(0, 2).toUpperCase();
+    initials = displayName.slice(0, 2).toUpperCase();
   } else {
-    initials = getAgentInitials(name);
+    initials = getAgentInitials(displayName);
   }
 
   return (
@@ -51,7 +54,7 @@ export function Avatar({ type, id, name, size = 'md', className }: AvatarProps) 
       {avatarUrl ? (
         <img
           src={avatarUrl}
-          alt={name}
+          alt={displayName}
           className="w-full h-full rounded-full object-cover"
         />
       ) : (
