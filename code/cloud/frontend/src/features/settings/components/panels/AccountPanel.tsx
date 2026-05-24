@@ -8,6 +8,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { AvatarEditor } from '@/shared/components/display/Avatar';
+import { getAvatarUrl } from '@/shared/utils/avatar';
 
 export function AccountPanel() {
   const { t, i18n } = useTranslation('settings');
@@ -80,7 +81,7 @@ export function AccountPanel() {
               type="user"
               id={(user as any).user_id || user.id}
               name={user.displayName || (user as any).display_name || user.username}
-              currentAvatar={typeof user.avatar === 'object' ? (user.avatar as any)?.url : user.avatar}
+              currentAvatar={getAvatarUrl(user.avatar)}
               size="xl"
               editable={true}
             />
