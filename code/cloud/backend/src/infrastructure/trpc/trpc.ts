@@ -21,6 +21,14 @@ export const middleware = t.middleware;
 
 // RealmContext injection middleware
 const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
+  // Debug logging
+  console.log('[RealmContext Middleware]', {
+    realmId: ctx.realmId,
+    userId: ctx.userId,
+    hasRealmId: !!ctx.realmId,
+    hasUserId: !!ctx.userId
+  });
+
   // Inject RealmContext into AsyncLocalStorage if realmId and userId are available
   if (ctx.realmId && ctx.userId) {
     const realmContext = RealmContext.create(ctx.realmId, ctx.userId);
@@ -28,6 +36,7 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
   }
 
   // If no realmId or userId, proceed without RealmContext
+  console.log('[RealmContext Middleware] Skipping - missing realmId or userId');
   return next();
 });
 

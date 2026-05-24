@@ -14,7 +14,7 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure } from '../trpc';
+import { router, procedure } from '../trpc';
 import { ChannelService } from '../../../application/services/channel/channel.service';
 import { mapErrorToTRPC } from '../../../common/errors';
 
@@ -46,7 +46,7 @@ const removeMemberSchema = z.object({
 export const channelRouter = (channelService: ChannelService) =>
   router({
     // 获取频道列表
-    list: publicProcedure
+    list: procedure
       .input(z.object({ projectId: z.string().optional() }).optional())
       .query(async ({ input }) => {
         try {
@@ -67,7 +67,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 获取频道详情
-    getById: publicProcedure
+    getById: procedure
       .input(z.object({ channelId: z.string() }))
       .query(async ({ input }) => {
         try {
@@ -79,7 +79,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 创建频道
-    create: publicProcedure
+    create: procedure
       .input(createChannelSchema)
       .mutation(async ({ input }) => {
         try {
@@ -91,7 +91,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 更新频道
-    update: publicProcedure
+    update: procedure
       .input(z.object({
         channelId: z.string(),
         data: updateChannelSchema,
@@ -106,7 +106,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 删除频道
-    delete: publicProcedure
+    delete: procedure
       .input(z.object({ channelId: z.string() }))
       .mutation(async ({ input }) => {
         try {
@@ -118,7 +118,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 获取频道成员
-    getMembers: publicProcedure
+    getMembers: procedure
       .input(z.object({ channelId: z.string() }))
       .query(async ({ input }) => {
         try {
@@ -141,7 +141,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 添加成员
-    addMember: publicProcedure
+    addMember: procedure
       .input(addMemberSchema)
       .mutation(async ({ input }) => {
         try {
@@ -153,7 +153,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 移除成员
-    removeMember: publicProcedure
+    removeMember: procedure
       .input(removeMemberSchema)
       .mutation(async ({ input }) => {
         try {
@@ -165,7 +165,7 @@ export const channelRouter = (channelService: ChannelService) =>
       }),
 
     // 获取频道的 Agent Pool
-    getAgents: publicProcedure
+    getAgents: procedure
       .input(z.object({ channelId: z.string() }))
       .query(async ({ input }) => {
         try {
