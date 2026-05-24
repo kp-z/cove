@@ -34,15 +34,18 @@ export function useUploadAvatar() {
   return trpc.avatar.uploadAvatar.useMutation({
     onSuccess: (data, variables) => {
       // Invalidate relevant queries after upload
-      utils.agent.invalidate();
-      utils.user.invalidate();
-
-      // Update authStore if uploading for current user
       if (variables.entityType === 'user') {
+        // Invalidate specific user query
+        utils.user.getById.invalidate({ userId: variables.entityId });
+        utils.user.list.invalidate();
+
+        // Update authStore if uploading for current user
         const { user, updateUser } = useAuthStore.getState();
         if (user && user.id === variables.entityId) {
           updateUser({ avatar: data.avatarUrl });
         }
+      } else if (variables.entityType === 'agent') {
+        utils.agent.invalidate();
       }
     },
   });
@@ -57,15 +60,18 @@ export function useSetPresetAvatar() {
   return trpc.avatar.setPresetAvatar.useMutation({
     onSuccess: (data, variables) => {
       // Invalidate relevant queries after setting preset
-      utils.agent.invalidate();
-      utils.user.invalidate();
-
-      // Update authStore if setting for current user
       if (variables.entityType === 'user') {
+        // Invalidate specific user query
+        utils.user.getById.invalidate({ userId: variables.entityId });
+        utils.user.list.invalidate();
+
+        // Update authStore if setting for current user
         const { user, updateUser } = useAuthStore.getState();
         if (user && user.id === variables.entityId) {
           updateUser({ avatar: data.avatarUrl });
         }
+      } else if (variables.entityType === 'agent') {
+        utils.agent.invalidate();
       }
     },
   });
@@ -80,15 +86,18 @@ export function useDeleteAvatar() {
   return trpc.avatar.deleteAvatar.useMutation({
     onSuccess: (data, variables) => {
       // Invalidate relevant queries after deletion
-      utils.agent.invalidate();
-      utils.user.invalidate();
-
-      // Update authStore if deleting for current user
       if (variables.entityType === 'user') {
+        // Invalidate specific user query
+        utils.user.getById.invalidate({ userId: variables.entityId });
+        utils.user.list.invalidate();
+
+        // Update authStore if deleting for current user
         const { user, updateUser } = useAuthStore.getState();
         if (user && user.id === variables.entityId) {
           updateUser({ avatar: undefined });
         }
+      } else if (variables.entityType === 'agent') {
+        utils.agent.invalidate();
       }
     },
   });
