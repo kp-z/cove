@@ -226,7 +226,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
       />
 
       <PageContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[1400px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column */}
           <div className="flex flex-col gap-6">
             <ChannelBasicInfoSection

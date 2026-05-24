@@ -70,9 +70,7 @@ export default function DashboardPage() {
       />
 
       <PageContent>
-        <div className="max-w-7xl mx-auto">
-          <CardGridLayout {...cardGridConfig} />
-        </div>
+        <CardGridLayout {...cardGridConfig} />
       </PageContent>
     </PageShell>
   );
