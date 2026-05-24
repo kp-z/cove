@@ -164,6 +164,10 @@ export class UserService {
       user = user.updateEmail(dto.email);
     }
 
+    if (dto.avatar !== undefined) {
+      user = user.updateAvatar(dto.avatar);
+    }
+
     if (dto.preference !== undefined) {
       user = user.updatePreference(dto.preference);
     }

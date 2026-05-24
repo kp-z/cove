@@ -152,6 +152,10 @@ export class UserEntity {
     return UserEntity.create({ ...this.props, email });
   }
 
+  updateAvatar(avatar: Avatar): UserEntity {
+    return UserEntity.create({ ...this.props, avatar });
+  }
+
   updatePreference(preference: UserPreference): UserEntity {
     // Validate: max 10 pinned channels
     if (preference.pinned_channels && preference.pinned_channels.length > 10) {
