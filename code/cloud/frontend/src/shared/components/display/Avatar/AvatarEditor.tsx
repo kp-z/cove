@@ -141,11 +141,13 @@ export function AvatarEditor({
   if (!editable) {
     return (
       <div className={cn(sizeClasses[size], className)}>
-        <Avatar
-          avatarUrl={currentAvatar || avatarData.avatarUrl}
-          name={name || avatarData.name}
-          size={size}
-        />
+        <div className="rounded-full border-2 border-white/10">
+          <Avatar
+            avatarUrl={currentAvatar || avatarData.avatarUrl}
+            name={name || avatarData.name}
+            size={size}
+          />
+        </div>
       </div>
     );
   }
@@ -156,18 +158,20 @@ export function AvatarEditor({
         <button
           type="button"
           className={cn(
-            'relative group cursor-pointer rounded-full border-2 border-white/10 hover:border-white/20 transition-colors',
+            'relative group cursor-pointer rounded-full transition-all',
             sizeClasses[size],
             className
           )}
         >
-          <Avatar
-            avatarUrl={currentAvatar || avatarData.avatarUrl}
-            name={name || avatarData.name}
-            size={size}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-            <span className="text-xs text-white font-medium">Edit</span>
+          <div className="rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors">
+            <Avatar
+              avatarUrl={currentAvatar || avatarData.avatarUrl}
+              name={name || avatarData.name}
+              size={size}
+            />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+            <span className="text-xs text-white font-semibold">Edit</span>
           </div>
         </button>
       </Popover.Trigger>
