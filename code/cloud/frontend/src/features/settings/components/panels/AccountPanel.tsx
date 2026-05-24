@@ -80,7 +80,7 @@ export function AccountPanel() {
               type="user"
               id={user.id}
               name={user.displayName}
-              currentAvatar={user.avatar}
+              currentAvatar={typeof user.avatar === 'object' ? (user.avatar as any)?.url : user.avatar}
               size="xl"
               editable={true}
             />
