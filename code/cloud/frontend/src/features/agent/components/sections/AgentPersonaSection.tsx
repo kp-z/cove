@@ -17,9 +17,9 @@ export function AgentPersonaSection({ value, onChange, agentId, agentName }: Age
   return (
     <CollapsibleSectionCard title="Persona Configuration" icon={<User size={20} />} defaultExpanded={true} collapsible={false}>
       <div className="space-y-4">
-        {/* Avatar Section */}
+        {/* Avatar Section - Prominent at top */}
         {agentId && (
-          <div className="flex items-center gap-4 pb-4 mb-4 border-b border-border/30">
+          <div className="flex flex-col items-center gap-3 pb-4 mb-4 border-b border-border/30">
             <AvatarEditor
               type="agent"
               id={agentId}
@@ -27,7 +27,7 @@ export function AgentPersonaSection({ value, onChange, agentId, agentName }: Age
               size="lg"
               editable={true}
             />
-            <div className="flex-1">
+            <div className="text-center">
               <p className="text-sm font-medium">Agent Avatar</p>
               <p className="text-xs text-muted-foreground">Click to change avatar</p>
             </div>

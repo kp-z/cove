@@ -104,13 +104,12 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="flex flex-col gap-6">
-              {/* Basic Information - Most Important */}
-              <AgentBasicInfoSection
-                value={formState.basicInfo}
-                onChange={formState.actions.updateBasicInfo}
+              {/* Persona Configuration - Most Important */}
+              <AgentPersonaSection
+                value={formState.persona}
+                onChange={formState.actions.updatePersona}
                 agentId={agent?.agent_id}
                 agentName={agent?.name}
-                agent={agent}
               />
 
               {/* Runtime Configuration - Frequently Used */}
@@ -128,12 +127,13 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
 
             {/* Right Column */}
             <div className="flex flex-col gap-6">
-              {/* Persona Configuration */}
-              <AgentPersonaSection
-                value={formState.persona}
-                onChange={formState.actions.updatePersona}
+              {/* Basic Information */}
+              <AgentBasicInfoSection
+                value={formState.basicInfo}
+                onChange={formState.actions.updateBasicInfo}
                 agentId={agent?.agent_id}
                 agentName={agent?.name}
+                agent={agent}
               />
 
               {/* Skills & Tools */}

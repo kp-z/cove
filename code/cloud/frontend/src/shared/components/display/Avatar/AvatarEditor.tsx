@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload, Trash2, Check } from 'lucide-react';
 import { Avatar } from './Avatar';
+import { useEntityAvatarData } from './useAvatarData';
 import { Popover } from '@/shared/components/ui/Popover';
 import { Button } from '@/shared/components/ui/button';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
@@ -36,6 +37,9 @@ export function AvatarEditor({
 }: AvatarEditorProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
+  // Fetch avatar data using the hook
+  const avatarData = useEntityAvatarData(type, id);
 
   const { data: presets, isLoading } = usePresetAvatars(type);
   const uploadMutation = useUploadAvatar();
@@ -117,26 +121,27 @@ export function AvatarEditor({
   };
 
   const isCurrentAvatar = (presetId: string) => {
-    if (!currentAvatar) return false;
+    const currentAvatarUrl = avatarData.avatarUrl;
+    if (!currentAvatarUrl) return false;
 
-    // Handle case where currentAvatar is an object
-    if (typeof currentAvatar === 'object' && (currentAvatar as any).url) {
-      return (currentAvatar as any).url.includes(presetId);
+    // Handle case where currentAvatarUrl is an object
+    if (typeof currentAvatarUrl === 'object' && (currentAvatarUrl as any).url) {
+      return (currentAvatarUrl as any).url.includes(presetId);
     }
 
-    // Ensure currentAvatar is a string
-    if (typeof currentAvatar !== 'string') {
+    // Ensure currentAvatarUrl is a string
+    if (typeof currentAvatarUrl !== 'string') {
       return false;
     }
 
-    return currentAvatar.includes(presetId);
+    return currentAvatarUrl.includes(presetId);
   };
 
   // If not editable, just show the avatar
   if (!editable) {
     return (
       <div className={cn(sizeClasses[size], className)}>
-        <Avatar type={type} id={id} name={name} size={size} />
+        <Avatar avatarUrl={avatarData.avatarUrl} name={avatarData.name} size={size} />
       </div>
     );
   }
@@ -152,7 +157,7 @@ export function AvatarEditor({
             className
           )}
         >
-          <Avatar type={type} id={id} name={name} size={size} />
+          <Avatar avatarUrl={avatarData.avatarUrl} name={avatarData.name} size={size} />
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
             <span className="text-xs text-white font-medium">Edit</span>
           </div>

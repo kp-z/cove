@@ -35,7 +35,7 @@ export function AgentBasicInfoSection({ value, onChange, agentId, agentName, age
         {isEditMode && agent && (
           <div className="pb-4 mb-4 border-b border-border/30">
             <h4 className="text-sm font-medium mb-3 text-muted-foreground">System Information</h4>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
               <InfoField label="Agent ID" value={agent.agent_id} mono />
               <InfoField label="Name" value={agent.name} mono />
               <div>
