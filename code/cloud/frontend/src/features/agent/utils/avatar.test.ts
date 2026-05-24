@@ -3,50 +3,29 @@ import { getAgentAvatarUrl, getAgentInitials } from './avatar';
 
 describe('avatar utils', () => {
   describe('getAgentAvatarUrl', () => {
-    it('should generate consistent avatar URL for same id and name', () => {
-      const url1 = getAgentAvatarUrl('agent-123', 'TestAgent');
-      const url2 = getAgentAvatarUrl('agent-123', 'TestAgent');
-      expect(url1).toBe(url2);
+    it('should return undefined for null or undefined', () => {
+      expect(getAgentAvatarUrl(null)).toBeUndefined();
+      expect(getAgentAvatarUrl(undefined)).toBeUndefined();
     });
 
-    it('should generate different URLs for different ids', () => {
-      const url1 = getAgentAvatarUrl('agent-123', 'TestAgent');
-      const url2 = getAgentAvatarUrl('agent-456', 'TestAgent');
-      expect(url1).not.toBe(url2);
+    it('should return full URL as-is', () => {
+      expect(getAgentAvatarUrl('https://example.com/avatar.png')).toBe('https://example.com/avatar.png');
+      expect(getAgentAvatarUrl('http://example.com/avatar.png')).toBe('http://example.com/avatar.png');
     });
 
-    it('should include dicebear API endpoint', () => {
-      const url = getAgentAvatarUrl('agent-123', 'TestAgent');
-      expect(url).toContain('https://api.dicebear.com/7.x/');
+    it('should prepend API URL for relative paths', () => {
+      const result = getAgentAvatarUrl('avatars/agent-123.png');
+      expect(result).toContain('avatars/agent-123.png');
     });
 
-    it('should encode name as seed parameter', () => {
-      const url = getAgentAvatarUrl('agent-123', 'Test Agent');
-      expect(url).toContain('seed=Test%20Agent');
+    it('should handle object with url property', () => {
+      const result = getAgentAvatarUrl({ url: 'https://example.com/avatar.png' });
+      expect(result).toBe('https://example.com/avatar.png');
     });
 
-    it('should include background colors', () => {
-      const url = getAgentAvatarUrl('agent-123', 'TestAgent');
-      expect(url).toContain('backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf');
-    });
-
-    it('should include radius parameter', () => {
-      const url = getAgentAvatarUrl('agent-123', 'TestAgent');
-      expect(url).toContain('radius=50');
-    });
-
-    it('should use one of the predefined styles', () => {
-      const url = getAgentAvatarUrl('agent-123', 'TestAgent');
-      const styles = [
-        'avataaars-neutral',
-        'big-ears-neutral',
-        'lorelei-neutral',
-        'notionists-neutral',
-        'open-peeps',
-        'personas',
-      ];
-      const hasValidStyle = styles.some((style) => url.includes(style));
-      expect(hasValidStyle).toBe(true);
+    it('should return undefined for invalid types', () => {
+      expect(getAgentAvatarUrl(123 as any)).toBeUndefined();
+      expect(getAgentAvatarUrl({} as any)).toBeUndefined();
     });
   });
 
@@ -83,8 +62,21 @@ describe('avatar utils', () => {
       expect(getAgentInitials('A')).toBe('A');
     });
 
-    it('should handle empty string', () => {
-      expect(getAgentInitials('')).toBe('');
+    it('should handle undefined name gracefully', () => {
+      expect(getAgentInitials(undefined)).toBe('??');
+    });
+
+    it('should handle null name gracefully', () => {
+      expect(getAgentInitials(null)).toBe('??');
+    });
+
+    it('should handle empty string gracefully', () => {
+      expect(getAgentInitials('')).toBe('??');
+    });
+
+    it('should handle non-string values gracefully', () => {
+      expect(getAgentInitials(123 as any)).toBe('??');
+      expect(getAgentInitials({} as any)).toBe('??');
     });
 
     it('should handle mixed case with spaces', () => {

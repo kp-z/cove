@@ -32,7 +32,12 @@ export function getAgentAvatarUrl(avatarUrl?: string | null | any): string | und
  * @param name - Agent name
  * @returns Two-letter initials
  */
-export function getAgentInitials(name: string): string {
+export function getAgentInitials(name: string | undefined | null): string {
+  // Handle undefined, null, or empty string
+  if (!name || typeof name !== 'string') {
+    return '??';
+  }
+
   const parts = name.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[\s-_]+/);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
