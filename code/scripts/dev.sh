@@ -125,17 +125,30 @@ start_local() {
     print_success "Local agent started (PID: $!)"
 }
 
+# Get LAN IP address
+get_lan_ip() {
+    # Get primary LAN IP (exclude loopback and VPN)
+    local lan_ip=$(ifconfig | grep -E "inet " | grep -v "127.0.0.1" | grep -v "198.18" | awk '{print $2}' | head -1)
+    echo "$lan_ip"
+}
+
 # Show status
 show_status() {
     echo ""
     echo "=== Cove Development Status ==="
     echo ""
 
+    # Get LAN IP
+    local lan_ip=$(get_lan_ip)
+
     # Check backend
     if lsof -i:$BACKEND_PORT -sTCP:LISTEN >/dev/null 2>&1; then
         local pid=$(lsof -ti:$BACKEND_PORT 2>/dev/null | head -1)
         print_success "Backend: Running (PID: $pid, Port: $BACKEND_PORT)"
-        echo "  URL: http://localhost:$BACKEND_PORT"
+        echo "  Local:  http://localhost:$BACKEND_PORT"
+        if [ -n "$lan_ip" ]; then
+            echo "  LAN:    http://$lan_ip:$BACKEND_PORT"
+        fi
     else
         print_error "Backend: Not running"
     fi
@@ -144,7 +157,10 @@ show_status() {
     if lsof -i:$FRONTEND_PORT -sTCP:LISTEN >/dev/null 2>&1; then
         local pid=$(lsof -ti:$FRONTEND_PORT 2>/dev/null | head -1)
         print_success "Frontend: Running (PID: $pid, Port: $FRONTEND_PORT)"
-        echo "  URL: http://localhost:$FRONTEND_PORT"
+        echo "  Local:  http://localhost:$FRONTEND_PORT"
+        if [ -n "$lan_ip" ]; then
+            echo "  LAN:    http://$lan_ip:$FRONTEND_PORT"
+        fi
     else
         print_error "Frontend: Not running"
     fi
@@ -162,6 +178,10 @@ show_status() {
         print_error "Local Agent: Not running"
     fi
 
+    echo ""
+    if [ -n "$lan_ip" ]; then
+        print_info "Network: LAN IP is $lan_ip"
+    fi
     echo ""
     echo "Logs:"
     echo "  Backend:  $LOG_DIR/backend.log"
