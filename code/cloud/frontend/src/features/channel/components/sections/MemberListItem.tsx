@@ -5,6 +5,8 @@ import { Avatar } from '@/shared/components/display/Avatar';
 import { InfoCard } from '@/shared/components/display/InfoCard';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
+import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 import type { ChannelMember } from '@/lib/trpc-types';
 
 interface MemberListItemProps {
@@ -27,6 +29,11 @@ export function MemberListItem({ member, onRemove }: MemberListItemProps) {
     ? user?.name || member.member_id
     : agent?.display_name || agent?.name || member.member_id;
 
+  // Get avatar URL based on member type
+  const avatarUrl = member.member_type === 'human'
+    ? (user?.avatar ? getAvatarUrl(user.avatar) : null)
+    : (agent?.persona?.avatar?.url ? getAgentAvatarUrl(agent.persona.avatar.url) : null);
+
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-white/5 transition-colors">
       <InfoCard
@@ -38,8 +45,7 @@ export function MemberListItem({ member, onRemove }: MemberListItemProps) {
       >
         <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
           <Avatar
-            type={member.member_type === 'human' ? 'user' : 'agent'}
-            id={member.member_id}
+            avatarUrl={avatarUrl}
             name={displayName}
             size="sm"
           />
