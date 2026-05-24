@@ -8,7 +8,14 @@ import { useCreateChannel, useUpdateChannel, useAddChannelMember, useRemoveChann
 import { useAgents } from '@/lib/trpc/hooks/agent.hooks';
 import { useUsers } from '@/lib/trpc/hooks/user.hooks';
 import { useAuthStore } from '@/core/auth/authStore';
-import { ChannelBasicInfoSection, ChannelMembersSection } from './sections';
+import {
+  ChannelBasicInfoSection,
+  ChannelMembersSection,
+  ChannelAgentPoolSection,
+  ChannelProjectSection,
+  ChannelCommunicationRulesSection,
+  ChannelMetadataSection
+} from './sections';
 import type { Channel, ChannelMember } from '@/lib/trpc-types';
 
 interface ChannelEditFormProps {
@@ -35,11 +42,36 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
   const [displayName, setDisplayName] = useState(channel?.display_name ?? '');
   const [description, setDescription] = useState(channel?.description ?? '');
   const [icon, setIcon] = useState(channel?.icon ?? '');
+  const [avatar, setAvatar] = useState(channel?.avatar);
   const [type, setType] = useState<'public' | 'private' | 'dm'>(channel?.type ?? 'public');
   const [status, setStatus] = useState<'active' | 'archived'>(channel?.status ?? 'active');
+  const [parentChannelId, setParentChannelId] = useState(channel?.parent_channel_id ?? '');
+
+  // Project State
+  const [projectId, setProjectId] = useState(channel?.project_id ?? '');
 
   // Members State
   const [members, setMembers] = useState<ChannelMember[]>(channel?.members ?? []);
+
+  // Agent Pool State
+  const [agentPool, setAgentPool] = useState<string[]>(channel?.agent_pool ?? []);
+
+  // Communication Rules State
+  const [communicationRules, setCommunicationRules] = useState({
+    allowMentions: channel?.communication_rules?.allow_mentions ?? true,
+    allowThreads: channel?.communication_rules?.allow_threads ?? true,
+    allowAttachments: channel?.communication_rules?.allow_attachments ?? true,
+    maxMessageLength: channel?.communication_rules?.max_message_length ?? 10000,
+    maxMembers: channel?.communication_rules?.max_members,
+    rateLimit: channel?.communication_rules?.rate_limit ? {
+      messagesPerMinute: channel.communication_rules.rate_limit.messages_per_minute,
+      enabled: channel.communication_rules.rate_limit.enabled,
+    } : undefined,
+  });
+
+  // Metadata State
+  const [tags, setTags] = useState<string[]>(channel?.meta?.tags ?? []);
+  const [category, setCategory] = useState(channel?.meta?.category ?? '');
 
   // UI State
   const [saved, setSaved] = useState(false);
@@ -50,8 +82,27 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
       display_name: displayName,
       description,
       icon,
+      avatar,
       type,
       status,
+      parent_channel_id: parentChannelId || undefined,
+      project_id: projectId || undefined,
+      agent_pool: agentPool,
+      communication_rules: {
+        allow_mentions: communicationRules.allowMentions,
+        allow_threads: communicationRules.allowThreads,
+        allow_attachments: communicationRules.allowAttachments,
+        max_message_length: communicationRules.maxMessageLength,
+        max_members: communicationRules.maxMembers,
+        rate_limit: communicationRules.rateLimit ? {
+          messages_per_minute: communicationRules.rateLimit.messagesPerMinute,
+          enabled: communicationRules.rateLimit.enabled,
+        } : undefined,
+      },
+      meta: {
+        tags,
+        category: category || undefined,
+      },
     };
 
     if (isCreateMode) {
@@ -183,20 +234,27 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
               displayName={displayName}
               description={description}
               icon={icon}
+              avatar={avatar}
               type={type}
               status={status}
+              parentChannelId={parentChannelId}
               onNameChange={setName}
               onDisplayNameChange={setDisplayName}
               onDescriptionChange={setDescription}
               onIconChange={setIcon}
+              onAvatarChange={setAvatar}
               onTypeChange={setType}
               onStatusChange={setStatus}
+              onParentChannelIdChange={setParentChannelId}
               isCreateMode={isCreateMode}
+              channelId={channel?.channel_id}
             />
-          </div>
 
-          {/* Right Column */}
-          <div className="flex flex-col gap-6">
+            <ChannelProjectSection
+              projectId={projectId}
+              onProjectIdChange={setProjectId}
+            />
+
             <ChannelMembersSection
               members={members}
               availableUsers={availableUsers}
@@ -204,6 +262,26 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
               onAddMember={handleAddMember}
               onRemoveMember={handleRemoveMember}
               isCreateMode={isCreateMode}
+            />
+          </div>
+
+          {/* Right Column */}
+          <div className="flex flex-col gap-6">
+            <ChannelAgentPoolSection
+              agentPool={agentPool}
+              onAgentPoolChange={setAgentPool}
+            />
+
+            <ChannelCommunicationRulesSection
+              rules={communicationRules}
+              onRulesChange={setCommunicationRules}
+            />
+
+            <ChannelMetadataSection
+              tags={tags}
+              category={category}
+              onTagsChange={setTags}
+              onCategoryChange={setCategory}
             />
           </div>
         </div>

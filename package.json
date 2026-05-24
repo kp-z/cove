@@ -18,5 +18,8 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@radix-ui/react-scroll-area": "^1.2.10"
   }
 }
