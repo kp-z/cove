@@ -33,7 +33,7 @@ export function AccountPanel() {
     if (!user) return;
 
     updateUser.mutate({
-      userId: user.id,
+      userId: (user as any).user_id || user.id,
       data: {
         displayName,
         email,
@@ -78,7 +78,7 @@ export function AccountPanel() {
           <div className="flex-shrink-0">
             <AvatarEditor
               type="user"
-              id={user.id}
+              id={(user as any).user_id || user.id}
               name={user.displayName}
               currentAvatar={typeof user.avatar === 'object' ? (user.avatar as any)?.url : user.avatar}
               size="xl"

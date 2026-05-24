@@ -6,14 +6,17 @@ export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 // Keep User type for backward compatibility and type safety
 export interface User {
   id: string;
+  user_id?: string; // Backend returns user_id (snake_case)
   username: string;
   displayName: string;
+  display_name?: string; // Backend returns display_name (snake_case)
   email: string;
   role: UserRole;
   avatar?: string;
   permissions: string[];
   preference?: { pinned_channels?: string[] };
   createdAt: string;
+  created_at?: string; // Backend returns created_at (snake_case)
 }
 
 interface AuthState {
