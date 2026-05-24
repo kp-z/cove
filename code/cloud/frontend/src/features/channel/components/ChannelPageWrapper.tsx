@@ -16,27 +16,28 @@ export default function ChannelPageWrapper() {
   const { threadId } = useChannelNavigation();
   const { data: channelsData } = useChannels();
 
+  // 获取当前 channel 信息（移到条件外，确保 hooks 调用顺序一致）
+  const channels = channelsData?.channels || [];
+  const currentChannel = channels.find(ch => ch.channel_id === channelId);
+
+  // 根据 channel 类型选择图标（移到条件外）
+  const ChannelIcon = useMemo(() => {
+    if (!currentChannel) return Hash;
+    switch (currentChannel.type) {
+      case 'public':
+        return Hash;
+      case 'private':
+        return Lock;
+      case 'dm':
+      case 'thread':
+        return MessageSquare;
+      default:
+        return Hash;
+    }
+  }, [currentChannel]);
+
   // 移动端且有 channelId：显示全屏 ChannelPanel
   if (isMobile && channelId) {
-    // 获取当前 channel 信息
-    const channels = channelsData?.channels || [];
-    const currentChannel = channels.find(ch => ch.channel_id === channelId);
-
-    // 根据 channel 类型选择图标
-    const ChannelIcon = useMemo(() => {
-      if (!currentChannel) return Hash;
-      switch (currentChannel.type) {
-        case 'public':
-          return Hash;
-        case 'private':
-          return Lock;
-        case 'dm':
-        case 'thread':
-          return MessageSquare;
-        default:
-          return Hash;
-      }
-    }, [currentChannel]);
 
     const handleBack = () => {
       navigate('/channels');
