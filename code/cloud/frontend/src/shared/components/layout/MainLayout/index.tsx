@@ -100,7 +100,7 @@ export function MainLayout() {
           </Suspense>
 
           <AnimatePresence>
-            {channelOpen && <ChannelPanelWrapper />}
+            {channelOpen && !isMobile && <ChannelPanelWrapper />}
           </AnimatePresence>
         </div>
       </main>
