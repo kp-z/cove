@@ -18,7 +18,9 @@ import {
   BookOpen,
   type LucideIcon,
 } from 'lucide-react';
-import { useAgents, useUsers } from '@/lib/trpc/hooks';
+import { useChannelMembers } from '@/lib/trpc/hooks';
+import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
+import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 import type { Agent, User } from '@/lib/trpc-types';
@@ -125,192 +127,122 @@ function StackedIcons({
   );
 }
 
-// ── 叠层头像 ──
-function StackedAvatars({
-  agents,
-  users,
-  max = 3
-}: {
-  agents: Agent[];
-  users: User[];
-  max?: number;
-}) {
-  // 防御性检查：确保 agents 和 users 是数组
-  const validAgents = Array.isArray(agents) ? agents : [];
-  const validUsers = Array.isArray(users) ? users : [];
-  const totalMembers = validAgents.length + validUsers.length;
-
-  if (totalMembers === 0) return null;
-
-  // 合并 agents 和 users，agents 优先显示
-  const allMembers: Array<{ type: 'agent' | 'user'; data: Agent | User }> = [
-    ...validAgents.map(agent => ({ type: 'agent' as const, data: agent })),
-    ...validUsers.map(user => ({ type: 'user' as const, data: user })),
-  ];
-
-  const visible = allMembers.slice(0, max);
-  const overflow = totalMembers - max;
-
-  return (
-    <div className="flex items-center">
-      {visible.map((member, i) => {
-        const isAgent = member.type === 'agent';
-        const data = member.data;
-        const id = isAgent ? (data as Agent).agent_id : (data as User).user_id;
-        const name = isAgent
-          ? ((data as Agent).display_name || (data as Agent).name)
-          : ((data as User).username || (data as User).email);
-
-        // Use real avatar URLs
-        const avatarUrl = isAgent
-          ? getAgentAvatarUrl((data as Agent).persona?.avatar?.url)
-          : getAvatarUrl((data as User).avatar);
-
-        return (
-          <div
-            key={`${member.type}-${id}`}
-            className={`w-6 h-6 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${i > 0 ? '-ml-2' : ''}`}
-            style={{ zIndex: max - i }}
-            title={name}
-          >
-            <img
-              src={avatarUrl}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        );
-      })}
-      {overflow > 0 && (
-        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center ring-1 ring-[#0f111a] -ml-2 text-[9px] text-gray-400 font-bold flex-shrink-0">
-          +{overflow}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Agent 行（展开态每行） ──
-function AgentRow({ agent }: { agent: Agent }) {
-  const skills = agent.skills?.skillIds || [];
-  const tools = agent.tools?.toolIds || [];
-  const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
-
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
-      {/* 头像 */}
-      <div
-        className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
-        title={agent.display_name || agent.name}
-      >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={agent.display_name || agent.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-            {(agent.display_name || agent.name).charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-
-      {/* 名称 */}
-      <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
-        {agent.display_name || agent.name}
-      </span>
-
-      {/* 模型 */}
-      <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
-        <Sparkles className="w-2.5 h-2.5" />
-        {getModelLabel(agent)}
-      </div>
-
-      {/* Skills/Tools */}
-      {(skills.length > 0 || tools.length > 0) && (
-        <StackedIcons skills={skills} tools={tools} max={4} />
-      )}
-    </div>
-  );
-}
-
-// ── User 行（展开态每行） ──
-function UserRow({ user }: { user: User }) {
-  const avatarUrl = getAvatarUrl(user.avatar);
-  const displayName = user.username || user.email;
-
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
-      {/* 头像 */}
-      <div
-        className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
-        title={displayName}
-      >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white text-xs font-semibold">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-
-      {/* 名称 */}
-      <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
-        {displayName}
-      </span>
-
-      {/* 用户标识 */}
-      <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
-        <span>User</span>
-      </div>
-    </div>
-  );
-}
-
 // ── Props ──
 export interface ChannelMemberBarProps {
-  channelId?: string;
+  channelId: string;
   className?: string;
+}
+
+// ── Hook to fetch member details ──
+function useMemberDetails(memberId: string, memberType: 'agent' | 'human') {
+  const { data: agent } = useAgent(memberId, { enabled: memberType === 'agent' });
+  const { data: user } = useUser(memberId, { enabled: memberType === 'human' });
+
+  return memberType === 'agent' ? agent : user;
+}
+
+// ── Member Row Component ──
+function MemberRow({ memberId, memberType }: { memberId: string; memberType: 'agent' | 'human' }) {
+  const memberData = useMemberDetails(memberId, memberType);
+
+  if (!memberData) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 animate-pulse" />
+        <span className="text-xs text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  if (memberType === 'agent') {
+    const agent = memberData as Agent;
+    const skills = agent.skills?.skillIds || [];
+    const tools = agent.tools?.toolIds || [];
+    const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
+        <div
+          className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
+          title={agent.display_name || agent.name}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={agent.display_name || agent.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+              {(agent.display_name || agent.name).charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+        <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
+          {agent.display_name || agent.name}
+        </span>
+        <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
+          <Sparkles className="w-2.5 h-2.5" />
+          {getModelLabel(agent)}
+        </div>
+        {(skills.length > 0 || tools.length > 0) && (
+          <StackedIcons skills={skills} tools={tools} max={4} />
+        )}
+      </div>
+    );
+  } else {
+    const user = memberData as User;
+    const avatarUrl = getAvatarUrl(user.avatar);
+    const displayName = user.username || user.email;
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
+        <div
+          className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
+          title={displayName}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white text-xs font-semibold">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+        <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
+          {displayName}
+        </span>
+        <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
+          <span>User</span>
+        </div>
+      </div>
+    );
+  }
 }
 
 // ── 主组件 ──
 export function ChannelMemberBar({
+  channelId,
   className = ''
 }: ChannelMemberBarProps) {
   const [expanded, setExpanded] = useState(false);
-  const { data: agentsResponse, isLoading: isLoadingAgents } = useAgents();
-  const { data: usersResponse, isLoading: isLoadingUsers } = useUsers();
+  const { data: membersData, isLoading } = useChannelMembers(channelId);
 
   const handleToggleExpand = useCallback(() => {
     setExpanded(prev => !prev);
   }, []);
 
-  // 过滤与当前频道相关的 agents
-  // TODO: 根据实际业务逻辑过滤 agents
-  const channelAgents = Array.isArray(agentsResponse)
-    ? agentsResponse
-    : Array.isArray(agentsResponse?.agents)
-    ? agentsResponse.agents
-    : [];
-
-  // 获取 users
-  const channelUsers = Array.isArray(usersResponse)
-    ? usersResponse
-    : Array.isArray(usersResponse?.users)
-    ? usersResponse.users
-    : [];
-
-  const primaryAgent = channelAgents[0] || null;
-  const totalMembers = channelAgents.length + channelUsers.length;
+  const members = membersData?.members || [];
+  const agentMembers = members.filter(m => m.memberType === 'agent');
+  const userMembers = members.filter(m => m.memberType === 'human');
+  const totalMembers = members.length;
 
   // 加载态
-  if (isLoadingAgents || isLoadingUsers) {
+  if (isLoading) {
     return (
       <div className={`px-4 py-3 border-b border-white/10 flex items-center gap-2 ${className}`}>
         <div className="w-6 h-6 rounded-lg flex items-center justify-center bg-indigo-500/20 flex-shrink-0">
@@ -337,28 +269,36 @@ export function ChannelMemberBar({
           </button>
         </div>
 
-        {/* Agent 和 User 列表 */}
+        {/* Member 列表 */}
         <div className="max-h-48 overflow-y-auto border-t border-white/5">
           {/* Agents 部分 */}
-          {channelAgents.length > 0 && (
+          {agentMembers.length > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] text-gray-500 font-medium">
-                Agents ({channelAgents.length})
+                Agents ({agentMembers.length})
               </div>
-              {channelAgents.map(agent => (
-                <AgentRow key={agent.agent_id} agent={agent} />
+              {agentMembers.map(member => (
+                <MemberRow
+                  key={member.memberId}
+                  memberId={member.memberId}
+                  memberType="agent"
+                />
               ))}
             </>
           )}
 
           {/* Users 部分 */}
-          {channelUsers.length > 0 && (
+          {userMembers.length > 0 && (
             <>
               <div className="px-3 py-1 text-[10px] text-gray-500 font-medium">
-                Users ({channelUsers.length})
+                Users ({userMembers.length})
               </div>
-              {channelUsers.map(user => (
-                <UserRow key={user.user_id} user={user} />
+              {userMembers.map(member => (
+                <MemberRow
+                  key={member.memberId}
+                  memberId={member.memberId}
+                  memberType="human"
+                />
               ))}
             </>
           )}
@@ -371,39 +311,103 @@ export function ChannelMemberBar({
     );
   }
 
-  // 折叠态
-  const primarySkills = primaryAgent?.skills?.skillIds || [];
-  const primaryTools = primaryAgent?.tools?.toolIds || [];
+  // 折叠态 - 显示第一个成员的信息
+  const firstMember = members[0];
+
+  if (!firstMember) {
+    return (
+      <div className={`px-3 py-2 border-b border-white/10 flex items-center gap-2 ${className}`}>
+        <button
+          onClick={handleToggleExpand}
+          className="p-0.5 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-xs text-gray-500">No members</span>
+      </div>
+    );
+  }
+
+  return (
+    <CollapsedMemberBar
+      members={members}
+      totalMembers={totalMembers}
+      onToggleExpand={handleToggleExpand}
+      className={className}
+    />
+  );
+}
+
+// ── 折叠态组件 ──
+function CollapsedMemberBar({
+  members,
+  totalMembers,
+  onToggleExpand,
+  className
+}: {
+  members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
+  totalMembers: number;
+  onToggleExpand: () => void;
+  className: string;
+}) {
+  // 获取前3个成员的详细信息用于头像显示
+  const visibleMembers = members.slice(0, 3);
+  const firstMember = members[0];
+  const firstMemberData = useMemberDetails(firstMember.memberId, firstMember.memberType);
+
+  if (!firstMemberData) {
+    return (
+      <div className={`px-3 py-2 border-b border-white/10 flex items-center gap-2 ${className}`}>
+        <button
+          onClick={onToggleExpand}
+          className="p-0.5 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-6 h-6 rounded-lg bg-white/5 animate-pulse" />
+        <span className="text-xs text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  const isAgent = firstMember.memberType === 'agent';
+  const agent = isAgent ? (firstMemberData as Agent) : null;
+  const user = !isAgent ? (firstMemberData as User) : null;
+
+  const displayName = isAgent
+    ? (agent!.display_name || agent!.name)
+    : (user!.username || user!.email);
+
+  const skills = agent?.skills?.skillIds || [];
+  const tools = agent?.tools?.toolIds || [];
 
   return (
     <div className={`px-3 py-2 border-b border-white/10 flex items-center gap-2 ${className}`}>
-      {/* 展开按钮 */}
       <button
-        onClick={handleToggleExpand}
+        onClick={onToggleExpand}
         className="p-0.5 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
       >
         <ChevronRight className="w-3.5 h-3.5" />
       </button>
 
       {/* 叠层头像 */}
-      <StackedAvatars agents={channelAgents} users={channelUsers} />
+      <CollapsedAvatars members={visibleMembers} />
 
       {/* 名称 + 模型 */}
-      {primaryAgent && (
-        <>
-          <span className="text-xs text-gray-300 truncate min-w-0">
-            {primaryAgent.display_name || primaryAgent.name}
-          </span>
-          <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
-            <Sparkles className="w-2.5 h-2.5" />
-            {getModelLabel(primaryAgent)}
-          </div>
-        </>
+      <span className="text-xs text-gray-300 truncate min-w-0">
+        {displayName}
+      </span>
+
+      {isAgent && agent && (
+        <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
+          <Sparkles className="w-2.5 h-2.5" />
+          {getModelLabel(agent)}
+        </div>
       )}
 
       {/* 叠层 skill/tool 图标 */}
-      {primaryAgent && (primarySkills.length > 0 || primaryTools.length > 0) && (
-        <StackedIcons skills={primarySkills} tools={primaryTools} />
+      {isAgent && (skills.length > 0 || tools.length > 0) && (
+        <StackedIcons skills={skills} tools={tools} />
       )}
 
       {/* 成员数量 */}
@@ -413,8 +417,88 @@ export function ChannelMemberBar({
         </span>
       )}
 
-      {/* 占位 flex-1 推按钮到右侧 */}
       <div className="flex-1" />
+    </div>
+  );
+}
+
+// ── 折叠态头像组件 ──
+function CollapsedAvatars({
+  members,
+  max = 3
+}: {
+  members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
+  max?: number;
+}) {
+  const visible = members.slice(0, max);
+  const overflow = members.length - max;
+
+  return (
+    <div className="flex items-center">
+      {visible.map((member, i) => (
+        <CollapsedAvatar
+          key={member.memberId}
+          memberId={member.memberId}
+          memberType={member.memberType}
+          zIndex={max - i}
+          isStacked={i > 0}
+        />
+      ))}
+      {overflow > 0 && (
+        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center ring-1 ring-[#0f111a] -ml-2 text-[9px] text-gray-400 font-bold flex-shrink-0">
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 单个折叠态头像 ──
+function CollapsedAvatar({
+  memberId,
+  memberType,
+  zIndex,
+  isStacked
+}: {
+  memberId: string;
+  memberType: 'agent' | 'human';
+  zIndex: number;
+  isStacked: boolean;
+}) {
+  const memberData = useMemberDetails(memberId, memberType);
+
+  if (!memberData) {
+    return (
+      <div
+        className={`w-6 h-6 rounded-lg bg-white/5 animate-pulse flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${isStacked ? '-ml-2' : ''}`}
+        style={{ zIndex }}
+      />
+    );
+  }
+
+  const isAgent = memberType === 'agent';
+  const agent = isAgent ? (memberData as Agent) : null;
+  const user = !isAgent ? (memberData as User) : null;
+
+  const displayName = isAgent
+    ? (agent!.display_name || agent!.name)
+    : (user!.username || user!.email);
+
+  const avatarUrl = isAgent
+    ? getAgentAvatarUrl(agent!.persona?.avatar?.url)
+    : getAvatarUrl(user!.avatar);
+
+  return (
+    <div
+      className={`w-6 h-6 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${isStacked ? '-ml-2' : ''}`}
+      style={{ zIndex }}
+      title={displayName}
+    >
+      <img
+        src={avatarUrl}
+        alt={displayName}
+        className="w-full h-full object-cover"
+      />
     </div>
   );
 }

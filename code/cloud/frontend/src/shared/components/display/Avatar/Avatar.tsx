@@ -1,14 +1,34 @@
-import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { useUser } from '@/lib/trpc/hooks/user.hooks';
-import { getAvatarUrl } from '@/shared/utils/avatar';
-import { getAgentAvatarUrl, getAgentInitials } from '@/features/agent/utils/avatar';
+import { getAgentInitials } from '@/features/agent/utils/avatar';
 import { cn } from '@/shared/utils/cn';
 
+/**
+ * Pure presentational Avatar component
+ *
+ * This component is responsible ONLY for displaying an avatar.
+ * Data fetching should be handled by the parent component.
+ *
+ * @example
+ * ```tsx
+ * function UserProfile() {
+ *   const { data: user } = useUser(userId);
+ *   return (
+ *     <Avatar
+ *       avatarUrl={user?.avatar}
+ *       name={user?.displayName || user?.username || 'Unknown'}
+ *       size="md"
+ *     />
+ *   );
+ * }
+ * ```
+ */
 export interface AvatarProps {
-  type: 'user' | 'agent' | 'channel';
-  id: string;
+  /** Avatar image URL (optional - will show initials if not provided) */
+  avatarUrl?: string | null;
+  /** Display name (used for initials fallback) */
   name: string;
+  /** Avatar size */
   size?: 'sm' | 'md' | 'lg';
+  /** Additional CSS classes */
   className?: string;
 }
 
@@ -18,27 +38,8 @@ const sizeClasses = {
   lg: 'w-12 h-12 text-base',
 };
 
-export function Avatar({ type, id, name, size = 'md', className }: AvatarProps) {
-  const { data: agent } = useAgent(id, { enabled: type === 'agent' });
-  const { data: user } = useUser(type === 'user' ? id : '');
-
-  let avatarUrl: string | undefined;
-  let initials: string;
-
-  if (type === 'agent' && agent) {
-    // Try multiple possible avatar locations
-    const agentAvatarUrl = agent.persona?.avatar?.url || (agent as any).avatar_url || (agent as any).avatarUrl;
-    avatarUrl = getAgentAvatarUrl(agentAvatarUrl);
-    initials = getAgentInitials(name);
-  } else if (type === 'user' && user) {
-    avatarUrl = getAvatarUrl(user.avatar);
-    initials = getAgentInitials(name);
-  } else if (type === 'channel') {
-    // TODO: Implement channel avatar logic when needed
-    initials = name.slice(0, 2).toUpperCase();
-  } else {
-    initials = getAgentInitials(name);
-  }
+export function Avatar({ avatarUrl, name, size = 'md', className }: AvatarProps) {
+  const initials = getAgentInitials(name);
 
   return (
     <div

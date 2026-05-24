@@ -33,7 +33,7 @@ export function AccountPanel() {
     if (!user) return;
 
     updateUser.mutate({
-      userId: user.id,
+      userId: (user as any).user_id || user.id,
       data: {
         displayName,
         email,
@@ -78,9 +78,9 @@ export function AccountPanel() {
           <div className="flex-shrink-0">
             <AvatarEditor
               type="user"
-              id={user.id}
+              id={(user as any).user_id || user.id}
               name={user.displayName}
-              currentAvatar={user.avatar}
+              currentAvatar={typeof user.avatar === 'object' ? (user.avatar as any)?.url : user.avatar}
               size="xl"
               editable={true}
             />
@@ -88,72 +88,62 @@ export function AccountPanel() {
 
           {/* 右侧：表单区域 */}
           <div className="flex-1 space-y-5">
-            {/* Display Name */}
-            <div className="space-y-2">
-              <Label htmlFor="displayName" className="text-white font-medium">
-                {t('account.profile.displayName')}
-              </Label>
-              <Input
-                id="displayName"
-                type="text"
-                placeholder={t('account.profile.displayNamePlaceholder')}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
-              />
-              <p className="text-sm text-white/60">
-                {t('account.profile.displayNameDescription')}
-              </p>
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white font-medium">
-                {t('account.profile.email')}
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
-              />
-              <p className="text-sm text-white/60">
-                {t('account.profile.emailDescription')}
-              </p>
-            </div>
-
-            {/* Username (只读) */}
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-white font-medium">
-                {t('account.profile.username')}
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                value={user.username}
-                disabled
-                className="bg-white/5 border-white/10 text-white/60 cursor-not-allowed"
-              />
-              <p className="text-sm text-white/60">
-                {t('account.profile.usernameDescription')}
-              </p>
-            </div>
-
-            {/* Role (徽章显示) */}
-            <div className="space-y-2">
-              <Label className="text-white font-medium">
-                {t('account.preferences.role')}
-              </Label>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-sm font-medium capitalize">
-                  🏷️ {user.role}
-                </span>
+            {/* 第一行：Display Name + Username */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="displayName" className="text-white font-medium">
+                  {t('account.profile.displayName')}
+                </Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  placeholder={t('account.profile.displayNamePlaceholder')}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                />
               </div>
-              <p className="text-sm text-white/60">
-                {t('account.preferences.roleDescription')}
-              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-white font-medium">
+                  {t('account.profile.username')}
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={user.username}
+                  disabled
+                  className="bg-white/5 border-white/10 text-white/60 cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            {/* 第二行：Email + Role */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-white font-medium">
+                  {t('account.profile.email')}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white font-medium">
+                  {t('account.preferences.role')}
+                </Label>
+                <div className="flex items-center h-9">
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-sm font-medium capitalize">
+                    🏷️ {user.role}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* 保存按钮 */}

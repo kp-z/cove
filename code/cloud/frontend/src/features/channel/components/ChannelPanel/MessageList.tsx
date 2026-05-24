@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Message } from './types';
-import { Avatar } from '@/shared/components/display/Avatar';
+import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
 
 interface MessageListProps {
   messages: Message[];
@@ -91,13 +91,18 @@ function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped:
   const isAgent = message.sender === 'agent';
   const isSystem = message.sender === 'system';
 
+  // Fetch avatar data for non-user messages
+  const avatarData = useEntityAvatarData(
+    isAgent ? 'agent' : 'user',
+    message.sender_id
+  );
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1' : 'mt-3'}`}>
       {/* Avatar for agent/system (left side) */}
       {!isUser && !isGrouped && (
         <Avatar
-          type={isAgent ? 'agent' : 'user'}
-          id={message.sender_id}
+          avatarUrl={avatarData.avatarUrl}
           name={message.sender_name}
           size="sm"
           className="mr-2 mt-1"
@@ -146,8 +151,7 @@ function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped:
       {/* Avatar for user (right side) */}
       {isUser && !isGrouped && (
         <Avatar
-          type="user"
-          id={message.sender_id}
+          avatarUrl={avatarData.avatarUrl}
           name={message.sender_name}
           size="sm"
           className="ml-2 mt-1"

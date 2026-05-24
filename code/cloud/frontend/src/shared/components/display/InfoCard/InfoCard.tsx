@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Avatar } from '@/shared/components/display/Avatar';
+import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
 import { Badge } from '@/shared/components/ui/badge';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
@@ -30,6 +30,9 @@ export function InfoCard({ type, id, name, children, role, joinedAt }: InfoCardP
     { enabled: type === 'agent' && open }
   );
 
+  // Get avatar data when tooltip is open
+  const avatarData = useEntityAvatarData(type, id);
+
   const displayName = type === 'user'
     ? user?.name || name
     : type === 'agent'
@@ -56,8 +59,7 @@ export function InfoCard({ type, id, name, children, role, joinedAt }: InfoCardP
               {/* Header with Avatar and Name */}
               <div className="flex items-center gap-3">
                 <Avatar
-                  type={type === 'channel' ? 'user' : type}
-                  id={id}
+                  avatarUrl={avatarData.avatarUrl}
                   name={displayName}
                   size="lg"
                 />

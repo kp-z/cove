@@ -45,12 +45,18 @@ export class ChannelCrudService {
     const channelId = this.generateChannelId();
     const now = new Date();
 
+    // Auto-detect member type based on ID prefix
     const members = (dto.memberIds || []).map(memberId => ({
       memberId,
-      memberType: 'human' as const,
+      memberType: this.detectMemberType(memberId),
       role: memberId === dto.createdBy ? ('owner' as const) : ('member' as const),
       joinedAt: now,
     }));
+
+    // Extract agent IDs for agentPool
+    const agentIds = members
+      .filter(m => m.memberType === 'agent')
+      .map(m => m.memberId);
 
     const channel = ChannelEntity.create({
       channelId,
@@ -61,7 +67,7 @@ export class ChannelCrudService {
       status: 'active',
       projectId: dto.projectId,
       members,
-      agentPool: [],
+      agentPool: agentIds,
       taskPool: [],
       conversationPool: [],
       communicationRules: {
@@ -223,6 +229,15 @@ export class ChannelCrudService {
 
   private generateEventId(): string {
     return `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * Detect member type based on ID prefix
+   * - IDs starting with 'agent-' are agents
+   * - All others are humans
+   */
+  private detectMemberType(memberId: string): 'human' | 'agent' {
+    return memberId.startsWith('agent-') ? 'agent' : 'human';
   }
 
   private async publishEvent(event: DomainEvent): Promise<void> {
