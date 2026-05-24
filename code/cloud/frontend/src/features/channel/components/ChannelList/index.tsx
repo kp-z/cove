@@ -6,6 +6,7 @@ import { useChannelPin } from '../../hooks/useChannelPin';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { notify } from '@/core/services/notificationService';
 import { useCurrentUser } from '@/core/auth';
 import type { ChannelEntity } from '../../api/client';
@@ -17,6 +18,7 @@ interface ChannelListProps {
 
 export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListProps) {
   const { t } = useTranslation('channel');
+  const navigate = useNavigate();
   const { data, isLoading, error } = useChannels();
   const { userId } = useCurrentUser();
 
@@ -66,8 +68,8 @@ export function ChannelList({ selectedChannelId, onChannelSelect }: ChannelListP
     // TODO: Implement mark as read functionality
   };
 
-  const handleOpenSettings = () => {
-    // TODO: Implement open settings functionality
+  const handleOpenSettings = (channel: ChannelEntity) => {
+    navigate(`/channels/${channel.channel_id}/edit`);
   };
 
   const handleLeaveChannel = async () => {

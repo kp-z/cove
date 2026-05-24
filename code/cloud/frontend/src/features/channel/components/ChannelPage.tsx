@@ -81,7 +81,7 @@ export default function ChannelPage() {
           <ButtonGroup
             options={[
               {
-                label: t('actions.new'),
+                label: 'New Channel',
                 value: 'new',
                 onClick: () => navigate('/channels/new'),
               },
