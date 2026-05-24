@@ -141,7 +141,11 @@ export function AvatarEditor({
   if (!editable) {
     return (
       <div className={cn(sizeClasses[size], className)}>
-        <Avatar avatarUrl={avatarData.avatarUrl} name={avatarData.name} size={size} />
+        <Avatar
+          avatarUrl={currentAvatar || avatarData.avatarUrl}
+          name={name || avatarData.name}
+          size={size}
+        />
       </div>
     );
   }
@@ -157,7 +161,11 @@ export function AvatarEditor({
             className
           )}
         >
-          <Avatar avatarUrl={avatarData.avatarUrl} name={avatarData.name} size={size} />
+          <Avatar
+            avatarUrl={currentAvatar || avatarData.avatarUrl}
+            name={name || avatarData.name}
+            size={size}
+          />
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
             <span className="text-xs text-white font-medium">Edit</span>
           </div>

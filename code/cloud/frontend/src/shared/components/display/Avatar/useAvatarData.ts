@@ -21,9 +21,19 @@ export interface AvatarData {
 export function useUserAvatarData(userId: string): AvatarData {
   const { data: user } = useUser(userId);
 
+  // Handle both string and object avatar formats
+  let avatarUrl: string | null = null;
+  if (user?.avatar) {
+    if (typeof user.avatar === 'string') {
+      avatarUrl = getAvatarUrl(user.avatar);
+    } else if (typeof user.avatar === 'object' && (user.avatar as any).url) {
+      avatarUrl = getAvatarUrl((user.avatar as any).url);
+    }
+  }
+
   return {
-    avatarUrl: user?.avatar ? getAvatarUrl(user.avatar) : null,
-    name: user?.displayName || user?.username || user?.name || 'Unknown User',
+    avatarUrl,
+    name: user?.displayName || (user as any)?.display_name || user?.username || (user as any)?.name || 'Unknown User',
   };
 }
 
@@ -53,9 +63,19 @@ export function useEntityAvatarData(
   const { data: agent } = useAgent(id, { enabled: type === 'agent' });
 
   if (type === 'user' && user) {
+    // Handle both string and object avatar formats
+    let avatarUrl: string | null = null;
+    if (user.avatar) {
+      if (typeof user.avatar === 'string') {
+        avatarUrl = getAvatarUrl(user.avatar);
+      } else if (typeof user.avatar === 'object' && (user.avatar as any).url) {
+        avatarUrl = getAvatarUrl((user.avatar as any).url);
+      }
+    }
+
     return {
-      avatarUrl: user.avatar ? getAvatarUrl(user.avatar) : null,
-      name: user.displayName || user.username || user.name || 'Unknown User',
+      avatarUrl,
+      name: user.displayName || (user as any).display_name || user.username || (user as any).name || 'Unknown User',
     };
   }
 
