@@ -8,6 +8,7 @@ import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
 import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
+import { useCurrentUser } from '@/core/auth';
 import type { Message } from './types';
 
 // UI-specific types
@@ -79,6 +80,7 @@ export function ChannelPanel({
   const { data: channelsData, isLoading: channelLoading } = useChannels();
   const { data: messagesData, isLoading: messagesLoading } = useMessages(channel_id);
   const sendMessage = useSendMessage();
+  const { userId } = useCurrentUser();
 
   const handleTogglePin = useCallback(() => {
     setMode(mode === 'docked' ? 'floating' : 'docked');
@@ -110,14 +112,19 @@ export function ChannelPanel({
   const messages: Message[] = messageEntities.map(messageEntityToMessage);
 
   const handleSendMessage = useCallback(async (content: string) => {
+    if (!userId) {
+      console.error('Cannot send message: user not authenticated');
+      return;
+    }
+
     sendMessage.mutate({
       channelId: channel_id,
-      senderId: 'current-user-id',
+      senderId: userId,
       senderType: 'human',
       content,
       threadId: activeThreadId || undefined,
     });
-  }, [channel_id, activeThreadId, sendMessage]);
+  }, [channel_id, activeThreadId, sendMessage, userId]);
 
   const handleStopGeneration = useCallback(() => {
     // TODO: stop agent generation

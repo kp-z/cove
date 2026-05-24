@@ -2,6 +2,8 @@ import { Hash, Lock, MessageSquare, Bookmark, Check, Settings, LogOut } from 'lu
 import { motion } from 'framer-motion';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useTranslation } from 'react-i18next';
+import { ChannelAvatar } from './ChannelAvatar';
+import { getAvatarUrl } from '@/shared/utils/avatar';
 import type { ChannelEntity } from '../../api/client';
 
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -52,6 +54,7 @@ export function ChannelListItem({
   onLeaveChannel,
 }: ChannelListItemProps) {
   const { t } = useTranslation('channel');
+  const avatarUrl = getAvatarUrl(channel.avatar);
 
   return (
     <ContextMenu.Root>
@@ -69,13 +72,23 @@ export function ChannelListItem({
               : 'hover:bg-white/[0.03] text-gray-300 border border-transparent'
           }`}
         >
-          <div
-            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-              isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'
-            }`}
-          >
-            {getChannelIcon(channel.type as ChannelType)}
-          </div>
+          {avatarUrl ? (
+            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+              <img
+                src={avatarUrl}
+                alt={channel.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'
+              }`}
+            >
+              {getChannelIcon(channel.type as ChannelType)}
+            </div>
+          )}
           <div className="flex-1 text-left min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium truncate">{channel.name}</span>
