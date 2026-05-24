@@ -14,6 +14,7 @@ import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
+import { useCreateChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { AgentCard } from './AgentCard';
 import type { Agent } from '@/lib/trpc-types';
 
@@ -29,6 +30,7 @@ export default function AgentPage() {
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useAgents();
   const deleteAgent = useDeleteAgent();
+  const createChannel = useCreateChannel();
 
   // Backend returns { agents: [...], total: number }
   // Wrap in useMemo to prevent dependency changes in other useMemo hooks
@@ -102,6 +104,24 @@ export default function AgentPage() {
     if (!agentToDelete) return;
     deleteAgent.mutate({ agentId: agentToDelete.agent_id });
     setAgentToDelete(null);
+  }
+
+  function handleRun(agent: Agent) {
+    // Create a DM channel with the agent
+    createChannel.mutate(
+      {
+        name: `dm-${agent.name}`,
+        type: 'dm',
+        visibility: 'private',
+        agentIds: [agent.agent_id],
+      },
+      {
+        onSuccess: (data) => {
+          // Navigate to the newly created channel
+          navigate(`/channels/${data.channel_id}`);
+        },
+      }
+    );
   }
 
   if (isLoading) return <PageLoader />;
@@ -205,6 +225,7 @@ export default function AgentPage() {
               <AgentCard
                 key={agent.agent_id}
                 agent={agent}
+                onRun={handleRun}
                 onConfigure={(a) => navigate(`/agents/${a.agent_id}/edit`)}
                 onDelete={setAgentToDelete}
               />
