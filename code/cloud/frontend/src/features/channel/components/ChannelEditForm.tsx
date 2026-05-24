@@ -211,7 +211,7 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
     u => !members.some(m => m.member_id === u.user_id && m.member_type === 'human')
   ) ?? [];
 
-  const availableAgents = agents?.filter(
+  const availableAgents = agents?.agents?.filter(
     a => !members.some(m => m.member_id === a.agent_id && m.member_type === 'agent')
   ) ?? [];
 
@@ -344,9 +344,9 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
                     {t('edit.agentPool.title')}
                   </h3>
                   <div className="space-y-2">
-                    {agents && agents.length > 0 ? (
+                    {agents?.agents && agents.agents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-2">
-                        {agents.map(agent => (
+                        {agents.agents.map(agent => (
                           <label key={agent.agent_id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent">
                             <input
                               type="checkbox"
