@@ -270,7 +270,8 @@ function initializeDependencies() {
     channelRepository,
     eventBus,
     logger,
-    agentRepository
+    agentRepository, // configStore (IAgentConfigStore)
+    adapterService   // adapterService (AdapterService) - CRITICAL for adapter support
   );
 
   // Agent sub-services

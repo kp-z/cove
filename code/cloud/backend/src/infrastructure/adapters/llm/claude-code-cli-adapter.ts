@@ -80,7 +80,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
 
     // Extended thinking 支持
     if (this.thinkingEnabled) {
-      args.push('--thinking');
+      args.push('--thinking', 'enabled');
       if (this.thinkingBudget !== undefined) {
         args.push('--thinking-budget', this.thinkingBudget.toString());
       }

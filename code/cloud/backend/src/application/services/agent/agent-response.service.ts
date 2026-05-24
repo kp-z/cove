@@ -93,7 +93,32 @@ export class AgentResponseService {
     });
 
     try {
+      // Priority 1: Use database runtimeConfig (for API-created agents)
+      if (agent.runtimeConfig?.adapter_id && this.adapterService) {
+        this.logger.info('Using database runtimeConfig with adapter', {
+          agentId: agent.agentId,
+          adapterId: agent.runtimeConfig.adapter_id
+        });
+
+        const systemPrompt = this.getSystemPromptFromAgent(agent);
+        const history = await this.buildConversationHistory(message, channel);
+
+        const factory = new LlmAdapterFactory(this.adapterService);
+        const adapter = await factory.createById(agent.runtimeConfig.adapter_id, agent.createdBy);
+
+        const response = await adapter.generateResponse({
+          systemPrompt,
+          messages: history,
+        });
+
+        return response;
+      }
+
+      // Priority 2: Use configStore (for file-based agents)
       if (!this.configStore) {
+        this.logger.warn('No adapter configured and no configStore available, using mock', {
+          agentId: agent.agentId
+        });
         return this.generateMockResponse(agent, message);
       }
 
@@ -101,7 +126,7 @@ export class AgentResponseService {
 
       // New adapter system: check if adapter_id is present
       if (runtime.adapter_id && this.adapterService) {
-        this.logger.info('Using new adapter system', {
+        this.logger.info('Using configStore adapter system', {
           agentId: agent.agentId,
           adapterId: runtime.adapter_id
         });
@@ -111,7 +136,6 @@ export class AgentResponseService {
         const history = await this.buildConversationHistory(message, channel);
 
         const factory = new LlmAdapterFactory(this.adapterService);
-        // Use agent's createdBy as actorId, with skipPermissionCheck=true for internal agent operations
         const adapter = await factory.createById(runtime.adapter_id, agent.createdBy);
 
         const response = await adapter.generateResponse({
@@ -215,6 +239,26 @@ export class AgentResponseService {
         channelId: channel.channelId,
       },
     });
+  }
+
+  /**
+   * Get system prompt from agent's database runtimeConfig
+   */
+  private getSystemPromptFromAgent(agent: AgentEntity): string {
+    // Priority 1: Use overrides.systemPrompt from runtimeConfig
+    const overridePrompt = agent.runtimeConfig?.overrides?.systemPrompt;
+    if (overridePrompt) {
+      return overridePrompt;
+    }
+
+    // Priority 2: Use persona instructions
+    if (agent.persona?.instructions) {
+      return agent.persona.instructions;
+    }
+
+    // Default prompt
+    const displayName = agent.displayName || agent.name;
+    return `You are ${displayName}, an AI assistant. Be helpful and professional.`;
   }
 
   private buildSystemPrompt(persona: any): string {
