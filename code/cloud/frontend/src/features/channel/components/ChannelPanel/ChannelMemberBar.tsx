@@ -1,10 +1,3 @@
-/**
- * ChannelMemberBar - 频道成员/Agent 信息头
- * 参考 claude_manager 的 AgentChatHeader 实现
- *
- * 折叠态: 叠层头像 + Agent名 + 模型 + 叠层skill/tool图标 + 展开按钮
- * 展开态: 每个 Agent 独占一行的纵向列表
- */
 import { useState, useCallback } from 'react';
 import {
   ChevronRight,
@@ -26,6 +19,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAgents, useUsers } from '@/lib/trpc/hooks';
+import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 import type { Agent, User } from '@/lib/trpc-types';
 
 // ── Tool → Icon 映射 ──
@@ -75,20 +70,6 @@ function getModelLabel(agent: Agent): string {
   if (model === 'sonnet') return 'Sonnet';
   if (model === 'haiku') return 'Haiku';
   return model.charAt(0).toUpperCase() + model.slice(1);
-}
-
-// ── 获取 Agent 头像 URL ──
-function getAgentAvatarUrl(agent: Agent): string {
-  // TODO: 实现真实的头像 URL 逻辑
-  // 暂时使用 placeholder
-  return `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.agent_id}`;
-}
-
-// ── 获取 User 头像 URL ──
-function getUserAvatarUrl(user: User): string {
-  // TODO: 实现真实的头像 URL 逻辑
-  // 暂时使用 placeholder
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.user_id}`;
 }
 
 // ── 叠层图标（Skills + Tools）──
@@ -179,9 +160,11 @@ function StackedAvatars({
         const name = isAgent
           ? ((data as Agent).display_name || (data as Agent).name)
           : ((data as User).username || (data as User).email);
+
+        // Use real avatar URLs
         const avatarUrl = isAgent
-          ? getAgentAvatarUrl(data as Agent)
-          : getUserAvatarUrl(data as User);
+          ? getAgentAvatarUrl((data as Agent).persona?.avatar?.url)
+          : getAvatarUrl((data as User).avatar);
 
         return (
           <div
@@ -211,6 +194,7 @@ function StackedAvatars({
 function AgentRow({ agent }: { agent: Agent }) {
   const skills = agent.skills?.skillIds || [];
   const tools = agent.tools?.toolIds || [];
+  const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
@@ -219,11 +203,17 @@ function AgentRow({ agent }: { agent: Agent }) {
         className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
         title={agent.display_name || agent.name}
       >
-        <img
-          src={getAgentAvatarUrl(agent)}
-          alt={agent.display_name || agent.name}
-          className="w-full h-full object-cover"
-        />
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={agent.display_name || agent.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+            {(agent.display_name || agent.name).charAt(0).toUpperCase()}
+          </div>
+        )}
       </div>
 
       {/* 名称 */}
@@ -247,23 +237,32 @@ function AgentRow({ agent }: { agent: Agent }) {
 
 // ── User 行（展开态每行） ──
 function UserRow({ user }: { user: User }) {
+  const avatarUrl = getAvatarUrl(user.avatar);
+  const displayName = user.username || user.email;
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
       {/* 头像 */}
       <div
         className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
-        title={user.username || user.email}
+        title={displayName}
       >
-        <img
-          src={getUserAvatarUrl(user)}
-          alt={user.username || user.email}
-          className="w-full h-full object-cover"
-        />
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={displayName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white text-xs font-semibold">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        )}
       </div>
 
       {/* 名称 */}
       <span className="text-xs text-gray-300 truncate min-w-0 flex-1">
-        {user.username || user.email}
+        {displayName}
       </span>
 
       {/* 用户标识 */}

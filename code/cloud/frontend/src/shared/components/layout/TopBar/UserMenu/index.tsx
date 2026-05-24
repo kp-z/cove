@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, LogOut, User } from 'lucide-react';
+import { Settings, LogOut, User, Loader2 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/core/auth/authStore';
+import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { Capsule } from '@/shared/components/ui/Capsule';
 import { HoverGradient } from '@/shared/components/ui/HoverGradient';
 import { getAvatarUrl } from '@/shared/utils/avatar';
@@ -52,11 +53,12 @@ function UserAvatar({ user, className = '', showRing = false }: UserAvatarProps)
 
 export const UserMenu = React.memo(() => {
   const { t } = useTranslation('layout');
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated, logout } = useAuthStore();
+  const { user, isLoading } = useCurrentUser();
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return (
       <Capsule
         onClick={() => navigate('/login')}
@@ -70,8 +72,18 @@ export const UserMenu = React.memo(() => {
     );
   }
 
+  // Show loading state while fetching user data
+  if (isLoading || !user) {
+    return (
+      <Capsule className="items-center justify-center gap-2 p-0 px-3">
+        <Loader2 size={14} className="animate-spin text-white/60" />
+        <span className="hidden sm:inline text-xs text-white/60">Loading...</span>
+      </Capsule>
+    );
+  }
+
   const displayName = user.displayName || user.username;
-  const role = 'user';
+  const role = user.role || 'user';
   const roleDisplayLabel = ROLE_LABEL[role] ?? role;
   const badgeClass = ROLE_BADGE[role] ?? ROLE_BADGE.guest;
 

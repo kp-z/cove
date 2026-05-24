@@ -4,7 +4,6 @@ import { Loader2, Check } from 'lucide-react';
 import { SettingsCard } from '../common/SettingsCard';
 import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { useUpdateUser } from '@/lib/trpc/hooks/user.hooks';
-import { useAuthStore } from '@/core/auth/authStore';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -12,9 +11,8 @@ import { AvatarEditor } from '@/shared/components/display/Avatar';
 
 export function AccountPanel() {
   const { t, i18n } = useTranslation('settings');
-  const { user } = useCurrentUser();
+  const { user, isLoading: isLoadingUser } = useCurrentUser();
   const updateUser = useUpdateUser();
-  const { updateUser: updateAuthUser } = useAuthStore();
 
   // 表单状态 - 使用 lazy initialization
   const [displayName, setDisplayName] = useState(() => user?.displayName || '');
@@ -34,21 +32,14 @@ export function AccountPanel() {
   function handleSaveProfile() {
     if (!user) return;
 
-    updateUser.mutate(
-      {
-        userId: user.id,
-        data: {
-          displayName,
-          email,
-        },
+    updateUser.mutate({
+      userId: user.id,
+      data: {
+        displayName,
+        email,
       },
-      {
-        onSuccess: () => {
-          // 更新本地 auth store
-          updateAuthUser({ displayName, email });
-        },
-      }
-    );
+      // No need to manually update authStore - TanStack Query will refetch
+    });
   }
 
   // 重置表单
@@ -65,7 +56,7 @@ export function AccountPanel() {
     i18n.changeLanguage(newLanguage);
   }
 
-  if (!user) {
+  if (isLoadingUser || !user) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-white/60" />

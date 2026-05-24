@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 
+// Keep User type for backward compatibility and type safety
 export interface User {
   id: string;
   username: string;
@@ -16,45 +17,45 @@ export interface User {
 }
 
 interface AuthState {
-  user: User | null;
+  // Store only userId instead of full user object
+  userId: string | null;
   token: string | null;
   isAuthenticated: boolean;
   rememberMe: boolean;
   currentRealmId: string | null;
 
-  login: (user: User, token: string, rememberMe?: boolean, realmId?: string) => void;
+  login: (userId: string, token: string, rememberMe?: boolean, realmId?: string) => void;
   logout: () => void;
-  updateUser: (user: Partial<User>) => void;
   setCurrentRealmId: (realmId: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: null,
+      userId: null,
       token: null,
       isAuthenticated: false,
       rememberMe: true,
       currentRealmId: null,
 
-      login: (user, token, rememberMe = true, realmId) => {
+      login: (userId, token, rememberMe = true, realmId) => {
         if (rememberMe) {
           localStorage.setItem('auth_token', token);
-          localStorage.setItem('user_id', user.id);
+          localStorage.setItem('user_id', userId);
           if (realmId) {
             localStorage.setItem('current_realm_id', realmId);
           }
           sessionStorage.removeItem('auth_token');
         } else {
           sessionStorage.setItem('auth_token', token);
-          sessionStorage.setItem('user_id', user.id);
+          sessionStorage.setItem('user_id', userId);
           if (realmId) {
             sessionStorage.setItem('current_realm_id', realmId);
           }
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_id');
         }
-        set({ user, token, isAuthenticated: true, rememberMe, currentRealmId: realmId || null });
+        set({ userId, token, isAuthenticated: true, rememberMe, currentRealmId: realmId || null });
       },
 
       logout: () => {
@@ -64,13 +65,7 @@ export const useAuthStore = create<AuthState>()(
         sessionStorage.removeItem('auth_token');
         sessionStorage.removeItem('user_id');
         sessionStorage.removeItem('current_realm_id');
-        set({ user: null, token: null, isAuthenticated: false, currentRealmId: null });
-      },
-
-      updateUser: (userData) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...userData } : null,
-        }));
+        set({ userId: null, token: null, isAuthenticated: false, currentRealmId: null });
       },
 
       setCurrentRealmId: (realmId) => {
