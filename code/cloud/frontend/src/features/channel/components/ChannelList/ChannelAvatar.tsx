@@ -30,7 +30,7 @@ const offsetClasses = {
 export function ChannelAvatar({ channel, size = 'md', onClick }: ChannelAvatarProps) {
   const [imageError, setImageError] = useState(false);
   const sizeClass = sizeClasses[size];
-  const avatarUrl = getAvatarUrl(channel.avatar_url);
+  const avatarUrl = getAvatarUrl(channel.avatar);
 
   // If avatar URL exists and hasn't errored, show the image
   if (avatarUrl && !imageError) {

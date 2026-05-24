@@ -5,6 +5,7 @@ import { FormField } from '@/shared/components/form/FormField';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
+import { MemberListItem } from './MemberListItem';
 import type { ChannelMember } from '@/lib/trpc-types';
 
 interface ChannelMembersSectionProps {
@@ -128,29 +129,11 @@ export function ChannelMembersSection({
           <div className="space-y-2">
             {members.length > 0 ? (
               members.map((member) => (
-                <div
+                <MemberListItem
                   key={member.member_id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge variant={member.member_type === 'human' ? 'default' : 'secondary'}>
-                      {member.member_type}
-                    </Badge>
-                    <div>
-                      <div className="text-sm font-medium">{member.member_id}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Role: {member.role} • Joined: {new Date(member.joined_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemoveMember(member.member_id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                  member={member}
+                  onRemove={onRemoveMember}
+                />
               ))
             ) : (
               <div className="text-sm text-muted-foreground text-center py-4 border rounded-lg">
