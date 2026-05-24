@@ -2,7 +2,7 @@
  * AgentCrudService - Agent CRUD 操作
  */
 
-import { AgentEntity, AgentScope } from '../../../domain/models/agent/agent.entity';
+import { AgentEntity, AgentScope, AgentPersona } from '../../../domain/models/agent/agent.entity';
 import {
   IAgentRepository,
   IEventBus,
@@ -26,6 +26,7 @@ export interface CreateAgentDTO {
     readonly adapter_id?: string;
     readonly overrides?: Record<string, unknown>;
   };
+  readonly persona?: AgentPersona;
 }
 
 export interface UpdateAgentDTO {
@@ -99,6 +100,7 @@ export class AgentCrudService {
       tags: dto.tags,
       repositoryPath,
       runtimeConfig: dto.runtimeConfig as any,
+      persona: dto.persona,
       createdBy: dto.createdBy,
       createdAt: new Date(),
     });

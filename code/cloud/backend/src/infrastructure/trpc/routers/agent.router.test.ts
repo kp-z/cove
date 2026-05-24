@@ -157,6 +157,129 @@ describe('agentRouter', () => {
         })
       ).rejects.toThrow('Agent already exists');
     });
+
+    it('should auto-assign dicebear avatar when persona provided without avatar', async () => {
+      const agent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'user' as const,
+        createdBy: 'user-1',
+        createdAt: new Date(),
+        persona: {
+          title: 'Test Agent',
+          description: 'Test description',
+          avatar: {
+            url: 'https://api.dicebear.com/9.x/bottts/svg?seed=test-agent',
+            type: 'dicebear'
+          }
+        }
+      });
+
+      vi.mocked(mockAgentService.createAgent).mockResolvedValue(agent);
+
+      const caller = router.createCaller(mockContext);
+      const result = await caller.create({
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        persona: {
+          title: 'Test Agent',
+          description: 'Test description'
+        }
+      });
+
+      expect(result).toHaveProperty('persona');
+      expect(result.persona).toHaveProperty('avatar');
+      expect(result.persona.avatar.url).toContain('dicebear.com');
+      expect(result.persona.avatar.url).toContain('seed=test-agent');
+      expect(result.persona.avatar.type).toBe('dicebear');
+    });
+
+    it('should preserve custom avatar when provided', async () => {
+      const customAvatarUrl = 'https://example.com/custom-avatar.png';
+      const agent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'user' as const,
+        createdBy: 'user-1',
+        createdAt: new Date(),
+        persona: {
+          title: 'Test Agent',
+          description: 'Test description',
+          avatar: {
+            url: customAvatarUrl,
+            type: 'uploaded'
+          }
+        }
+      });
+
+      vi.mocked(mockAgentService.createAgent).mockResolvedValue(agent);
+
+      const caller = router.createCaller(mockContext);
+      const result = await caller.create({
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        persona: {
+          title: 'Test Agent',
+          description: 'Test description',
+          avatar: {
+            url: customAvatarUrl,
+            type: 'uploaded'
+          }
+        }
+      });
+
+      expect(result).toHaveProperty('persona');
+      expect(result.persona).toHaveProperty('avatar');
+      expect(result.persona.avatar.url).toBe(customAvatarUrl);
+      expect(result.persona.avatar.type).toBe('uploaded');
+    });
+
+    it('should pass runtimeConfig to service', async () => {
+      const agent = AgentEntity.create({
+        agentId: 'agent-1',
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        status: 'idle',
+        scope: 'user' as const,
+        createdBy: 'user-1',
+        createdAt: new Date(),
+        runtimeConfig: {
+          adapter_id: 'adapter-123',
+          overrides: {
+            systemPrompt: 'Test prompt'
+          }
+        }
+      });
+
+      vi.mocked(mockAgentService.createAgent).mockResolvedValue(agent);
+
+      const caller = router.createCaller(mockContext);
+      await caller.create({
+        name: 'test-agent',
+        displayName: 'Test Agent',
+        runtimeConfig: {
+          adapter_id: 'adapter-123',
+          overrides: {
+            systemPrompt: 'Test prompt'
+          }
+        }
+      });
+
+      expect(mockAgentService.createAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runtimeConfig: {
+            adapter_id: 'adapter-123',
+            overrides: {
+              systemPrompt: 'Test prompt'
+            }
+          }
+        })
+      );
+    });
   });
 
   describe('start', () => {

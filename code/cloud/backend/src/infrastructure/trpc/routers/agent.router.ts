@@ -19,6 +19,7 @@ const createAgentSchema = z.object({
     adapter_id: z.string().optional(),
     overrides: z.any().optional(),
   }).optional(),
+  persona: z.any().optional(),
 });
 
 const updateAgentSchema = z.object({
@@ -98,6 +99,18 @@ export function createAgentRouter(deps: AgentRouterDeps) {
       .input(createAgentSchema)
       .mutation(async ({ input }) => {
         try {
+          // Set default avatar if not provided
+          let persona = input.persona;
+          if (persona && !persona.avatar) {
+            persona = {
+              ...persona,
+              avatar: {
+                url: `https://api.dicebear.com/9.x/bottts/svg?seed=${input.name}`,
+                type: 'dicebear'
+              }
+            };
+          }
+
           const dto = {
             name: input.name,
             displayName: input.displayName ?? input.name,
@@ -108,6 +121,8 @@ export function createAgentRouter(deps: AgentRouterDeps) {
             tags: input.tags,
             repositoryPath: input.repositoryPath,
             createdBy: input.createdBy ?? 'system',
+            runtimeConfig: input.runtimeConfig,
+            persona: persona,
           };
           const agent = await deps.agentService.createAgent(dto);
           return agent.toJSON();
