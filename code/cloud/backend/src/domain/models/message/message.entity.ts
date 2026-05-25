@@ -77,6 +77,48 @@ export class MessageEntity {
         userIds: r.user_ids,
         count: r.count,
       })),
+      agentExecutionMetadata: json.agent_execution_metadata ? {
+        thinking: json.agent_execution_metadata.thinking,
+        tool_logs: json.agent_execution_metadata.tool_logs?.map(log => ({
+          id: log.id,
+          timestamp: log.timestamp,
+          tool_name: log.tool_name,
+          action: log.action,
+          params: log.params,
+          status: log.status,
+          duration: log.duration,
+          result: log.result,
+          meta: log.meta ? {
+            file_count: log.meta.file_count,
+            lines_changed: log.meta.lines_changed,
+            exit_code: log.meta.exit_code,
+          } : undefined,
+        })),
+        usage: json.agent_execution_metadata.usage ? {
+          input_tokens: json.agent_execution_metadata.usage.input_tokens,
+          output_tokens: json.agent_execution_metadata.usage.output_tokens,
+          total_tokens: json.agent_execution_metadata.usage.total_tokens,
+          cache: json.agent_execution_metadata.usage.cache ? {
+            creation_tokens: json.agent_execution_metadata.usage.cache.creation_tokens,
+            read_tokens: json.agent_execution_metadata.usage.cache.read_tokens,
+            hit_rate: json.agent_execution_metadata.usage.cache.hit_rate,
+          } : undefined,
+          cost: json.agent_execution_metadata.usage.cost ? {
+            input_cost: json.agent_execution_metadata.usage.cost.input_cost,
+            output_cost: json.agent_execution_metadata.usage.cost.output_cost,
+            cache_cost: json.agent_execution_metadata.usage.cost.cache_cost,
+            total_cost: json.agent_execution_metadata.usage.cost.total_cost,
+          } : undefined,
+          model: json.agent_execution_metadata.usage.model,
+          latency: json.agent_execution_metadata.usage.latency ? {
+            first_token_ms: json.agent_execution_metadata.usage.latency.first_token_ms,
+            total_ms: json.agent_execution_metadata.usage.latency.total_ms,
+            tokens_per_second: json.agent_execution_metadata.usage.latency.tokens_per_second,
+          } : undefined,
+        } : undefined,
+        execution_mode: json.agent_execution_metadata.execution_mode,
+        streaming_status: json.agent_execution_metadata.streaming_status,
+      } : undefined,
       createdAt: new Date(json.created_at),
       updatedAt: new Date(json.updated_at),
       deletedAt: json.deleted_at ? new Date(json.deleted_at) : undefined,
@@ -141,6 +183,7 @@ export class MessageEntity {
   get isEdited(): boolean { return this.props.isEdited; }
   get editHistory(): readonly MessageEditHistory[] { return this.props.editHistory; }
   get reactions(): readonly MessageReaction[] { return this.props.reactions; }
+  get agentExecutionMetadata(): MessageEntityProps['agentExecutionMetadata'] { return this.props.agentExecutionMetadata; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
   get deletedAt(): Date | undefined { return this.props.deletedAt; }
@@ -382,6 +425,48 @@ export class MessageEntity {
         user_ids: r.userIds,
         count: r.count,
       })),
+      agent_execution_metadata: this.props.agentExecutionMetadata ? {
+        thinking: this.props.agentExecutionMetadata.thinking,
+        tool_logs: this.props.agentExecutionMetadata.tool_logs?.map(log => ({
+          id: log.id,
+          timestamp: log.timestamp,
+          tool_name: log.tool_name,
+          action: log.action,
+          params: log.params,
+          status: log.status,
+          duration: log.duration,
+          result: log.result,
+          meta: log.meta ? {
+            file_count: log.meta.file_count,
+            lines_changed: log.meta.lines_changed,
+            exit_code: log.meta.exit_code,
+          } : undefined,
+        })),
+        usage: this.props.agentExecutionMetadata.usage ? {
+          input_tokens: this.props.agentExecutionMetadata.usage.input_tokens,
+          output_tokens: this.props.agentExecutionMetadata.usage.output_tokens,
+          total_tokens: this.props.agentExecutionMetadata.usage.total_tokens,
+          cache: this.props.agentExecutionMetadata.usage.cache ? {
+            creation_tokens: this.props.agentExecutionMetadata.usage.cache.creation_tokens,
+            read_tokens: this.props.agentExecutionMetadata.usage.cache.read_tokens,
+            hit_rate: this.props.agentExecutionMetadata.usage.cache.hit_rate,
+          } : undefined,
+          cost: this.props.agentExecutionMetadata.usage.cost ? {
+            input_cost: this.props.agentExecutionMetadata.usage.cost.input_cost,
+            output_cost: this.props.agentExecutionMetadata.usage.cost.output_cost,
+            cache_cost: this.props.agentExecutionMetadata.usage.cost.cache_cost,
+            total_cost: this.props.agentExecutionMetadata.usage.cost.total_cost,
+          } : undefined,
+          model: this.props.agentExecutionMetadata.usage.model,
+          latency: this.props.agentExecutionMetadata.usage.latency ? {
+            first_token_ms: this.props.agentExecutionMetadata.usage.latency.first_token_ms,
+            total_ms: this.props.agentExecutionMetadata.usage.latency.total_ms,
+            tokens_per_second: this.props.agentExecutionMetadata.usage.latency.tokens_per_second,
+          } : undefined,
+        } : undefined,
+        execution_mode: this.props.agentExecutionMetadata.execution_mode,
+        streaming_status: this.props.agentExecutionMetadata.streaming_status,
+      } : undefined,
       created_at: this.props.createdAt.toISOString(),
       updated_at: this.props.updatedAt.toISOString(),
       deleted_at: this.props.deletedAt?.toISOString(),
