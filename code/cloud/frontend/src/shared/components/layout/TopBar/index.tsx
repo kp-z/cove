@@ -8,7 +8,6 @@ import { TimeCapsule } from './TimeCapsule';
 import { AgentRunCapsule } from './AgentRunCapsule';
 import { NotificationBubble } from './NotificationBubble';
 import { UserMenu } from './UserMenu';
-import { ChannelCapsule } from './ChannelCapsule';
 import { DockCapsuleItem } from './DockCapsuleItem';
 import { AnimatedBorder } from './AnimatedBorder';
 import { useDockMagnification } from '@/shared/hooks/useDockMagnification';
@@ -147,21 +146,14 @@ export function TopBar() {
         onMouseLeave={handleMouseLeave}
         className="relative flex items-center gap-2 md:gap-4 overflow-visible"
       >
-        {/* ChannelCapsule - desktop only */}
-        <div className="hidden md:block">
-          <DockCapsuleItem mouseX={mouseX} index={0}>
-            <ChannelCapsule />
-          </DockCapsuleItem>
-        </div>
-
-        {/* AgentRunCapsule - always visible */}
-        <DockCapsuleItem mouseX={mouseX} index={1}>
+        {/* AgentRunCapsule (now shows ChannelList) - always visible */}
+        <DockCapsuleItem mouseX={mouseX} index={0}>
           <AgentRunCapsule runningCount={0} />
         </DockCapsuleItem>
 
         {/* NotificationBubble - desktop only */}
         <div className="hidden md:block">
-          <DockCapsuleItem mouseX={mouseX} index={2}>
+          <DockCapsuleItem mouseX={mouseX} index={1}>
             <NotificationBubble
               notifications={notifications}
               onDismiss={removeNotification}
@@ -172,20 +164,20 @@ export function TopBar() {
 
         {/* TimeCapsule - desktop only */}
         <div className="hidden md:block">
-          <DockCapsuleItem mouseX={mouseX} index={3}>
+          <DockCapsuleItem mouseX={mouseX} index={2}>
             <TimeCapsule lang="en" />
           </DockCapsuleItem>
         </div>
 
         {/* TokenPill - desktop only */}
         <div className="hidden md:block">
-          <DockCapsuleItem mouseX={mouseX} index={4}>
+          <DockCapsuleItem mouseX={mouseX} index={3}>
             <TokenPill data={tokenUsage} isLoading={isTokenLoading} />
           </DockCapsuleItem>
         </div>
 
         {/* UserMenu - always visible */}
-        <DockCapsuleItem mouseX={mouseX} index={5}>
+        <DockCapsuleItem mouseX={mouseX} index={4}>
           <UserMenu />
         </DockCapsuleItem>
       </div>
