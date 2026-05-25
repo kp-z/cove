@@ -1,17 +1,25 @@
 /**
- * Timeline - 垂直时间轴组件
+ * Timeline - 垂直时间轴组件（紧凑型重设计）
  *
  * 使用节点注册系统的可扩展时间轴组件。
  * 支持插件化节点类型、消息筛选和动态渲染。
+ *
+ * 重设计特点：
+ * - 紧凑型筛选栏（平铺展示）
+ * - 时间分组（Today/Yesterday/This Week/Older）
+ * - 单行节点（只显示关键索引信息）
+ * - 类型视觉系统（彩色徽章）
  */
 
 import { useState, useMemo } from 'react';
-import { MessageSquare, Image as ImageIcon, File, AlertCircle } from 'lucide-react';
+import { MessageSquare, Image as ImageIcon, File, AlertCircle, MessageCircle } from 'lucide-react';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useNodeRegistry } from './hooks/useNodeRegistry';
 import { nodeRegistry, type TimelineNode, type NodeContext } from './NodeRegistry';
-import { TimelineFilter, type TimelineFilterOptions } from './TimelineFilter';
+import { CompactFilterBar } from './CompactFilterBar';
+import { CompactTimelineNode } from './CompactTimelineNode';
+import { groupNodesByTime, getTimeGroupLabel, formatCompactTimestamp, type TimeGroup } from './utils/timeGrouping';
 
 export interface TimelineProps {
   channelId: string;
@@ -30,15 +38,39 @@ export type { TimelineNode } from './NodeRegistry';
 function getNodeIcon(type: string) {
   switch (type) {
     case 'message':
+    case 'text':
       return MessageSquare;
     case 'image':
       return ImageIcon;
     case 'file':
       return File;
+    case 'thread':
+      return MessageCircle;
     case 'system':
       return AlertCircle;
     default:
       return MessageSquare;
+  }
+}
+
+/**
+ * 获取节点类型（用于颜色映射）
+ */
+function getNodeType(type: string): 'text' | 'image' | 'file' | 'thread' | 'system' {
+  switch (type) {
+    case 'message':
+    case 'text':
+      return 'text';
+    case 'image':
+      return 'image';
+    case 'file':
+      return 'file';
+    case 'thread':
+      return 'thread';
+    case 'system':
+      return 'system';
+    default:
+      return 'text';
   }
 }
 
@@ -71,23 +103,40 @@ export function Timeline({
   useNodeRegistry();
 
   // Filter state
-  const [filters, setFilters] = useState<TimelineFilterOptions>({
-    messageTypes: ['all'],
-    timeRange: { type: 'all' },
-  });
+  const [searchText, setSearchText] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['all']);
+  const [timeRange, setTimeRange] = useState('all');
+
+  // 处理类型切换
+  const handleTypeToggle = (type: string) => {
+    if (type === 'all') {
+      setSelectedTypes(['all']);
+    } else {
+      let newTypes = selectedTypes.filter(t => t !== 'all');
+      if (newTypes.includes(type)) {
+        newTypes = newTypes.filter(t => t !== type);
+      } else {
+        newTypes.push(type);
+      }
+      if (newTypes.length === 0) {
+        newTypes = ['all'];
+      }
+      setSelectedTypes(newTypes);
+    }
+  };
 
   // 筛选节点
   const filteredNodes = useMemo(() => {
     let result = nodes;
 
     // 按类型筛选
-    if (!filters.messageTypes.includes('all')) {
-      result = result.filter(node => filters.messageTypes.includes(node.type));
+    if (!selectedTypes.includes('all')) {
+      result = result.filter(node => selectedTypes.includes(node.type));
     }
 
     // 按搜索文本筛选
-    if (filters.searchText) {
-      const searchLower = filters.searchText.toLowerCase();
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
       result = result.filter(node => {
         const title = node.title || '';
         const content = node.content || '';
@@ -99,26 +148,34 @@ export function Timeline({
     }
 
     // 按时间范围筛选
-    if (filters.timeRange.type !== 'all') {
-      if (filters.timeRange.type === 'custom') {
-        // 自定义时间范围
-        if (filters.timeRange.startDate) {
-          result = result.filter(node => new Date(node.timestamp) >= filters.timeRange.startDate!);
-        }
-        if (filters.timeRange.endDate) {
-          result = result.filter(node => new Date(node.timestamp) <= filters.timeRange.endDate!);
-        }
-      } else {
-        // 预设时间范围
-        const startDate = getTimeRangeStart(filters.timeRange.type);
-        if (startDate) {
-          result = result.filter(node => new Date(node.timestamp) >= startDate);
-        }
+    if (timeRange !== 'all') {
+      const now = new Date();
+      let startDate: Date | null = null;
+
+      switch (timeRange) {
+        case '24h':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+      }
+
+      if (startDate) {
+        result = result.filter(node => new Date(node.timestamp) >= startDate!);
       }
     }
 
     return result;
-  }, [nodes, filters]);
+  }, [nodes, selectedTypes, searchText, timeRange]);
+
+  // 按时间分组
+  const groupedNodes = useMemo(() => {
+    return groupNodesByTime(filteredNodes);
+  }, [filteredNodes]);
 
   // 构建节点上下文
   const context: NodeContext = useMemo(
@@ -135,8 +192,15 @@ export function Timeline({
 
   return (
     <div className="h-full overflow-y-auto p-6">
-      {/* 筛选组件 */}
-      <TimelineFilter onFilterChange={setFilters} />
+      {/* 紧凑型筛选栏 */}
+      <CompactFilterBar
+        searchText={searchText}
+        onSearchChange={setSearchText}
+        selectedTypes={selectedTypes}
+        onTypeToggle={handleTypeToggle}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+      />
 
       {/* 时间轴列表 */}
       {filteredNodes.length === 0 ? (
@@ -146,56 +210,52 @@ export function Timeline({
           </p>
         </div>
       ) : (
-        <div className="relative">
-          {/* 时间轴节点 */}
-          <div className="space-y-3">
-            {filteredNodes.map((node, index) => {
-              const renderer = nodeRegistry.getRenderer(node.type);
+        <div className="space-y-6">
+          {/* 渲染每个时间组 */}
+          {(['today', 'yesterday', 'thisWeek', 'older'] as TimeGroup[]).map((group) => {
+            const groupNodes = groupedNodes[group];
+            if (groupNodes.length === 0) return null;
 
-              if (!renderer) {
-                console.warn(`No renderer found for node type: ${node.type}`);
-                return null;
-              }
-
-              const Icon = getNodeIcon(node.type);
-              const isActive = selectedNodeId === node.id;
-              const isLast = index === filteredNodes.length - 1;
-
-              return (
-                <div
-                  key={node.id}
-                  className="relative grid grid-cols-[auto_1fr] items-start gap-4 group"
-                  onClick={() => onNodeClick?.(node)}
-                >
-                  {/* 左侧：时间线节点 */}
-                  <div className="relative flex-shrink-0 z-10">
-                    {/* 垂直连接线 - 始终渲染，延伸到下一个节点 */}
-                    {!isLast && (
-                      <div className="absolute left-[15px] top-8 h-[calc(100%+12px)] w-px bg-border" />
-                    )}
-
-                    <div
-                      className={`
-                        w-8 h-8 rounded-full border-2 flex items-center justify-center
-                        transition-all duration-200
-                        ${isActive
-                          ? 'bg-primary border-primary text-primary-foreground scale-110'
-                          : 'bg-background border-border text-muted-foreground group-hover:border-primary group-hover:text-primary'
-                        }
-                      `}
-                    >
-                      <Icon size={16} />
-                    </div>
-                  </div>
-
-                  {/* 右侧：插件渲染的内容 */}
-                  <div className="flex-1">
-                    {renderer.render(node, context)}
-                  </div>
+            return (
+              <div key={group}>
+                {/* 时间组标题 */}
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-sm font-semibold text-white/80">
+                    {getTimeGroupLabel(group)}
+                  </h3>
+                  <div className="flex-1 h-px bg-white/10" />
                 </div>
-              );
-            })}
-          </div>
+
+                {/* 时间组节点 */}
+                <div className="space-y-2">
+                  {groupNodes.map((node, index) => {
+                    const Icon = getNodeIcon(node.type);
+                    const nodeType = getNodeType(node.type);
+                    const isActive = selectedNodeId === node.id;
+                    const isLast = index === groupNodes.length - 1;
+
+                    // 提取关键信息
+                    const sender = node.data?.sender?.display_name || node.title || 'Unknown';
+                    const metadata = node.data?.channel || node.data?.message_id || node.content || '';
+
+                    return (
+                      <CompactTimelineNode
+                        key={node.id}
+                        type={nodeType}
+                        icon={Icon}
+                        sender={sender}
+                        metadata={metadata}
+                        timestamp={formatCompactTimestamp(node.timestamp)}
+                        isActive={isActive}
+                        isLast={isLast}
+                        onClick={() => onNodeClick?.(node)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
