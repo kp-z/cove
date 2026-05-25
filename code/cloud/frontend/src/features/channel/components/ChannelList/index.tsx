@@ -59,26 +59,21 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
     ? 'max-h-[400px] overflow-y-auto p-2 space-y-3'
     : 'h-full flex flex-col gap-3 px-4 pt-4 pb-6';
 
-  const pinnedContainerClass = compact ? 'space-y-1' : 'p-4';
-  const recentContainerClass = compact
-    ? 'space-y-1'
-    : 'flex-1 overflow-hidden flex flex-col p-4';
+  const sectionClass = compact ? 'space-y-1' : 'space-y-3';
 
   const headerClass = compact
     ? 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1'
-    : 'text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3';
+    : 'text-xs font-semibold text-gray-500 uppercase tracking-wider';
 
   const listClass = compact
     ? 'space-y-0.5'
-    : 'flex-1 overflow-y-auto space-y-1 -mx-6 px-2';
+    : 'space-y-1';
 
   return (
     <div className={containerClass}>
       {pinnedChannels.length > 0 && (
-        <div className={pinnedContainerClass}>
-          {compact && (
-            <h3 className={headerClass}>{t('list.pinned')}</h3>
-          )}
+        <div className={sectionClass}>
+          <h3 className={headerClass}>{t('list.pinned')}</h3>
           {compact ? (
             <div className={listClass}>
               {pinnedChannels.map((channel) => (
@@ -109,7 +104,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
       )}
 
       {recentChannels.length > 0 && (
-        <div className={recentContainerClass}>
+        <div className={sectionClass}>
           <h3 className={headerClass}>
             {t('list.recent')}
           </h3>
