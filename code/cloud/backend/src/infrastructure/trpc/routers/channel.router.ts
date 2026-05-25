@@ -93,19 +93,30 @@ export const channelRouter = (channelService: ChannelService) =>
           // 如果是 DM 类型且只有一个 agent，检查是否已存在
           if (input.type === 'dm' && input.agentIds?.length === 1) {
             const agentId = input.agentIds[0];
-            const existingChannels = await channelService.getChannelsByMember(agentId);
 
-            // 查找已存在的 DM channel
-            const existingDM = existingChannels.find(ch => {
-              const json = ch.toJSON();
-              return json.type === 'dm' &&
-                     json.agent_pool.length === 1 &&
-                     json.agent_pool[0] === agentId;
-            });
+            if (!agentId) {
+              throw new Error('Agent ID is required for DM channel');
+            }
 
-            // 如果已存在，直接返回
+            // 使用优化的查询方法，直接在数据库层面查找
+            const existingDM = await channelService.getAgentDMChannel(agentId);
+
+            // 如果已存在，直接返回（幂等性）
             if (existingDM) {
               return existingDM.toJSON();
+            }
+          }
+
+          // 验证 DM channel 成员规则
+          if (input.type === 'dm') {
+            // DM channel 应该有且仅有 2 个成员（1 个 agent + 1 个 user）
+            if (allMemberIds.length !== 2) {
+              throw new Error(`DM channel must have exactly 2 members, got ${allMemberIds.length}`);
+            }
+
+            // 确保有且仅有 1 个 agent
+            if (!input.agentIds || input.agentIds.length !== 1) {
+              throw new Error('DM channel must have exactly 1 agent');
             }
           }
 
@@ -116,6 +127,10 @@ export const channelRouter = (channelService: ChannelService) =>
           });
           return channel.toJSON();
         } catch (error: any) {
+          // 改进错误处理，提供更详细的错误信息
+          if (error.message?.includes('DM channel must')) {
+            throw mapErrorToTRPC(error);
+          }
           throw mapErrorToTRPC(error);
         }
       }),

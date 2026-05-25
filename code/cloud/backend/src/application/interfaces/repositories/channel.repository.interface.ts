@@ -36,6 +36,13 @@ export interface IChannelRepository {
   findByMember(memberId: string): Promise<ChannelEntity[]>;
 
   /**
+   * 查找与指定 agent 的 DM channel（用于唯一性检查）
+   * @param agentId - Agent ID
+   * @returns DM Channel 实体，不存在返回 null
+   */
+  findAgentDMChannel(agentId: string): Promise<ChannelEntity | null>;
+
+  /**
    * 查找所有 Channels
    * @returns Channel 实体数组
    */
