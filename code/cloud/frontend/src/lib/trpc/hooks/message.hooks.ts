@@ -1,5 +1,6 @@
 import { trpc } from '@/lib/trpc';
 import { notify } from '@/core/services/notificationService';
+import { useEffect, useState } from 'react';
 
 export function useSendMessage() {
   const utils = trpc.useUtils();
@@ -114,4 +115,137 @@ export function useThreadMessages(parentMessageId: string) {
       enabled: !!parentMessageId,
     }
   );
+}
+
+export interface StreamingEvent {
+  eventId: string;
+  eventType: string;
+  timestamp: string;
+  data: {
+    messageId: string;
+    sequence: number;
+    timestamp: string;
+    thinking?: string;
+    toolLog?: {
+      id: string;
+      timestamp: string;
+      toolName: string;
+      action: string;
+      params?: Record<string, unknown>;
+      status: 'pending' | 'running' | 'success' | 'error';
+      duration?: number;
+      result?: {
+        success?: string;
+        error?: string;
+        output?: string;
+      };
+      meta?: {
+        fileCount?: number;
+        linesChanged?: number;
+        exitCode?: number;
+      };
+    };
+    usage?: {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cache?: {
+        creationTokens: number;
+        readTokens: number;
+        hitRate?: number;
+      };
+      cost?: {
+        inputCost: number;
+        outputCost: number;
+        cacheCost: number;
+        totalCost: number;
+      };
+      model?: string;
+      latency?: {
+        firstTokenMs?: number;
+        totalMs?: number;
+        tokensPerSecond?: number;
+      };
+    };
+    streamingStatus?: 'thinking' | 'tool_use' | 'responding' | 'completed';
+  };
+}
+
+export interface MessageStreamingState {
+  thinking: string;
+  toolLogs: StreamingEvent['data']['toolLog'][];
+  usage: StreamingEvent['data']['usage'] | null;
+  status: 'thinking' | 'tool_use' | 'responding' | 'completed' | 'idle';
+  isStreaming: boolean;
+}
+
+export function useMessageStreaming(messageId: string | null) {
+  const [state, setState] = useState<MessageStreamingState>({
+    thinking: '',
+    toolLogs: [],
+    usage: null,
+    status: 'idle',
+    isStreaming: false,
+  });
+
+  const subscription = trpc.subscription.onMessageStreaming.useSubscription(
+    { messageId: messageId || '' },
+    {
+      enabled: !!messageId,
+      onData: (event: StreamingEvent) => {
+        setState((prev) => {
+          const newState = { ...prev, isStreaming: true };
+
+          switch (event.eventType) {
+            case 'message.streaming.thinking':
+              if (event.data.thinking) {
+                newState.thinking = prev.thinking + event.data.thinking;
+              }
+              break;
+
+            case 'message.streaming.tool_log':
+              if (event.data.toolLog) {
+                newState.toolLogs = [...prev.toolLogs, event.data.toolLog];
+              }
+              break;
+
+            case 'message.streaming.usage':
+              if (event.data.usage) {
+                newState.usage = event.data.usage;
+              }
+              break;
+
+            case 'message.streaming.status':
+              if (event.data.streamingStatus) {
+                newState.status = event.data.streamingStatus;
+                if (event.data.streamingStatus === 'completed') {
+                  newState.isStreaming = false;
+                }
+              }
+              break;
+          }
+
+          return newState;
+        });
+      },
+      onError: (error) => {
+        console.error('Streaming error:', error);
+        setState((prev) => ({ ...prev, isStreaming: false, status: 'idle' }));
+      },
+    }
+  );
+
+  useEffect(() => {
+    if (!messageId) {
+      setState({
+        thinking: '',
+        toolLogs: [],
+        usage: null,
+        status: 'idle',
+        isStreaming: false,
+      });
+    }
+  }, [messageId]);
+
+  return state;
 }

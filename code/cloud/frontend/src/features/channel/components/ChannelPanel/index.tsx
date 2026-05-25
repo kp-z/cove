@@ -6,7 +6,7 @@ import { ChannelMemberBar } from './ChannelMemberBar';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
-import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
+import { useChannels, useMessages, useSendMessage, useMessageStreaming } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
 import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
@@ -64,6 +64,33 @@ function messageEntityToMessage(entity: MessageEntity): Message {
     content: entity.content,
     timestamp: new Date(entity.created_at),
     is_streaming: false,
+    agentMetadata: entity.agent_execution_metadata ? {
+      thinking: entity.agent_execution_metadata.thinking,
+      toolLogs: entity.agent_execution_metadata.tool_logs?.map(log => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        toolName: log.tool_name,
+        action: log.action,
+        params: log.params,
+        status: log.status,
+        duration: log.duration,
+        result: log.result,
+        meta: log.meta ? {
+          fileCount: log.meta.file_count,
+          linesChanged: log.meta.lines_changed,
+          exitCode: log.meta.exit_code,
+        } : undefined,
+      })),
+      usage: entity.agent_execution_metadata.usage ? {
+        inputTokens: entity.agent_execution_metadata.usage.input_tokens,
+        outputTokens: entity.agent_execution_metadata.usage.output_tokens,
+        totalTokens: entity.agent_execution_metadata.usage.total_tokens,
+        cache: entity.agent_execution_metadata.usage.cache,
+        cost: entity.agent_execution_metadata.usage.cost,
+        model: entity.agent_execution_metadata.usage.model,
+        latency: entity.agent_execution_metadata.usage.latency,
+      } : undefined,
+    } : undefined,
   };
 }
 
@@ -77,6 +104,7 @@ export function ChannelPanel({
   const { t } = useTranslation('channel');
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreadId || null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
   const { mode, setMode, closeChannel } = useChannelPanelStore();
   const { data: channelsData, isLoading: channelLoading } = useChannels();
@@ -84,6 +112,19 @@ export function ChannelPanel({
   const sendMessage = useSendMessage();
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
+
+  // 流式更新订阅
+  const streamingState = useMessageStreaming(streamingMessageId);
+
+  // 当流式完成时，清理状态
+  useEffect(() => {
+    if (streamingState.status === 'completed' && streamingMessageId) {
+      // 延迟清理，确保最终状态已保存
+      setTimeout(() => {
+        setStreamingMessageId(null);
+      }, 1000);
+    }
+  }, [streamingState.status, streamingMessageId]);
 
   // WebSocket 订阅：监听消息事件
   trpc.subscription.onMessage.useSubscription(
@@ -94,6 +135,11 @@ export function ChannelPanel({
     {
       onData: (event) => {
         console.log('Received message event:', event);
+
+        // 如果是新消息创建，且是 agent 消息，开始监听流式更新
+        if (event.eventType === 'message.created' && event.data.sender_type === 'agent') {
+          setStreamingMessageId(event.data.message_id);
+        }
 
         // 刷新消息列表
         queryClient.invalidateQueries({
@@ -154,7 +200,25 @@ export function ChannelPanel({
 
   // Backend returns { messages: [...], nextCursor: string }
   const messageEntities = messagesData?.messages || [];
-  const messages: Message[] = messageEntities.map(messageEntityToMessage);
+  let messages: Message[] = messageEntities.map(messageEntityToMessage);
+
+  // 如果有流式更新，合并到对应的消息中
+  if (streamingMessageId && streamingState.isStreaming) {
+    messages = messages.map(msg => {
+      if (msg.message_id === streamingMessageId) {
+        return {
+          ...msg,
+          is_streaming: true,
+          agentMetadata: {
+            thinking: streamingState.thinking || msg.agentMetadata?.thinking,
+            toolLogs: streamingState.toolLogs.length > 0 ? streamingState.toolLogs : msg.agentMetadata?.toolLogs,
+            usage: streamingState.usage || msg.agentMetadata?.usage,
+          },
+        };
+      }
+      return msg;
+    });
+  }
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!userId) {
