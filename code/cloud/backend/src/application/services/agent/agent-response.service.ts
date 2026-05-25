@@ -310,6 +310,96 @@ Respond in ${lang}. Be ${verbosity}. Be helpful and professional.`;
     return `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
+  // --- Agent Execution Streaming Support ---
+
+  /**
+   * 发布流式更新事件
+   * 用于实时推送 agent 执行过程中的增量更新
+   *
+   * @internal 为未来流式实现预留的方法
+   * @param messageId - 消息 ID
+   * @param eventType - 事件类型（thinking/tool_log/usage/status）
+   * @param data - 事件数据
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async publishStreamingEvent(
+    messageId: string,
+    eventType: 'thinking' | 'tool_log' | 'usage' | 'status',
+    data: Record<string, unknown>
+  ): Promise<void> {
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: `message.streaming.${eventType}`,
+      aggregateId: messageId,
+      aggregateType: 'Message',
+      occurredAt: new Date(),
+      payload: {
+        messageId,
+        eventType,
+        sequence: data.sequence,
+        timestamp: new Date().toISOString(),
+        data,
+      },
+    });
+  }
+
+  /**
+   * 创建带执行元数据的消息
+   * 用于流式响应场景，先创建消息再逐步更新内容
+   *
+   * @internal 为未来流式实现预留的方法
+   * @param agent - Agent 实体
+   * @param channel - Channel 实体
+   * @param originalMessage - 原始消息
+   * @param executionMode - 执行模式（API/CLI/SDK）
+   * @returns 初始化了执行元数据的消息实体
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private createMessageWithMetadata(
+    agent: AgentEntity,
+    channel: ChannelEntity,
+    originalMessage: MessageEntity,
+    executionMode: 'API' | 'CLI' | 'SDK'
+  ): MessageEntity {
+    const message = MessageEntity.create({
+      messageId: this.generateMessageId(),
+      msgShortId: this.generateShortId(),
+      senderId: agent.agentId,
+      senderType: 'agent',
+      senderName: agent.displayName,
+      channelId: channel.channelId,
+      channelName: channel.name,
+      threadId: originalMessage.threadId || originalMessage.messageId,
+      isThreadRoot: false,
+      content: '_Generating response..._', // 占位符内容，后续通过流式更新替换
+      contentType: 'text',
+      contentFormat: 'markdown',
+      attachments: [],
+      mentions: [],
+      references: [
+        {
+          refType: 'url',
+          refId: originalMessage.messageId,
+          refTitle: 'Reply to message',
+        },
+      ],
+      status: 'sending', // 标记为发送中
+      isEdited: false,
+      editHistory: [],
+      reactions: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      meta: {
+        client: 'agent-runtime',
+        isPinned: false,
+        isImportant: false,
+      },
+    });
+
+    // 初始化 agent 执行元数据
+    return message.initAgentExecution(executionMode);
+  }
+
   private async publishEvent(event: DomainEvent): Promise<void> {
     try {
       await this.eventBus.publish(event);

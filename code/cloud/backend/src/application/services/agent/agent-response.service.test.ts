@@ -560,4 +560,261 @@ describe('AgentResponseService', () => {
       );
     });
   });
+
+  describe('Agent Execution Streaming Support (Phase 2A)', () => {
+    describe('publishStreamingEvent', () => {
+      it('should publish streaming event with correct structure', async () => {
+        const messageId = 'msg-123';
+        const eventType = 'thinking';
+        const data = {
+          sequence: 1,
+          chunk: 'Analyzing request...',
+        };
+
+        mockEventBus.publish.mockResolvedValue(undefined);
+
+        // Access private method via reflection for testing
+        const publishStreamingEvent = (service as any).publishStreamingEvent.bind(service);
+
+        await runWithContext(testContext, async () => {
+          await publishStreamingEvent(messageId, eventType, data);
+        });
+
+        expect(mockEventBus.publish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventType: 'message.streaming.thinking',
+            aggregateId: messageId,
+            aggregateType: 'Message',
+            payload: expect.objectContaining({
+              messageId,
+              eventType: 'thinking',
+              sequence: 1,
+              data,
+            }),
+          })
+        );
+      });
+
+      it('should publish tool_log event', async () => {
+        const messageId = 'msg-456';
+        const data = {
+          sequence: 2,
+          toolLog: {
+            id: 'tool-001',
+            tool_name: 'search',
+            action: 'execute',
+            status: 'success',
+          },
+        };
+
+        mockEventBus.publish.mockResolvedValue(undefined);
+
+        const publishStreamingEvent = (service as any).publishStreamingEvent.bind(service);
+
+        await runWithContext(testContext, async () => {
+          await publishStreamingEvent(messageId, 'tool_log', data);
+        });
+
+        expect(mockEventBus.publish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventType: 'message.streaming.tool_log',
+            aggregateId: messageId,
+          })
+        );
+      });
+
+      it('should publish usage event', async () => {
+        const messageId = 'msg-789';
+        const data = {
+          sequence: 3,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 50,
+            total_tokens: 150,
+          },
+        };
+
+        mockEventBus.publish.mockResolvedValue(undefined);
+
+        const publishStreamingEvent = (service as any).publishStreamingEvent.bind(service);
+
+        await runWithContext(testContext, async () => {
+          await publishStreamingEvent(messageId, 'usage', data);
+        });
+
+        expect(mockEventBus.publish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventType: 'message.streaming.usage',
+            aggregateId: messageId,
+          })
+        );
+      });
+
+      it('should publish status event', async () => {
+        const messageId = 'msg-abc';
+        const data = {
+          sequence: 4,
+          status: 'completed',
+        };
+
+        mockEventBus.publish.mockResolvedValue(undefined);
+
+        const publishStreamingEvent = (service as any).publishStreamingEvent.bind(service);
+
+        await runWithContext(testContext, async () => {
+          await publishStreamingEvent(messageId, 'status', data);
+        });
+
+        expect(mockEventBus.publish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventType: 'message.streaming.status',
+            aggregateId: messageId,
+          })
+        );
+      });
+    });
+
+    describe('createMessageWithMetadata', () => {
+      it('should create message with initialized agent execution metadata', () => {
+        const agent = createTestAgent({
+          agentId: 'agent-123',
+          displayName: 'Test Agent',
+        });
+
+        const channel = createTestChannel({
+          channelId: 'channel-123',
+          name: 'test-channel',
+        });
+
+        const originalMessage = createTestMessage({
+          messageId: 'msg-original',
+        });
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'API'
+        );
+
+        // Verify message structure
+        expect(message.senderId).toBe('agent-123');
+        expect(message.senderType).toBe('agent');
+        expect(message.senderName).toBe('Test Agent');
+        expect(message.channelId).toBe('channel-123');
+        expect(message.status).toBe('sending');
+        expect(message.content).toBe('_Generating response..._'); // Placeholder content
+
+        // Verify agent execution metadata is initialized
+        expect(message.hasAgentExecutionMetadata()).toBe(true);
+        expect(message.agentExecutionMetadata?.execution_mode).toBe('API');
+        expect(message.agentExecutionMetadata?.streaming_status).toBe('thinking');
+        expect(message.agentExecutionMetadata?.sequence).toBe(0);
+        expect(message.agentExecutionMetadata?.started_at).toBeDefined();
+        expect(message.agentExecutionMetadata?.thinking).toBe('');
+        expect(message.agentExecutionMetadata?.tool_logs).toEqual([]);
+      });
+
+      it('should create message with CLI execution mode', () => {
+        const agent = createTestAgent();
+        const channel = createTestChannel();
+        const originalMessage = createTestMessage();
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'CLI'
+        );
+
+        expect(message.agentExecutionMetadata?.execution_mode).toBe('CLI');
+      });
+
+      it('should create message with SDK execution mode', () => {
+        const agent = createTestAgent();
+        const channel = createTestChannel();
+        const originalMessage = createTestMessage();
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'SDK'
+        );
+
+        expect(message.agentExecutionMetadata?.execution_mode).toBe('SDK');
+      });
+
+      it('should set correct thread reference', () => {
+        const agent = createTestAgent();
+        const channel = createTestChannel();
+        const originalMessage = createTestMessage({
+          messageId: 'msg-original',
+          threadId: 'thread-123',
+        });
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'API'
+        );
+
+        expect(message.threadId).toBe('thread-123');
+        expect(message.isThreadRoot).toBe(false);
+      });
+
+      it('should create thread from original message if no threadId', () => {
+        const agent = createTestAgent();
+        const channel = createTestChannel();
+        const originalMessage = createTestMessage({
+          messageId: 'msg-original',
+          threadId: undefined,
+        });
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'API'
+        );
+
+        expect(message.threadId).toBe('msg-original');
+      });
+
+      it('should include reference to original message', () => {
+        const agent = createTestAgent();
+        const channel = createTestChannel();
+        const originalMessage = createTestMessage({
+          messageId: 'msg-original',
+        });
+
+        const createMessageWithMetadata = (service as any).createMessageWithMetadata.bind(service);
+
+        const message = createMessageWithMetadata(
+          agent,
+          channel,
+          originalMessage,
+          'API'
+        );
+
+        expect(message.references).toHaveLength(1);
+        expect(message.references[0]).toEqual({
+          refType: 'url',
+          refId: 'msg-original',
+          refTitle: 'Reply to message',
+        });
+      });
+    });
+  });
 });
