@@ -25,6 +25,7 @@ describe('channelRouter', () => {
       deleteChannel: vi.fn(),
       addMember: vi.fn(),
       removeMember: vi.fn(),
+      getAgentDMChannel: vi.fn(),
     } as unknown as ChannelService;
 
     mockContext = {
@@ -261,6 +262,7 @@ describe('channelRouter', () => {
         description: 'Test description',
         type: 'public',
         createdBy: 'user-1',
+        memberIds: [], // Router merges memberIds and agentIds
       });
     });
 
@@ -296,6 +298,162 @@ describe('channelRouter', () => {
       } catch (err: any) {
         expect(err.code).toBe('INTERNAL_SERVER_ERROR');
       }
+    });
+
+    describe('DM channel creation', () => {
+      it('should create DM channel with agent and user', async () => {
+        const dmChannel = ChannelEntity.create({
+          channelId: 'dm-1',
+          name: 'DM-agent-1',
+          displayName: 'DM with Agent',
+          type: 'dm',
+          status: 'active',
+          members: [
+            { memberId: 'agent-1', memberType: 'agent', role: 'member', joinedAt: new Date() },
+            { memberId: 'user-1', memberType: 'human', role: 'member', joinedAt: new Date() },
+          ],
+          agentPool: ['agent-1'],
+          taskPool: [],
+          conversationPool: [],
+          communicationRules: {
+            allowMentions: true,
+            allowThreads: true,
+            allowAttachments: true,
+            maxMessageLength: 5000,
+          },
+          workspace: { root: '', sharedFiles: [], attachments: [] },
+          meta: {
+            messageCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            createdBy: { id: 'user-1', type: 'human' },
+          },
+        });
+
+        vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+        vi.mocked(mockChannelService.createChannel).mockResolvedValue(dmChannel);
+
+        const caller = router.createCaller(mockContext);
+        const result = await caller.create({
+          name: 'DM-agent-1',
+          type: 'dm',
+          createdBy: 'user-1',
+          memberIds: ['user-1'],
+          agentIds: ['agent-1'],
+        });
+
+        expect(result).toEqual(dmChannel.toJSON());
+        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1');
+        expect(mockChannelService.createChannel).toHaveBeenCalledWith({
+          name: 'DM-agent-1',
+          type: 'dm',
+          createdBy: 'user-1',
+          memberIds: ['user-1', 'agent-1'],
+          agentIds: ['agent-1'],
+        });
+      });
+
+      it('should return existing DM channel if already exists (idempotency)', async () => {
+        const existingDM = ChannelEntity.create({
+          channelId: 'dm-existing',
+          name: 'DM-agent-1',
+          displayName: 'Existing DM',
+          type: 'dm',
+          status: 'active',
+          members: [
+            { memberId: 'agent-1', memberType: 'agent', role: 'member', joinedAt: new Date() },
+            { memberId: 'user-1', memberType: 'human', role: 'member', joinedAt: new Date() },
+          ],
+          agentPool: ['agent-1'],
+          taskPool: [],
+          conversationPool: [],
+          communicationRules: {
+            allowMentions: true,
+            allowThreads: true,
+            allowAttachments: true,
+            maxMessageLength: 5000,
+          },
+          workspace: { root: '', sharedFiles: [], attachments: [] },
+          meta: {
+            messageCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            createdBy: { id: 'user-1', type: 'human' },
+          },
+        });
+
+        vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(existingDM);
+
+        const caller = router.createCaller(mockContext);
+        const result = await caller.create({
+          name: 'DM-agent-1',
+          type: 'dm',
+          createdBy: 'user-1',
+          memberIds: ['user-1'],
+          agentIds: ['agent-1'],
+        });
+
+        expect(result).toEqual(existingDM.toJSON());
+        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1');
+        expect(mockChannelService.createChannel).not.toHaveBeenCalled();
+      });
+
+      it('should throw error if DM channel does not have exactly 2 members', async () => {
+        vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+
+        const caller = router.createCaller(mockContext);
+
+        try {
+          await caller.create({
+            name: 'DM-agent-1',
+            type: 'dm',
+            createdBy: 'user-1',
+            memberIds: ['user-1', 'user-2', 'user-3'],
+            agentIds: ['agent-1'],
+          });
+          expect.fail('Should have thrown error');
+        } catch (err: any) {
+          expect(err.message).toContain('DM channel must have exactly 2 members');
+        }
+      });
+
+      it('should throw error if DM channel does not have exactly 1 agent', async () => {
+        vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+
+        const caller = router.createCaller(mockContext);
+
+        try {
+          await caller.create({
+            name: 'DM-agents',
+            type: 'dm',
+            createdBy: 'user-1',
+            memberIds: ['user-1'],
+            agentIds: ['agent-1', 'agent-2'],
+          });
+          expect.fail('Should have thrown error');
+        } catch (err: any) {
+          // Member count validation happens first, so we get "3 members" error
+          expect(err.message).toContain('DM channel must have exactly 2 members');
+        }
+      });
+
+      it('should throw error if DM channel has no agents', async () => {
+        vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+
+        const caller = router.createCaller(mockContext);
+
+        try {
+          await caller.create({
+            name: 'DM-no-agent',
+            type: 'dm',
+            createdBy: 'user-1',
+            memberIds: ['user-1', 'user-2'],
+          });
+          expect.fail('Should have thrown error');
+        } catch (err: any) {
+          expect(err.message).toContain('DM channel must have exactly 1 agent');
+        }
+      });
     });
   });
 
