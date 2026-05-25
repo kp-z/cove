@@ -70,11 +70,22 @@ function ChannelPanelWrapper() {
 export function MainLayout() {
   const { isOpen, toggle } = useSidebar();
   const { isMobile } = useResponsive();
-  const { isOpen: channelOpen } = useChannelPanelStore();
+  const { isOpen: channelOpen, mode } = useChannelPanelStore();
   const location = useLocation();
 
   // 移动端在 channel 详情页时隐藏 MobileNav
   const shouldHideMobileNav = isMobile && location.pathname.startsWith('/channel/') && location.pathname !== '/channels';
+
+  // 计算 Outlet 的右边距（当 ChannelPanel 为 floating 模式时）
+  const { width: panelWidth } = useResizable({
+    defaultWidth: 500,
+    minWidth: 400,
+    maxWidth: 800,
+    storageKey: 'channel-panel-width',
+  });
+
+  const isFloating = mode !== 'docked';
+  const outletMarginRight = channelOpen && !isMobile && isFloating ? panelWidth + 32 : 0; // 32px = 4 (right) + 4 (gap) * 4
 
   return (
     <div className="flex h-screen bg-[#0f111a] text-[#e4e4e7]">
@@ -94,7 +105,10 @@ export function MainLayout() {
               </div>
             }
           >
-            <div className="flex-1 overflow-hidden">
+            <div
+              className="flex-1 overflow-hidden transition-all duration-300"
+              style={{ marginRight: `${outletMarginRight}px` }}
+            >
               <Outlet />
             </div>
           </Suspense>

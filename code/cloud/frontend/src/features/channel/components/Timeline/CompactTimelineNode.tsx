@@ -60,12 +60,12 @@ export function CompactTimelineNode({
 
   return (
     <div className="relative flex items-center gap-3 group">
-      {/* Timeline Line */}
+      {/* Timeline Line - 连续的，从节点中心延伸 */}
       {!isLast && (
-        <div className="absolute left-[11px] top-6 bottom-0 w-px bg-white/10" />
+        <div className="absolute left-3 top-6 bottom-[-8px] w-px bg-white/10" />
       )}
 
-      {/* Timeline Node */}
+      {/* Timeline Node with Icon */}
       <div className="relative z-10 flex-shrink-0">
         <div
           className={`
@@ -77,11 +77,11 @@ export function CompactTimelineNode({
             }
           `}
         >
-          {isActive && <div className="w-2 h-2 rounded-full bg-white" />}
+          <Icon className="w-3 h-3" />
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - 无徽章，纯文本 */}
       <button
         onClick={onClick}
         className={`
@@ -93,11 +93,6 @@ export function CompactTimelineNode({
           }
         `}
       >
-        {/* Type Badge */}
-        <div className={`flex items-center justify-center w-7 h-7 rounded-md border ${colors.badge}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-
         {/* Info */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <span className="text-sm font-medium text-white truncate">

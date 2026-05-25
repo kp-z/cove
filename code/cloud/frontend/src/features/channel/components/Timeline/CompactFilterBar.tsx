@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Search, Settings } from 'lucide-react';
+import { Search, Settings, MessageSquare, Image as ImageIcon, File, MessageCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 
@@ -19,12 +19,12 @@ export interface CompactFilterBarProps {
 }
 
 const MESSAGE_TYPES = [
-  { value: 'all', label: 'All', icon: '📋' },
-  { value: 'text', label: 'Text', icon: '💬' },
-  { value: 'image', label: 'Image', icon: '🖼️' },
-  { value: 'file', label: 'File', icon: '📎' },
-  { value: 'thread', label: 'Thread', icon: '🧵' },
-  { value: 'system', label: 'System', icon: '⚙️' },
+  { value: 'all', label: 'All', icon: MessageSquare },
+  { value: 'text', label: 'Text', icon: MessageSquare },
+  { value: 'image', label: 'Image', icon: ImageIcon },
+  { value: 'file', label: 'File', icon: File },
+  { value: 'thread', label: 'Thread', icon: MessageCircle },
+  { value: 'system', label: 'System', icon: AlertCircle },
 ];
 
 const TIME_RANGES = [
@@ -77,24 +77,23 @@ export function CompactFilterBar({
         <div className="flex items-center gap-1.5">
           {MESSAGE_TYPES.map((type) => {
             const isSelected = selectedTypes.includes(type.value);
-            const isAll = type.value === 'all';
+            const Icon = type.icon;
 
             return (
               <button
                 key={type.value}
                 onClick={() => onTypeToggle(type.value)}
                 className={`
-                  h-9 px-3 rounded-md text-sm font-medium transition-all
-                  flex items-center gap-1.5
+                  h-9 w-9 rounded-md transition-all
+                  flex items-center justify-center
                   ${isSelected
                     ? 'bg-primary text-primary-foreground border border-primary'
                     : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
                   }
-                  ${isAll ? 'min-w-[70px]' : ''}
                 `}
+                title={type.label}
               >
-                <span>{type.icon}</span>
-                <span>{type.label}</span>
+                <Icon className="w-4 h-4" />
               </button>
             );
           })}
