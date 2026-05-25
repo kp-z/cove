@@ -467,6 +467,29 @@ export class TestDatabaseHelper {
   }
 
   /**
+   * 创建测试 Realm
+   */
+  async createTestRealm(realmId: string = 'test-realm-1'): Promise<{ id: string }> {
+    if (!this.prisma) {
+      throw new Error('Database not initialized. Call setup() first.');
+    }
+
+    return await this.prisma.realm.create({
+      data: {
+        id: realmId,
+        name: `Test Realm ${realmId}`,
+        displayName: `Test Realm ${realmId}`,
+        type: 'local',
+        status: 'active',
+        ownerId: 'test-user-1',
+        metadataPath: `/realms/${realmId}/metadata.json`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
    * 获取 Prisma Client
    */
   getPrisma(): PrismaClient {

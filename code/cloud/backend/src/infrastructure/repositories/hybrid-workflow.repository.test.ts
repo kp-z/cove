@@ -48,9 +48,13 @@ describe('HybridWorkflowRepository', () => {
       },
     });
 
+    // Create test realm first
+    await testDb.createTestRealm('test-realm-1');
+
     await testDb.prisma.project.create({
       data: {
         id: 'project-1',
+        realmId: 'test-realm-1',
         name: 'test-project',
         description: 'Test project',
         status: 'active',

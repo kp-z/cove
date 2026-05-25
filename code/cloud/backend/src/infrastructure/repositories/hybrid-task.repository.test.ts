@@ -48,10 +48,14 @@ describe('HybridTaskRepository', () => {
       },
     });
 
+    // Create test realm first
+    await testDb.createTestRealm('test-realm-1');
+
     // Create test channel and project
     await testDb.prisma.channel.create({
       data: {
         id: 'channel-1',
+        realmId: 'test-realm-1',
         name: 'test-channel',
         displayName: 'Test Channel',
         type: 'public',
@@ -75,6 +79,7 @@ describe('HybridTaskRepository', () => {
     await testDb.prisma.project.create({
       data: {
         id: 'project-1',
+        realmId: 'test-realm-1',
         name: 'test-project',
         description: 'Test project',
         status: 'active',

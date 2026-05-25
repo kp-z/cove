@@ -33,14 +33,29 @@ describe('HybridThreadRepository', () => {
     storageService = new StorageService(testStorageRoot);
     repository = new HybridThreadRepository(testDb.prisma, storageService, mockLogger);
 
+    // Create test realm first
+    await testDb.createTestRealm('test-realm-1');
+
     // Create test channel
     await testDb.prisma.channel.create({
       data: {
         id: 'channel-1',
+        realmId: 'test-realm-1',
         name: 'test-channel',
         displayName: 'Test Channel',
         type: 'public',
         status: 'active',
+        membersData: JSON.stringify([]),
+        agentPool: JSON.stringify({ agents: [], maxAgents: 10 }),
+        taskPool: JSON.stringify({ tasks: [], maxTasks: 100 }),
+        conversationPool: JSON.stringify([]),
+        communicationRules: JSON.stringify({ allowMentions: true }),
+        workspace: JSON.stringify({ root: '/workspace' }),
+        metaTags: JSON.stringify([]),
+        createdById: 'user-1',
+        createdByType: 'user',
+        messageCount: 0,
+        memberCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

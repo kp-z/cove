@@ -32,10 +32,14 @@ describe('HybridMessageRepository', () => {
     storageService = new StorageService(testStorageRoot);
     repository = new HybridMessageRepository(testDb.prisma, storageService, mockLogger);
 
+    // Create test realm first
+    await testDb.createTestRealm('test-realm-1');
+
     // Create test channel for messages
     await testDb.prisma.channel.create({
       data: {
         id: 'channel-1',
+        realmId: 'test-realm-1',
         name: 'test-channel',
         displayName: 'Test Channel',
         type: 'public',
