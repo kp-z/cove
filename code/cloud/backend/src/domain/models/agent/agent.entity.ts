@@ -28,10 +28,12 @@ const VALID_SCOPES: readonly AgentScope[] = ['built-in', 'user', 'project', 'adm
 // --- Sub-config interfaces ---
 
 export interface AgentRuntimeConfig {
+  readonly adapter_id?: string;
   readonly model: string;
   readonly temperature?: number;
   readonly maxTokens?: number;
   readonly systemPrompt?: string;
+  readonly overrides?: Record<string, unknown>;
 }
 
 export interface AgentPersona {
@@ -42,6 +44,11 @@ export interface AgentPersona {
   readonly avatar?: {
     readonly url: string;
     readonly type: 'uploaded' | 'dicebear' | 'default';
+  };
+  readonly triggers?: {
+    readonly onMention?: boolean;
+    readonly onDirectMessage?: boolean;
+    readonly onKeyword?: string[];
   };
 }
 

@@ -117,7 +117,7 @@ export class AgentResponseService {
       // Priority 2: Use configStore (for file-based agents)
       if (!this.configStore) {
         const errorMsg = `Agent ${agent.name} (${agent.agentId}) has no adapter configured. Please configure a runtime adapter in the agent settings.`;
-        this.logger.error('Agent has no adapter configured', {
+        this.logger.error('Agent has no adapter configured', undefined, {
           agentId: agent.agentId,
           agentName: agent.name,
         });
@@ -155,7 +155,7 @@ export class AgentResponseService {
 
       if (!(runtime.api as any)?.api_key) {
         const errorMsg = `Agent ${agent.name} (${agent.agentId}) has no API key configured. Please configure a runtime adapter or API key in the agent settings.`;
-        this.logger.error('Agent has no api_key configured', {
+        this.logger.error('Agent has no api_key configured', undefined, {
           agentId: agent.agentId,
           agentName: agent.name,
         });
@@ -254,7 +254,7 @@ export class AgentResponseService {
   private getSystemPromptFromAgent(agent: AgentEntity): string {
     // Priority 1: Use overrides.systemPrompt from runtimeConfig
     const overridePrompt = agent.runtimeConfig?.overrides?.systemPrompt;
-    if (overridePrompt) {
+    if (overridePrompt && typeof overridePrompt === 'string') {
       return overridePrompt;
     }
 

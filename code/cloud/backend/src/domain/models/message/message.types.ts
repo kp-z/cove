@@ -24,6 +24,7 @@ export interface MessageMention {
   readonly mentionId: string;
   readonly mentionName?: string;
   readonly mentionPosition?: number;
+  readonly targetId?: string;
 }
 
 export interface MessageReference {

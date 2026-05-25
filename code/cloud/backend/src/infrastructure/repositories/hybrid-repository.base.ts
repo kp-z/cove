@@ -208,7 +208,7 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
 
       const results = await Promise.all(entityPromises);
       // Filter out null values (entities with missing content files)
-      const entities = results.filter((e): e is TEntity => e !== null);
+      const entities = results.filter((e): e is Awaited<TEntity> => e !== null) as TEntity[];
 
       // 性能监控
       const duration = Date.now() - startTime;
