@@ -73,6 +73,7 @@ export interface ChannelContent {
 
 export interface ChannelEntityProps {
   readonly channelId: string;
+  readonly realmId: string;
   readonly name: string;
   readonly displayName: string;
   readonly description?: string;
@@ -103,6 +104,7 @@ export interface ChannelEntityProps {
 
 export interface ChannelEntityJSON {
   readonly channel_id: string;
+  readonly realm_id: string;
   readonly name: string;
   readonly display_name: string;
   readonly description?: string;

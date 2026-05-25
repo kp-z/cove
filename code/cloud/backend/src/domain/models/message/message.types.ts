@@ -192,6 +192,7 @@ export interface MessageContent {
 
 export interface MessageEntityProps {
   readonly messageId: string;
+  readonly realmId: string;
   readonly msgShortId: string;
   readonly senderId: string;
   readonly senderType: SenderType;
@@ -223,6 +224,7 @@ export interface MessageEntityProps {
 
 export interface MessageEntityJSON {
   readonly message_id: string;
+  readonly realm_id: string;
   readonly msg_short_id: string;
   readonly sender_id: string;
   readonly sender_type: SenderType;
