@@ -263,7 +263,35 @@ describe('ChannelEntity', () => {
 
       expect(agentMember?.memberType).toBe('agent');
       expect(userMember?.memberType).toBe('human');
+    });
+
+    it('should set creator as owner when user creates DM channel', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-004',
+        agentId: 'agent-004',
+        userId: 'user-004',
+        createdBy: { id: 'user-004', type: 'human' },
+      });
+
+      const agentMember = dmChannel.getMember('agent-004');
+      const userMember = dmChannel.getMember('user-004');
+
+      expect(userMember?.role).toBe('owner');
       expect(agentMember?.role).toBe('member');
+    });
+
+    it('should set creator as owner when agent creates DM channel', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-005',
+        agentId: 'agent-005',
+        userId: 'user-005',
+        createdBy: { id: 'agent-005', type: 'agent' },
+      });
+
+      const agentMember = dmChannel.getMember('agent-005');
+      const userMember = dmChannel.getMember('user-005');
+
+      expect(agentMember?.role).toBe('owner');
       expect(userMember?.role).toBe('member');
     });
 

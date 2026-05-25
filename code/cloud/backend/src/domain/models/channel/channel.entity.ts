@@ -93,6 +93,7 @@ export class ChannelEntity {
    * - 必须有且仅有 2 个成员（1 个 agent + 1 个 user）
    * - agentPool 只包含该 agent
    * - 类型为 'dm'
+   * - 创建者自动成为 owner
    *
    * @param params - DM channel 创建参数
    * @returns DM Channel 实体
@@ -118,13 +119,13 @@ export class ChannelEntity {
         {
           memberId: params.agentId,
           memberType: 'agent',
-          role: 'member',
+          role: params.createdBy.id === params.agentId ? 'owner' : 'member',
           joinedAt: now,
         },
         {
           memberId: params.userId,
           memberType: 'human',
-          role: 'member',
+          role: params.createdBy.id === params.userId ? 'owner' : 'member',
           joinedAt: now,
         },
       ],
