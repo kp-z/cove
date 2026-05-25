@@ -4,6 +4,7 @@ import { Loader2, Check } from 'lucide-react';
 import { SettingsCard } from '../common/SettingsCard';
 import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { useUpdateUser } from '@/lib/trpc/hooks/user.hooks';
+import { useSettingsStore } from '@/core/stores/settingsStore';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -11,23 +12,22 @@ import { AvatarEditor } from '@/shared/components/display/Avatar';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 
 export function AccountPanel() {
-  const { t, i18n } = useTranslation('settings');
+  const { t } = useTranslation('settings');
   const { user, isLoading: isLoadingUser } = useCurrentUser();
   const updateUser = useUpdateUser();
+  const { language, setLanguage } = useSettingsStore();
 
   // 表单状态 - 使用 lazy initialization
   const [displayName, setDisplayName] = useState(() => user?.displayName || '');
   const [email, setEmail] = useState(() => user?.email || '');
-  const [language, setLanguage] = useState(i18n.language);
 
   // 检测是否有修改
   const hasChanges = useMemo(() => {
     return (
       displayName !== user?.displayName ||
-      email !== user?.email ||
-      language !== i18n.language
+      email !== user?.email
     );
-  }, [displayName, email, language, user, i18n.language]);
+  }, [displayName, email, user]);
 
   // 保存个人资料
   function handleSaveProfile() {
@@ -49,12 +49,6 @@ export function AccountPanel() {
       setDisplayName(user.displayName);
       setEmail(user.email);
     }
-  }
-
-  // 切换语言
-  function handleLanguageChange(newLanguage: string) {
-    setLanguage(newLanguage);
-    i18n.changeLanguage(newLanguage);
   }
 
   if (isLoadingUser || !user) {
@@ -192,7 +186,7 @@ export function AccountPanel() {
           <div className="grid grid-cols-2 gap-3 max-w-md">
             {/* English */}
             <button
-              onClick={() => handleLanguageChange('en')}
+              onClick={() => setLanguage('en')}
               className={`
                 relative p-4 rounded-xl border-2 transition-all
                 ${language === 'en'
@@ -214,7 +208,7 @@ export function AccountPanel() {
 
             {/* 中文 */}
             <button
-              onClick={() => handleLanguageChange('zh')}
+              onClick={() => setLanguage('zh')}
               className={`
                 relative p-4 rounded-xl border-2 transition-all
                 ${language === 'zh'
