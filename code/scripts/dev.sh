@@ -13,10 +13,10 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Paths
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKEND_DIR="$PROJECT_ROOT/cloud/backend"
-FRONTEND_DIR="$PROJECT_ROOT/cloud/frontend"
-LOCAL_DIR="$PROJECT_ROOT/local"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BACKEND_DIR="$PROJECT_ROOT/code/cloud/backend"
+FRONTEND_DIR="$PROJECT_ROOT/code/cloud/frontend"
+LOCAL_DIR="$PROJECT_ROOT/code/local"
 PID_DIR="$PROJECT_ROOT/.pids"
 LOG_DIR="$PROJECT_ROOT/.logs"
 
@@ -27,6 +27,22 @@ FRONTEND_PORT=5174
 
 # Create directories
 mkdir -p "$PID_DIR" "$LOG_DIR"
+
+# Check and install root dependencies (for npm workspaces)
+check_root_dependencies() {
+    print_info "Checking root dependencies..."
+
+    cd "$PROJECT_ROOT"
+
+    # Check if node_modules exists and has required packages
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-markdown" ] || [ ! -d "node_modules/remark-gfm" ]; then
+        print_info "Installing root dependencies (npm workspaces)..."
+        npm install
+        print_success "Root dependencies installed"
+    else
+        print_success "Root dependencies OK"
+    fi
+}
 
 # Helper functions
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -66,12 +82,6 @@ start_backend() {
 
     cd "$BACKEND_DIR"
 
-    # Check dependencies
-    if [ ! -d "node_modules" ]; then
-        print_info "Installing backend dependencies..."
-        npm install
-    fi
-
     # Run database migrations
     print_info "Running database migrations..."
     npx prisma migrate deploy 2>/dev/null || npx prisma db push --accept-data-loss
@@ -93,12 +103,6 @@ start_frontend() {
 
     cd "$FRONTEND_DIR"
 
-    # Check dependencies
-    if [ ! -d "node_modules" ]; then
-        print_info "Installing frontend dependencies..."
-        npm install
-    fi
-
     # Start frontend
     nohup npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
     echo $! > "$PID_DIR/frontend.pid"
@@ -111,12 +115,6 @@ start_local() {
     print_info "Starting local agent..."
 
     cd "$LOCAL_DIR"
-
-    # Check dependencies
-    if [ ! -d "node_modules" ]; then
-        print_info "Installing local agent dependencies..."
-        npm install
-    fi
 
     # Start local agent
     nohup npm run dev > "$LOG_DIR/local.log" 2>&1 &
@@ -200,6 +198,7 @@ tail_logs() {
 case "${1:-start}" in
     start)
         print_info "Starting Cove development environment..."
+        check_root_dependencies  # Check and install root dependencies first
         stop_all  # Clean stop first
         sleep 1
         start_backend
