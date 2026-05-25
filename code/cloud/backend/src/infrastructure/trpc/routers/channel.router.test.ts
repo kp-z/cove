@@ -262,7 +262,6 @@ describe('channelRouter', () => {
         description: 'Test description',
         type: 'public',
         createdBy: 'user-1',
-        memberIds: [], // Router merges memberIds and agentIds
       });
     });
 
@@ -348,7 +347,7 @@ describe('channelRouter', () => {
           name: 'DM-agent-1',
           type: 'dm',
           createdBy: 'user-1',
-          memberIds: ['user-1', 'agent-1'],
+          memberIds: ['user-1'],
           agentIds: ['agent-1'],
         });
       });
@@ -400,6 +399,9 @@ describe('channelRouter', () => {
 
       it('should throw error if DM channel does not have exactly 2 members', async () => {
         vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+        vi.mocked(mockChannelService.createChannel).mockRejectedValue(
+          new Error('DM channel must have exactly 2 members, got 4')
+        );
 
         const caller = router.createCaller(mockContext);
 
@@ -419,6 +421,9 @@ describe('channelRouter', () => {
 
       it('should throw error if DM channel does not have exactly 1 agent', async () => {
         vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+        vi.mocked(mockChannelService.createChannel).mockRejectedValue(
+          new Error('DM channel must have exactly 2 members, got 3')
+        );
 
         const caller = router.createCaller(mockContext);
 
@@ -439,6 +444,9 @@ describe('channelRouter', () => {
 
       it('should throw error if DM channel has no agents', async () => {
         vi.mocked(mockChannelService.getAgentDMChannel).mockResolvedValue(null);
+        vi.mocked(mockChannelService.createChannel).mockRejectedValue(
+          new Error('DM channel must have exactly 1 agent')
+        );
 
         const caller = router.createCaller(mockContext);
 
