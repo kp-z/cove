@@ -84,12 +84,6 @@ export const channelRouter = (channelService: ChannelService) =>
       .input(createChannelSchema)
       .mutation(async ({ input }) => {
         try {
-          // 合并 memberIds 和 agentIds
-          const allMemberIds = [
-            ...(input.memberIds || []),
-            ...(input.agentIds || []),
-          ];
-
           // 如果是 DM 类型且只有一个 agent，检查是否已存在（幂等性）
           if (input.type === 'dm' && input.agentIds?.length === 1) {
             const agentId = input.agentIds[0];
@@ -108,10 +102,7 @@ export const channelRouter = (channelService: ChannelService) =>
           }
 
           // 创建 channel（业务逻辑和验证在 Service 层）
-          const channel = await channelService.createChannel({
-            ...input,
-            memberIds: allMemberIds,
-          });
+          const channel = await channelService.createChannel(input);
           return channel.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
