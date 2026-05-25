@@ -59,14 +59,14 @@ export function CompactTimelineNode({
   const colors = TYPE_COLORS[type];
 
   return (
-    <div className="relative flex items-center gap-3 group">
-      {/* Timeline Line - 连续的，从节点中心延伸 */}
+    <div className="relative flex items-start gap-3 group">
+      {/* Timeline Line - 连续的，从节点底部延伸 */}
       {!isLast && (
         <div className="absolute left-3 top-6 bottom-[-8px] w-px bg-white/10" />
       )}
 
-      {/* Timeline Node with Icon */}
-      <div className="relative z-10 flex-shrink-0">
+      {/* Timeline Node with Icon - 对齐内容上边缘 */}
+      <div className="relative z-10 flex-shrink-0 mt-2">
         <div
           className={`
             w-6 h-6 rounded-full border-2 flex items-center justify-center
