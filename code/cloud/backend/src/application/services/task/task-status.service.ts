@@ -19,7 +19,7 @@ export class TaskStatusService {
     this.logger.info('Starting task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.start();
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.started', taskId, { taskId });
     return updated;
   }
@@ -29,7 +29,7 @@ export class TaskStatusService {
     this.logger.info('Submitting task for review', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.submitForReview();
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.submitted_for_review', taskId, { taskId });
     return updated;
   }
@@ -39,7 +39,7 @@ export class TaskStatusService {
     this.logger.info('Completing task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.complete();
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.completed', taskId, { taskId });
     return updated;
   }
@@ -49,7 +49,7 @@ export class TaskStatusService {
     this.logger.info('Blocking task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.block();
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.blocked', taskId, { taskId });
     return updated;
   }
@@ -59,7 +59,7 @@ export class TaskStatusService {
     this.logger.info('Cancelling task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.cancel();
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.cancelled', taskId, { taskId });
     return updated;
   }
@@ -79,7 +79,7 @@ export class TaskStatusService {
       default: throw new InvalidStatusTransitionError(task.status, status);
     }
 
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent('task.status_updated', taskId, {
       taskId, previousStatus: task.status, newStatus: status, actorId,
     });

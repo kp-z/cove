@@ -68,14 +68,14 @@ export interface ITaskRepository {
    * @param task - Task 实体
    * @param realmId - Server ID
    */
-  save(task: TaskEntity, realmId: string): Promise<void>;
+  save(task: TaskEntity): Promise<void>;
 
   /**
    * 更新 Task
    * @param task - Task 实体
    * @param realmId - Server ID
    */
-  update(task: TaskEntity, realmId: string): Promise<void>;
+  update(task: TaskEntity): Promise<void>;
 
   /**
    * 删除 Task

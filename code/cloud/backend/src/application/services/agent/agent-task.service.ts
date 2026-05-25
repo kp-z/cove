@@ -58,7 +58,7 @@ export class AgentTaskService {
 
     const assignedTask = task.claim(assignee);
 
-    await this.taskRepository.update(assignedTask, context.realmId);
+    await this.taskRepository.update(assignedTask);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
