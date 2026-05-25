@@ -94,6 +94,9 @@ export interface AgentExecutionMetadata {
   readonly usage?: TokenUsage;
   readonly execution_mode?: 'API' | 'CLI' | 'SDK';
   readonly streaming_status?: 'thinking' | 'tool_use' | 'responding' | 'completed';
+  readonly sequence?: number;
+  readonly started_at?: string;
+  readonly completed_at?: string;
 }
 
 // 文件存储内容类型（用于 Repository 层）
@@ -181,6 +184,9 @@ export interface MessageContent {
     };
     executionMode?: 'API' | 'CLI' | 'SDK';
     streamingStatus?: 'thinking' | 'tool_use' | 'responding' | 'completed';
+    sequence?: number;
+    startedAt?: string;
+    completedAt?: string;
   };
 }
 
@@ -304,6 +310,9 @@ export interface MessageEntityJSON {
     };
     readonly execution_mode?: 'API' | 'CLI' | 'SDK';
     readonly streaming_status?: 'thinking' | 'tool_use' | 'responding' | 'completed';
+    readonly sequence?: number;
+    readonly started_at?: string;
+    readonly completed_at?: string;
   };
   readonly created_at: string;
   readonly updated_at: string;

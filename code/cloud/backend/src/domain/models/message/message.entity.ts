@@ -118,6 +118,9 @@ export class MessageEntity {
         } : undefined,
         execution_mode: json.agent_execution_metadata.execution_mode,
         streaming_status: json.agent_execution_metadata.streaming_status,
+        sequence: json.agent_execution_metadata.sequence,
+        started_at: json.agent_execution_metadata.started_at,
+        completed_at: json.agent_execution_metadata.completed_at,
       } : undefined,
       createdAt: new Date(json.created_at),
       updatedAt: new Date(json.updated_at),
@@ -372,6 +375,189 @@ export class MessageEntity {
     });
   }
 
+  // --- Agent Execution Metadata Operations ---
+
+  /**
+   * 初始化 Agent 执行元数据
+   */
+  initAgentExecution(executionMode: 'API' | 'CLI' | 'SDK'): MessageEntity {
+    return MessageEntity.create({
+      ...this.props,
+      agentExecutionMetadata: {
+        thinking: '',
+        tool_logs: [],
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+        },
+        streaming_status: 'thinking',
+        execution_mode: executionMode,
+        sequence: 0,
+        started_at: new Date().toISOString(),
+      },
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 追加 thinking 内容（增量更新）
+   */
+  appendThinking(thinkingChunk: string): MessageEntity {
+    if (!this.props.agentExecutionMetadata) {
+      throw new Error('Agent execution metadata not initialized. Call initAgentExecution() first.');
+    }
+
+    const currentThinking = this.props.agentExecutionMetadata.thinking || '';
+    const currentSequence = this.props.agentExecutionMetadata.sequence || 0;
+
+    return MessageEntity.create({
+      ...this.props,
+      agentExecutionMetadata: {
+        ...this.props.agentExecutionMetadata,
+        thinking: currentThinking + thinkingChunk,
+        sequence: currentSequence + 1,
+      },
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 添加工具调用记录
+   */
+  addToolLog(toolLog: {
+    id: string;
+    tool_name: string;
+    action: string;
+    params?: Record<string, unknown>;
+    status: 'pending' | 'running' | 'success' | 'error';
+    duration?: number;
+    result?: {
+      success?: string;
+      error?: string;
+      output?: string;
+    };
+    meta?: {
+      file_count?: number;
+      lines_changed?: number;
+      exit_code?: number;
+    };
+  }): MessageEntity {
+    if (!this.props.agentExecutionMetadata) {
+      throw new Error('Agent execution metadata not initialized. Call initAgentExecution() first.');
+    }
+
+    const currentLogs = this.props.agentExecutionMetadata.tool_logs || [];
+    const currentSequence = this.props.agentExecutionMetadata.sequence || 0;
+
+    return MessageEntity.create({
+      ...this.props,
+      agentExecutionMetadata: {
+        ...this.props.agentExecutionMetadata,
+        tool_logs: [
+          ...currentLogs,
+          {
+            ...toolLog,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        sequence: currentSequence + 1,
+      },
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 更新 token 使用统计
+   */
+  updateUsage(usage: {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+    cache?: {
+      creation_tokens: number;
+      read_tokens: number;
+      hit_rate?: number;
+    };
+    cost?: {
+      input_cost: number;
+      output_cost: number;
+      cache_cost: number;
+      total_cost: number;
+    };
+    model?: string;
+    latency?: {
+      first_token_ms?: number;
+      total_ms?: number;
+      tokens_per_second?: number;
+    };
+  }): MessageEntity {
+    if (!this.props.agentExecutionMetadata) {
+      throw new Error('Agent execution metadata not initialized. Call initAgentExecution() first.');
+    }
+
+    const currentSequence = this.props.agentExecutionMetadata.sequence || 0;
+
+    return MessageEntity.create({
+      ...this.props,
+      agentExecutionMetadata: {
+        ...this.props.agentExecutionMetadata,
+        usage,
+        sequence: currentSequence + 1,
+      },
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 更新流式状态
+   */
+  updateStreamingStatus(status: 'thinking' | 'tool_use' | 'responding' | 'completed'): MessageEntity {
+    if (!this.props.agentExecutionMetadata) {
+      throw new Error('Agent execution metadata not initialized. Call initAgentExecution() first.');
+    }
+
+    const currentSequence = this.props.agentExecutionMetadata.sequence || 0;
+    const completedAt = (status === 'completed')
+      ? new Date().toISOString()
+      : this.props.agentExecutionMetadata.completed_at;
+
+    return MessageEntity.create({
+      ...this.props,
+      agentExecutionMetadata: {
+        ...this.props.agentExecutionMetadata,
+        streaming_status: status,
+        completed_at: completedAt,
+        sequence: currentSequence + 1,
+      },
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * 获取当前序列号
+   */
+  getCurrentSequence(): number {
+    return this.props.agentExecutionMetadata?.sequence ?? 0;
+  }
+
+  /**
+   * 是否正在流式执行
+   */
+  isStreaming(): boolean {
+    if (!this.props.agentExecutionMetadata) {
+      return false;
+    }
+    return this.props.agentExecutionMetadata.streaming_status !== 'completed';
+  }
+
+  /**
+   * 是否有 Agent 执行元数据
+   */
+  hasAgentExecutionMetadata(): boolean {
+    return !!this.props.agentExecutionMetadata;
+  }
+
   // --- Equality (by ID) ---
 
   equals(other: MessageEntity): boolean {
@@ -466,6 +652,9 @@ export class MessageEntity {
         } : undefined,
         execution_mode: this.props.agentExecutionMetadata.execution_mode,
         streaming_status: this.props.agentExecutionMetadata.streaming_status,
+        sequence: this.props.agentExecutionMetadata.sequence,
+        started_at: this.props.agentExecutionMetadata.started_at,
+        completed_at: this.props.agentExecutionMetadata.completed_at,
       } : undefined,
       created_at: this.props.createdAt.toISOString(),
       updated_at: this.props.updatedAt.toISOString(),
