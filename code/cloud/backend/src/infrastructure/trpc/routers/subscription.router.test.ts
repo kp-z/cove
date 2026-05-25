@@ -456,4 +456,182 @@ describe('subscriptionRouter', () => {
       expect(emittedEvents[0].eventId).toBe('event-1');
     });
   });
+
+  describe('onMessageStreaming', () => {
+    it('should subscribe to message streaming events', async () => {
+      const unsubscribe = vi.fn();
+      vi.mocked(mockEventBus.subscribeMany).mockReturnValue(unsubscribe);
+
+      const caller = router.createCaller(mockContext);
+      const subscription = await caller.onMessageStreaming({ messageId: 'msg-1' });
+
+      const subscriptionInstance = subscription.subscribe({
+        next: () => {},
+        error: () => {},
+        complete: () => {},
+      });
+
+      expect(mockContext.logger.info).toHaveBeenCalledWith('Subscription started', {
+        type: 'onMessageStreaming',
+        messageId: 'msg-1',
+        userId: 'user-1',
+      });
+
+      expect(mockEventBus.subscribeMany).toHaveBeenCalledWith(
+        [
+          'message.streaming.thinking',
+          'message.streaming.tool_log',
+          'message.streaming.usage',
+          'message.streaming.status',
+        ],
+        expect.any(Function)
+      );
+
+      subscriptionInstance.unsubscribe();
+    });
+
+    it('should filter events by messageId', async () => {
+      const unsubscribe = vi.fn();
+      let eventHandler: (event: DomainEvent) => void = () => {};
+
+      vi.mocked(mockEventBus.subscribeMany).mockImplementation((events, handler) => {
+        eventHandler = handler;
+        return unsubscribe;
+      });
+
+      const caller = router.createCaller(mockContext);
+      const subscription = await caller.onMessageStreaming({ messageId: 'msg-1' });
+
+      const emittedEvents: any[] = [];
+      subscription.subscribe({
+        next: (data) => emittedEvents.push(data),
+        error: () => {},
+        complete: () => {},
+      });
+
+      const matchingEvent: DomainEvent = {
+        eventId: 'event-1',
+        eventType: 'message.streaming.thinking',
+        aggregateId: 'msg-1',
+        occurredAt: new Date('2024-01-01'),
+        payload: { messageId: 'msg-1', thinking: 'Processing...' },
+      };
+
+      const nonMatchingEvent: DomainEvent = {
+        eventId: 'event-2',
+        eventType: 'message.streaming.thinking',
+        aggregateId: 'msg-2',
+        occurredAt: new Date('2024-01-01'),
+        payload: { messageId: 'msg-2', thinking: 'Other message' },
+      };
+
+      eventHandler(matchingEvent);
+      eventHandler(nonMatchingEvent);
+
+      expect(emittedEvents).toHaveLength(1);
+      expect(emittedEvents[0].eventId).toBe('event-1');
+    });
+
+    it('should auto-complete subscription when status is completed', async () => {
+      const unsubscribe = vi.fn();
+      let eventHandler: (event: DomainEvent) => void = () => {};
+
+      vi.mocked(mockEventBus.subscribeMany).mockImplementation((events, handler) => {
+        eventHandler = handler;
+        return unsubscribe;
+      });
+
+      const caller = router.createCaller(mockContext);
+      const subscription = await caller.onMessageStreaming({ messageId: 'msg-1' });
+
+      let completed = false;
+      subscription.subscribe({
+        next: () => {},
+        error: () => {},
+        complete: () => {
+          completed = true;
+        },
+      });
+
+      const completedEvent: DomainEvent = {
+        eventId: 'event-1',
+        eventType: 'message.streaming.status',
+        aggregateId: 'msg-1',
+        occurredAt: new Date('2024-01-01'),
+        payload: { messageId: 'msg-1', streamingStatus: 'completed' },
+      };
+
+      eventHandler(completedEvent);
+
+      expect(completed).toBe(true);
+    });
+
+    it('should auto-complete subscription when status is error', async () => {
+      const unsubscribe = vi.fn();
+      let eventHandler: (event: DomainEvent) => void = () => {};
+
+      vi.mocked(mockEventBus.subscribeMany).mockImplementation((events, handler) => {
+        eventHandler = handler;
+        return unsubscribe;
+      });
+
+      const caller = router.createCaller(mockContext);
+      const subscription = await caller.onMessageStreaming({ messageId: 'msg-1' });
+
+      let completed = false;
+      subscription.subscribe({
+        next: () => {},
+        error: () => {},
+        complete: () => {
+          completed = true;
+        },
+      });
+
+      const errorEvent: DomainEvent = {
+        eventId: 'event-1',
+        eventType: 'message.streaming.status',
+        aggregateId: 'msg-1',
+        occurredAt: new Date('2024-01-01'),
+        payload: { messageId: 'msg-1', streamingStatus: 'error' },
+      };
+
+      eventHandler(errorEvent);
+
+      expect(completed).toBe(true);
+    });
+
+    it('should not auto-complete for other status values', async () => {
+      const unsubscribe = vi.fn();
+      let eventHandler: (event: DomainEvent) => void = () => {};
+
+      vi.mocked(mockEventBus.subscribeMany).mockImplementation((events, handler) => {
+        eventHandler = handler;
+        return unsubscribe;
+      });
+
+      const caller = router.createCaller(mockContext);
+      const subscription = await caller.onMessageStreaming({ messageId: 'msg-1' });
+
+      let completed = false;
+      subscription.subscribe({
+        next: () => {},
+        error: () => {},
+        complete: () => {
+          completed = true;
+        },
+      });
+
+      const thinkingEvent: DomainEvent = {
+        eventId: 'event-1',
+        eventType: 'message.streaming.status',
+        aggregateId: 'msg-1',
+        occurredAt: new Date('2024-01-01'),
+        payload: { messageId: 'msg-1', streamingStatus: 'thinking' },
+      };
+
+      eventHandler(thinkingEvent);
+
+      expect(completed).toBe(false);
+    });
+  });
 });

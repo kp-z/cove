@@ -257,6 +257,58 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           };
         });
       }),
+
+    // 订阅消息流式更新
+    onMessageStreaming: procedure
+      .input(
+        z.object({
+          messageId: z.string(),
+        })
+      )
+      .subscription(({ input, ctx }) => {
+        ctx.logger.info('Subscription started', {
+          type: 'onMessageStreaming',
+          messageId: input.messageId,
+          userId: ctx.userId,
+        });
+
+        return observable((emit) => {
+          const eventTypes = [
+            'message.streaming.thinking',
+            'message.streaming.tool_log',
+            'message.streaming.usage',
+            'message.streaming.status',
+          ];
+
+          const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
+            // 过滤：只发送匹配 messageId 的事件
+            if (event.aggregateId === input.messageId) {
+              emit.next({
+                eventId: event.eventId,
+                eventType: event.eventType,
+                timestamp: event.occurredAt.toISOString(),
+                data: event.payload,
+              });
+
+              // 如果状态是 completed 或 error，自动取消订阅
+              if (
+                event.eventType === 'message.streaming.status' &&
+                (event.payload.streamingStatus === 'completed' || event.payload.streamingStatus === 'error')
+              ) {
+                emit.complete();
+              }
+            }
+          });
+
+          return () => {
+            ctx.logger.info('Subscription ended', {
+              type: 'onMessageStreaming',
+              messageId: input.messageId,
+            });
+            unsubscribe();
+          };
+        });
+      }),
   });
 
   return subscriptionRouter;
