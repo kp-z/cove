@@ -73,6 +73,7 @@ export interface AgentTriggers {
 
 export interface AgentEntityProps {
   readonly agentId: string;
+  readonly realmId: string;
   readonly name: string;
   readonly displayName: string;
   readonly description?: string;
@@ -93,6 +94,7 @@ export interface AgentEntityProps {
 
 export interface AgentEntityJSON {
   readonly agent_id: string;
+  readonly realm_id: string;
   readonly name: string;
   readonly display_name: string;
   readonly description?: string;
@@ -123,6 +125,7 @@ export class AgentEntity {
   static fromJSON(json: AgentEntityJSON): AgentEntity {
     return AgentEntity.create({
       agentId: json.agent_id,
+      realmId: json.realm_id,
       name: json.name,
       displayName: json.display_name,
       description: json.description,
@@ -164,6 +167,7 @@ export class AgentEntity {
   // --- Getters ---
 
   get agentId(): string { return this.props.agentId; }
+  get realmId(): string { return this.props.realmId; }
   get name(): string { return this.props.name; }
   get displayName(): string { return this.props.displayName; }
   get description(): string | undefined { return this.props.description; }
@@ -316,6 +320,7 @@ export class AgentEntity {
   toJSON(): AgentEntityJSON {
     return {
       agent_id: this.props.agentId,
+      realm_id: this.props.realmId,
       name: this.props.name,
       display_name: this.props.displayName,
       description: this.props.description,

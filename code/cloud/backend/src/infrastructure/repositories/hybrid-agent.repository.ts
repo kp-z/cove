@@ -38,6 +38,7 @@ const DEFAULT_RUNTIME_CONFIG: AgentRuntimeConfig = {
 
 interface AgentDbRecord {
   id: string;
+  realmId: string;
   name: string;
   displayName: string;
   status: string;
@@ -97,6 +98,7 @@ export class HybridAgentRepository
 
     return AgentEntity.create({
       agentId: dbRecord.id,
+      realmId: dbRecord.realmId,
       name: dbRecord.name,
       displayName: dbRecord.displayName,
       description: content.description,
@@ -122,6 +124,7 @@ export class HybridAgentRepository
 
     return {
       id: entity.agentId,
+      realmId: entity.realmId,
       name: entity.name,
       displayName: entity.displayName,
       status: entity.status,
@@ -482,12 +485,12 @@ export class HybridAgentRepository
     return this.loadEntities(dbRecords);
   }
 
-  async save(agent: AgentEntity, realmId: string): Promise<void> {
-    await this.saveEntity(agent, realmId);
+  async save(agent: AgentEntity): Promise<void> {
+    await this.saveEntity(agent, agent.realmId);
   }
 
-  async update(agent: AgentEntity, realmId: string): Promise<void> {
-    await this.updateEntity(agent, realmId);
+  async update(agent: AgentEntity): Promise<void> {
+    await this.updateEntity(agent, agent.realmId);
   }
 
   async delete(agentId: string): Promise<void> {
