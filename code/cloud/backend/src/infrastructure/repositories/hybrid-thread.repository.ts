@@ -4,6 +4,7 @@ import { IThreadRepository } from '../../application/interfaces/repositories/thr
 
 interface ThreadDbRecord {
   id: string;
+  realmId: string;
   channelId: string;
   rootMessageId: string;
   participants: string;
@@ -29,6 +30,7 @@ export class HybridThreadRepository
   toDomain(dbRecord: ThreadDbRecord, _content: ThreadContent): ThreadEntity {
     return ThreadEntity.create({
       threadId: dbRecord.id,
+      realmId: dbRecord.realmId,
       channelId: dbRecord.channelId,
       rootMessageId: dbRecord.rootMessageId,
       participants: JSON.parse(dbRecord.participants),
@@ -41,6 +43,7 @@ export class HybridThreadRepository
   toDatabase(entity: ThreadEntity): ThreadDbRecord {
     return {
       id: entity.threadId,
+      realmId: entity.realmId,
       channelId: entity.channelId,
       rootMessageId: entity.rootMessageId,
       participants: JSON.stringify(entity.participants),
@@ -82,12 +85,12 @@ export class HybridThreadRepository
     return this.findEntityById(record.id);
   }
 
-  async save(thread: ThreadEntity, realmId: string): Promise<void> {
-    await this.saveEntity(thread, realmId);
+  async save(thread: ThreadEntity): Promise<void> {
+    await this.saveEntity(thread, thread.realmId);
   }
 
-  async update(thread: ThreadEntity, realmId: string): Promise<void> {
-    await this.updateEntity(thread, realmId);
+  async update(thread: ThreadEntity): Promise<void> {
+    await this.updateEntity(thread, thread.realmId);
   }
 
   async delete(threadId: string): Promise<void> {

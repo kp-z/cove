@@ -35,6 +35,7 @@ export class MessageEntity {
   static fromJSON(json: MessageEntityJSON): MessageEntity {
     return MessageEntity.create({
       messageId: json.message_id,
+      realmId: json.realm_id,
       msgShortId: json.msg_short_id,
       senderId: json.sender_id,
       senderType: json.sender_type,
@@ -168,6 +169,7 @@ export class MessageEntity {
   // --- Getters ---
 
   get messageId(): string { return this.props.messageId; }
+  get realmId(): string { return this.props.realmId; }
   get msgShortId(): string { return this.props.msgShortId; }
   get senderId(): string { return this.props.senderId; }
   get senderType(): SenderType { return this.props.senderType; }
@@ -569,6 +571,7 @@ export class MessageEntity {
   toJSON(): MessageEntityJSON {
     return {
       message_id: this.props.messageId,
+      realm_id: this.props.realmId,
       msg_short_id: this.props.msgShortId,
       sender_id: this.props.senderId,
       sender_type: this.props.senderType,

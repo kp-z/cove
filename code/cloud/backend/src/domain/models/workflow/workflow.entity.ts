@@ -46,6 +46,7 @@ export interface WorkflowTrigger {
 }
 
 export interface WorkflowEntityProps {
+  readonly realmId: string;
   readonly workflowId: string;
   readonly name: string;
   readonly description?: string;
@@ -68,6 +69,7 @@ export interface WorkflowEntityProps {
 
 export interface WorkflowEntityJSON {
   readonly workflow_id: string;
+  readonly realm_id: string;
   readonly name: string;
   readonly description?: string;
   readonly kr_id?: string;
@@ -117,6 +119,7 @@ export class WorkflowEntity {
   static fromJSON(json: WorkflowEntityJSON): WorkflowEntity {
     return WorkflowEntity.create({
       workflowId: json.workflow_id,
+      realmId: json.realm_id,
       name: json.name,
       description: json.description,
       krId: json.kr_id,
@@ -199,6 +202,7 @@ export class WorkflowEntity {
   // --- Getters ---
 
   get workflowId(): string { return this.props.workflowId; }
+  get realmId(): string { return this.props.realmId; }
   get name(): string { return this.props.name; }
   get description(): string | undefined { return this.props.description; }
   get krId(): string | undefined { return this.props.krId; }
@@ -371,6 +375,7 @@ export class WorkflowEntity {
   toJSON(): WorkflowEntityJSON {
     return {
       workflow_id: this.props.workflowId,
+      realm_id: this.props.realmId,
       name: this.props.name,
       description: this.props.description,
       kr_id: this.props.krId,

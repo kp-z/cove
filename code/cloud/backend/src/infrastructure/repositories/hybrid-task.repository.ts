@@ -6,6 +6,7 @@ import { AssigneeRef } from '../../domain/models/value-objects/assignee-ref';
 
 interface TaskDbRecord {
   id: string;
+  realmId: string;
   title: string;
   description: string;
   status: string;
@@ -39,6 +40,7 @@ export class HybridTaskRepository
   toDomain(dbRecord: TaskDbRecord, content: TaskContent): TaskEntity {
     return TaskEntity.create({
       taskId: dbRecord.id,
+      realmId: dbRecord.realmId,
       title: dbRecord.title,
       description: dbRecord.description,
       taskType: content.taskType,
@@ -59,6 +61,7 @@ export class HybridTaskRepository
   toDatabase(entity: TaskEntity): TaskDbRecord {
     return {
       id: entity.taskId,
+      realmId: entity.realmId,
       title: entity.title,
       description: entity.description || '',
       status: entity.status,
@@ -144,12 +147,12 @@ export class HybridTaskRepository
     return entities.filter(e => e.krId === krId);
   }
 
-  async save(task: TaskEntity, realmId: string): Promise<void> {
-    await this.saveEntity(task, realmId);
+  async save(task: TaskEntity): Promise<void> {
+    await this.saveEntity(task, task.realmId);
   }
 
-  async update(task: TaskEntity, realmId: string): Promise<void> {
-    await this.updateEntity(task, realmId);
+  async update(task: TaskEntity): Promise<void> {
+    await this.updateEntity(task, task.realmId);
   }
 
   async delete(taskId: string): Promise<void> {

@@ -12,6 +12,7 @@ import { IProjectRepository } from '../../application/interfaces/repositories/pr
 
 interface ProjectDbRecord {
   id: string;
+  realmId: string;
   name: string;
   description: string | null;
   ownerId: string;
@@ -39,6 +40,7 @@ export class HybridProjectRepository
   toDomain(dbRecord: ProjectDbRecord, content: ProjectContent): ProjectEntity {
     return ProjectEntity.create({
       projectId: dbRecord.id,
+      realmId: dbRecord.realmId,
       name: dbRecord.name,
       displayName: content.displayName,
       description: dbRecord.description ?? undefined,
@@ -55,6 +57,7 @@ export class HybridProjectRepository
   toDatabase(entity: ProjectEntity): ProjectDbRecord {
     return {
       id: entity.projectId,
+      realmId: entity.realmId,
       name: entity.name,
       description: entity.description ?? null,
       ownerId: entity.ownerId,
@@ -108,12 +111,12 @@ export class HybridProjectRepository
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
-  async save(project: ProjectEntity, realmId: string): Promise<void> {
-    await this.saveEntity(project, realmId);
+  async save(project: ProjectEntity): Promise<void> {
+    await this.saveEntity(project, project.realmId);
   }
 
-  async update(project: ProjectEntity, realmId: string): Promise<void> {
-    await this.updateEntity(project, realmId);
+  async update(project: ProjectEntity): Promise<void> {
+    await this.updateEntity(project, project.realmId);
   }
 
   async delete(projectId: string): Promise<void> {

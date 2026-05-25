@@ -6,6 +6,7 @@ import type { ChannelType } from '../../domain/models/channel/channel.types';
 
 interface ChannelDbRecord {
   id: string;
+  realmId: string;
   name: string;
   displayName: string;
   type: string;
@@ -49,6 +50,7 @@ export class ChannelRepository implements IChannelRepository {
 
     return ChannelEntity.create({
       channelId: dbRecord.id,
+      realmId: dbRecord.realmId,
       name: dbRecord.name,
       displayName: dbRecord.displayName,
       type: dbRecord.type as ChannelType,
@@ -105,6 +107,7 @@ export class ChannelRepository implements IChannelRepository {
   private toDatabase(entity: ChannelEntity): Omit<ChannelDbRecord, 'createdAt' | 'updatedAt'> {
     return {
       id: entity.channelId,
+      realmId: entity.realmId,
       name: entity.name,
       displayName: entity.displayName,
       type: entity.type,

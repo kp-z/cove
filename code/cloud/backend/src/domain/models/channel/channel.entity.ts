@@ -36,6 +36,7 @@ export class ChannelEntity {
   static fromJSON(json: ChannelEntityJSON): ChannelEntity {
     return ChannelEntity.create({
       channelId: json.channel_id,
+      realmId: json.realm_id,
       name: json.name,
       displayName: json.display_name,
       description: json.description,
@@ -182,6 +183,7 @@ export class ChannelEntity {
   // --- Getters ---
 
   get channelId(): string { return this.props.channelId; }
+  get realmId(): string { return this.props.realmId; }
   get name(): string { return this.props.name; }
   get displayName(): string { return this.props.displayName; }
   get description(): string | undefined { return this.props.description; }
@@ -717,6 +719,7 @@ export class ChannelEntity {
   toJSON(): ChannelEntityJSON {
     return {
       channel_id: this.props.channelId,
+      realm_id: this.props.realmId,
       name: this.props.name,
       display_name: this.props.displayName,
       description: this.props.description,

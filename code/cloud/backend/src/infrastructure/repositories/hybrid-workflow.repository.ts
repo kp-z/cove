@@ -12,6 +12,7 @@ import { IWorkflowRepository } from '../../application/interfaces/repositories/w
 
 interface WorkflowDbRecord {
   id: string;
+  realmId: string;
   name: string;
   type: string;
   status: string;
@@ -46,6 +47,7 @@ export class HybridWorkflowRepository
   toDomain(dbRecord: WorkflowDbRecord, content: WorkflowContent): WorkflowEntity {
     return WorkflowEntity.create({
       workflowId: dbRecord.id,
+      realmId: dbRecord.realmId,
       name: dbRecord.name,
       description: content.description,
       krId: content.krId,
@@ -63,6 +65,7 @@ export class HybridWorkflowRepository
   toDatabase(entity: WorkflowEntity): WorkflowDbRecord {
     return {
       id: entity.workflowId,
+      realmId: entity.realmId,
       name: entity.name,
       type: 'sequential',
       status: entity.status,
@@ -130,12 +133,12 @@ export class HybridWorkflowRepository
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
   }
 
-  async save(workflow: WorkflowEntity, realmId: string): Promise<void> {
-    await this.saveEntity(workflow, realmId);
+  async save(workflow: WorkflowEntity): Promise<void> {
+    await this.saveEntity(workflow, workflow.realmId);
   }
 
-  async update(workflow: WorkflowEntity, realmId: string): Promise<void> {
-    await this.updateEntity(workflow, realmId);
+  async update(workflow: WorkflowEntity): Promise<void> {
+    await this.updateEntity(workflow, workflow.realmId);
   }
 
   async delete(workflowId: string): Promise<void> {

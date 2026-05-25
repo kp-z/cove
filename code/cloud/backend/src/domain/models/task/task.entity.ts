@@ -25,6 +25,7 @@ const VALID_STATUSES: readonly TaskStatus[] = ['todo', 'in_progress', 'blocked',
 const TERMINAL_STATUSES: readonly TaskStatus[] = ['done', 'cancelled'];
 
 export interface TaskEntityProps {
+  readonly realmId: string;
   readonly taskId: string;
   readonly title: string;
   readonly description?: string;
@@ -44,6 +45,7 @@ export interface TaskEntityProps {
 
 export interface TaskEntityJSON {
   readonly task_id: string;
+  readonly realm_id: string;
   readonly title: string;
   readonly description?: string;
   readonly task_type: TaskType;
@@ -72,6 +74,7 @@ export class TaskEntity {
   static fromJSON(json: TaskEntityJSON): TaskEntity {
     return TaskEntity.create({
       taskId: json.task_id,
+      realmId: json.realm_id,
       title: json.title,
       description: json.description,
       taskType: json.task_type,
@@ -110,6 +113,7 @@ export class TaskEntity {
   // --- Getters ---
 
   get taskId(): string { return this.props.taskId; }
+  get realmId(): string { return this.props.realmId; }
   get title(): string { return this.props.title; }
   get description(): string | undefined { return this.props.description; }
   get taskType(): TaskType { return this.props.taskType; }
@@ -213,6 +217,7 @@ export class TaskEntity {
   toJSON(): TaskEntityJSON {
     return {
       task_id: this.props.taskId,
+      realm_id: this.props.realmId,
       title: this.props.title,
       description: this.props.description,
       task_type: this.props.taskType,

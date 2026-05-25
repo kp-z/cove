@@ -15,6 +15,7 @@ import { MessageEntity, MessageStatus, MessageContent } from '../../domain/model
 // 数据库记录类型
 interface MessageDbRecord {
   id: string;
+  realmId: string;
   shortId: string;
   channelId: string;
   senderId: string;
@@ -59,6 +60,7 @@ export class HybridMessageRepository
   toDomain(dbRecord: MessageDbRecord, content: MessageContent): MessageEntity {
     return MessageEntity.create({
       messageId: dbRecord.id,
+      realmId: dbRecord.realmId,
       msgShortId: dbRecord.shortId,
       senderId: dbRecord.senderId,
       senderType: dbRecord.senderType as 'human' | 'agent' | 'system',
@@ -135,6 +137,7 @@ export class HybridMessageRepository
   toDatabase(entity: MessageEntity): MessageDbRecord {
     return {
       id: entity.messageId,
+      realmId: entity.realmId,
       shortId: entity.msgShortId,
       channelId: entity.channelId,
       senderId: entity.senderId,
@@ -355,12 +358,12 @@ export class HybridMessageRepository
     return await this.loadEntities(records as MessageDbRecord[]);
   }
 
-  async save(message: MessageEntity, realmId: string): Promise<void> {
-    await this.saveEntity(message, realmId);
+  async save(message: MessageEntity): Promise<void> {
+    await this.saveEntity(message, message.realmId);
   }
 
-  async update(message: MessageEntity, realmId: string): Promise<void> {
-    await this.updateEntity(message, realmId);
+  async update(message: MessageEntity): Promise<void> {
+    await this.updateEntity(message, message.realmId);
   }
 
   async delete(messageId: string): Promise<void> {

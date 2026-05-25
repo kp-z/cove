@@ -21,6 +21,7 @@ const VALID_VISIBILITIES: readonly ProjectVisibility[] = ['public', 'private', '
 
 export interface ProjectEntityProps {
   readonly projectId: string;
+  readonly realmId: string;
   readonly name: string;
   readonly displayName: string;
   readonly description?: string;
@@ -35,6 +36,7 @@ export interface ProjectEntityProps {
 
 export interface ProjectEntityJSON {
   readonly project_id: string;
+  readonly realm_id: string;
   readonly name: string;
   readonly display_name: string;
   readonly description?: string;
@@ -59,6 +61,7 @@ export class ProjectEntity {
   static fromJSON(json: ProjectEntityJSON): ProjectEntity {
     return ProjectEntity.create({
       projectId: json.project_id,
+      realmId: json.realm_id,
       name: json.name,
       displayName: json.display_name,
       description: json.description,
@@ -90,6 +93,7 @@ export class ProjectEntity {
   // --- Getters ---
 
   get projectId(): string { return this.props.projectId; }
+  get realmId(): string { return this.props.realmId; }
   get name(): string { return this.props.name; }
   get displayName(): string { return this.props.displayName; }
   get description(): string | undefined { return this.props.description; }
@@ -180,6 +184,7 @@ export class ProjectEntity {
   toJSON(): ProjectEntityJSON {
     return {
       project_id: this.props.projectId,
+      realm_id: this.props.realmId,
       name: this.props.name,
       display_name: this.props.displayName,
       description: this.props.description,

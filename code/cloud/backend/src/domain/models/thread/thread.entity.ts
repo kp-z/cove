@@ -10,6 +10,7 @@
  */
 
 export interface ThreadEntityProps {
+  readonly realmId: string;
   readonly threadId: string;
   readonly channelId: string;
   readonly rootMessageId: string;
@@ -21,6 +22,7 @@ export interface ThreadEntityProps {
 
 export interface ThreadEntityJSON {
   readonly thread_id: string;
+  readonly realm_id: string;
   readonly channel_id: string;
   readonly root_message_id: string;
   readonly participants: readonly string[];
@@ -41,6 +43,7 @@ export class ThreadEntity {
   static fromJSON(json: ThreadEntityJSON): ThreadEntity {
     return ThreadEntity.create({
       threadId: json.thread_id,
+      realmId: json.realm_id,
       channelId: json.channel_id,
       rootMessageId: json.root_message_id,
       participants: json.participants,
@@ -68,6 +71,7 @@ export class ThreadEntity {
   // --- Getters ---
 
   get threadId(): string { return this.props.threadId; }
+  get realmId(): string { return this.props.realmId; }
   get channelId(): string { return this.props.channelId; }
   get rootMessageId(): string { return this.props.rootMessageId; }
   get participants(): readonly string[] { return this.props.participants; }
@@ -106,6 +110,7 @@ export class ThreadEntity {
   toJSON(): ThreadEntityJSON {
     return {
       thread_id: this.props.threadId,
+      realm_id: this.props.realmId,
       channel_id: this.props.channelId,
       root_message_id: this.props.rootMessageId,
       participants: this.props.participants,
