@@ -43,21 +43,26 @@ model User {
 
 model Project {
   id          String   @id
+  realmId     String   // ✅ Realm 隔离
   name        String
   description String?
   status      String
   ownerId     String
-  metadataPath String  // 指向 .cove/storage/projects/{id}.json
+  metadataPath String  // 指向 .cove/storage/projects/{realmId}/{id}.json
   createdAt   DateTime
   updatedAt   DateTime
 
+  realm       Realm     @relation(fields: [realmId], references: [id], onDelete: Cascade)
   owner       User      @relation("ProjectOwner", fields: [ownerId], references: [id])
   channels    Channel[]
   tasks       Task[]
   workflows   Workflow[]
 
+  @@index([realmId])
   @@index([ownerId])
   @@index([status])
+  @@index([realmId, status])
+  @@unique([realmId, name])
 }
 
 // ============================================
@@ -66,6 +71,7 @@ model Project {
 
 model Channel {
   id            String   @id
+  realmId       String   // ✅ Realm 隔离
   name          String
   displayName   String
   type          String   // public | private | dm
@@ -91,6 +97,7 @@ model Channel {
   createdAt     DateTime
   updatedAt     DateTime
 
+  realm         Realm     @relation(fields: [realmId], references: [id], onDelete: Cascade)
   project       Project?  @relation(fields: [projectId], references: [id])
   parentChannel Channel?  @relation("ChannelThread", fields: [parentChannelId], references: [id])
   subChannels   Channel[] @relation("ChannelThread")
@@ -98,12 +105,16 @@ model Channel {
   messages      Message[]
   messageThreads Thread[]
 
+  @@index([realmId])
   @@index([projectId])
   @@index([type])
   @@index([status])
   @@index([parentChannelId])
+  @@index([realmId, status])
+  @@index([realmId, type])
   @@index([projectId, status])
   @@index([type, status])
+  @@unique([realmId, name])
 }
 
 model Member {
@@ -130,13 +141,14 @@ model Member {
 
 model Message {
   id            String   @id
+  realmId       String   // ✅ Realm 隔离
   shortId       String   @unique  // M001, M002...
   channelId     String
   senderId      String
   senderType    String   // human | agent | system
   threadId      String?
   isThreadRoot  Boolean  @default(false)
-  contentPath   String   // 指向 .cove/storage/messages/{id}.json
+  contentPath   String   // 指向 .cove/storage/messages/{realmId}/{id}.json
   contentType   String   // text | markdown | code | image | file
   status        String   // draft | sending | sent | failed | deleted
   isEdited      Boolean  @default(false)
@@ -146,15 +158,18 @@ model Message {
   updatedAt     DateTime
   deletedAt     DateTime?
 
+  realm         Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
   channel       Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   thread        Message? @relation("MessageThread", fields: [threadId], references: [id])
   replies       Message[] @relation("MessageThread")
 
+  @@index([realmId])
   @@index([channelId, createdAt(sort: Desc)])
   @@index([senderId])
   @@index([threadId])
   @@index([status])
   @@index([shortId])
+  @@index([realmId, channelId])
   @@index([senderId, createdAt])
   @@index([status, createdAt])
 }
@@ -165,6 +180,7 @@ model Message {
 
 model Task {
   id          String   @id
+  realmId     String   // ✅ Realm 隔离
   title       String
   description String?
   status      String   // todo | in_progress | blocked | done
@@ -172,35 +188,42 @@ model Task {
   projectId   String
   channelId   String?
   assigneeId  String?
-  detailsPath String   // 指向 .cove/storage/tasks/{id}.json
+  detailsPath String   // 指向 .cove/storage/tasks/{realmId}/{id}.json
   createdAt   DateTime
   updatedAt   DateTime
   dueDate     DateTime?
 
+  realm       Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
   project     Project  @relation(fields: [projectId], references: [id])
 
+  @@index([realmId])
   @@index([projectId])
   @@index([status])
   @@index([priority])
   @@index([assigneeId])
+  @@index([realmId, status])
   @@index([projectId, status, priority])
   @@index([assigneeId, status])
 }
 
 model Workflow {
   id          String   @id
+  realmId     String   // ✅ Realm 隔离
   name        String
   type        String   // sequential | parallel | dag
   status      String   // draft | active | paused | completed
   projectId   String
-  definitionPath String // 指向 .cove/storage/workflows/{id}.json
+  definitionPath String // 指向 .cove/storage/workflows/{realmId}/{id}.json
   createdAt   DateTime
   updatedAt   DateTime
 
+  realm       Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
   project     Project  @relation(fields: [projectId], references: [id])
 
+  @@index([realmId])
   @@index([projectId])
   @@index([status])
+  @@index([realmId, status])
 }
 
 // ============================================
@@ -209,21 +232,27 @@ model Workflow {
 
 model Agent {
   id          String   @id
+  realmId     String   // ✅ Realm 隔离
   name        String
   displayName String
   status      String   // idle | active | disabled | error
   scope       String   @default("user") // built-in | user | project | admin
   projectIds  String   @default("[]") // JSON array of project IDs
-  configPath  String   // 指向 .cove/storage/agents/{id}.json
+  configPath  String   // 指向 .cove/storage/agents/{realmId}/{id}.json
   avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
   avatarType  String   @default("dicebear") // uploaded | dicebear | default
   createdBy   String   @default("system")
   createdAt   DateTime
 
+  realm       Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
+
+  @@index([realmId])
   @@index([status])
   @@index([scope])
   @@index([name])
   @@index([createdBy])
+  @@index([realmId, status])
+  @@unique([realmId, name])
 }
 
 // ============================================
@@ -232,16 +261,21 @@ model Agent {
 
 model Attachment {
   id          String   @id
+  realmId     String   // ✅ Realm 隔离
   messageId   String?
   fileName    String
   fileSize    Int
   mimeType    String
-  filePath    String   // 指向 .cove/storage/attachments/{id}.{ext}
+  filePath    String   // 指向 .cove/storage/attachments/{realmId}/{id}.{ext}
   uploadedBy  String
   createdAt   DateTime
 
+  realm       Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
+
+  @@index([realmId])
   @@index([messageId])
   @@index([uploadedBy])
+  @@index([realmId, messageId])
 }
 
 // ============================================
@@ -250,19 +284,23 @@ model Attachment {
 
 model Thread {
   id            String   @id
+  realmId       String   // ✅ Realm 隔离
   channelId     String
   rootMessageId String   @unique
   participants  String   // JSON array of user IDs
   replyCount    Int      @default(0)
-  detailsPath   String   // 指向 .cove/storage/threads/{id}.json
+  detailsPath   String   // 指向 .cove/storage/threads/{realmId}/{id}.json
   lastReplyAt   DateTime?
   createdAt     DateTime
   updatedAt     DateTime
 
+  realm         Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
   channel       Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
+  @@index([realmId])
   @@index([channelId])
   @@index([rootMessageId])
+  @@index([realmId, channelId])
 }
 
 // ============================================
@@ -286,6 +324,15 @@ model Realm {
   updatedAt   DateTime
 
   members     RealmMember[]
+  devices     Device[]
+  projects    Project[]     // ✅ 新增
+  agents      Agent[]       // ✅ 新增
+  channels    Channel[]     // ✅ 新增
+  messages    Message[]     // ✅ 新增
+  threads     Thread[]      // ✅ 新增
+  attachments Attachment[]  // ✅ 新增
+  tasks       Task[]        // ✅ 新增
+  workflows   Workflow[]    // ✅ 新增
 
   @@index([name])
   @@index([ownerId])
@@ -343,6 +390,8 @@ model Device {
   // 📈 资源使用
   cpuUsage            Float?  // CPU 使用率 0-100
   memoryUsage         Float?  // 内存使用率 0-100
+
+  realm       Realm    @relation(fields: [realmId], references: [id], onDelete: Cascade)
 
   @@index([realmId])
   @@index([name])
