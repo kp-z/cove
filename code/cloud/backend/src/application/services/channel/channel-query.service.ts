@@ -58,4 +58,8 @@ export class ChannelQueryService {
   async getChannelsByMember(memberId: string): Promise<ChannelEntity[]> {
     return await this.channelRepository.findByMember(memberId);
   }
+
+  async getAgentDMChannel(agentId: string): Promise<ChannelEntity | null> {
+    return await this.channelRepository.findAgentDMChannel(agentId);
+  }
 }

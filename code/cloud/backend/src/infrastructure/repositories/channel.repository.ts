@@ -203,6 +203,31 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
+  async findAgentDMChannel(agentId: string): Promise<ChannelEntity | null> {
+    try {
+      // 查找 type='dm' 且 agentPool 只包含该 agent 的 channel
+      const records = await this.prisma.channel.findMany({
+        where: {
+          type: 'dm',
+          agentPool: `["${agentId}"]`, // 精确匹配单个 agent 的 JSON 数组
+        },
+      });
+
+      // 如果找到多个，返回第一个（理论上应该只有一个）
+      if (records.length > 0) {
+        if (records.length > 1) {
+          this.logger.warn(`Found ${records.length} DM channels for agent ${agentId}, expected 1`);
+        }
+        return this.toDomain(records[0] as unknown as ChannelDbRecord);
+      }
+
+      return null;
+    } catch (error: any) {
+      this.logger.error(`Failed to find agent DM channel for ${agentId}`, error);
+      throw error;
+    }
+  }
+
   async findAll(): Promise<ChannelEntity[]> {
     try {
       const records = await this.prisma.channel.findMany({
