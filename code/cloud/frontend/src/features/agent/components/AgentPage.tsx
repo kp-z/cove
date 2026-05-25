@@ -125,8 +125,8 @@ export default function AgentPage() {
       },
       {
         onSuccess: (data) => {
-          // Navigate to the newly created channel
-          navigate(`/channels/${data.channel_id}`);
+          // Navigate to the newly created channel (use singular 'channel')
+          navigate(`/channel/${data.channel_id}`);
         },
       }
     );
