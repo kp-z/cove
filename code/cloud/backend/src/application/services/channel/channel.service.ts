@@ -55,6 +55,10 @@ export class ChannelService implements IChannelQueryService {
     return this.queryService.getChannelsByStatus(status);
   }
 
+  async getChannelsByMember(memberId: string): Promise<ChannelEntity[]> {
+    return this.queryService.getChannelsByMember(memberId);
+  }
+
   async updateChannel(channelId: string, dto: UpdateChannelDTO): Promise<ChannelEntity> {
     return this.crudService.updateChannel(channelId, dto);
   }

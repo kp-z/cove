@@ -26,6 +26,7 @@ const createChannelSchema = z.object({
   projectId: z.string().optional(),
   createdBy: z.string(),
   memberIds: z.array(z.string()).readonly().optional(),
+  agentIds: z.array(z.string()).readonly().optional(), // 新增：用于指定 agent 成员
 });
 
 const updateChannelSchema = z.object({
@@ -83,7 +84,36 @@ export const channelRouter = (channelService: ChannelService) =>
       .input(createChannelSchema)
       .mutation(async ({ input }) => {
         try {
-          const channel = await channelService.createChannel(input);
+          // 合并 memberIds 和 agentIds
+          const allMemberIds = [
+            ...(input.memberIds || []),
+            ...(input.agentIds || []),
+          ];
+
+          // 如果是 DM 类型且只有一个 agent，检查是否已存在
+          if (input.type === 'dm' && input.agentIds?.length === 1) {
+            const agentId = input.agentIds[0];
+            const existingChannels = await channelService.getChannelsByMember(agentId);
+
+            // 查找已存在的 DM channel
+            const existingDM = existingChannels.find(ch => {
+              const json = ch.toJSON();
+              return json.type === 'dm' &&
+                     json.agent_pool.length === 1 &&
+                     json.agent_pool[0] === agentId;
+            });
+
+            // 如果已存在，直接返回
+            if (existingDM) {
+              return existingDM.toJSON();
+            }
+          }
+
+          // 创建新 channel
+          const channel = await channelService.createChannel({
+            ...input,
+            memberIds: allMemberIds,
+          });
           return channel.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
