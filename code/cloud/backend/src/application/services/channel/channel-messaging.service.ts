@@ -32,6 +32,7 @@ export class ChannelMessagingService {
     const messageId = `message-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const msgShortId = messageId.split('-')[1]?.substring(0, 8) || 'unknown';
     const message = MessageEntity.create({
+      realmId: context.realmId,
       messageId,
       msgShortId,
       channelId: dto.channelId,

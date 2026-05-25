@@ -100,6 +100,7 @@ export class ChannelEntity {
    * @returns DM Channel 实体
    */
   static createDMChannel(params: {
+    realmId: string;
     channelId: string;
     agentId: string;
     userId: string;
@@ -110,6 +111,7 @@ export class ChannelEntity {
     const now = new Date();
 
     return ChannelEntity.create({
+      realmId: params.realmId,
       channelId: params.channelId,
       name: params.name || `DM-${params.agentId}`,
       displayName: params.name || `DM with Agent ${params.agentId}`,

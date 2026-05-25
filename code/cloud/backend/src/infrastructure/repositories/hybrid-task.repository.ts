@@ -174,6 +174,7 @@ export class HybridTaskRepository
   protected async saveToDatabase(dbRecord: TaskDbRecord, contentPath: string): Promise<void> {
     await this.prisma.task.create({
       data: {
+        realmId: dbRecord.realmId,
         id: dbRecord.id,
         title: dbRecord.title,
         description: dbRecord.description,

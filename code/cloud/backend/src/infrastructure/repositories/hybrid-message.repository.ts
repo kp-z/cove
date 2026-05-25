@@ -246,6 +246,7 @@ export class HybridMessageRepository
   ): Promise<void> {
     await this.prisma.message.create({
       data: {
+        realmId: dbRecord.realmId,
         id: dbRecord.id,
         shortId: dbRecord.shortId,
         channelId: dbRecord.channelId,

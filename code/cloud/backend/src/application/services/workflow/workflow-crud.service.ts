@@ -46,6 +46,7 @@ export class WorkflowCrudService {
     await this.validateWorkflowSteps(dto.steps);
 
     const workflow = WorkflowEntity.create({
+      realmId: context.realmId,
       workflowId,
       name: dto.name,
       description: dto.description,

@@ -155,6 +155,7 @@ export class HybridWorkflowRepository
   protected async saveToDatabase(dbRecord: WorkflowDbRecord, contentPath: string): Promise<void> {
     await this.prisma.workflow.create({
       data: {
+        realmId: dbRecord.realmId,
         id: dbRecord.id,
         name: dbRecord.name,
         type: dbRecord.type,

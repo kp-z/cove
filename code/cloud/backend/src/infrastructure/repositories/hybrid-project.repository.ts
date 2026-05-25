@@ -133,6 +133,7 @@ export class HybridProjectRepository
   protected async saveToDatabase(dbRecord: ProjectDbRecord, contentPath: string): Promise<void> {
     await this.prisma.project.create({
       data: {
+        realmId: dbRecord.realmId,
         id: dbRecord.id,
         name: dbRecord.name,
         description: dbRecord.description,

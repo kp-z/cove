@@ -74,6 +74,7 @@ export class MessageCrudService {
     const now = new Date();
 
     const message = MessageEntity.create({
+      realmId: context.realmId,
       messageId,
       msgShortId,
       channelId: dto.channelId,

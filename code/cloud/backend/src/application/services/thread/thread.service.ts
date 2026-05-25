@@ -83,6 +83,7 @@ export class ThreadService {
     const now = new Date();
 
     const message = MessageEntity.create({
+      realmId: context.realmId,
       messageId,
       msgShortId,
       channelId: thread.channelId,
@@ -114,7 +115,7 @@ export class ThreadService {
     await this.messageRepository.save(message, context.realmId);
 
     const updatedThread = thread.addReply().addParticipant(senderId);
-    await this.threadRepository.update(updatedThread, context.realmId);
+    await this.threadRepository.update(updatedThread);
 
     this.logger.info('Thread reply sent', { threadId: rootMessageId, messageId });
 

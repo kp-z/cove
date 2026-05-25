@@ -75,6 +75,7 @@ export class ChannelCrudService {
 
     // 使用领域工厂方法创建 DM channel
     const channel = ChannelEntity.createDMChannel({
+      realmId,
       channelId,
       agentId,
       userId,
@@ -123,6 +124,7 @@ export class ChannelCrudService {
 
     const channel = ChannelEntity.create({
       channelId,
+      realmId,
       name: dto.name,
       displayName: dto.name,
       description: dto.description,
@@ -186,6 +188,7 @@ export class ChannelCrudService {
     const json = channel.toJSON();
     const updatedProps = {
       channelId: json.channel_id,
+      realmId: json.realm_id,
       name: dto.name !== undefined ? dto.name : json.name,
       displayName: dto.name !== undefined ? dto.name : json.display_name,
       description: dto.description !== undefined ? dto.description : json.description,

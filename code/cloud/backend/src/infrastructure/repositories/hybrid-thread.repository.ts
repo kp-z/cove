@@ -118,6 +118,7 @@ export class HybridThreadRepository
   protected async saveToDatabase(dbRecord: ThreadDbRecord, contentPath: string): Promise<void> {
     await this.prisma.thread.create({
       data: {
+        realmId: dbRecord.realmId,
         id: dbRecord.id,
         channelId: dbRecord.channelId,
         rootMessageId: dbRecord.rootMessageId,

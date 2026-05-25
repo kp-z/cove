@@ -191,6 +191,7 @@ export class AgentResponseService {
     const responseContent = await this.generateAgentResponse(agent, originalMessage, channel);
 
     const responseMessage = MessageEntity.create({
+      realmId: context.realmId,
       messageId: this.generateMessageId(),
       msgShortId: this.generateShortId(),
       senderId: agent.agentId,
