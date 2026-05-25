@@ -670,12 +670,14 @@ describe('channelRouter', () => {
       const result = await caller.addMember({
         channelId: 'channel-1',
         memberId: 'user-2',
+        operatorId: 'user-1',
       });
 
       expect(result).toEqual(channel.toJSON());
       expect(mockChannelService.addMember).toHaveBeenCalledWith({
         channelId: 'channel-1',
         memberId: 'user-2',
+        operatorId: 'user-1',
       });
     });
 
@@ -690,6 +692,7 @@ describe('channelRouter', () => {
         await caller.addMember({
           channelId: 'channel-1',
           memberId: 'user-2',
+          operatorId: 'user-1',
         });
       } catch (err: any) {
         expect(err.code).toBe('NOT_FOUND');
@@ -707,9 +710,10 @@ describe('channelRouter', () => {
         await caller.addMember({
           channelId: 'channel-1',
           memberId: 'user-2',
+          operatorId: 'user-1',
         });
       } catch (err: any) {
-        expect(err.code).toBe('CONFLICT');
+        expect(err.code).toBe('BAD_REQUEST');
       }
     });
   });
@@ -747,12 +751,14 @@ describe('channelRouter', () => {
       const result = await caller.removeMember({
         channelId: 'channel-1',
         memberId: 'user-2',
+        operatorId: 'user-1',
       });
 
       expect(result).toEqual(channel.toJSON());
       expect(mockChannelService.removeMember).toHaveBeenCalledWith({
         channelId: 'channel-1',
         memberId: 'user-2',
+        operatorId: 'user-1',
       });
     });
 
@@ -767,6 +773,7 @@ describe('channelRouter', () => {
         await caller.removeMember({
           channelId: 'channel-1',
           memberId: 'user-2',
+          operatorId: 'user-1',
         });
       } catch (err: any) {
         expect(err.code).toBe('NOT_FOUND');
