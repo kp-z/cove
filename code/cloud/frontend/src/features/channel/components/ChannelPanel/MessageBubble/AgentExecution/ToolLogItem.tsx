@@ -18,6 +18,7 @@ import { ToolLog } from '../../types';
 
 interface ToolLogItemProps {
   log: ToolLog;
+  expanded?: boolean;
 }
 
 const TOOL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -88,10 +89,42 @@ function StatusBadge({ status, result }: { status: ToolLog['status']; result?: T
   );
 }
 
-export const ToolLogItem = memo(function ToolLogItem({ log }: ToolLogItemProps) {
+export const ToolLogItem = memo(function ToolLogItem({ log, expanded = false }: ToolLogItemProps) {
   const Icon = TOOL_ICONS[log.toolName] || Wrench;
   const iconColor = TOOL_COLORS[log.toolName] || 'text-gray-400';
 
+  if (expanded) {
+    // Expanded mode for modal
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon className={`w-4 h-4 ${iconColor}`} />
+            <span className="text-sm font-semibold text-white/90">{log.toolName}</span>
+            {log.duration && (
+              <span className="text-xs text-white/40">{formatDuration(log.duration)}</span>
+            )}
+          </div>
+          <StatusBadge status={log.status} result={log.result} />
+        </div>
+        <div className="text-sm text-white/60 pl-6">
+          {log.action}
+          {log.params && Object.keys(log.params).length > 0 && (
+            <span className="text-white/40"> · {formatParams(log.params)}</span>
+          )}
+        </div>
+        {log.meta && (
+          <div className="text-xs text-white/40 pl-6">
+            {log.meta.fileCount !== undefined && `${log.meta.fileCount} files`}
+            {log.meta.linesChanged !== undefined && ` · ${log.meta.linesChanged} lines changed`}
+            {log.meta.exitCode !== undefined && ` · exit ${log.meta.exitCode}`}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Compact mode for inline display
   return (
     <div className="flex items-center gap-2 text-xs font-mono group hover:bg-white/5 rounded px-1 py-0.5 transition-colors">
       <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />

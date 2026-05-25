@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Message } from './types';
 import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
+import { AgentExecutionPanel } from './MessageBubble/AgentExecution';
 
 interface MessageListProps {
   messages: Message[];
@@ -139,6 +140,14 @@ function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped:
           <div className="prose prose-sm prose-invert max-w-none text-sm whitespace-pre-wrap break-words">
             {message.content}
           </div>
+
+          {/* Agent Execution Panel - only for agent messages */}
+          {isAgent && message.agentMetadata && (
+            <AgentExecutionPanel
+              metadata={message.agentMetadata}
+              isStreaming={message.is_streaming}
+            />
+          )}
         </div>
 
         {isUser && !isGrouped && (

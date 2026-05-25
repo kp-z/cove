@@ -1,5 +1,8 @@
 export { AgentExecutionPanel } from './AgentExecutionPanel';
-export { ThinkingSection } from './ThinkingSection';
-export { ToolLogsSection } from './ToolLogsSection';
+export { AgentExecutionStatusBar } from './AgentExecutionStatusBar';
+export { AgentExecutionModal } from './AgentExecutionModal';
+export { ThinkingTab } from './ThinkingTab';
+export { ToolsTab } from './ToolsTab';
+export { UsageTab } from './UsageTab';
+export { StatsTab } from './StatsTab';
 export { ToolLogItem } from './ToolLogItem';
-export { UsageSection } from './UsageSection';
