@@ -16,13 +16,17 @@ import {
   MessageSquare,
   ListChecks,
   BookOpen,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { useChannelMembers } from '@/lib/trpc/hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
+import { useChannel } from '@/lib/trpc/hooks/channel.hooks';
+import { useAuthStore } from '@/core/auth/authStore';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
+import { AddMemberPopover } from './AddMemberPopover';
 import type { Agent, User } from '@/lib/trpc-types';
 
 // ── Tool → Icon 映射 ──
@@ -231,6 +235,8 @@ export function ChannelMemberBar({
 }: ChannelMemberBarProps) {
   const [expanded, setExpanded] = useState(false);
   const { data: membersData, isLoading } = useChannelMembers(channelId);
+  const { data: channel } = useChannel(channelId);
+  const { userId } = useAuthStore();
 
   const handleToggleExpand = useCallback(() => {
     setExpanded(prev => !prev);
@@ -240,6 +246,10 @@ export function ChannelMemberBar({
   const agentMembers = members.filter(m => m.memberType === 'agent');
   const userMembers = members.filter(m => m.memberType === 'human');
   const totalMembers = members.length;
+
+  // Check if current user is owner or admin
+  const currentUserMember = members.find(m => m.memberId === userId);
+  const canAddMembers = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
 
   // 加载态
   if (isLoading) {
@@ -267,6 +277,19 @@ export function ChannelMemberBar({
             <span className="font-medium">Members</span>
             <span className="text-gray-600">({totalMembers})</span>
           </button>
+
+          {/* Add Member Button */}
+          {canAddMembers && (
+            <AddMemberPopover
+              channelId={channelId}
+              existingMemberIds={members.map(m => m.memberId)}
+              trigger={
+                <button className="p-1 rounded hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
+                  <UserPlus size={14} />
+                </button>
+              }
+            />
+          )}
         </div>
 
         {/* Member 列表 */}
@@ -330,9 +353,11 @@ export function ChannelMemberBar({
 
   return (
     <CollapsedMemberBar
+      channelId={channelId}
       members={members}
       totalMembers={totalMembers}
       onToggleExpand={handleToggleExpand}
+      canAddMembers={canAddMembers}
       className={className}
     />
   );
@@ -340,14 +365,18 @@ export function ChannelMemberBar({
 
 // ── 折叠态组件 ──
 function CollapsedMemberBar({
+  channelId,
   members,
   totalMembers,
   onToggleExpand,
+  canAddMembers,
   className
 }: {
+  channelId: string;
   members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
   totalMembers: number;
   onToggleExpand: () => void;
+  canAddMembers: boolean;
   className: string;
 }) {
   // 获取前3个成员的详细信息用于头像显示
@@ -418,6 +447,19 @@ function CollapsedMemberBar({
       )}
 
       <div className="flex-1" />
+
+      {/* Add Member Button */}
+      {canAddMembers && (
+        <AddMemberPopover
+          channelId={channelId}
+          existingMemberIds={members.map(m => m.memberId)}
+          trigger={
+            <button className="p-0.5 rounded hover:bg-white/10 transition-colors text-gray-400 hover:text-white flex-shrink-0">
+              <UserPlus size={12} />
+            </button>
+          }
+        />
+      )}
     </div>
   );
 }
