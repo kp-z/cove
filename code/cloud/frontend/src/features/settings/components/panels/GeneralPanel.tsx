@@ -5,7 +5,7 @@ import { SettingsRow, SettingsSelect } from '../common/SettingsControls'
 
 export function GeneralPanel() {
   const { t } = useTranslation('settings')
-  const { language, timezone, defaultProjectView, setLanguage, setTimezone, setDefaultProjectView } = useSettingsStore()
+  const { timezone, defaultProjectView, setTimezone, setDefaultProjectView } = useSettingsStore()
 
   return (
     <div>
@@ -15,20 +15,6 @@ export function GeneralPanel() {
         title={t('general.preferences.title')}
         description={t('general.preferences.description')}
       >
-        <SettingsRow
-          label={t('general.language.label')}
-          description={t('general.language.description')}
-        >
-          <SettingsSelect
-            value={language}
-            onChange={(value) => setLanguage(value as 'en' | 'zh')}
-            options={[
-              { value: 'en', label: t('general.language.options.en') },
-              { value: 'zh', label: t('general.language.options.zh') },
-            ]}
-          />
-        </SettingsRow>
-
         <SettingsRow
           label={t('general.timezone.label')}
           description={t('general.timezone.description')}
