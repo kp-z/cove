@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanelRight, X } from 'lucide-react';
 import { ChannelTabs } from './ChannelTabs';
@@ -9,6 +9,8 @@ import type { Message as MessageEntity } from '@/lib/trpc-types';
 import { useChannels, useMessages, useSendMessage } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
 import { useCurrentUser } from '@/core/auth';
+import { trpc } from '@/lib/trpc';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Message } from './types';
 
 // UI-specific types
@@ -81,6 +83,49 @@ export function ChannelPanel({
   const { data: messagesData, isLoading: messagesLoading } = useMessages(channel_id);
   const sendMessage = useSendMessage();
   const { userId } = useCurrentUser();
+  const queryClient = useQueryClient();
+
+  // WebSocket 订阅：监听消息事件
+  trpc.subscription.onMessage.useSubscription(
+    {
+      channelId: channel_id,
+      events: ['message.created', 'message.updated', 'message.deleted'],
+    },
+    {
+      onData: (event) => {
+        console.log('Received message event:', event);
+
+        // 刷新消息列表
+        queryClient.invalidateQueries({
+          queryKey: [['message', 'list'], { input: { channelId: channel_id } }],
+        });
+      },
+      onError: (error) => {
+        console.error('Subscription error:', error);
+      },
+    }
+  );
+
+  // WebSocket 订阅：监听成员变化事件
+  trpc.subscription.onChannelMember.useSubscription(
+    {
+      channelId: channel_id,
+      events: ['channel.member_joined', 'channel.member_left'],
+    },
+    {
+      onData: (event) => {
+        console.log('Received member event:', event);
+
+        // 刷新成员列表
+        queryClient.invalidateQueries({
+          queryKey: [['channel', 'members'], { input: { channelId: channel_id } }],
+        });
+      },
+      onError: (error) => {
+        console.error('Member subscription error:', error);
+      },
+    }
+  );
 
   const handleTogglePin = useCallback(() => {
     setMode(mode === 'docked' ? 'floating' : 'docked');
