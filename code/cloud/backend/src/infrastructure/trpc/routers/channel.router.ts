@@ -90,7 +90,7 @@ export const channelRouter = (channelService: ChannelService) =>
             ...(input.agentIds || []),
           ];
 
-          // 如果是 DM 类型且只有一个 agent，检查是否已存在
+          // 如果是 DM 类型且只有一个 agent，检查是否已存在（幂等性）
           if (input.type === 'dm' && input.agentIds?.length === 1) {
             const agentId = input.agentIds[0];
 
@@ -107,30 +107,13 @@ export const channelRouter = (channelService: ChannelService) =>
             }
           }
 
-          // 验证 DM channel 成员规则
-          if (input.type === 'dm') {
-            // DM channel 应该有且仅有 2 个成员（1 个 agent + 1 个 user）
-            if (allMemberIds.length !== 2) {
-              throw new Error(`DM channel must have exactly 2 members, got ${allMemberIds.length}`);
-            }
-
-            // 确保有且仅有 1 个 agent
-            if (!input.agentIds || input.agentIds.length !== 1) {
-              throw new Error('DM channel must have exactly 1 agent');
-            }
-          }
-
-          // 创建新 channel
+          // 创建 channel（业务逻辑和验证在 Service 层）
           const channel = await channelService.createChannel({
             ...input,
             memberIds: allMemberIds,
           });
           return channel.toJSON();
         } catch (error: any) {
-          // 改进错误处理，提供更详细的错误信息
-          if (error.message?.includes('DM channel must')) {
-            throw mapErrorToTRPC(error);
-          }
           throw mapErrorToTRPC(error);
         }
       }),

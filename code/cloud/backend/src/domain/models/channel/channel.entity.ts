@@ -86,6 +86,71 @@ export class ChannelEntity {
     });
   }
 
+  /**
+   * 创建 DM Channel 的工厂方法
+   *
+   * DM Channel 的领域规则：
+   * - 必须有且仅有 2 个成员（1 个 agent + 1 个 user）
+   * - agentPool 只包含该 agent
+   * - 类型为 'dm'
+   *
+   * @param params - DM channel 创建参数
+   * @returns DM Channel 实体
+   */
+  static createDMChannel(params: {
+    channelId: string;
+    agentId: string;
+    userId: string;
+    createdBy: { id: string; type: 'human' | 'agent' };
+    name?: string;
+    description?: string;
+  }): ChannelEntity {
+    const now = new Date();
+
+    return ChannelEntity.create({
+      channelId: params.channelId,
+      name: params.name || `DM-${params.agentId}`,
+      displayName: params.name || `DM with Agent ${params.agentId}`,
+      description: params.description,
+      type: 'dm',
+      status: 'active',
+      members: [
+        {
+          memberId: params.agentId,
+          memberType: 'agent',
+          role: 'member',
+          joinedAt: now,
+        },
+        {
+          memberId: params.userId,
+          memberType: 'human',
+          role: 'member',
+          joinedAt: now,
+        },
+      ],
+      agentPool: [params.agentId],
+      taskPool: [],
+      conversationPool: [],
+      communicationRules: {
+        allowMentions: true,
+        allowThreads: true,
+        allowAttachments: true,
+        maxMessageLength: 10000,
+      },
+      workspace: {
+        root: '',
+        sharedFiles: '',
+        attachments: '',
+      },
+      meta: {
+        messageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: params.createdBy,
+      },
+    });
+  }
+
   private validate(): void {
     if (!this.props.channelId || this.props.channelId.trim() === '') {
       throw new Error('Channel ID cannot be empty');
@@ -144,6 +209,17 @@ export class ChannelEntity {
   isPublic(): boolean { return this.props.type === 'public'; }
   isPrivate(): boolean { return this.props.type === 'private'; }
   isDM(): boolean { return this.props.type === 'dm'; }
+
+  /**
+   * 检查是否是与指定 agent 的 DM channel
+   * @param agentId - Agent ID
+   * @returns 是否是与该 agent 的 DM
+   */
+  isDMWithAgent(agentId: string): boolean {
+    return this.props.type === 'dm' &&
+           this.props.agentPool.length === 1 &&
+           this.props.agentPool[0] === agentId;
+  }
 
   // --- Member operations ---
 

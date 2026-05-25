@@ -218,4 +218,131 @@ describe('ChannelEntity', () => {
       expect(channel1.equals(channel2)).toBe(false);
     });
   });
+
+  describe('createDMChannel', () => {
+    it('should create a valid DM channel with agent and user', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-001',
+        agentId: 'agent-001',
+        userId: 'user-001',
+        createdBy: { id: 'user-001', type: 'human' },
+        name: 'DM with Agent',
+        description: 'Direct message channel',
+      });
+
+      expect(dmChannel.channelId).toBe('dm-001');
+      expect(dmChannel.type).toBe('dm');
+      expect(dmChannel.members.length).toBe(2);
+      expect(dmChannel.agentPool).toEqual(['agent-001']);
+      expect(dmChannel.hasMember('agent-001')).toBe(true);
+      expect(dmChannel.hasMember('user-001')).toBe(true);
+    });
+
+    it('should create DM channel with default name if not provided', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-002',
+        agentId: 'agent-002',
+        userId: 'user-002',
+        createdBy: { id: 'user-002', type: 'human' },
+      });
+
+      expect(dmChannel.name).toBe('DM-agent-002');
+      expect(dmChannel.displayName).toBe('DM with Agent agent-002');
+    });
+
+    it('should create DM channel with correct member types', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-003',
+        agentId: 'agent-003',
+        userId: 'user-003',
+        createdBy: { id: 'user-003', type: 'human' },
+      });
+
+      const agentMember = dmChannel.getMember('agent-003');
+      const userMember = dmChannel.getMember('user-003');
+
+      expect(agentMember?.memberType).toBe('agent');
+      expect(userMember?.memberType).toBe('human');
+      expect(agentMember?.role).toBe('member');
+      expect(userMember?.role).toBe('member');
+    });
+
+    it('should create DM channel with correct communication rules', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-004',
+        agentId: 'agent-004',
+        userId: 'user-004',
+        createdBy: { id: 'user-004', type: 'human' },
+      });
+
+      expect(dmChannel.communicationRules.allowMentions).toBe(true);
+      expect(dmChannel.communicationRules.allowThreads).toBe(true);
+      expect(dmChannel.communicationRules.allowAttachments).toBe(true);
+      expect(dmChannel.communicationRules.maxMessageLength).toBe(10000);
+    });
+
+    it('should create DM channel with active status', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-005',
+        agentId: 'agent-005',
+        userId: 'user-005',
+        createdBy: { id: 'user-005', type: 'human' },
+      });
+
+      expect(dmChannel.status).toBe('active');
+    });
+  });
+
+  describe('isDMWithAgent', () => {
+    it('should return true for DM channel with specified agent', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-006',
+        agentId: 'agent-006',
+        userId: 'user-006',
+        createdBy: { id: 'user-006', type: 'human' },
+      });
+
+      expect(dmChannel.isDMWithAgent('agent-006')).toBe(true);
+    });
+
+    it('should return false for DM channel with different agent', () => {
+      const dmChannel = ChannelEntity.createDMChannel({
+        channelId: 'dm-007',
+        agentId: 'agent-007',
+        userId: 'user-007',
+        createdBy: { id: 'user-007', type: 'human' },
+      });
+
+      expect(dmChannel.isDMWithAgent('agent-999')).toBe(false);
+    });
+
+    it('should return false for non-DM channel', () => {
+      const channel = ChannelEntity.create(validProps);
+      expect(channel.isDMWithAgent('agent-001')).toBe(false);
+    });
+
+    it('should return false for DM channel with multiple agents', () => {
+      const channel = ChannelEntity.create({
+        ...validProps,
+        type: 'dm',
+        members: [
+          {
+            memberId: 'agent-001',
+            memberType: 'agent',
+            role: 'member',
+            joinedAt: new Date(),
+          },
+          {
+            memberId: 'user-001',
+            memberType: 'human',
+            role: 'member',
+            joinedAt: new Date(),
+          },
+        ],
+        agentPool: ['agent-001', 'agent-002'],
+      });
+
+      expect(channel.isDMWithAgent('agent-001')).toBe(false);
+    });
+  });
 });

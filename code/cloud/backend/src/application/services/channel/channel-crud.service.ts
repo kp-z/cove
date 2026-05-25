@@ -24,6 +24,7 @@ export interface CreateChannelDTO {
   readonly projectId?: string;
   readonly createdBy: string;
   readonly memberIds?: readonly string[];
+  readonly agentIds?: readonly string[]; // 用于 DM channel 创建
 }
 
 export interface UpdateChannelDTO {
@@ -39,10 +40,72 @@ export class ChannelCrudService {
   ) {}
 
   async createChannel(dto: CreateChannelDTO): Promise<ChannelEntity> {
-      const context = getRealmContext();
+    const context = getRealmContext();
     this.logger.info('Creating new channel', { name: dto.name, type: dto.type, realmId: context.realmId });
 
     const channelId = this.generateChannelId();
+
+    // DM channel 使用领域工厂方法
+    if (dto.type === 'dm') {
+      return this.createDMChannel(dto, channelId, context.realmId);
+    }
+
+    // 普通 channel 创建逻辑
+    return this.createRegularChannel(dto, channelId, context.realmId);
+  }
+
+  private async createDMChannel(dto: CreateChannelDTO, channelId: string, realmId: string): Promise<ChannelEntity> {
+    // 验证 DM channel 规则
+    const allMemberIds = [...(dto.memberIds || []), ...(dto.agentIds || [])];
+
+    if (allMemberIds.length !== 2) {
+      throw new Error(`DM channel must have exactly 2 members, got ${allMemberIds.length}`);
+    }
+
+    if (!dto.agentIds || dto.agentIds.length !== 1) {
+      throw new Error('DM channel must have exactly 1 agent');
+    }
+
+    const agentId = dto.agentIds[0]!; // Non-null assertion: we just checked length === 1
+    const userId = allMemberIds.find(id => id !== agentId);
+
+    if (!userId) {
+      throw new Error('DM channel must have 1 user');
+    }
+
+    // 使用领域工厂方法创建 DM channel
+    const channel = ChannelEntity.createDMChannel({
+      channelId,
+      agentId,
+      userId,
+      createdBy: {
+        id: dto.createdBy,
+        type: 'human',
+      },
+      name: dto.name,
+      description: dto.description,
+    });
+
+    await this.channelRepository.save(channel, realmId);
+
+    await this.publishEvent({
+      eventId: this.generateEventId(),
+      eventType: 'channel.created',
+      aggregateId: channel.channelId,
+      aggregateType: 'Channel',
+      occurredAt: new Date(),
+      payload: {
+        channelId: channel.channelId,
+        name: channel.name,
+        type: channel.type,
+      },
+    });
+
+    this.logger.info('DM channel created successfully', { channelId: channel.channelId });
+    return channel;
+  }
+
+  private async createRegularChannel(dto: CreateChannelDTO, channelId: string, realmId: string): Promise<ChannelEntity> {
     const now = new Date();
 
     // Auto-detect member type based on ID prefix
@@ -92,7 +155,7 @@ export class ChannelCrudService {
       },
     });
 
-    await this.channelRepository.save(channel, context.realmId);
+    await this.channelRepository.save(channel, realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
