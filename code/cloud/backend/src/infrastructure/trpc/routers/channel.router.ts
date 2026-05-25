@@ -8,8 +8,10 @@
  * - update: 更新频道
  * - delete: 删除频道
  * - getMembers: 获取频道成员
- * - addMember: 添加成员
- * - removeMember: 移除成员
+ * - addMember: 添加成员（需要 operatorId）
+ * - removeMember: 移除成员（需要 operatorId）
+ * - updateMemberRole: 更新成员角色（需要 operatorId）
+ * - transferOwnership: 转让 ownership
  * - getAgents: 获取频道的 Agent Pool
  */
 
@@ -37,11 +39,27 @@ const updateChannelSchema = z.object({
 const addMemberSchema = z.object({
   channelId: z.string(),
   memberId: z.string(),
+  memberType: z.enum(['human', 'agent']).optional(),
+  operatorId: z.string(),
 });
 
 const removeMemberSchema = z.object({
   channelId: z.string(),
   memberId: z.string(),
+  operatorId: z.string(),
+});
+
+const updateMemberRoleSchema = z.object({
+  channelId: z.string(),
+  memberId: z.string(),
+  newRole: z.enum(['owner', 'admin', 'member']),
+  operatorId: z.string(),
+});
+
+const transferOwnershipSchema = z.object({
+  channelId: z.string(),
+  newOwnerId: z.string(),
+  currentOwnerId: z.string(),
 });
 
 export const channelRouter = (channelService: ChannelService) =>
@@ -177,6 +195,30 @@ export const channelRouter = (channelService: ChannelService) =>
       .mutation(async ({ input }) => {
         try {
           const channel = await channelService.removeMember(input);
+          return channel.toJSON();
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 更新成员角色
+    updateMemberRole: procedure
+      .input(updateMemberRoleSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const channel = await channelService.updateMemberRole(input);
+          return channel.toJSON();
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 转让 ownership
+    transferOwnership: procedure
+      .input(transferOwnershipSchema)
+      .mutation(async ({ input }) => {
+        try {
+          const channel = await channelService.transferOwnership(input);
           return channel.toJSON();
         } catch (error: any) {
           throw mapErrorToTRPC(error);
