@@ -65,7 +65,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
     : 'flex-1 overflow-hidden flex flex-col p-4';
 
   const headerClass = compact
-    ? 'px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider'
+    ? 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1'
     : 'text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3';
 
   const listClass = compact
