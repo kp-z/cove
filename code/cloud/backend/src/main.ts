@@ -542,7 +542,7 @@ function createStandaloneServer(deps: {
 
         try {
           // Remove query string if present
-          const urlPath = req.url.split('?')[0];
+          const urlPath = req.url?.split('?')[0] || '/';
           // Construct file path: /storage/... -> ~/.cove/storage/...
           const filePath = path.join(os.homedir(), '.cove', urlPath);
 

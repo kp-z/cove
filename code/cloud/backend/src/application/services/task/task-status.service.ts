@@ -5,7 +5,6 @@ import {
   ILogger,
 } from '../../interfaces';
 import { TaskNotFoundError, InvalidStatusTransitionError } from './task.service';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export class TaskStatusService {
   constructor(
@@ -15,7 +14,6 @@ export class TaskStatusService {
   ) {}
 
   async startTask(taskId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Starting task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.start();
@@ -25,7 +23,6 @@ export class TaskStatusService {
   }
 
   async submitForReview(taskId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Submitting task for review', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.submitForReview();
@@ -35,7 +32,6 @@ export class TaskStatusService {
   }
 
   async completeTask(taskId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Completing task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.complete();
@@ -45,7 +41,6 @@ export class TaskStatusService {
   }
 
   async blockTask(taskId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Blocking task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.block();
@@ -55,7 +50,6 @@ export class TaskStatusService {
   }
 
   async cancelTask(taskId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Cancelling task', { taskId });
     const task = await this.findTask(taskId);
     const updated = task.cancel();
@@ -65,7 +59,6 @@ export class TaskStatusService {
   }
 
   async updateTaskStatus(taskId: string, status: TaskStatus, actorId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Updating task status', { taskId, status, actorId });
     const task = await this.findTask(taskId);
 

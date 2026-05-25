@@ -12,7 +12,6 @@ import {
 import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
 import { ChannelNotFoundError } from '../channel/channel.errors';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AddAgentToProjectDTO {
   readonly projectId: string;
@@ -47,7 +46,6 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-      const context = getRealmContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -96,7 +94,6 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-      const context = getRealmContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -139,7 +136,6 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-      const context = getRealmContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -188,7 +184,6 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-      const context = getRealmContext();
     const project = await this.projectRepository.findById(dto.projectId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
@@ -228,7 +223,6 @@ export class ProjectCompositionService {
    * 归档 Project
    */
   async archiveProject(projectId: string): Promise<ProjectEntity> {
-      const context = getRealmContext();
     this.logger.info('Archiving project', { projectId });
 
     // 获取 Project
@@ -262,7 +256,6 @@ export class ProjectCompositionService {
    * 激活 Project
    */
   async activateProject(projectId: string): Promise<ProjectEntity> {
-      const context = getRealmContext();
     this.logger.info('Activating project', { projectId });
 
     // 获取 Project

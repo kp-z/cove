@@ -14,7 +14,6 @@
 import type { MessageEntity } from '../../../domain/models/message/message.entity';
 import type { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 import type { AgentEntity } from '../../../domain/models/agent/agent.entity';
-import type { ILogger } from '../../interfaces';
 
 export interface TriggerContext {
   message: MessageEntity;
@@ -28,7 +27,7 @@ export interface TriggerResult {
 }
 
 export class AgentTriggerService {
-  constructor(private readonly logger: ILogger) {}
+  constructor() {}
 
   /**
    * 判断是否应该触发 agent 响应

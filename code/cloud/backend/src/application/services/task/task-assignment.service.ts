@@ -8,7 +8,6 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AssignTaskDTO {
   readonly taskId: string;
@@ -42,7 +41,6 @@ export class TaskAssignmentService {
 
   async assignTask(dto: AssignTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -74,7 +72,6 @@ export class TaskAssignmentService {
 
   async claimTask(dto: ClaimTaskDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
 
     if (task.status !== 'todo') {
@@ -105,7 +102,6 @@ export class TaskAssignmentService {
   }
 
   async unclaimTask(taskId: string, userId: string): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Unclaiming task', { taskId, userId });
     const task = await this.findTask(taskId);
     const unclaimed = task.unclaim(userId);
@@ -118,7 +114,6 @@ export class TaskAssignmentService {
 
   async addDependency(dto: AddDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
     await this.findTask(dto.dependsOnTaskId);
     const updated = task.addDependency(dto.dependsOnTaskId);
@@ -133,7 +128,6 @@ export class TaskAssignmentService {
 
   async removeDependency(dto: RemoveDependencyDTO): Promise<TaskEntity> {
     // TODO: Fix logger call
-      const context = getRealmContext();
     const task = await this.findTask(dto.taskId);
     const updated = task.removeDependency(dto.dependsOnTaskId);
     await this.taskRepository.update(updated);

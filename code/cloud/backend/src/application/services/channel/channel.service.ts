@@ -27,7 +27,6 @@ export {
   UpdateChannelDTO,
   AddMemberDTO,
   RemoveMemberDTO,
-  UpdateMemberRoleDTO,
   TransferOwnershipDTO,
   ChannelSendMessageDTO
 };

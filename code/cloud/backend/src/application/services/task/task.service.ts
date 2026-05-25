@@ -49,7 +49,7 @@ export class TaskService {
   ) {}
 
   async createTask(dto: CreateTaskDTO): Promise<TaskEntity> {
-      const context = getRealmContext();
+    const context = getRealmContext();
     this.logger.info('Creating new task', { title: dto.title });
 
     const taskId = this.generateTaskId();
@@ -112,7 +112,6 @@ export class TaskService {
   }
 
   async updateTask(taskId: string, dto: UpdateTaskDTO): Promise<TaskEntity> {
-      const context = getRealmContext();
     this.logger.info('Updating task', { taskId });
 
     // Handle status update if provided
@@ -163,7 +162,7 @@ export class TaskService {
   }
 
   async convertMessageToTask(messageId: string, title: string, createdBy: string): Promise<TaskEntity> {
-      const context = getRealmContext();
+    const context = getRealmContext();
     this.logger.info('Converting message to task', { messageId, title });
 
     if (!this.messageRepository) {
