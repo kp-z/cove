@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  MoreVertical, Play, Settings2, Zap, Trash2,
+  MoreVertical, MessageSquare, Settings2, Zap, Trash2,
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
@@ -160,14 +160,14 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
         <button
           onClick={() => onRun?.(agent)}
           disabled={agent.status === 'error'}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Play size={14} />
-          {t('actions.run')}
+          <MessageSquare size={14} />
+          {t('actions.message')}
         </button>
         <button
           onClick={() => onConfigure?.(agent)}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-gray-500/20 border border-gray-500/30 text-gray-400 hover:bg-gray-500/30 transition-colors"
         >
           <Settings2 size={14} />
           {t('actions.config')}

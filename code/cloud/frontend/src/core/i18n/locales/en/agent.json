@@ -55,6 +55,7 @@
     "sync": "Sync",
     "new": "New",
     "run": "Run",
+    "message": "Message",
     "config": "Config"
   },
   "filter": {

@@ -15,6 +15,7 @@ import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useCreateChannel } from '@/lib/trpc/hooks/channel.hooks';
+import { useCurrentUser } from '@/core/auth';
 import { AgentCard } from './AgentCard';
 import type { Agent } from '@/lib/trpc-types';
 
@@ -31,6 +32,7 @@ export default function AgentPage() {
   const { data, isLoading, error, refetch } = useAgents();
   const deleteAgent = useDeleteAgent();
   const createChannel = useCreateChannel();
+  const { userId } = useCurrentUser();
 
   // Backend returns { agents: [...], total: number }
   // Wrap in useMemo to prevent dependency changes in other useMemo hooks
@@ -107,12 +109,18 @@ export default function AgentPage() {
   }
 
   function handleRun(agent: Agent) {
+    if (!userId) {
+      console.error('User not authenticated');
+      return;
+    }
+
     // Create a DM channel with the agent
     createChannel.mutate(
       {
-        name: `dm-${agent.name}`,
+        name: `DM-${agent.name}`,
         type: 'dm',
-        visibility: 'private',
+        createdBy: userId,
+        memberIds: [userId],
         agentIds: [agent.agent_id],
       },
       {
