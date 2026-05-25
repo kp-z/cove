@@ -90,6 +90,7 @@ export class AgentCrudService {
 
     const agent = AgentEntity.create({
       agentId,
+      realmId: context.realmId,
       name: dto.name,
       displayName: dto.displayName,
       description: dto.description,
@@ -105,7 +106,7 @@ export class AgentCrudService {
       createdAt: new Date(),
     });
 
-    await this.agentRepository.save(agent, context.realmId);
+    await this.agentRepository.save(agent);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -186,6 +187,7 @@ export class AgentCrudService {
 
     const updatedAgent = AgentEntity.create({
       agentId: agent.agentId,
+      realmId: agent.realmId,
       name: agent.name,
       displayName: dto.displayName !== undefined ? dto.displayName : agent.displayName,
       description: dto.description !== undefined ? dto.description : agent.description,
@@ -204,7 +206,7 @@ export class AgentCrudService {
       createdAt: agent.createdAt,
     });
 
-    await this.agentRepository.update(updatedAgent, context.realmId);
+    await this.agentRepository.update(updatedAgent);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

@@ -57,6 +57,7 @@ export class TaskService {
 
     const task = TaskEntity.create({
       taskId,
+      realmId: context.realmId,
       title: dto.title,
       description: dto.description,
       taskType: dto.taskType,
@@ -70,7 +71,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task, context.realmId);
+    await this.taskRepository.save(task);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',
@@ -129,7 +130,7 @@ export class TaskService {
       priority: dto.priority ?? json.priority,
     });
 
-    await this.taskRepository.update(updated, context.realmId);
+    await this.taskRepository.update(updated);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.updated',
@@ -178,6 +179,7 @@ export class TaskService {
 
     const task = TaskEntity.create({
       taskId,
+      realmId: context.realmId,
       title,
       taskType: 'single_agent',
       priority: 'P2',
@@ -190,7 +192,7 @@ export class TaskService {
       createdAt: new Date(),
     });
 
-    await this.taskRepository.save(task, context.realmId);
+    await this.taskRepository.save(task);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.created',

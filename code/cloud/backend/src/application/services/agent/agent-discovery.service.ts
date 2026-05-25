@@ -121,9 +121,20 @@ export class AgentDiscoveryService {
     const agentDir = path.join(os.homedir(), '.cove', 'storage', 'agents', metadata.agent_id);
     const configPath = path.join('storage', 'agents', metadata.agent_id);
 
+    // Get default realm ID (agents discovered from filesystem belong to default realm)
+    const defaultRealm = await this.prisma.realm.findFirst({
+      where: { name: 'default' },
+    });
+
+    if (!defaultRealm) {
+      console.error(`[AgentDiscoveryService] Default realm not found, cannot create agent ${metadata.agent_id}`);
+      return;
+    }
+
     await this.prisma.agent.create({
       data: {
         id: metadata.agent_id,
+        realmId: defaultRealm.id,
         name: metadata.name,
         displayName: metadata.display_name || metadata.name,
         status: metadata.status || 'active',

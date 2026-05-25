@@ -38,9 +38,19 @@ export class BuiltInAgentsInitializer {
       count: BUILT_IN_AGENTS.length,
     });
 
+    // Get default realm
+    const defaultRealm = await this.prisma.realm.findFirst({
+      where: { name: 'default' },
+    });
+
+    if (!defaultRealm) {
+      this.logger.error('Default realm not found, cannot initialize built-in agents');
+      return;
+    }
+
     for (const agentConfig of BUILT_IN_AGENTS) {
       try {
-        await this.createOrUpdateAgent(agentConfig);
+        await this.createOrUpdateAgent(agentConfig, defaultRealm.id);
       } catch (error) {
         this.logger.error(`Failed to initialize built-in agent: ${agentConfig.name}`, error as Error);
         // Continue with other agents even if one fails
@@ -53,7 +63,7 @@ export class BuiltInAgentsInitializer {
   /**
    * Create or update a single built-in agent
    */
-  private async createOrUpdateAgent(config: BuiltInAgentConfig): Promise<void> {
+  private async createOrUpdateAgent(config: BuiltInAgentConfig, realmId: string): Promise<void> {
     this.logger.debug(`Creating/updating built-in agent: ${config.name}`, {
       id: config.id,
     });
@@ -70,6 +80,7 @@ export class BuiltInAgentsInitializer {
       },
       create: {
         id: config.id,
+        realmId: realmId,
         name: config.name,
         displayName: config.displayName,
         status: 'idle',

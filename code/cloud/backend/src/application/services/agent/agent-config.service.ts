@@ -27,7 +27,7 @@ export class AgentConfigService {
     }
     const agent = await this.getAgentById(agentId);
     const updated = agent.updateRuntimeConfig(config as AgentRuntimeConfig);
-    await this.agentRepository.update(updated, context.realmId);
+    await this.agentRepository.update(updated);
     return updated;
   }
 
@@ -40,7 +40,7 @@ export class AgentConfigService {
     }
     const agent = await this.getAgentById(agentId);
     const updated = agent.updatePersona(persona as AgentPersona);
-    await this.agentRepository.update(updated, context.realmId);
+    await this.agentRepository.update(updated);
     return updated;
   }
 
@@ -54,7 +54,7 @@ export class AgentConfigService {
     }
     const agent = await this.getAgentById(agentId);
     const updated = agent.updateSkills(skills);
-    await this.agentRepository.update(updated, context.realmId);
+    await this.agentRepository.update(updated);
     return updated;
   }
 
@@ -68,7 +68,7 @@ export class AgentConfigService {
     }
     const agent = await this.getAgentById(agentId);
     const updated = agent.updateTools(tools);
-    await this.agentRepository.update(updated, context.realmId);
+    await this.agentRepository.update(updated);
     return updated;
   }
 
@@ -82,7 +82,7 @@ export class AgentConfigService {
     }
     const agent = await this.getAgentById(agentId);
     const updated = agent.updateTriggers(triggers);
-    await this.agentRepository.update(updated, context.realmId);
+    await this.agentRepository.update(updated);
     return updated;
   }
 

@@ -61,6 +61,7 @@ export class ProjectService {
     // 创建 Project 实体
     const project = ProjectEntity.create({
       projectId,
+      realmId: context.realmId,
       name: dto.name,
       displayName: dto.name,
       description: dto.description,
@@ -73,7 +74,7 @@ export class ProjectService {
     });
 
     // 保存到数据库
-    await this.projectRepository.save(project, context.realmId);
+    await this.projectRepository.save(project);
 
     // 发布事件
     await this.publishEvent({
@@ -142,6 +143,7 @@ export class ProjectService {
     if (dto.name !== undefined) {
       updatedProject = ProjectEntity.create({
         projectId: updatedProject.projectId,
+        realmId: updatedProject.realmId,
         name: dto.name,
         displayName: dto.name,
         description: updatedProject.description,
@@ -158,6 +160,7 @@ export class ProjectService {
     if (dto.description !== undefined) {
       updatedProject = ProjectEntity.create({
         projectId: updatedProject.projectId,
+        realmId: updatedProject.realmId,
         name: updatedProject.name,
         displayName: updatedProject.displayName,
         description: dto.description,
@@ -172,7 +175,7 @@ export class ProjectService {
     }
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.realmId);
+    await this.projectRepository.update(updatedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -206,7 +209,7 @@ export class ProjectService {
     const archivedProject = project.archive();
 
     // 保存更新
-    await this.projectRepository.update(archivedProject, context.realmId);
+    await this.projectRepository.update(archivedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -237,7 +240,7 @@ export class ProjectService {
     const activatedProject = project.activate();
 
     // 保存更新
-    await this.projectRepository.update(activatedProject, context.realmId);
+    await this.projectRepository.update(activatedProject);
 
     // 发布事件
     await this.publishEvent({

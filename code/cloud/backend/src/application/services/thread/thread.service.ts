@@ -45,6 +45,7 @@ export class ThreadService {
 
     const thread = ThreadEntity.create({
       threadId: rootMessageId,
+      realmId: context.realmId,
       channelId: rootMessage.channelId,
       rootMessageId,
       participants: [rootMessage.senderId],
@@ -52,7 +53,7 @@ export class ThreadService {
       createdAt: new Date(),
     });
 
-    await this.threadRepository.save(thread, context.realmId);
+    await this.threadRepository.save(thread);
 
     this.logger.info('Thread created', { threadId: rootMessageId, channelId: rootMessage.channelId });
 

@@ -69,7 +69,7 @@ export class ProjectCompositionService {
     const updatedProject = project.addAgent(dto.agentId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.realmId);
+    await this.projectRepository.update(updatedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -112,7 +112,7 @@ export class ProjectCompositionService {
     const updatedProject = project.removeAgent(dto.agentId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.realmId);
+    await this.projectRepository.update(updatedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -161,7 +161,7 @@ export class ProjectCompositionService {
     const updatedProject = project.addChannel(dto.channelId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.realmId);
+    await this.projectRepository.update(updatedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -204,7 +204,7 @@ export class ProjectCompositionService {
     const updatedProject = project.removeChannel(dto.channelId);
 
     // 保存更新
-    await this.projectRepository.update(updatedProject, context.realmId);
+    await this.projectRepository.update(updatedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -241,7 +241,7 @@ export class ProjectCompositionService {
     const archivedProject = project.archive();
 
     // 保存更新
-    await this.projectRepository.update(archivedProject, context.realmId);
+    await this.projectRepository.update(archivedProject);
 
     // 发布事件
     await this.publishEvent({
@@ -275,7 +275,7 @@ export class ProjectCompositionService {
     const activatedProject = project.activate();
 
     // 保存更新
-    await this.projectRepository.update(activatedProject, context.realmId);
+    await this.projectRepository.update(activatedProject);
 
     // 发布事件
     await this.publishEvent({

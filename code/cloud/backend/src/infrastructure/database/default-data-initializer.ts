@@ -251,6 +251,7 @@ export class DefaultDataInitializer {
       await this.prisma.channel.create({
         data: {
           id: channelConfig.id,
+          realmId: this.DEFAULT_REALM.id,
           name: channelConfig.name,
           displayName: channelConfig.displayName,
           type: channelConfig.type,
@@ -387,6 +388,7 @@ export class DefaultDataInitializer {
     await this.prisma.message.create({
       data: {
         id: messageId,
+        realmId: this.DEFAULT_REALM.id,
         shortId,
         channelId: welcomeChannelId,
         senderId: 'agent-zhang',
