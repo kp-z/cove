@@ -249,6 +249,34 @@ export class ChannelEntity {
     return role === 'owner' || role === 'admin';
   }
 
+  /**
+   * 获取 owner 数量
+   */
+  getOwnerCount(): number {
+    return this.props.members.filter(m => m.role === 'owner').length;
+  }
+
+  /**
+   * 获取所有 owners
+   */
+  getOwners(): readonly ChannelMember[] {
+    return this.props.members.filter(m => m.role === 'owner');
+  }
+
+  /**
+   * 获取所有 admins
+   */
+  getAdmins(): readonly ChannelMember[] {
+    return this.props.members.filter(m => m.role === 'admin');
+  }
+
+  /**
+   * 获取所有普通成员
+   */
+  getMembers(): readonly ChannelMember[] {
+    return this.props.members.filter(m => m.role === 'member');
+  }
+
   // --- Agent pool operations ---
 
   hasAgent(agentId: string): boolean {
@@ -320,6 +348,124 @@ export class ChannelEntity {
         updatedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * 带权限检查的添加成员方法
+   * @param operatorId - 操作者 ID
+   * @param member - 要添加的成员
+   * @returns 更新后的 Channel 实体
+   * @throws 如果没有权限或违反业务规则
+   */
+  addMemberWithPermission(operatorId: string, member: ChannelMember): ChannelEntity {
+    if (!this.canAddMember(operatorId)) {
+      throw new Error('Permission denied: cannot add member');
+    }
+    return this.addMember(member);
+  }
+
+  /**
+   * 带权限检查的移除成员方法
+   * @param operatorId - 操作者 ID
+   * @param memberId - 要移除的成员 ID
+   * @returns 更新后的 Channel 实体
+   * @throws 如果没有权限或违反业务规则
+   */
+  removeMemberWithPermission(operatorId: string, memberId: string): ChannelEntity {
+    if (!this.canRemoveMember(operatorId, memberId)) {
+      throw new Error('Permission denied: cannot remove member');
+    }
+
+    // 保护最后一个 owner
+    if (this.isOwner(memberId) && this.getOwnerCount() === 1) {
+      throw new Error('Cannot remove the last owner. Transfer ownership first.');
+    }
+
+    return this.removeMember(memberId);
+  }
+
+  /**
+   * 带权限检查的更新角色方法
+   * @param operatorId - 操作者 ID
+   * @param memberId - 目标成员 ID
+   * @param newRole - 新角色
+   * @returns 更新后的 Channel 实体
+   * @throws 如果没有权限或违反业务规则
+   */
+  updateMemberRoleWithPermission(
+    operatorId: string,
+    memberId: string,
+    newRole: MemberRole
+  ): ChannelEntity {
+    if (!this.canUpdateRole(operatorId, memberId)) {
+      throw new Error('Permission denied: cannot update role');
+    }
+
+    // 如果降级 owner，确保还有其他 owner
+    const currentRole = this.getMemberRole(memberId);
+    if (currentRole === 'owner' && newRole !== 'owner' && this.getOwnerCount() === 1) {
+      throw new Error('Cannot demote the last owner');
+    }
+
+    return this.updateMemberRole(memberId, newRole);
+  }
+
+  /**
+   * 转让 ownership（单 owner 场景）
+   * @param currentOwnerId - 当前 owner ID
+   * @param newOwnerId - 新 owner ID
+   * @returns 更新后的 Channel 实体
+   * @throws 如果没有权限或违反业务规则
+   */
+  transferOwnership(currentOwnerId: string, newOwnerId: string): ChannelEntity {
+    if (!this.isOwner(currentOwnerId)) {
+      throw new Error('Only owner can transfer ownership');
+    }
+
+    if (!this.hasMember(newOwnerId)) {
+      throw new Error('New owner must be a member');
+    }
+
+    // 当前 owner 降级为 admin，新 owner 升级
+    return this.updateMemberRole(currentOwnerId, 'admin')
+      .updateMemberRole(newOwnerId, 'owner');
+  }
+
+  /**
+   * 添加共同 owner（多 owner 场景）
+   * @param operatorId - 操作者 ID（必须是 owner）
+   * @param targetId - 目标成员 ID
+   * @returns 更新后的 Channel 实体
+   * @throws 如果没有权限或违反业务规则
+   */
+  promoteToOwner(operatorId: string, targetId: string): ChannelEntity {
+    if (!this.isOwner(operatorId)) {
+      throw new Error('Only owner can promote to owner');
+    }
+
+    if (!this.hasMember(targetId)) {
+      throw new Error('Target must be a member');
+    }
+
+    return this.updateMemberRole(targetId, 'owner');
+  }
+
+  /**
+   * Owner 自愿降级（多 owner 场景）
+   * @param ownerId - Owner ID
+   * @returns 更新后的 Channel 实体
+   * @throws 如果是最后一个 owner
+   */
+  demoteSelf(ownerId: string): ChannelEntity {
+    if (!this.isOwner(ownerId)) {
+      throw new Error('Only owner can demote themselves');
+    }
+
+    if (this.getOwnerCount() === 1) {
+      throw new Error('Cannot demote the last owner');
+    }
+
+    return this.updateMemberRole(ownerId, 'admin');
   }
 
   addAgent(agentId: string): ChannelEntity {
@@ -486,6 +632,78 @@ export class ChannelEntity {
       }
     }
     return { allowed: true };
+  }
+
+  /**
+   * 检查是否可以添加成员
+   * 规则：
+   * - DM channel 不允许添加成员
+   * - 需要 admin 或 owner 权限
+   */
+  canAddMember(operatorId: string): boolean {
+    if (this.type === 'dm') return false;
+    return this.hasAdminPrivileges(operatorId);
+  }
+
+  /**
+   * 检查是否可以移除成员
+   * 规则：
+   * - DM channel 不允许移除成员
+   * - Owner 可以移除任何人
+   * - Admin 可以移除 member，但不能移除 owner
+   */
+  canRemoveMember(operatorId: string, targetId: string): boolean {
+    if (this.type === 'dm') return false;
+
+    if (this.isOwner(operatorId)) return true;
+
+    if (this.isAdmin(operatorId) && !this.isOwner(targetId)) return true;
+
+    return false;
+  }
+
+  /**
+   * 检查是否可以修改成员角色
+   * 规则：
+   * - 只有 owner 可以修改角色
+   * - 不能修改自己的角色（防止意外降级）
+   */
+  canUpdateRole(operatorId: string, targetId: string): boolean {
+    if (!this.isOwner(operatorId)) return false;
+    if (operatorId === targetId) return false;
+    return true;
+  }
+
+  /**
+   * 检查是否可以修改 channel 设置
+   * 规则：需要 admin 或 owner 权限
+   */
+  canModifySettings(operatorId: string): boolean {
+    return this.hasAdminPrivileges(operatorId);
+  }
+
+  /**
+   * 检查是否可以删除 channel
+   * 规则：
+   * - DM channel 不能删除
+   * - 只有 owner 可以删除
+   */
+  canDeleteChannel(operatorId: string): boolean {
+    if (this.type === 'dm') return false;
+    return this.isOwner(operatorId);
+  }
+
+  /**
+   * 检查是否可以 archive channel
+   * 规则：
+   * - 需要 admin 或 owner 权限
+   * - DM channel 任何成员都可以 archive（隐藏对话）
+   */
+  canArchiveChannel(operatorId: string): boolean {
+    if (this.type === 'dm') {
+      return this.hasMember(operatorId);
+    }
+    return this.hasAdminPrivileges(operatorId);
   }
 
   // --- Equality (by ID) ---

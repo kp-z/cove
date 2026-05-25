@@ -12,11 +12,25 @@ import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { IChannelQueryService } from '../../interfaces';
 import { ChannelCrudService, CreateChannelDTO, UpdateChannelDTO } from './channel-crud.service';
 import { ChannelQueryService } from './channel-query.service';
-import { ChannelMemberService, AddMemberDTO, RemoveMemberDTO } from './channel-member.service';
+import {
+  ChannelMemberService,
+  AddMemberDTO,
+  RemoveMemberDTO,
+  UpdateMemberRoleDTO,
+  TransferOwnershipDTO
+} from './channel-member.service';
 import { ChannelLifecycleService } from './channel-lifecycle.service';
 import { ChannelMessagingService, ChannelSendMessageDTO } from './channel-messaging.service';
 
-export { CreateChannelDTO, UpdateChannelDTO, AddMemberDTO, RemoveMemberDTO, ChannelSendMessageDTO };
+export {
+  CreateChannelDTO,
+  UpdateChannelDTO,
+  AddMemberDTO,
+  RemoveMemberDTO,
+  UpdateMemberRoleDTO,
+  TransferOwnershipDTO,
+  ChannelSendMessageDTO
+};
 
 export class ChannelService implements IChannelQueryService {
   constructor(
@@ -73,6 +87,14 @@ export class ChannelService implements IChannelQueryService {
 
   async removeMember(dto: RemoveMemberDTO): Promise<ChannelEntity> {
     return this.memberService.removeMember(dto);
+  }
+
+  async updateMemberRole(dto: UpdateMemberRoleDTO): Promise<ChannelEntity> {
+    return this.memberService.updateMemberRole(dto);
+  }
+
+  async transferOwnership(dto: TransferOwnershipDTO): Promise<ChannelEntity> {
+    return this.memberService.transferOwnership(dto);
   }
 
   async sendMessage(dto: ChannelSendMessageDTO): Promise<MessageEntity> {
