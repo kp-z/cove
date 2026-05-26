@@ -57,6 +57,12 @@ import { AgentResponseService } from './application/services/agent/agent-respons
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { AgentDiscoveryService } from './application/services/agent/agent-discovery.service';
 import { AdapterService } from './application/services/adapter/adapter.service';
+import {
+  AdapterBootstrapService,
+  CCSwithProfileDetector,
+  CCSwithProfileGenerator,
+  AdapterValidator,
+} from './application/services/adapter';
 import { ThreadService } from './application/services/thread/thread.service';
 import { TaskService } from './application/services/task/task.service';
 import { TaskStatusService } from './application/services/task/task-status.service';
@@ -156,6 +162,18 @@ function initializeDependencies() {
   const auditLogger = new AuditLogger(auditLogStore);
   const adapterConfigStore = new FileSystemAdapterConfigStore(coveDir, lockManager, auditLogger);
   const adapterService = new AdapterService(adapterConfigStore);
+
+  // Adapter Bootstrap Service (for auto-detecting and creating adapters)
+  const ccSwitchDetector = new CCSwithProfileDetector();
+  const ccSwitchGenerator = new CCSwithProfileGenerator(ccSwitchDetector);
+  const adapterValidator = new AdapterValidator(adapterService);
+  const adapterBootstrapService = new AdapterBootstrapService(
+    [ccSwitchDetector],
+    [ccSwitchGenerator],
+    adapterValidator,
+    adapterService,
+    logger
+  );
 
   // Storage and Avatar Services
   const fileStorageService = new FileStorageService(
@@ -357,7 +375,9 @@ function initializeDependencies() {
     serverRepository,
     serverMemberRepository,
     eventBus,
-    logger
+    logger,
+    undefined, // agentRepository (optional)
+    adapterBootstrapService // adapterBootstrapService (optional)
   );
 
   const deviceService = new DeviceService(
