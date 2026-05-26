@@ -21,7 +21,7 @@ interface ChannelListItemProps {
 }
 
 function getChannelIcon(type: ChannelType, compact = false) {
-  const size = compact ? 12 : 16;
+  const size = compact ? 10 : 16;
   switch (type) {
     case 'public':
       return <Hash className={`w-${size} h-${size}`} size={size} />;
@@ -59,10 +59,10 @@ export function ChannelListItem({
   const { t } = useTranslation('channel');
   const avatarUrl = getAvatarUrl(channel.avatar);
 
-  // Compact mode: smaller sizes
-  const avatarSize = compact ? 'w-8 h-8' : 'w-10 h-10';
-  const padding = compact ? 'px-3 py-2' : 'px-4 py-3';
-  const textSize = compact ? 'text-xs' : 'text-sm';
+  // Compact mode: smaller sizes (matching claude_manager reference)
+  const avatarSize = compact ? 'w-5 h-5' : 'w-10 h-10';
+  const padding = compact ? 'px-2 py-1.5' : 'px-4 py-3';
+  const textSize = compact ? 'text-[11px]' : 'text-sm';
   const timeSize = compact ? 'text-[9px]' : 'text-[10px]';
   const descSize = compact ? 'text-[10px]' : 'text-xs';
 
@@ -76,7 +76,7 @@ export function ChannelListItem({
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
-          className={`w-full ${padding} flex items-center gap-3 rounded-lg transition-all duration-200 ${
+          className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} rounded-lg transition-all duration-200 ${
             isActive
               ? 'bg-blue-500/10 border border-blue-500/20 text-white'
               : 'hover:bg-white/[0.03] text-gray-300 border border-transparent'

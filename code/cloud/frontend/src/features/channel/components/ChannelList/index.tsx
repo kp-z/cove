@@ -54,19 +54,19 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
     if (channels.length === 0) return <ChannelListEmpty />;
   }
 
-  // Compact mode: tighter spacing
+  // Compact mode: tighter spacing (matching claude_manager reference)
   const containerClass = compact
-    ? 'w-[280px] max-h-[400px] overflow-y-auto p-2 space-y-3'
+    ? 'w-[300px] max-h-[420px] overflow-y-auto px-3 py-2 space-y-3'
     : 'h-full flex flex-col gap-3 px-4 pt-4 pb-6';
 
-  const sectionClass = compact ? 'space-y-1' : 'space-y-3';
+  const sectionClass = compact ? 'space-y-2' : 'space-y-3';
 
   const headerClass = compact
-    ? 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1'
+    ? 'text-[10px] font-semibold text-white/75 uppercase tracking-wide mb-2'
     : 'text-xs font-semibold text-gray-500 uppercase tracking-wider';
 
   const listClass = compact
-    ? 'space-y-0.5'
+    ? 'space-y-2'
     : 'space-y-1';
 
   return (
