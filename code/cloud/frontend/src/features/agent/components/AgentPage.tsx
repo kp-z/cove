@@ -124,7 +124,9 @@ export default function AgentPage() {
         agentIds: [agent.agent_id],
       },
       {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
+          // Wait for channel list to refresh before navigating
+          await utils.channel.list.invalidate();
           // Navigate to the newly created channel (use singular 'channel')
           navigate(`/channel/${data.channel_id}`);
         },
