@@ -1,6 +1,7 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { ThreadEntity } from '../../domain/models/thread/thread.entity';
 import { IThreadRepository } from '../../application/interfaces/repositories/thread.repository.interface';
+import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface ThreadDbRecord {
   id: string;
@@ -70,16 +71,24 @@ export class HybridThreadRepository
   }
 
   async findByChannel(channelId: string): Promise<ThreadEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.thread.findMany({
-      where: { channelId },
+      where: {
+        channelId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as ThreadDbRecord[]);
   }
 
   async findByRootMessage(rootMessageId: string): Promise<ThreadEntity | null> {
-    const record = await this.prisma.thread.findUnique({
-      where: { rootMessageId },
+    const context = getRealmContext();
+    const record = await this.prisma.thread.findFirst({
+      where: {
+        rootMessageId,
+        realmId: context.realmId,
+      },
     });
     if (!record) return null;
     return this.findEntityById(record.id);
@@ -98,11 +107,18 @@ export class HybridThreadRepository
   }
 
   async exists(threadId: string): Promise<boolean> {
-    const count = await this.prisma.thread.count({ where: { id: threadId } });
+    const context = getRealmContext();
+    const count = await this.prisma.thread.count({
+      where: {
+        id: threadId,
+        realmId: context.realmId,
+      },
+    });
     return count > 0;
   }
 
   async incrementReplyCount(threadId: string): Promise<void> {
+    const context = getRealmContext();
     await this.prisma.thread.update({
       where: { id: threadId },
       data: {
@@ -150,7 +166,13 @@ export class HybridThreadRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<ThreadDbRecord | null> {
-    const record = await this.prisma.thread.findUnique({ where: { id: entityId } });
+    const context = getRealmContext();
+    const record = await this.prisma.thread.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
+    });
     return record as unknown as ThreadDbRecord | null;
   }
 }

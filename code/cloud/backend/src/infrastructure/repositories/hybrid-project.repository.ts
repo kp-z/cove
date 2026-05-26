@@ -9,6 +9,7 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { ProjectEntity, ProjectStatus } from '../../domain/models/project/project.entity';
 import { IProjectRepository } from '../../application/interfaces/repositories/project.repository.interface';
+import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface ProjectDbRecord {
   id: string;
@@ -89,23 +90,33 @@ export class HybridProjectRepository
   }
 
   async findByOwner(ownerId: string): Promise<ProjectEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.project.findMany({
-      where: { ownerId },
+      where: {
+        ownerId,
+        realmId: context.realmId,
+      },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
   async findByStatus(status: ProjectStatus): Promise<ProjectEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.project.findMany({
-      where: { status },
+      where: {
+        status,
+        realmId: context.realmId,
+      },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
   async findAll(): Promise<ProjectEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.project.findMany({
+      where: { realmId: context.realmId },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
@@ -124,7 +135,13 @@ export class HybridProjectRepository
   }
 
   async exists(projectId: string): Promise<boolean> {
-    const count = await this.prisma.project.count({ where: { id: projectId } });
+    const context = getRealmContext();
+    const count = await this.prisma.project.count({
+      where: {
+        id: projectId,
+        realmId: context.realmId,
+      },
+    });
     return count > 0;
   }
 
@@ -164,7 +181,13 @@ export class HybridProjectRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<ProjectDbRecord | null> {
-    const record = await this.prisma.project.findUnique({ where: { id: entityId } });
+    const context = getRealmContext();
+    const record = await this.prisma.project.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
+    });
     return record as unknown as ProjectDbRecord | null;
   }
 }
