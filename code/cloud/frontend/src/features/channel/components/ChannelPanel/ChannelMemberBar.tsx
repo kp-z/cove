@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -27,6 +27,7 @@ import { useAuthStore } from '@/core/auth/authStore';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 import { AddMemberPopover } from './AddMemberPopover';
+import { AvatarStack, type AvatarStackItem } from '../ChannelList/ChannelAvatar';
 import type { Agent, User } from '@/lib/trpc-types';
 
 // ── Tool → Icon 映射 ──
@@ -384,6 +385,18 @@ function CollapsedMemberBar({
   const firstMember = members[0];
   const firstMemberData = useMemberDetails(firstMember.memberId, firstMember.memberType);
 
+  // 构建 AvatarStack items
+  const avatarItems = useMemo(() => {
+    return visibleMembers.map(member => {
+      // 这里需要获取每个成员的详细信息
+      // 为了性能，我们使用 hooks 在组件内部获取
+      return {
+        memberId: member.memberId,
+        memberType: member.memberType
+      };
+    });
+  }, [visibleMembers]);
+
   if (!firstMemberData) {
     return (
       <div className={`px-3 py-2 border-b border-white/10 flex items-center gap-2 ${className}`}>
@@ -419,8 +432,8 @@ function CollapsedMemberBar({
         <ChevronRight className="w-3.5 h-3.5" />
       </button>
 
-      {/* 叠层头像 */}
-      <CollapsedAvatars members={visibleMembers} />
+      {/* 使用新的 AvatarStack */}
+      <CollapsedAvatarsWithData members={avatarItems} />
 
       {/* 名称 + 模型 */}
       <span className="text-xs text-gray-300 truncate min-w-0">
@@ -464,83 +477,41 @@ function CollapsedMemberBar({
   );
 }
 
-// ── 折叠态头像组件 ──
-function CollapsedAvatars({
+// ── 使用 AvatarStack 的头像组件 ──
+function CollapsedAvatarsWithData({
   members,
   max = 3
 }: {
   members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
   max?: number;
 }) {
-  const visible = members.slice(0, max);
-  const overflow = members.length - max;
+  const items: AvatarStackItem[] = [];
 
-  return (
-    <div className="flex items-center">
-      {visible.map((member, i) => (
-        <CollapsedAvatar
-          key={member.memberId}
-          memberId={member.memberId}
-          memberType={member.memberType}
-          zIndex={max - i}
-          isStacked={i > 0}
-        />
-      ))}
-      {overflow > 0 && (
-        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center ring-1 ring-[#0f111a] -ml-2 text-[9px] text-gray-400 font-bold flex-shrink-0">
-          +{overflow}
-        </div>
-      )}
-    </div>
-  );
-}
+  // 获取每个成员的详细信息
+  for (const member of members.slice(0, max)) {
+    const memberData = useMemberDetails(member.memberId, member.memberType);
+    if (!memberData) continue;
 
-// ── 单个折叠态头像 ──
-function CollapsedAvatar({
-  memberId,
-  memberType,
-  zIndex,
-  isStacked
-}: {
-  memberId: string;
-  memberType: 'agent' | 'human';
-  zIndex: number;
-  isStacked: boolean;
-}) {
-  const memberData = useMemberDetails(memberId, memberType);
+    const isAgent = member.memberType === 'agent';
+    const agent = isAgent ? (memberData as Agent) : null;
+    const user = !isAgent ? (memberData as User) : null;
 
-  if (!memberData) {
-    return (
-      <div
-        className={`w-6 h-6 rounded-lg bg-white/5 animate-pulse flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${isStacked ? '-ml-2' : ''}`}
-        style={{ zIndex }}
-      />
-    );
+    const displayName = isAgent
+      ? (agent!.display_name || agent!.name)
+      : (user!.username || user!.email);
+
+    const avatarUrl = isAgent
+      ? getAgentAvatarUrl(agent!.persona?.avatar?.url)
+      : getAvatarUrl(user!.avatar);
+
+    items.push({
+      id: member.memberId,
+      name: displayName,
+      avatarUrl,
+      type: member.memberType,
+      isRunning: false, // TODO: 添加运行状态检测
+    });
   }
 
-  const isAgent = memberType === 'agent';
-  const agent = isAgent ? (memberData as Agent) : null;
-  const user = !isAgent ? (memberData as User) : null;
-
-  const displayName = isAgent
-    ? (agent!.display_name || agent!.name)
-    : (user!.username || user!.email);
-
-  const avatarUrl = isAgent
-    ? getAgentAvatarUrl(agent!.persona?.avatar?.url)
-    : getAvatarUrl(user!.avatar);
-
-  return (
-    <div
-      className={`w-6 h-6 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] ${isStacked ? '-ml-2' : ''}`}
-      style={{ zIndex }}
-      title={displayName}
-    >
-      <img
-        src={avatarUrl}
-        alt={displayName}
-        className="w-full h-full object-cover"
-      />
-    </div>
-  );
+  return <AvatarStack items={items} size="sm" max={max} />;
 }
