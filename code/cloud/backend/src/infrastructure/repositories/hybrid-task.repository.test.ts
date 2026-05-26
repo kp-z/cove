@@ -102,6 +102,7 @@ describe('HybridTaskRepository', () => {
 
   const createTestTask = (overrides?: Partial<any>): TaskEntity => {
     return TaskEntity.create({
+      realmId: 'test-realm-1',
       taskId: 'task-1',
       title: 'Test Task',
       description: 'Test task description',

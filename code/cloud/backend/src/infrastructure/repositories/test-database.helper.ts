@@ -405,47 +405,6 @@ export class TestDatabaseHelper {
   /**
    * 清理测试数据库
    */
-  /**
-   * 创建测试用的 Realm（包括必需的 User）
-   */
-  async createTestRealm(realmId: string = 'test-realm', userId: string = 'user-1'): Promise<void> {
-    if (!this.prisma) {
-      throw new Error('Database not initialized');
-    }
-
-    // Create test user first
-    await this.prisma.user.create({
-      data: {
-        id: userId,
-        username: 'testuser',
-        email: 'test@example.com',
-        displayName: 'Test User',
-        role: 'user',
-        status: 'active',
-        profilePath: '/metadata/user-1.json',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    // Create test realm
-    await this.prisma.realm.create({
-      data: {
-        id: realmId,
-        name: realmId,
-        displayName: 'Test Realm',
-        ownerId: userId,
-        status: 'active',
-        visibility: 'public',
-        settings: '{}',
-        limits: '{}',
-        meta: '{}',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
-
   async teardown(): Promise<void> {
     if (this.prisma) {
       await this.prisma.$disconnect();
@@ -529,20 +488,27 @@ export class TestDatabaseHelper {
       throw new Error('Database not initialized');
     }
 
-    // Create test user first
-    await this.prisma.user.create({
-      data: {
-        id: userId,
-        username: 'testuser',
-        email: 'test@example.com',
-        displayName: 'Test User',
-        role: 'user',
-        status: 'active',
-        profilePath: '/metadata/user-1.json',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    // Create test user first (skip if already exists)
+    try {
+      await this.prisma.user.create({
+        data: {
+          id: userId,
+          username: 'testuser',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          role: 'user',
+          status: 'active',
+          profilePath: '/metadata/user-1.json',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error: any) {
+      // User already exists, skip
+      if (error.code !== 'P2002') {
+        throw error;
+      }
+    }
 
     // Create test realm
     await this.prisma.realm.create({
