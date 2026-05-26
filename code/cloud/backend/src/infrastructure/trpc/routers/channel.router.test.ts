@@ -35,6 +35,12 @@ describe('channelRouter', () => {
         warn: vi.fn(),
         debug: vi.fn(),
       },
+      realmMemberVerification: {
+        isMember: vi.fn().mockResolvedValue(true),
+        verifyMembership: vi.fn().mockResolvedValue(undefined),
+        clearCache: vi.fn(),
+        clearAllCache: vi.fn(),
+      },
     };
 
     router = channelRouter(mockChannelService);

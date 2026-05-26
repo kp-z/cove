@@ -47,6 +47,12 @@ describe('auditRouter', () => {
         warn: vi.fn(),
         debug: vi.fn(),
       },
+      realmMemberVerification: {
+        isMember: vi.fn().mockResolvedValue(true),
+        verifyMembership: vi.fn().mockResolvedValue(undefined),
+        clearCache: vi.fn(),
+        clearAllCache: vi.fn(),
+      },
       req: {} as IncomingMessage,
       res: {
         setHeader: vi.fn(),

@@ -30,6 +30,12 @@ describe('authRouter', () => {
         warn: vi.fn(),
         debug: vi.fn(),
       },
+      realmMemberVerification: {
+        isMember: vi.fn().mockResolvedValue(true),
+        verifyMembership: vi.fn().mockResolvedValue(undefined),
+        clearCache: vi.fn(),
+        clearAllCache: vi.fn(),
+      },
       req: {
         headers: {
           'x-forwarded-for': '192.168.1.1',

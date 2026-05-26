@@ -16,6 +16,12 @@ describe('deviceRouter', () => {
   const mockContext = {
     realmId: 'test-server',
     userId: 'test-user',
+    realmMemberVerification: {
+      isMember: vi.fn().mockResolvedValue(true),
+      verifyMembership: vi.fn().mockResolvedValue(undefined),
+      clearCache: vi.fn(),
+      clearAllCache: vi.fn(),
+    },
   };
 
   const mockSpecs = {
