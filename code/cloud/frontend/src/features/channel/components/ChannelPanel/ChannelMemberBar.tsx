@@ -432,15 +432,8 @@ function CollapsedMemberBar({
         <ChevronRight className="w-3.5 h-3.5" />
       </button>
 
-      {/* 使用新的 AvatarStack */}
-      <CollapsedAvatarsWithData members={avatarItems} />
-
-      {/* 成员数量 */}
-      {totalMembers > 1 && (
-        <span className="text-[10px] text-gray-500 flex-shrink-0">
-          +{totalMembers - 1}
-        </span>
-      )}
+      {/* 使用新的 AvatarStack，包含 +N */}
+      <CollapsedAvatarsWithData members={members} totalMembers={totalMembers} />
 
       <div className="flex-1" />
 
@@ -463,9 +456,11 @@ function CollapsedMemberBar({
 // ── 使用 AvatarStack 的头像组件 ──
 function CollapsedAvatarsWithData({
   members,
+  totalMembers,
   max = 3
 }: {
   members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
+  totalMembers: number;
   max?: number;
 }) {
   const items: AvatarStackItem[] = [];
@@ -496,5 +491,6 @@ function CollapsedAvatarsWithData({
     });
   }
 
+  // 传递所有成员给 AvatarStack，让它自己处理 +N
   return <AvatarStack items={items} size="sm" max={max} />;
 }
