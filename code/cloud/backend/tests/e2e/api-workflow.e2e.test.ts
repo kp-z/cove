@@ -19,6 +19,7 @@ import { ChannelRepository } from '../../src/infrastructure/repositories/channel
 import { HybridMessageRepository } from '../../src/infrastructure/repositories/hybrid-message.repository';
 import { HybridTaskRepository } from '../../src/infrastructure/repositories/hybrid-task.repository';
 import { HybridThreadRepository } from '../../src/infrastructure/repositories/hybrid-thread.repository';
+import { RealmRepository } from '../../src/infrastructure/repositories/realm.repository';
 
 // Import domain entities
 import { UserEntity } from '../../src/domain/models/user/user.entity';
@@ -27,6 +28,7 @@ import { ChannelEntity } from '../../src/domain/models/channel/channel.entity';
 import { MessageEntity } from '../../src/domain/models/message/message.entity';
 import { TaskEntity } from '../../src/domain/models/task/task.entity';
 import { ThreadEntity } from '../../src/domain/models/thread/thread.entity';
+import { RealmEntity } from '../../src/domain/models/realm/realm.entity';
 import { ActorRef } from '../../src/domain/models/value-objects/actor-ref';
 import { AssigneeRef } from '../../src/domain/models/value-objects/assignee-ref';
 
@@ -38,6 +40,7 @@ describe('E2E: Complete API Workflow', () => {
   let logger: ILogger;
 
   // Repositories
+  let realmRepo: RealmRepository;
   let userRepo: HybridUserRepository;
   let projectRepo: HybridProjectRepository;
   let channelRepo: ChannelRepository;
@@ -131,6 +134,7 @@ describe('E2E: Complete API Workflow', () => {
     };
 
     // Initialize repositories
+    realmRepo = new RealmRepository(prisma, logger);
     userRepo = new HybridUserRepository(prisma, storageService, logger);
     projectRepo = new HybridProjectRepository(prisma, storageService, logger);
     channelRepo = new ChannelRepository(prisma, logger);
@@ -145,6 +149,36 @@ describe('E2E: Complete API Workflow', () => {
   });
 
   it('should complete full workflow: user → project → channel → message → task', async () => {
+    // Step 0: Create a realm
+    const realm = RealmEntity.create({
+      realm_id: 'realm-1',
+      name: 'test-realm',
+      display_name: 'Test Realm',
+      description: 'E2E test realm',
+      type: 'local',
+      status: 'active',
+      owner_id: 'user-1',
+      visibility: 'private',
+      settings: {
+        allow_public_channels: true,
+        allow_private_channels: true,
+        allow_direct_messages: true,
+        default_channel_retention: 90,
+        default_message_retention: 30,
+        default_member_role: 'member',
+      },
+      limits: {
+        max_channels: 100,
+        max_members: 1000,
+        max_storage_bytes: 10737418240,
+        max_messages_per_day: 10000,
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+    await realmRepo.save(realm);
+
     // Step 1: Create a user
     const user = UserEntity.create({
       userId: 'user-1',
@@ -168,6 +202,7 @@ describe('E2E: Complete API Workflow', () => {
     // Step 2: Create a project
     const project = ProjectEntity.create({
       projectId: 'project-1',
+      realmId: 'realm-1',
       name: 'test-project',
       displayName: 'Test Project',
       description: 'E2E test project',
@@ -267,7 +302,34 @@ describe('E2E: Complete API Workflow', () => {
   });
 
   it('should handle message threading workflow', async () => {
-    // Setup: user, project, channel
+    // Setup: realm, user, project, channel
+    const realm = RealmEntity.create({
+      realm_id: 'realm-1',
+      name: 'test-realm',
+      display_name: 'Test Realm',
+      type: 'local',
+      status: 'active',
+      owner_id: 'user-1',
+      visibility: 'private',
+      settings: {
+        allow_public_channels: true,
+        allow_private_channels: true,
+        allow_direct_messages: true,
+        default_channel_retention: 90,
+        default_message_retention: 30,
+      },
+      limits: {
+        max_channels: 100,
+        max_members: 1000,
+        max_storage_bytes: 10737418240,
+        max_messages_per_day: 10000,
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+    await realmRepo.save(realm);
+
     const user = UserEntity.create({
       userId: 'user-1',
       username: 'testuser',
@@ -284,6 +346,7 @@ describe('E2E: Complete API Workflow', () => {
 
     const project = ProjectEntity.create({
       projectId: 'project-1',
+      realmId: 'realm-1',
       name: 'test-project',
       displayName: 'Test Project',
       status: 'active',
@@ -351,6 +414,34 @@ describe('E2E: Complete API Workflow', () => {
   });
 
   it('should handle multi-user collaboration', async () => {
+    // Create realm first
+    const realm = RealmEntity.create({
+      realm_id: 'realm-1',
+      name: 'test-realm',
+      display_name: 'Test Realm',
+      type: 'local',
+      status: 'active',
+      owner_id: 'user-1',
+      visibility: 'private',
+      settings: {
+        allow_public_channels: true,
+        allow_private_channels: true,
+        allow_direct_messages: true,
+        default_channel_retention: 90,
+        default_message_retention: 30,
+      },
+      limits: {
+        max_channels: 100,
+        max_members: 1000,
+        max_storage_bytes: 10737418240,
+        max_messages_per_day: 10000,
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
+      meta: {},
+    });
+    await realmRepo.save(realm);
+
     // Create two users
     const user1 = UserEntity.create({
       userId: 'user-1',
@@ -383,6 +474,7 @@ describe('E2E: Complete API Workflow', () => {
     // Create shared project
     const project = ProjectEntity.create({
       projectId: 'project-1',
+      realmId: 'realm-1',
       name: 'shared-project',
       displayName: 'Shared Project',
       status: 'active',

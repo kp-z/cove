@@ -399,12 +399,12 @@ describe('HybridMessageRepository', () => {
         status: 'failed',
       });
 
-      await repository.save(sentMsg, 'realm-1');
-      await repository.save(draftMsg, 'realm-1');
-      await repository.save(failedMsg, 'realm-1');
+      await repository.save(sentMsg, 'test-realm-1');
+      await repository.save(draftMsg, 'test-realm-1');
+      await repository.save(failedMsg, 'test-realm-1');
 
-      const sentMessages = await repository.findByStatus('sent');
-      const draftMessages = await repository.findByStatus('draft');
+      const sentMessages = await repository.findByStatus('sent', 'test-realm-1');
+      const draftMessages = await repository.findByStatus('draft', 'test-realm-1');
 
       expect(sentMessages).toHaveLength(1);
       expect(sentMessages[0].status).toBe('sent');

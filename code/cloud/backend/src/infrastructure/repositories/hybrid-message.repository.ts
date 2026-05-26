@@ -350,9 +350,12 @@ export class HybridMessageRepository
     return await this.loadEntities(records as MessageDbRecord[]);
   }
 
-  async findByStatus(status: MessageStatus): Promise<MessageEntity[]> {
+  async findByStatus(status: MessageStatus, realmId: string): Promise<MessageEntity[]> {
     const records = await this.prisma.message.findMany({
-      where: { status },
+      where: {
+        status,
+        realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
 

@@ -13,7 +13,7 @@ export interface IMessageRepository {
   countRecentByChannelAndSender(channelId: string, senderId: string, sinceMinutes: number): Promise<number>;
   findBySender(senderId: string): Promise<MessageEntity[]>;
   findByThread(threadId: string): Promise<MessageEntity[]>;
-  findByStatus(status: MessageStatus): Promise<MessageEntity[]>;
+  findByStatus(status: MessageStatus, realmId: string): Promise<MessageEntity[]>;
   save(message: MessageEntity, realmId: string): Promise<void>;
   update(message: MessageEntity, realmId: string): Promise<void>;
   delete(messageId: string): Promise<void>;
