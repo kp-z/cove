@@ -92,10 +92,13 @@ function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped:
   const isAgent = message.sender === 'agent';
   const isSystem = message.sender === 'system';
 
-  // Fetch avatar data for non-user messages
+  // Determine entity type before calling hook (must be stable across renders)
+  const entityType = isAgent ? 'agent' : 'user';
+
+  // Fetch avatar data - hook must be called unconditionally
   const avatarData = useEntityAvatarData(
-    isAgent ? 'agent' : 'user',
-    message.sender_id
+    entityType,
+    message.sender_id || ''
   );
 
   return (
