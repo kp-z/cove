@@ -37,13 +37,11 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
       </Popover.Trigger>
 
       <Popover.Content align="end" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <div className="w-[280px]">
-          <ChannelList
-            selectedChannelId={channelId}
-            onChannelSelect={handleChannelSelect}
-            compact={true}
-          />
-        </div>
+        <ChannelList
+          selectedChannelId={channelId}
+          onChannelSelect={handleChannelSelect}
+          compact={true}
+        />
       </Popover.Content>
     </Popover>
   );

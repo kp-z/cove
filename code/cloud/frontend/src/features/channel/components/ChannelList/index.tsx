@@ -56,7 +56,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
 
   // Compact mode: tighter spacing
   const containerClass = compact
-    ? 'max-h-[400px] overflow-y-auto p-2 space-y-3'
+    ? 'w-[280px] max-h-[400px] overflow-y-auto p-2 space-y-3'
     : 'h-full flex flex-col gap-3 px-4 pt-4 pb-6';
 
   const sectionClass = compact ? 'space-y-1' : 'space-y-3';
