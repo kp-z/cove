@@ -7,6 +7,7 @@
 
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
+import { useChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 
@@ -53,6 +54,28 @@ export function useAgentAvatarData(agentId: string): AvatarData {
 }
 
 /**
+ * Get avatar data for a channel
+ */
+export function useChannelAvatarData(channelId: string): AvatarData {
+  const { data: channel } = useChannel(channelId);
+
+  // Handle both string and object avatar formats
+  let avatarUrl: string | null = null;
+  if (channel?.avatar) {
+    if (typeof channel.avatar === 'string') {
+      avatarUrl = getAvatarUrl(channel.avatar);
+    } else if (typeof channel.avatar === 'object' && (channel.avatar as any).url) {
+      avatarUrl = getAvatarUrl((channel.avatar as any).url);
+    }
+  }
+
+  return {
+    avatarUrl,
+    name: channel?.display_name || channel?.name || 'Unknown Channel',
+  };
+}
+
+/**
  * Get avatar data for any entity type (user, agent, or channel)
  */
 export function useEntityAvatarData(
@@ -61,6 +84,7 @@ export function useEntityAvatarData(
 ): AvatarData {
   const { data: user } = useUser(type === 'user' ? id : '');
   const { data: agent } = useAgent(id, { enabled: type === 'agent' });
+  const { data: channel } = useChannel(type === 'channel' ? id : '');
 
   if (type === 'user' && user) {
     // Handle both string and object avatar formats
@@ -87,11 +111,20 @@ export function useEntityAvatarData(
     };
   }
 
-  if (type === 'channel') {
-    // TODO: Implement channel avatar logic when channel API is ready
+  if (type === 'channel' && channel) {
+    // Handle both string and object avatar formats
+    let avatarUrl: string | null = null;
+    if (channel.avatar) {
+      if (typeof channel.avatar === 'string') {
+        avatarUrl = getAvatarUrl(channel.avatar);
+      } else if (typeof channel.avatar === 'object' && (channel.avatar as any).url) {
+        avatarUrl = getAvatarUrl((channel.avatar as any).url);
+      }
+    }
+
     return {
-      avatarUrl: null,
-      name: 'Channel',
+      avatarUrl,
+      name: channel.display_name || channel.name || 'Unknown Channel',
     };
   }
 

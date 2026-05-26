@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useUserAvatarData, useAgentAvatarData, useEntityAvatarData } from './useAvatarData';
+import { useUserAvatarData, useAgentAvatarData, useChannelAvatarData, useEntityAvatarData } from './useAvatarData';
 import * as userHooks from '@/lib/trpc/hooks/user.hooks';
 import * as agentHooks from '@/lib/trpc/hooks/agent.hooks';
+import * as channelHooks from '@/lib/trpc/hooks/channel.hooks';
 
 // Mock the hooks
 vi.mock('@/lib/trpc/hooks/user.hooks');
 vi.mock('@/lib/trpc/hooks/agent.hooks');
+vi.mock('@/lib/trpc/hooks/channel.hooks');
 vi.mock('@/shared/utils/avatar', () => ({
   getAvatarUrl: (avatar: string) => `https://api.example.com/${avatar}`,
 }));
@@ -148,6 +150,75 @@ describe('useAvatarData hooks', () => {
     });
   });
 
+  describe('useChannelAvatarData', () => {
+    it('should return channel avatar data with object avatar', () => {
+      vi.mocked(channelHooks.useChannel).mockReturnValue({
+        data: {
+          channel_id: 'channel-1',
+          avatar: { url: 'avatars/channel-1.png', type: 'uploaded' },
+          display_name: 'General',
+          name: 'general',
+        },
+      } as any);
+
+      const { result } = renderHook(() => useChannelAvatarData('channel-1'));
+
+      expect(result.current).toEqual({
+        avatarUrl: 'https://api.example.com/avatars/channel-1.png',
+        name: 'General',
+      });
+    });
+
+    it('should return channel avatar data with string avatar', () => {
+      vi.mocked(channelHooks.useChannel).mockReturnValue({
+        data: {
+          channel_id: 'channel-1',
+          avatar: 'avatars/channel-1.png',
+          display_name: 'General',
+          name: 'general',
+        },
+      } as any);
+
+      const { result } = renderHook(() => useChannelAvatarData('channel-1'));
+
+      expect(result.current).toEqual({
+        avatarUrl: 'https://api.example.com/avatars/channel-1.png',
+        name: 'General',
+      });
+    });
+
+    it('should fallback to name when display_name is not available', () => {
+      vi.mocked(channelHooks.useChannel).mockReturnValue({
+        data: {
+          channel_id: 'channel-1',
+          avatar: null,
+          display_name: null,
+          name: 'general',
+        },
+      } as any);
+
+      const { result } = renderHook(() => useChannelAvatarData('channel-1'));
+
+      expect(result.current).toEqual({
+        avatarUrl: null,
+        name: 'general',
+      });
+    });
+
+    it('should return "Unknown Channel" when channel data is not available', () => {
+      vi.mocked(channelHooks.useChannel).mockReturnValue({
+        data: undefined,
+      } as any);
+
+      const { result } = renderHook(() => useChannelAvatarData('channel-1'));
+
+      expect(result.current).toEqual({
+        avatarUrl: null,
+        name: 'Unknown Channel',
+      });
+    });
+  });
+
   describe('useEntityAvatarData', () => {
     it('should return user data when type is "user"', () => {
       vi.mocked(userHooks.useUser).mockReturnValue({
@@ -198,12 +269,21 @@ describe('useAvatarData hooks', () => {
       });
     });
 
-    it('should return placeholder data when type is "channel"', () => {
+    it('should return channel avatar data when type is "channel"', () => {
+      vi.mocked(channelHooks.useChannel).mockReturnValue({
+        data: {
+          channel_id: 'channel-1',
+          avatar: { url: 'avatars/channel-1.png', type: 'uploaded' },
+          display_name: 'General',
+          name: 'general',
+        },
+      } as any);
+
       const { result } = renderHook(() => useEntityAvatarData('channel', 'channel-1'));
 
       expect(result.current).toEqual({
-        avatarUrl: null,
-        name: 'Channel',
+        avatarUrl: 'https://api.example.com/avatars/channel-1.png',
+        name: 'General',
       });
     });
 
