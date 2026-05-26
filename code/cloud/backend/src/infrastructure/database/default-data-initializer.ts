@@ -139,8 +139,8 @@ export class DefaultDataInitializer {
       update: {
         displayName: this.DEFAULT_REALM.displayName,
         description: this.DEFAULT_REALM.description,
-        logoUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
-        logoType: 'dicebear',
+        logoUrl: '/storage/assets/cove-logo.svg',
+        logoType: 'static',
         updatedAt: now,
       },
       create: {
@@ -154,8 +154,8 @@ export class DefaultDataInitializer {
         settings: JSON.stringify(settings),
         limits: JSON.stringify(limits),
         meta: JSON.stringify(meta),
-        logoUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=nexus-realm',
-        logoType: 'dicebear',
+        logoUrl: '/storage/assets/cove-logo.svg',
+        logoType: 'static',
         createdAt: now,
         updatedAt: now,
       },

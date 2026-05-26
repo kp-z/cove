@@ -129,8 +129,8 @@ export class RealmService {
       settings: defaultSettings,
       limits: defaultLimits,
       logo: {
-        url: `https://api.dicebear.com/9.x/shapes/svg?seed=${dto.name}`,
-        type: 'dicebear',
+        url: '/storage/assets/cove-logo.svg',
+        type: 'static',
       },
       created_at: new Date(),
       updated_at: new Date(),
