@@ -6,7 +6,7 @@
  */
 
 import { WebSocketClient } from './websocket-client';
-import { TaskExecutor } from './task-executor';
+import { AdapterExecutor } from './adapter-executor';
 import { loadConfig } from './config';
 
 async function main() {
@@ -16,11 +16,14 @@ async function main() {
   const config = await loadConfig();
   console.log(`📡 Connecting to: ${config.server.url}`);
 
-  // Initialize task executor
-  const taskExecutor = new TaskExecutor(config);
+  // Initialize adapter executor
+  const adapterExecutor = new AdapterExecutor({
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    openaiApiKey: process.env.OPENAI_API_KEY,
+  });
 
   // Initialize WebSocket client
-  const wsClient = new WebSocketClient(config, taskExecutor);
+  const wsClient = new WebSocketClient(config, adapterExecutor);
 
   // Connect to Cloud backend
   await wsClient.connect();

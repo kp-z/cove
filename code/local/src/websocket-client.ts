@@ -6,7 +6,7 @@
 
 import WebSocket from 'ws';
 import { Config } from './config';
-import { TaskExecutor } from './task-executor';
+import { AdapterExecutor } from './adapter-executor';
 
 interface TRPCMessage {
   id: number | string;
@@ -34,7 +34,7 @@ export class WebSocketClient {
 
   constructor(
     private config: Config,
-    private taskExecutor: TaskExecutor
+    private adapterExecutor: AdapterExecutor
   ) {}
 
   async connect(): Promise<void> {
@@ -197,7 +197,7 @@ export class WebSocketClient {
     console.log(`📋 Received task: ${taskId}`);
 
     try {
-      const result = await this.taskExecutor.execute({
+      const result = await this.adapterExecutor.execute({
         taskId,
         realmId,
         agentId,
@@ -217,7 +217,7 @@ export class WebSocketClient {
   private handleTaskCancel(payload: any): void {
     const { taskId } = payload;
     console.log(`🛑 Cancelling task: ${taskId}`);
-    this.taskExecutor.cancelTask(taskId);
+    this.adapterExecutor.cancelTask(taskId);
   }
 
   private async sendTaskResult(
@@ -268,7 +268,7 @@ export class WebSocketClient {
               type: 'heartbeat',
               payload: {
                 status: 'online',
-                activeTaskCount: this.taskExecutor.getActiveTaskCount(),
+                activeTaskCount: this.adapterExecutor.getActiveTaskCount(),
                 timestamp: Date.now(),
               },
             },
