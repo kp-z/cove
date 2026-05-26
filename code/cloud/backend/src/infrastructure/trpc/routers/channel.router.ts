@@ -128,10 +128,12 @@ export const channelRouter = (channelService: ChannelService) =>
             console.log('[INFO] [DEBUG] Checking for existing DM channel', { agentId, userId: ctx.userId });
 
             // 使用优化的查询方法，直接在数据库层面查找
-            const existingDM = await channelService.getAgentDMChannel(agentId);
+            // 传递 userId 以确保只返回当前用户的 DM channel
+            const existingDM = await channelService.getAgentDMChannel(agentId, ctx.userId);
 
             console.log('[INFO] [DEBUG] Existing DM channel check result', {
               agentId,
+              userId: ctx.userId,
               found: !!existingDM,
               channelId: existingDM?.channelId,
               members: existingDM?.members.map(m => ({ memberId: m.memberId, memberType: m.memberType })),

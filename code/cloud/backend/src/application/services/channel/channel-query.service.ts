@@ -59,7 +59,7 @@ export class ChannelQueryService {
     return await this.channelRepository.findByMember(memberId);
   }
 
-  async getAgentDMChannel(agentId: string): Promise<ChannelEntity | null> {
-    return await this.channelRepository.findAgentDMChannel(agentId);
+  async getAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {
+    return await this.channelRepository.findAgentDMChannel(agentId, userId);
   }
 }

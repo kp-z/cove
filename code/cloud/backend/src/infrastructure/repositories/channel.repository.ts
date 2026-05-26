@@ -218,7 +218,7 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findAgentDMChannel(agentId: string): Promise<ChannelEntity | null> {
+  async findAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {
     try {
       // 查找 type='dm' 且 agentPool 只包含该 agent 的 channel
       const records = await this.prisma.channel.findMany({
@@ -228,7 +228,28 @@ export class ChannelRepository implements IChannelRepository {
         },
       });
 
-      // 如果找到多个，返回第一个（理论上应该只有一个）
+      // 如果提供了 userId，进一步过滤匹配该用户的 channel
+      if (userId && records.length > 0) {
+        const matchingRecords = records.filter(record => {
+          try {
+            const membersData = JSON.parse(record.membersData || '[]');
+            return membersData.some((m: any) => m.memberId === userId && m.memberType === 'human');
+          } catch {
+            return false;
+          }
+        });
+
+        if (matchingRecords.length > 0) {
+          if (matchingRecords.length > 1) {
+            this.logger.warn(`Found ${matchingRecords.length} DM channels for agent ${agentId} and user ${userId}, expected 1`);
+          }
+          return this.toDomain(matchingRecords[0] as unknown as ChannelDbRecord);
+        }
+
+        return null;
+      }
+
+      // 如果没有提供 userId，返回第一个（向后兼容）
       if (records.length > 0) {
         if (records.length > 1) {
           this.logger.warn(`Found ${records.length} DM channels for agent ${agentId}, expected 1`);
