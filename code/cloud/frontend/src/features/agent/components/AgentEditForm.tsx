@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Save, Check, Settings, Code } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
 import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { Badge } from '@/shared/components/ui/badge';
 import { PageShell } from '@/shared/components/layout/PageShell';
@@ -12,6 +11,7 @@ import { useRealm } from '@/lib/trpc/hooks/realm.hooks';
 import { trpcVanillaClient } from '@/lib/trpc/client';
 import { FileEditorWorkspace } from '@/features/file-editor';
 import { FileSystemClient } from '@/features/file-editor/clients/FileSystemClient';
+import { cn } from '@/shared/utils/cn';
 import { useAgentFormState, useAgentFormSubmit } from '../hooks';
 import {
   AgentBasicInfoSection,
@@ -91,10 +91,20 @@ export function AgentEditForm({ agent, onSaved }: AgentEditFormProps) {
                 />
               </div>
             )}
-            <Button onClick={onSave} disabled={!canSave}>
+            <button
+              onClick={onSave}
+              disabled={!canSave}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150',
+                'flex items-center gap-2',
+                canSave
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-white/[0.04] text-gray-500 cursor-not-allowed border border-white/[0.08]'
+              )}
+            >
               {saved ? <Check size={16} /> : <Save size={16} />}
               {saved ? 'Saved' : 'Save'}
-            </Button>
+            </button>
           </div>
         }
       />
