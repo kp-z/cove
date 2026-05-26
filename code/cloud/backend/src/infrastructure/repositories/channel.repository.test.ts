@@ -12,6 +12,7 @@ describe('ChannelRepository', () => {
   beforeEach(async () => {
     testDb = new TestDatabaseHelper();
     await testDb.setup();
+    await testDb.createTestRealm(); // Use helper method
 
     mockLogger = {
       info: vi.fn(),
@@ -29,6 +30,7 @@ describe('ChannelRepository', () => {
 
   const createTestChannel = (overrides?: Partial<any>): ChannelEntity => {
     return ChannelEntity.create({
+      realmId: 'test-realm',
       channelId: 'channel-1',
       name: 'test-channel',
       displayName: 'Test Channel',

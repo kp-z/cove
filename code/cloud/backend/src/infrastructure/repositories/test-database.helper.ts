@@ -76,6 +76,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Project" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "description" TEXT,
         "status" TEXT NOT NULL,
@@ -83,6 +84,7 @@ export class TestDatabaseHelper {
         "metadataPath" TEXT NOT NULL,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("ownerId") REFERENCES "User"("id")
       )
     `);
@@ -91,6 +93,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Channel" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "displayName" TEXT NOT NULL,
         "type" TEXT NOT NULL,
@@ -117,6 +120,7 @@ export class TestDatabaseHelper {
         "memberCount" INTEGER NOT NULL DEFAULT 0,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("projectId") REFERENCES "Project"("id"),
         FOREIGN KEY ("parentChannelId") REFERENCES "Channel"("id")
       )
@@ -142,6 +146,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Task" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "title" TEXT NOT NULL,
         "description" TEXT,
         "status" TEXT NOT NULL,
@@ -153,6 +158,7 @@ export class TestDatabaseHelper {
         "dueDate" DATETIME,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("projectId") REFERENCES "Project"("id")
       )
     `);
@@ -161,6 +167,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Workflow" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "type" TEXT NOT NULL,
         "status" TEXT NOT NULL,
@@ -168,6 +175,7 @@ export class TestDatabaseHelper {
         "definitionPath" TEXT NOT NULL,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("projectId") REFERENCES "Project"("id")
       )
     `);
@@ -176,6 +184,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Thread" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "channelId" TEXT NOT NULL,
         "rootMessageId" TEXT NOT NULL UNIQUE,
         "participants" TEXT NOT NULL,
@@ -184,6 +193,7 @@ export class TestDatabaseHelper {
         "lastReplyAt" DATETIME,
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE
       )
     `);
@@ -192,6 +202,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Agent" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "name" TEXT NOT NULL,
         "displayName" TEXT NOT NULL,
         "status" TEXT NOT NULL,
@@ -203,7 +214,8 @@ export class TestDatabaseHelper {
         "avatarSeed" TEXT,
         "avatarStyle" TEXT DEFAULT 'bottts',
         "createdBy" TEXT NOT NULL DEFAULT 'system',
-        "createdAt" DATETIME NOT NULL
+        "createdAt" DATETIME NOT NULL,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id")
       )
     `);
 
@@ -234,6 +246,7 @@ export class TestDatabaseHelper {
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Message" (
         "id" TEXT PRIMARY KEY,
+        "realmId" TEXT NOT NULL,
         "shortId" TEXT NOT NULL UNIQUE,
         "channelId" TEXT NOT NULL,
         "threadId" TEXT,
@@ -249,6 +262,7 @@ export class TestDatabaseHelper {
         "createdAt" DATETIME NOT NULL,
         "updatedAt" DATETIME NOT NULL,
         "deletedAt" DATETIME,
+        FOREIGN KEY ("realmId") REFERENCES "Realm"("id"),
         FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE,
         FOREIGN KEY ("threadId") REFERENCES "Message"("id")
       )
@@ -391,6 +405,47 @@ export class TestDatabaseHelper {
   /**
    * 清理测试数据库
    */
+  /**
+   * 创建测试用的 Realm（包括必需的 User）
+   */
+  async createTestRealm(realmId: string = 'test-realm', userId: string = 'user-1'): Promise<void> {
+    if (!this.prisma) {
+      throw new Error('Database not initialized');
+    }
+
+    // Create test user first
+    await this.prisma.user.create({
+      data: {
+        id: userId,
+        username: 'testuser',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        role: 'user',
+        status: 'active',
+        profilePath: '/metadata/user-1.json',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create test realm
+    await this.prisma.realm.create({
+      data: {
+        id: realmId,
+        name: realmId,
+        displayName: 'Test Realm',
+        ownerId: userId,
+        status: 'active',
+        visibility: 'public',
+        settings: '{}',
+        limits: '{}',
+        meta: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   async teardown(): Promise<void> {
     if (this.prisma) {
       await this.prisma.$disconnect();

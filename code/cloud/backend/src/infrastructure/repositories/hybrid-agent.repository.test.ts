@@ -18,6 +18,7 @@ describe('HybridAgentRepository', () => {
     console.log('🧪 Starting test suite...');
     testDb = new TestDatabaseHelper();
     await testDb.setup();
+    await testDb.createTestRealm(); // Use helper method
 
     testCoveRoot = path.join(process.cwd(), '.test-storage', `test-${Date.now()}`);
     await fs.mkdir(testCoveRoot, { recursive: true });
@@ -46,6 +47,7 @@ describe('HybridAgentRepository', () => {
 
   const createTestAgent = (overrides?: Partial<any>): AgentEntity => {
     return AgentEntity.create({
+      realmId: 'test-realm',
       agentId: 'agent-1',
       name: 'test-agent',
       displayName: 'Test Agent',
