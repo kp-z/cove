@@ -158,27 +158,35 @@ export function AvatarEditor({
         <button
           type="button"
           className={cn(
-            'relative group cursor-pointer rounded-full transition-all',
+            'relative group cursor-pointer transition-all',
             sizeClasses[size],
             className
           )}
         >
-          <div className="rounded-full border-2 border-white/10 group-hover:border-white/30 transition-colors">
+          {/* Avatar Container */}
+          <div className="relative w-full h-full rounded-full border-2 border-white/10 group-hover:border-blue-400/50 transition-all overflow-hidden">
             <Avatar
               avatarUrl={currentAvatar || avatarData.avatarUrl}
               name={name || avatarData.name}
               size={size}
             />
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-            <span className="text-xs text-white font-semibold">Edit</span>
+            {/* Hover Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col items-center gap-1">
+                <Upload className="w-4 h-4 text-white" />
+                <span className="text-xs text-white font-medium">Edit</span>
+              </div>
+            </div>
           </div>
         </button>
       </Popover.Trigger>
-      <Popover.Content className="w-72 p-4" align="start">
-        <div className="space-y-3">
+      <Popover.Content className="w-80 p-0" align="start">
+        <div className="p-4 space-y-4">
           {/* Title */}
-          <h3 className="text-sm font-semibold text-white">Choose Avatar</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Choose Avatar</h3>
+            <span className="text-xs text-gray-400">Click to select</span>
+          </div>
 
           {/* Hidden file input */}
           <input
@@ -192,28 +200,28 @@ export function AvatarEditor({
 
           {/* Avatar Grid: Upload + Presets */}
           {isLoading ? (
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 11 }).map((_, i) => (
+            <div className="grid grid-cols-6 gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="w-12 h-12 rounded-full bg-white/5 animate-pulse" />
               ))}
             </div>
           ) : (
-            <ScrollArea className="h-56">
-              <div className="grid grid-cols-5 gap-2 pr-2">
+            <ScrollArea className="h-64">
+              <div className="grid grid-cols-6 gap-3 pr-2">
                 {/* Upload Button - First Item */}
                 <button
                   type="button"
                   onClick={() => document.getElementById(`avatar-upload-${id}`)?.click()}
                   disabled={uploadMutation.isPending}
                   className={cn(
-                    'w-12 h-12 rounded-full border-2 border-dashed border-white/20',
-                    'hover:border-blue-400/50 hover:bg-white/5 transition-all',
-                    'flex items-center justify-center',
+                    'w-12 h-12 rounded-full border-2 border-dashed border-white/30',
+                    'hover:border-blue-400 hover:bg-blue-400/10 transition-all',
+                    'flex items-center justify-center group',
                     uploadMutation.isPending && 'opacity-50 cursor-not-allowed'
                   )}
                   title="Upload custom image"
                 >
-                  <Upload className="w-5 h-5 text-white/60" />
+                  <Upload className="w-5 h-5 text-white/60 group-hover:text-blue-400 transition-colors" />
                 </button>
 
                 {/* Preset Avatars */}
@@ -233,10 +241,10 @@ export function AvatarEditor({
                       disabled={setPresetMutation.isPending}
                       className={cn(
                         'relative w-12 h-12 rounded-full overflow-hidden border-2 transition-all',
-                        'hover:scale-105 hover:border-blue-400/50',
-                        isCurrent && 'border-blue-400 ring-2 ring-blue-400/20',
-                        isSelected && 'border-blue-400 ring-2 ring-blue-400/20',
-                        !isCurrent && !isSelected && 'border-white/10'
+                        'hover:scale-110 hover:shadow-lg',
+                        isCurrent && 'border-blue-400 ring-2 ring-blue-400/30 shadow-lg shadow-blue-400/20',
+                        isSelected && 'border-blue-400 ring-2 ring-blue-400/30',
+                        !isCurrent && !isSelected && 'border-white/20 hover:border-blue-400/50'
                       )}
                       title={preset.name}
                     >
@@ -247,9 +255,9 @@ export function AvatarEditor({
                         loading="lazy"
                       />
                       {(isCurrent || isSelected) && (
-                        <div className="absolute inset-0 bg-blue-400/20 flex items-center justify-center">
-                          <div className="w-4 h-4 rounded-full bg-blue-400 flex items-center justify-center">
-                            <Check className="w-2.5 h-2.5 text-white" />
+                        <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
                           </div>
                         </div>
                       )}
@@ -259,6 +267,11 @@ export function AvatarEditor({
               </div>
             </ScrollArea>
           )}
+
+          {/* Hint Text */}
+          <p className="text-xs text-center text-gray-400 pt-2 border-t border-white/10">
+            Upload your own image or choose from presets
+          </p>
         </div>
       </Popover.Content>
     </Popover>
