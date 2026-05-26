@@ -87,14 +87,15 @@ describe('ProjectService', () => {
       expect(result.ownerId).toBe(dto.ownerId);
       expect(result.status).toBe('active');
       expect(mockProjectRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: dto.name,
-          description: dto.description,
-          owner_id: dto.ownerId,
-          status: 'active',
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the saved entity has correct properties
+      const savedEntity = vi.mocked(mockProjectRepository.save).mock.calls[0][0];
+      expect(savedEntity.name).toBe(dto.name);
+      expect(savedEntity.description).toBe(dto.description);
+      expect(savedEntity.ownerId).toBe(dto.ownerId);
+      expect(savedEntity.status).toBe('active');
+      expect(savedEntity.realmId).toBe('test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.created',
@@ -254,11 +255,12 @@ describe('ProjectService', () => {
 
       expect(result.status).toBe('archived');
       expect(mockProjectRepository.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 'archived',
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the updated entity has correct properties
+      const updatedEntity = vi.mocked(mockProjectRepository.update).mock.calls[0][0];
+      expect(updatedEntity.status).toBe('archived');
+      expect(updatedEntity.realmId).toBe('test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.archived',
@@ -289,11 +291,12 @@ describe('ProjectService', () => {
 
       expect(result.status).toBe('active');
       expect(mockProjectRepository.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 'active',
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the updated entity has correct properties
+      const updatedEntity = vi.mocked(mockProjectRepository.update).mock.calls[0][0];
+      expect(updatedEntity.status).toBe('active');
+      expect(updatedEntity.realmId).toBe('test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.activated',

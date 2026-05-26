@@ -105,12 +105,13 @@ describe('ThreadService', () => {
       expect(result.channelId).toBe('channel-1');
       expect(result.participants).toContain('user-1');
       expect(mockThreadRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          thread_id: 'msg-1',
-          channel_id: 'channel-1',
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the saved entity has correct properties
+      const savedEntity = vi.mocked(mockThreadRepository.save).mock.calls[0][0];
+      expect(savedEntity.threadId).toBe('msg-1');
+      expect(savedEntity.channelId).toBe('channel-1');
+      expect(savedEntity.realmId).toBe('test-server-id');
     });
 
     it('should throw RootMessageNotFoundError when root message not found', async () => {
@@ -266,12 +267,14 @@ describe('ThreadService', () => {
       });
 
       expect(mockThreadRepository.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          participants: expect.arrayContaining(['user-1', 'user-2']),
-          reply_count: 1,
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the updated entity has correct properties
+      const updatedEntity = vi.mocked(mockThreadRepository.update).mock.calls[0][0];
+      expect(updatedEntity.participants).toContain('user-1');
+      expect(updatedEntity.participants).toContain('user-2');
+      expect(updatedEntity.replyCount).toBe(1);
+      expect(updatedEntity.realmId).toBe('test-server-id');
     });
   });
 

@@ -86,7 +86,7 @@ describe('TaskAssignmentService', () => {
           type: 'agent',
         })
       );
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.assigned',
@@ -113,7 +113,7 @@ describe('TaskAssignmentService', () => {
 
       expect(result).toBe(assignedTask);
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(assignedTask);
     });
 
     it('should throw error when task not found', async () => {
@@ -201,7 +201,7 @@ describe('TaskAssignmentService', () => {
       expect(result).toBe(claimedTask);
       expect(mockTask.assignTo).toHaveBeenCalled();
       expect(assignedTask.start).toHaveBeenCalled();
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(claimedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(claimedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.claimed',
@@ -245,7 +245,7 @@ describe('TaskAssignmentService', () => {
 
       expect(result).toBe(unclaimedTask);
       expect(mockTask.unclaim).toHaveBeenCalledWith('user-123');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(unclaimedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(unclaimedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.unclaimed',
@@ -292,7 +292,7 @@ describe('TaskAssignmentService', () => {
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-123');
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-456');
       expect(mockTask.addDependency).toHaveBeenCalledWith('task-456');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.dependency_added',
@@ -361,7 +361,7 @@ describe('TaskAssignmentService', () => {
 
       expect(result).toBe(updatedTask);
       expect(mockTask.removeDependency).toHaveBeenCalledWith('task-456');
-      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask, 'test-server-id');
+      expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.dependency_removed',
