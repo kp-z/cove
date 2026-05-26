@@ -522,22 +522,40 @@ export class TestDatabaseHelper {
   }
 
   /**
-   * 创建测试 Realm
+   * 创建测试用的 Realm（包括必需的 User）
    */
-  async createTestRealm(realmId: string = 'test-realm-1'): Promise<{ id: string }> {
+  async createTestRealm(realmId: string = 'test-realm', userId: string = 'user-1'): Promise<void> {
     if (!this.prisma) {
-      throw new Error('Database not initialized. Call setup() first.');
+      throw new Error('Database not initialized');
     }
 
-    return await this.prisma.realm.create({
+    // Create test user first
+    await this.prisma.user.create({
+      data: {
+        id: userId,
+        username: 'testuser',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        role: 'user',
+        status: 'active',
+        profilePath: '/metadata/user-1.json',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create test realm
+    await this.prisma.realm.create({
       data: {
         id: realmId,
-        name: `Test Realm ${realmId}`,
-        displayName: `Test Realm ${realmId}`,
-        type: 'local',
+        name: realmId,
+        displayName: 'Test Realm',
+        ownerId: userId,
         status: 'active',
-        ownerId: 'test-user-1',
-        metadataPath: `/realms/${realmId}/metadata.json`,
+        visibility: 'public',
+        settings: '{}',
+        limits: '{}',
+        meta: '{}',
         createdAt: new Date(),
         updatedAt: new Date(),
       },

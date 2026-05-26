@@ -101,6 +101,23 @@ describe('HybridProjectRepository Integration Tests', () => {
       },
     });
 
+    // Create test realm
+    await dbHelper.getPrisma().realm.create({
+      data: {
+        id: 'test-realm',
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'user-1',
+        status: 'active',
+        visibility: 'public',
+        settings: '{}',
+        limits: '{}',
+        meta: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
     await dbHelper.getPrisma().user.create({
       data: {
         id: 'owner-2',
@@ -119,6 +136,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('save', () => {
     it('should save project to database and storage', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-1',
         name: 'Test Project',
         displayName: 'Test Project Display',
@@ -152,6 +170,7 @@ describe('HybridProjectRepository Integration Tests', () => {
 
     it('should save project without description', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-2',
         name: 'No Description Project',
         displayName: 'No Desc',
@@ -179,6 +198,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('findById', () => {
     it('should find project by id', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-3',
         name: 'Find Project',
         displayName: 'Find Me',
@@ -215,6 +235,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('findByOwner', () => {
     it('should find all projects by owner', async () => {
       const project1 = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-4',
         name: 'Owner Project 1',
         displayName: 'OP1',
@@ -228,6 +249,7 @@ describe('HybridProjectRepository Integration Tests', () => {
       });
 
       const project2 = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-5',
         name: 'Owner Project 2',
         displayName: 'OP2',
@@ -241,6 +263,7 @@ describe('HybridProjectRepository Integration Tests', () => {
       });
 
       const project3 = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-6',
         name: 'Other Owner Project',
         displayName: 'OOP',
@@ -277,6 +300,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('findByStatus', () => {
     it('should find all projects with specific status', async () => {
       const activeProject = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-7',
         name: 'Active Project',
         displayName: 'Active',
@@ -290,6 +314,7 @@ describe('HybridProjectRepository Integration Tests', () => {
       });
 
       const archivedProject = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-8',
         name: 'Archived Project',
         displayName: 'Archived',
@@ -325,6 +350,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('findAll', () => {
     it('should find all projects', async () => {
       const project1 = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-9',
         name: 'Project 1',
         displayName: 'P1',
@@ -338,6 +364,7 @@ describe('HybridProjectRepository Integration Tests', () => {
       });
 
       const project2 = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-10',
         name: 'Project 2',
         displayName: 'P2',
@@ -373,6 +400,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('update', () => {
     it('should update project in database and storage', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-11',
         name: 'Update Project',
         displayName: 'Update',
@@ -392,6 +420,7 @@ describe('HybridProjectRepository Integration Tests', () => {
 
       // Update project
       const updatedProject = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-11',
         name: 'Updated Project',
         displayName: 'Updated Display',
@@ -425,6 +454,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('delete', () => {
     it('should delete project from database and storage', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-12',
         name: 'Delete Project',
         displayName: 'Delete',
@@ -463,6 +493,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('exists', () => {
     it('should return true for existing project', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-13',
         name: 'Exists Project',
         displayName: 'Exists',
@@ -497,7 +528,8 @@ describe('HybridProjectRepository Integration Tests', () => {
     it('should handle concurrent saves', async () => {
       const projects = Array.from({ length: 5 }, (_, i) =>
         ProjectEntity.create({
-          projectId: `concurrent-${i}`,
+          realmId: 'test-realm',
+        projectId: `concurrent-${i}`,
           name: `Concurrent Project ${i}`,
           displayName: `CP${i}`,
           ownerId: 'user-1',
@@ -524,6 +556,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   describe('transaction consistency', () => {
     it('should maintain consistency between database and storage', async () => {
       const project = ProjectEntity.create({
+        realmId: 'test-realm',
         projectId: 'proj-14',
         name: 'Consistent Project',
         displayName: 'Consistent',

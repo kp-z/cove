@@ -73,6 +73,7 @@ describe('HybridMessageRepository', () => {
 
   const createTestMessage = (overrides?: Partial<any>): MessageEntity => {
     return MessageEntity.create({
+      realmId: 'test-realm-1',
       messageId: 'msg-1',
       msgShortId: 'abc123',
       senderId: 'user-1',
