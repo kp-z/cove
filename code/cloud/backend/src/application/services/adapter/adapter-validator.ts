@@ -77,10 +77,21 @@ export class AdapterValidator implements IAdapterValidator {
       let duplicate;
 
       if (draft.type === 'claude-code-cli') {
-        // Check if same CLI path exists
-        duplicate = sameTypeAndScope.find(
-          (a) => a.type === 'claude-code-cli' && a.config.cli_path === draft.config.cli_path
-        );
+        // Check for CC-Switch profile ID first (if present)
+        if (draft.config.cc_switch?.profile_id) {
+          duplicate = sameTypeAndScope.find(
+            (a) =>
+              a.type === 'claude-code-cli' &&
+              a.config.cc_switch?.profile_id === draft.config.cc_switch.profile_id
+          );
+        }
+
+        // Fallback: Check if same CLI path exists
+        if (!duplicate) {
+          duplicate = sameTypeAndScope.find(
+            (a) => a.type === 'claude-code-cli' && a.config.cli_path === draft.config.cli_path
+          );
+        }
       } else if (draft.type === 'anthropic-api') {
         // Check if same API key or base URL exists
         duplicate = sameTypeAndScope.find(

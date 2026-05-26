@@ -87,6 +87,7 @@ export interface IAdapterDetector {
  * Adapter Generator Interface
  *
  * Generates adapter configuration based on detection results.
+ * Can return single or multiple adapter configurations (for multi-profile support).
  */
 export interface IAdapterGenerator {
   /**
@@ -95,12 +96,13 @@ export interface IAdapterGenerator {
   readonly type: AdapterType;
 
   /**
-   * Generate adapter configuration
+   * Generate adapter configuration(s)
+   * Returns single draft or array of drafts for multi-profile scenarios
    */
   generate(
     detection: DetectionResult,
     context: GenerationContext
-  ): Promise<AdapterConfigDraft>;
+  ): Promise<AdapterConfigDraft | AdapterConfigDraft[]>;
 }
 
 /**
