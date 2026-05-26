@@ -2,6 +2,7 @@ import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { ILogger } from '../../application/interfaces/logger.interface';
 import type { AuthService } from '../../application/services/auth/auth.service';
+import type { IRealmMemberVerificationService } from '../../application/services/realm/realm-member-verification.service';
 
 export interface Context {
   realmId?: string;
@@ -9,6 +10,7 @@ export interface Context {
   userType?: 'human' | 'agent';
   userRole?: string;
   logger: ILogger;
+  realmMemberVerification: IRealmMemberVerificationService;
   req: IncomingMessage;
   res: ServerResponse;
 }
@@ -16,6 +18,7 @@ export interface Context {
 export interface CreateContextOptions {
   logger: ILogger;
   authService: AuthService;
+  realmMemberVerification: IRealmMemberVerificationService;
 }
 
 export function createContext(opts: CreateContextOptions) {
@@ -35,6 +38,7 @@ export function createContext(opts: CreateContextOptions) {
         userId: undefined,
         userType: 'human',
         logger: opts.logger,
+        realmMemberVerification: opts.realmMemberVerification,
         req,
         res,
       };
@@ -55,6 +59,7 @@ export function createContext(opts: CreateContextOptions) {
           userType: 'human',
           userRole: payload.role,
           logger: opts.logger,
+          realmMemberVerification: opts.realmMemberVerification,
           req,
           res,
         };
@@ -73,6 +78,7 @@ export function createContext(opts: CreateContextOptions) {
       userId,
       userType: userType || 'human',
       logger: opts.logger,
+      realmMemberVerification: opts.realmMemberVerification,
       req,
       res,
     };

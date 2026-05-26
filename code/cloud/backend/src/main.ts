@@ -84,6 +84,7 @@ import { FileSystemAdapterConfigStore } from './infrastructure/persistence/file-
 import { FileLockManager } from './application/services/lock/file-lock-manager.service';
 import { AuditLogger } from './application/services/audit/audit-logger.service';
 import { FileSystemAuditLogStore } from './application/services/audit/file-system-audit-log-store';
+import { RealmMemberVerificationService } from './application/services/realm/realm-member-verification.service';
 
 // Interfaces
 import { ILogger, LogContext, LogLevel } from './application/interfaces/index';
@@ -394,6 +395,11 @@ function initializeDependencies() {
     serverMemberRepository
   );
 
+  const realmMemberVerification = new RealmMemberVerificationService(
+    serverMemberRepository,
+    logger
+  );
+
   /**
    * Event Lifecycle:
    * - message.created: Message entity created and persisted (human or agent)
@@ -423,6 +429,7 @@ function initializeDependencies() {
     agentRuntimeService,
     adapterService,
     authService,
+    realmMemberVerification,
     auditService,
     avatarService,
     channelService,
@@ -446,6 +453,7 @@ function createStandaloneServer(deps: {
   agentRuntimeService: AgentRuntimeService;
   adapterService: AdapterService;
   authService: AuthService;
+  realmMemberVerification: RealmMemberVerificationService;
   auditService: AuditService;
   avatarService: AvatarService;
   channelService: ChannelService;
@@ -485,7 +493,11 @@ function createStandaloneServer(deps: {
   // Create tRPC HTTP handler
   const trpcHandler = createHTTPHandler({
     router: appRouter,
-    createContext: createContext({ logger: deps.logger, authService: deps.authService }),
+    createContext: createContext({
+      logger: deps.logger,
+      authService: deps.authService,
+      realmMemberVerification: deps.realmMemberVerification,
+    }),
   });
 
   // Create HTTP server with custom request handler
@@ -730,6 +742,7 @@ async function startServer() {
           userId: userId || undefined,
           userType: userType || 'human',
           logger: deps.logger,
+          realmMemberVerification: deps.realmMemberVerification,
           req,
           res,
         };

@@ -19,7 +19,7 @@ export const router = t.router;
 export const publicProcedure = t.procedure;
 export const middleware = t.middleware;
 
-// RealmContext injection middleware
+// RealmContext injection middleware with member verification
 const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
   // Debug logging
   console.log('[RealmContext Middleware]', {
@@ -31,6 +31,20 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
 
   // Inject RealmContext into AsyncLocalStorage if realmId and userId are available
   if (ctx.realmId && ctx.userId) {
+    // Verify that the user is a member of the realm
+    const isMember = await ctx.realmMemberVerification.isMember(ctx.userId, ctx.realmId);
+
+    if (!isMember) {
+      console.log('[RealmContext Middleware] Access denied - user is not a member of realm', {
+        userId: ctx.userId,
+        realmId: ctx.realmId
+      });
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'You are not a member of this realm',
+      });
+    }
+
     const realmContext = RealmContext.create(ctx.realmId, ctx.userId);
     return serverContextStore.run(realmContext, () => next());
   }
