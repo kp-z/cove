@@ -1,10 +1,12 @@
-import { Settings } from 'lucide-react';
+import { Settings, ChevronDown } from 'lucide-react';
 import { getAvatarUrl } from '@/shared/utils/avatar';
 import type { Realm } from '@/lib/trpc-types';
 
 interface RealmInfoCardProps {
   realm: Realm;
+  allRealms: Realm[];
   onEdit?: () => void;
+  onSwitch?: (realmId: string) => void;
   canEdit: boolean;
 }
 
@@ -19,7 +21,7 @@ const VISIBILITY_BADGE: Record<string, string> = {
   private: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
 };
 
-export function RealmInfoCard({ realm, onEdit, canEdit }: RealmInfoCardProps) {
+export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, canEdit }: RealmInfoCardProps) {
   return (
     <div className="p-6 bg-white/[0.02] border border-white/[0.08] rounded-xl">
       <div className="flex items-start gap-4">
@@ -38,10 +40,30 @@ export function RealmInfoCard({ realm, onEdit, canEdit }: RealmInfoCardProps) {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-semibold text-white truncate">
+          {/* Realm Selector */}
+          {allRealms.length > 1 && onSwitch ? (
+            <div className="relative mb-2">
+              <select
+                value={realm.realm_id}
+                onChange={(e) => onSwitch(e.target.value)}
+                className="w-full appearance-none bg-white/[0.05] border border-white/[0.08] rounded-lg px-3 py-2 pr-8 text-white text-lg font-semibold focus:outline-none focus:border-blue-500/50 cursor-pointer hover:bg-white/[0.08] transition-colors"
+              >
+                {allRealms.map((r) => (
+                  <option key={r.realm_id} value={r.realm_id} className="bg-[#1a1a1a]">
+                    {r.display_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60 pointer-events-none" />
+            </div>
+          ) : (
+            <h3 className="text-xl font-semibold text-white truncate mb-2">
               {realm.display_name}
             </h3>
+          )}
+
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-2">
             <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded ${STATUS_BADGE[realm.status] || STATUS_BADGE.active}`}>
               {realm.status.toUpperCase()}
             </span>
@@ -49,6 +71,7 @@ export function RealmInfoCard({ realm, onEdit, canEdit }: RealmInfoCardProps) {
               {realm.visibility.toUpperCase()}
             </span>
           </div>
+
           {realm.description && (
             <p className="text-sm text-white/60 mb-3 line-clamp-2">
               {realm.description}

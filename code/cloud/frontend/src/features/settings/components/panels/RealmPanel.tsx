@@ -74,7 +74,10 @@ export function RealmPanel() {
 
   const handleRealmSwitch = (realmId: string) => {
     setCurrentRealmId(realmId);
+    // Invalidate all queries to refetch data for the new realm
     utils.invalidate();
+    // Reload the page to ensure all components use the new realm context
+    window.location.reload();
   };
 
   const handleSave = (data: RealmUpdateData) => {
@@ -134,22 +137,13 @@ export function RealmPanel() {
         )}
       </div>
 
-      {/* Realm Switcher */}
-      {allRealms.length > 1 && (
-        <SettingsCard title="Switch Realm" description="Select a different workspace">
-          <RealmSwitcher
-            realms={allRealms}
-            currentRealmId={currentRealmId || ''}
-            onSwitch={handleRealmSwitch}
-          />
-        </SettingsCard>
-      )}
-
       {/* Current Realm Info */}
       {currentRealm && (
         <RealmInfoCard
           realm={currentRealm}
+          allRealms={allRealms}
           onEdit={canEdit ? () => setIsEditDialogOpen(true) : undefined}
+          onSwitch={allRealms.length > 1 ? handleRealmSwitch : undefined}
           canEdit={canEdit}
         />
       )}

@@ -91,6 +91,18 @@ export interface ClaudeCodeCLIAdapterConfig extends BaseAdapterConfig {
       path: string;
     }>;
     retry?: RetryConfig;
+    // CC-Switch profile metadata (optional)
+    cc_switch?: {
+      profile_id: string;
+      profile_name: string;
+      is_current: boolean;
+    };
+    // Environment variables for this profile (optional)
+    env?: {
+      ANTHROPIC_AUTH_TOKEN?: string;
+      ANTHROPIC_BASE_URL?: string;
+      ANTHROPIC_MODEL?: string;
+    };
   };
 }
 

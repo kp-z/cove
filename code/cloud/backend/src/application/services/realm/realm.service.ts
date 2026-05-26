@@ -37,6 +37,7 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { getRealmContext } from '../../context/realm-context-store';
+import { AdapterBootstrapService } from '../adapter/adapter-bootstrap.service';
 
 export interface CreateRealmDTO {
   readonly name: string;
@@ -83,7 +84,8 @@ export class RealmService {
     private readonly serverMemberRepository: IRealmMemberRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
-    private readonly agentRepository?: IAgentRepository
+    private readonly agentRepository?: IAgentRepository,
+    private readonly adapterBootstrapService?: AdapterBootstrapService
   ) {}
 
   async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
@@ -155,6 +157,28 @@ export class RealmService {
 
     // Auto-add platform agent (agent-zhang) as admin
     await this.addPlatformAgentToRealm(realmId);
+
+    // Auto-bootstrap adapters (CC-Switch profiles, etc.)
+    if (this.adapterBootstrapService) {
+      try {
+        this.logger.info('Bootstrapping adapters for new realm', { realmId });
+        const bootstrapResult = await this.adapterBootstrapService.bootstrap(
+          realmId,
+          dto.ownerId,
+          'system', // deviceId - use 'system' for realm initialization
+          'System'  // deviceName
+        );
+        this.logger.info('Adapter bootstrap completed', {
+          realmId,
+          created: bootstrapResult.created.length,
+          skipped: bootstrapResult.skipped.length,
+          errors: bootstrapResult.errors.length,
+        });
+      } catch (error) {
+        // Log error but don't fail realm creation
+        this.logger.error('Failed to bootstrap adapters', error as Error, { realmId });
+      }
+    }
 
     await this.publishEvent({
       eventId: this.generateEventId(),
