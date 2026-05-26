@@ -74,7 +74,10 @@ export function RealmPanel() {
 
   const handleRealmSwitch = (realmId: string) => {
     setCurrentRealmId(realmId);
+    // Invalidate all queries to refetch data for the new realm
     utils.invalidate();
+    // Reload the page to ensure all components use the new realm context
+    window.location.reload();
   };
 
   const handleSave = (data: RealmUpdateData) => {
