@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useChannel } from '@/lib/trpc/hooks/channel.hooks';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { ChannelEditForm } from './ChannelEditForm';
 
@@ -19,7 +19,7 @@ export default function ChannelEditPage() {
   });
 
   if (!isCreateMode) {
-    if (isLoading) return <PageLoader />;
+    if (isLoading) return <ContentLoader />;
     if (error || !channel) {
       return (
         <PageError

@@ -13,7 +13,7 @@
 
 import { useState, useMemo } from 'react';
 import { MessageSquare, Image as ImageIcon, File, AlertCircle, MessageCircle } from 'lucide-react';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useNodeRegistry } from './hooks/useNodeRegistry';
 import { nodeRegistry, type TimelineNode, type NodeContext } from './NodeRegistry';
@@ -187,7 +187,7 @@ export function Timeline({
   );
 
   // 条件渲染
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <ContentLoader />;
   if (error) return <PageError message={error.message || 'Failed to load timeline'} />;
 
   return (

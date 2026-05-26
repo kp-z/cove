@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { AgentEditForm } from './AgentEditForm';
 
@@ -18,7 +18,7 @@ export default function AgentEditPage() {
   });
 
   // Loading state only applies to edit mode
-  if (!isCreateMode && isLoading) return <PageLoader />;
+  if (!isCreateMode && isLoading) return <ContentLoader />;
   if (!isCreateMode && (error || !agent)) {
     return <PageError message={error?.message ?? t('error.notFound', { resource: 'Agent' })} backTo="/agents" />;
   }

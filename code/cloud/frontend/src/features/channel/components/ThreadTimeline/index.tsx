@@ -1,6 +1,6 @@
 import { TimelineItem } from './TimelineItem';
 import { ThreadTimelineEmpty } from './ThreadTimelineEmpty';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useChannelThreads } from '@/lib/trpc/hooks/thread.hooks';
 
@@ -53,7 +53,7 @@ function groupThreadsByDate(threads: Thread[]) {
 export function ThreadTimeline({ channelId, selectedThreadId, onThreadSelect }: ThreadTimelineProps) {
   const { data: response, isLoading, error } = useChannelThreads(channelId);
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <ContentLoader />;
   if (error) return <PageError message="Failed to load threads" />;
 
   const threads = response?.threads || [];

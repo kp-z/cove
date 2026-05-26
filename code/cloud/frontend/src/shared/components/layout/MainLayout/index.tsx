@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from '../Sidebar';
 import { TopBar } from '../TopBar';
 import { MobileNav } from '../MobileNav';
+import { ContentLoader } from '../ContentLoader';
 import { useSidebar } from '../../../hooks/useSidebar';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
@@ -95,16 +96,7 @@ export function MainLayout() {
         <TopBar />
 
         <div className="flex-1 flex overflow-hidden relative">
-          <Suspense
-            fallback={
-              <div className="h-full flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#2a2d3e] border-t-[#3b82f6]"></div>
-                  <p className="mt-4 text-[#9ca3af]">Loading...</p>
-                </div>
-              </div>
-            }
-          >
+          <Suspense fallback={<ContentLoader text="Loading..." />}>
             <div
               className="flex-1 overflow-hidden transition-all duration-300"
               style={{ marginRight: `${outletMarginRight}px` }}

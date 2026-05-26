@@ -1,7 +1,7 @@
 import { PinnedChannels } from './PinnedChannels';
 import { ChannelListItem } from './ChannelListItem';
 import { ChannelListEmpty } from './ChannelListEmpty';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { useTranslation } from 'react-i18next';
 import { useChannelListLogic } from './hooks/useChannelListLogic';
@@ -48,8 +48,8 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
     }
     if (channels.length === 0) return <ChannelListEmpty />;
   } else {
-    // Full mode: use PageLoader/PageError
-    if (isLoading) return <PageLoader />;
+    // Full mode: use ContentLoader/PageError
+    if (isLoading) return <ContentLoader />;
     if (error) return <PageError message="Failed to load channels" />;
     if (channels.length === 0) return <ChannelListEmpty />;
   }

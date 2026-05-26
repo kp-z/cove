@@ -10,7 +10,7 @@ import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
-import { PageLoader } from '@/shared/components/layout/PageLoader';
+import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
@@ -144,7 +144,7 @@ export default function AgentPage() {
     );
   }
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <ContentLoader />;
   if (error) return <PageError message={t('common:error.loadFailed', { message: error.message })} />;
 
   return (
