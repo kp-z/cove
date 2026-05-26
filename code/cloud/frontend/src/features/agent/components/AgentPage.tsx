@@ -16,6 +16,7 @@ import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useCreateChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { useCurrentUser } from '@/core/auth';
+import { trpc } from '@/lib/trpc';
 import { AgentCard } from './AgentCard';
 import type { Agent } from '@/lib/trpc-types';
 
@@ -33,6 +34,7 @@ export default function AgentPage() {
   const deleteAgent = useDeleteAgent();
   const createChannel = useCreateChannel();
   const { userId } = useCurrentUser();
+  const utils = trpc.useUtils();
 
   // Backend returns { agents: [...], total: number }
   // Wrap in useMemo to prevent dependency changes in other useMemo hooks
