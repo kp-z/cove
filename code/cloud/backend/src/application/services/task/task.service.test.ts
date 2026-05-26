@@ -103,14 +103,15 @@ describe('TaskService', () => {
       expect(result.priority).toBe(dto.priority);
       expect(result.status).toBe('todo');
       expect(mockTaskRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: dto.title,
-          description: dto.description,
-          priority: dto.priority,
-          status: 'todo',
-          realm_id: 'test-server-id',
-        })
+        expect.any(Object)
       );
+      // Verify the saved entity has correct properties
+      const savedEntity = vi.mocked(mockTaskRepository.save).mock.calls[0][0];
+      expect(savedEntity.title).toBe(dto.title);
+      expect(savedEntity.description).toBe(dto.description);
+      expect(savedEntity.priority).toBe(dto.priority);
+      expect(savedEntity.status).toBe('todo');
+      expect(savedEntity.realmId).toBe('test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.created',
