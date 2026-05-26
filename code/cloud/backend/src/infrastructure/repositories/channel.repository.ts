@@ -190,6 +190,8 @@ export class ChannelRepository implements IChannelRepository {
 
   async findByMember(memberId: string): Promise<ChannelEntity[]> {
     try {
+      this.logger.debug('[DEBUG] Finding channels by member', { memberId });
+
       const records = await this.prisma.channel.findMany({
         where: {
           membersData: {
@@ -197,6 +199,16 @@ export class ChannelRepository implements IChannelRepository {
           },
         },
         orderBy: { name: 'asc' },
+      });
+
+      this.logger.debug('[DEBUG] Found channels by member', {
+        memberId,
+        channelCount: records.length,
+        channels: records.map(r => ({
+          id: r.id,
+          name: r.name,
+          membersData: r.membersData,
+        })),
       });
 
       return records.map(r => this.toDomain(r as unknown as ChannelDbRecord));
@@ -247,6 +259,13 @@ export class ChannelRepository implements IChannelRepository {
   async save(channel: ChannelEntity, realmId: string): Promise<void> {
     try {
       const dbRecord = this.toDatabase(channel);
+
+      this.logger.debug('[DEBUG] Saving channel to database', {
+        channelId: channel.channelId,
+        realmId,
+        membersData: dbRecord.membersData,
+        memberCount: channel.members.length,
+      });
 
       await this.prisma.channel.create({
         data: {

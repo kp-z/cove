@@ -58,6 +58,17 @@ export class ChannelCrudService {
     // 验证 DM channel 规则
     const allMemberIds = [...(dto.memberIds || []), ...(dto.agentIds || [])];
 
+    this.logger.debug('[DEBUG] Creating DM channel', {
+      channelId,
+      dto: {
+        name: dto.name,
+        createdBy: dto.createdBy,
+        memberIds: dto.memberIds,
+        agentIds: dto.agentIds,
+      },
+      allMemberIds,
+    });
+
     if (allMemberIds.length !== 2) {
       throw new Error(`DM channel must have exactly 2 members, got ${allMemberIds.length}`);
     }
@@ -85,6 +96,15 @@ export class ChannelCrudService {
       },
       name: dto.name,
       description: dto.description,
+    });
+
+    this.logger.debug('[DEBUG] DM channel entity created', {
+      channelId: channel.channelId,
+      members: channel.members.map(m => ({
+        memberId: m.memberId,
+        memberType: m.memberType,
+        role: m.role,
+      })),
     });
 
     await this.channelRepository.save(channel, realmId);
