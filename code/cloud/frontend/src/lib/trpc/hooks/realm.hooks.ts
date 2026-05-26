@@ -46,3 +46,26 @@ export function useUpdateRealm() {
     },
   });
 }
+
+export function useCreateRealm() {
+  const utils = trpc.useUtils();
+
+  return trpc.realm.create.useMutation({
+    onSuccess: () => {
+      utils.realm.list.invalidate();
+      notify.toast.success('Realm created', 'The new realm has been created successfully');
+    },
+    onError: (error) => {
+      notify.toast.error('Failed to create realm', error.message || 'An unexpected error occurred');
+    },
+  });
+}
+
+export function useRealmMembers(realmId: string, options?: { enabled?: boolean }) {
+  return trpc.realm.getMembers.useQuery(
+    { realmId },
+    {
+      enabled: options?.enabled !== undefined ? options.enabled : !!realmId,
+    }
+  );
+}
