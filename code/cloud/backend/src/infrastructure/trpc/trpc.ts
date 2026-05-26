@@ -67,21 +67,38 @@ const loggerMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
   return result;
 });
 
-// Protected procedure - 需要认证
+// Protected procedure - requires authentication and realm membership
 export const protectedProcedure = t.procedure
   .use(realmContextMiddleware)
   .use(loggerMiddleware)
   .use(async ({ ctx, next }) => {
-    // 当前系统无认证，暂时允许所有请求
-    // TODO: 实现真正的认证检查
+    // Check userId is present
     if (!ctx.userId) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'User ID is required',
       });
     }
+
+    // Check realmId is present
+    if (!ctx.realmId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Realm ID is required',
+      });
+    }
+
+    // At this point, realmContextMiddleware has already verified:
+    // 1. User is a member of the realm (via realmMemberVerification)
+    // 2. RealmContext has been injected into AsyncLocalStorage
+    // So we can safely proceed
+
     return next({ ctx });
   });
 
-// Public procedure with logging and RealmContext injection
-export const procedure = publicProcedure.use(realmContextMiddleware).use(loggerMiddleware);
+// Realm procedure - alias for protectedProcedure (requires realm context)
+export const realmProcedure = protectedProcedure;
+
+// Public procedure with logging and optional RealmContext injection
+// Use this for operations that don't require realm membership (e.g., login, realm list)
+export const procedure = publicProcedure.use(loggerMiddleware);
