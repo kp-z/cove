@@ -73,7 +73,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
     <div className={containerClass}>
       {pinnedChannels.length > 0 && (
         <div className={sectionClass}>
-          <h3 className={headerClass}>{t('list.pinned')}</h3>
+          {!compact && <h3 className={headerClass}>{t('list.pinned')}</h3>}
           {compact ? (
             <div className={listClass}>
               {pinnedChannels.map((channel) => (
@@ -87,6 +87,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
                   onMarkAsRead={handleMarkAsRead}
                   onOpenSettings={handleOpenSettings}
                   onLeaveChannel={handleLeaveChannel}
+                  compact={true}
                 />
               ))}
             </div>
@@ -120,6 +121,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
                 onMarkAsRead={handleMarkAsRead}
                 onOpenSettings={handleOpenSettings}
                 onLeaveChannel={handleLeaveChannel}
+                compact={compact}
               />
             ))}
           </div>

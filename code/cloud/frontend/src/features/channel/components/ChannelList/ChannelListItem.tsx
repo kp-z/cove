@@ -17,19 +17,21 @@ interface ChannelListItemProps {
   onMarkAsRead?: (channel: ChannelEntity) => void;
   onOpenSettings?: (channel: ChannelEntity) => void;
   onLeaveChannel?: (channel: ChannelEntity) => void;
+  compact?: boolean; // 紧凑模式：缩小图标和字体
 }
 
-function getChannelIcon(type: ChannelType) {
+function getChannelIcon(type: ChannelType, compact = false) {
+  const size = compact ? 12 : 16;
   switch (type) {
     case 'public':
-      return <Hash className="w-4 h-4" />;
+      return <Hash className={`w-${size} h-${size}`} size={size} />;
     case 'private':
-      return <Lock className="w-4 h-4" />;
+      return <Lock className={`w-${size} h-${size}`} size={size} />;
     case 'dm':
     case 'thread':
-      return <MessageSquare className="w-4 h-4" />;
+      return <MessageSquare className={`w-${size} h-${size}`} size={size} />;
     default:
-      return <Hash className="w-4 h-4" />;
+      return <Hash className={`w-${size} h-${size}`} size={size} />;
   }
 }
 
@@ -52,9 +54,17 @@ export function ChannelListItem({
   onMarkAsRead,
   onOpenSettings,
   onLeaveChannel,
+  compact = false,
 }: ChannelListItemProps) {
   const { t } = useTranslation('channel');
   const avatarUrl = getAvatarUrl(channel.avatar);
+
+  // Compact mode: smaller sizes
+  const avatarSize = compact ? 'w-8 h-8' : 'w-10 h-10';
+  const padding = compact ? 'px-3 py-2' : 'px-4 py-3';
+  const textSize = compact ? 'text-xs' : 'text-sm';
+  const timeSize = compact ? 'text-[9px]' : 'text-[10px]';
+  const descSize = compact ? 'text-[10px]' : 'text-xs';
 
   return (
     <ContextMenu.Root>
@@ -66,14 +76,14 @@ export function ChannelListItem({
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
-          className={`w-full px-4 py-3 flex items-center gap-3 rounded-lg transition-all duration-200 ${
+          className={`w-full ${padding} flex items-center gap-3 rounded-lg transition-all duration-200 ${
             isActive
               ? 'bg-blue-500/10 border border-blue-500/20 text-white'
               : 'hover:bg-white/[0.03] text-gray-300 border border-transparent'
           }`}
         >
           {avatarUrl ? (
-            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+            <div className={`${avatarSize} rounded-lg overflow-hidden shrink-0`}>
               <img
                 src={avatarUrl}
                 alt={channel.name}
@@ -82,22 +92,22 @@ export function ChannelListItem({
             </div>
           ) : (
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+              className={`${avatarSize} rounded-lg flex items-center justify-center shrink-0 ${
                 isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'
               }`}
             >
-              {getChannelIcon(channel.type as ChannelType)}
+              {getChannelIcon(channel.type as ChannelType, compact)}
             </div>
           )}
           <div className="flex-1 text-left min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium truncate">{channel.name}</span>
-              <span className="text-[10px] text-muted-foreground shrink-0">
+              <span className={`${textSize} font-medium truncate`}>{channel.name}</span>
+              <span className={`${timeSize} text-muted-foreground shrink-0`}>
                 {formatTime(channel.updated_at)}
               </span>
             </div>
-            {channel.description && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{channel.description}</p>
+            {channel.description && !compact && (
+              <p className={`${descSize} text-muted-foreground truncate mt-0.5`}>{channel.description}</p>
             )}
           </div>
         </motion.button>

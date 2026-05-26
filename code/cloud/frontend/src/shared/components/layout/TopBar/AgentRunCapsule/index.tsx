@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Hash } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bot } from 'lucide-react';
 import { useChannelNavigation } from '@/features/channel/hooks/useChannelNavigation';
-import { useChannels } from '@/lib/trpc/hooks';
+import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
 import { Capsule } from '@/shared/components/ui/Capsule';
 import { Popover } from '@/shared/components/ui/Popover';
 import { ChannelList } from '@/features/channel/components/ChannelList';
@@ -13,16 +12,11 @@ interface AgentRunCapsuleProps {
 
 export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsuleProps) => {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
   const { channelId } = useChannelNavigation();
-  const { data } = useChannels();
-
-  // Find current channel
-  const channels = data?.channels || [];
-  const currentChannel = channels.find((ch: any) => ch.channel_id === channelId);
+  const { openChannel } = useChannelPanelStore();
 
   const handleChannelSelect = (id: string) => {
-    navigate(`/channels?channel=${id}`);
+    openChannel(id);
     setOpen(false);
   };
 
@@ -33,14 +27,12 @@ export const AgentRunCapsule = React.memo(({ runningCount = 0 }: AgentRunCapsule
           variant={open ? 'active' : 'default'}
           isExpanded={open}
           ariaLabel="Switch channel"
-          minWidth="min-w-[120px]"
+          minWidth="min-w-8"
           gap="gap-1.5"
           padding="px-2"
+          justify="center"
         >
-          <Hash size={16} className="shrink-0" />
-          <span className="text-sm font-medium truncate max-w-[100px]">
-            {currentChannel?.name || 'Channels'}
-          </span>
+          <Bot size={14} className="text-white/55 shrink-0 relative z-10" />
         </Capsule>
       </Popover.Trigger>
 
