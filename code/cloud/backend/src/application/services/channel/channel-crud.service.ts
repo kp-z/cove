@@ -58,7 +58,7 @@ export class ChannelCrudService {
     // 验证 DM channel 规则
     const allMemberIds = [...(dto.memberIds || []), ...(dto.agentIds || [])];
 
-    this.logger.debug('[DEBUG] Creating DM channel', {
+    this.logger.info('[DEBUG] Creating DM channel', {
       channelId,
       dto: {
         name: dto.name,
@@ -98,7 +98,7 @@ export class ChannelCrudService {
       description: dto.description,
     });
 
-    this.logger.debug('[DEBUG] DM channel entity created', {
+    this.logger.info('[DEBUG] DM channel entity created', {
       channelId: channel.channelId,
       members: channel.members.map(m => ({
         memberId: m.memberId,
