@@ -9,9 +9,7 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { getRealmContext } from '../../application/context/realm-context-store';
 import { WorkflowEntity, WorkflowStatus } from '../../domain/models/workflow/workflow.entity';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { IWorkflowRepository } from '../../application/interfaces/repositories/workflow.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface WorkflowDbRecord {
   id: string;

@@ -7,13 +7,9 @@
  */
 
 import { HybridRepository } from './hybrid-repository.base';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { UserEntity, UserRole, UserStatus } from '../../domain/models/user/user.entity';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { IUserRepository, PaginationParams, PaginatedResult } from '../../application/interfaces/repositories/user.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { Avatar } from '../../domain/types/avatar.types';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface UserDbRecord {
   id: string;

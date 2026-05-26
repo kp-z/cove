@@ -1,9 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { AuditLogEntity } from '../../domain/models/audit/audit-log.entity';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { AuditLogRepository, AuditLogQueryParams } from '../../application/interfaces/repositories/audit-log.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 export class HybridAuditLogRepository implements AuditLogRepository {
   constructor(private prisma: PrismaClient) {}
@@ -25,12 +22,8 @@ export class HybridAuditLogRepository implements AuditLogRepository {
   }
 
   async findById(id: string): Promise<AuditLogEntity | null> {
-    const context = getRealmContext();
-    const record = await this.prisma.auditLog.findFirst({
-      where: {
-        id,
-        realmId: context.realmId,
-      },
+    const record = await this.prisma.auditLog.findUnique({
+      where: { id },
     });
 
     if (!record) return null;
@@ -39,12 +32,8 @@ export class HybridAuditLogRepository implements AuditLogRepository {
   }
 
   async findByUserId(userId: string, limit: number = 100): Promise<AuditLogEntity[]> {
-    const context = getRealmContext();
     const records = await this.prisma.auditLog.findMany({
-      where: {
-        userId,
-        realmId: context.realmId,
-      },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -53,12 +42,8 @@ export class HybridAuditLogRepository implements AuditLogRepository {
   }
 
   async findByResourceId(resourceId: string, limit: number = 100): Promise<AuditLogEntity[]> {
-    const context = getRealmContext();
     const records = await this.prisma.auditLog.findMany({
-      where: {
-        resourceId,
-        realmId: context.realmId,
-      },
+      where: { resourceId },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -67,10 +52,7 @@ export class HybridAuditLogRepository implements AuditLogRepository {
   }
 
   async query(params: AuditLogQueryParams): Promise<{ logs: AuditLogEntity[]; total: number }> {
-    const context = getRealmContext();
-    const where: any = {
-      realmId: context.realmId,
-    };
+    const where: any = {};
 
     if (params.userId) where.userId = params.userId;
     if (params.action) where.action = params.action;

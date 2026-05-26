@@ -9,9 +9,7 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { getRealmContext } from '../../application/context/realm-context-store';
 import { RealmMemberEntity, RealmRole, MemberStatus, RealmPermission } from '../../domain/models/realm-member/realm-member.entity';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { IRealmMemberRepository } from '../../application/interfaces/repositories/realm-member.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface RealmMemberDbRecord {
   id: string;

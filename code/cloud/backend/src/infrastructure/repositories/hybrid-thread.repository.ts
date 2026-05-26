@@ -118,7 +118,6 @@ export class HybridThreadRepository
   }
 
   async incrementReplyCount(threadId: string): Promise<void> {
-    const context = getRealmContext();
     await this.prisma.thread.update({
       where: { id: threadId },
       data: {
