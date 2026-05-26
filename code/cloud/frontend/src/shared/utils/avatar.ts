@@ -24,5 +24,7 @@ export function getAvatarUrl(avatarUrl?: string | null | any): string | undefine
 
   // Otherwise, prepend the API URL
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
-  return `${apiUrl}/${avatarUrl}`;
+  // Remove leading slash from avatarUrl to avoid double slashes
+  const cleanPath = avatarUrl.startsWith('/') ? avatarUrl.slice(1) : avatarUrl;
+  return `${apiUrl}/${cleanPath}`;
 }
