@@ -104,8 +104,12 @@ export class HybridWorkflowRepository
   }
 
   async findByProject(projectId: string): Promise<WorkflowEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.workflow.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        realmId: context.realmId,
+      },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
@@ -118,8 +122,12 @@ export class HybridWorkflowRepository
   }
 
   async findByStatus(status: WorkflowStatus): Promise<WorkflowEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.workflow.findMany({
-      where: { status },
+      where: {
+        status,
+        realmId: context.realmId,
+      },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
@@ -130,7 +138,9 @@ export class HybridWorkflowRepository
   }
 
   async findAll(): Promise<WorkflowEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.workflow.findMany({
+      where: { realmId: context.realmId },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
@@ -149,7 +159,13 @@ export class HybridWorkflowRepository
   }
 
   async exists(workflowId: string): Promise<boolean> {
-    const count = await this.prisma.workflow.count({ where: { id: workflowId } });
+    const context = getRealmContext();
+    const count = await this.prisma.workflow.count({
+      where: {
+        id: workflowId,
+        realmId: context.realmId,
+      },
+    });
     return count > 0;
   }
 
@@ -189,7 +205,13 @@ export class HybridWorkflowRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<WorkflowDbRecord | null> {
-    const record = await this.prisma.workflow.findUnique({ where: { id: entityId } });
+    const context = getRealmContext();
+    const record = await this.prisma.workflow.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
+    });
     return record as unknown as WorkflowDbRecord | null;
   }
 }

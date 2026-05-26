@@ -127,8 +127,12 @@ export class HybridRealmMemberRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<RealmMemberDbRecord | null> {
-    return await this.prisma.realmMember.findUnique({
-      where: { id: entityId },
+    const context = getRealmContext();
+    return await this.prisma.realmMember.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
     });
   }
 
@@ -215,8 +219,12 @@ export class HybridRealmMemberRepository
   }
 
   async exists(memberId: string): Promise<boolean> {
+    const context = getRealmContext();
     const count = await this.prisma.realmMember.count({
-      where: { id: memberId },
+      where: {
+        id: memberId,
+        realmId: context.realmId,
+      },
     });
     return count > 0;
   }
