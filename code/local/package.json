@@ -31,6 +31,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:integration": "tsx src/test-adapter.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
