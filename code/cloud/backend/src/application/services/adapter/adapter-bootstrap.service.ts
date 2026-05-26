@@ -80,48 +80,62 @@ export class AdapterBootstrapService {
           continue;
         }
 
-        const draft = await generator.generate(detection, context);
+        const generatedDrafts = await generator.generate(detection, context);
 
-        // Validate configuration
-        const validation = await this.validator.validate(draft);
-        if (!validation.valid) {
-          this.logger.error(
-            `Invalid adapter configuration: ${detector.type}`,
-            undefined,
-            { errors: validation.errors }
-          );
-          result.errors.push({
-            type: detector.type,
-            error: `Validation failed: ${validation.errors?.join(', ')}`,
-          });
-          continue;
+        // Normalize to array (support both single and multiple drafts)
+        const drafts = Array.isArray(generatedDrafts) ? generatedDrafts : [generatedDrafts];
+
+        // Process each draft
+        for (const draft of drafts) {
+          try {
+            // Validate configuration
+            const validation = await this.validator.validate(draft);
+            if (!validation.valid) {
+              this.logger.error(
+                `Invalid adapter configuration: ${draft.name}`,
+                undefined,
+                { errors: validation.errors }
+              );
+              result.errors.push({
+                type: detector.type,
+                error: `Validation failed for "${draft.name}": ${validation.errors?.join(', ')}`,
+              });
+              continue;
+            }
+
+            // Check for duplicates
+            const duplicateCheck = await this.validator.checkDuplicate(draft, realmId);
+            if (duplicateCheck.exists) {
+              this.logger.info(`Adapter already exists: ${draft.name}`, {
+                existingId: duplicateCheck.existingId,
+              });
+              result.skipped.push({
+                type: detector.type,
+                reason: `"${draft.name}" already exists (ID: ${duplicateCheck.existingId})`,
+              });
+              continue;
+            }
+
+            // Create adapter
+            const created = await this.adapterService.create(draft, userId);
+            this.logger.info(`Adapter created: ${draft.name}`, {
+              id: created.id,
+              name: created.name,
+            });
+
+            result.created.push({
+              type: detector.type,
+              id: created.id,
+              config: created,
+            });
+          } catch (error) {
+            this.logger.error(`Error creating adapter: ${draft.name}`, error as Error);
+            result.errors.push({
+              type: detector.type,
+              error: `Failed to create "${draft.name}": ${error instanceof Error ? error.message : String(error)}`,
+            });
+          }
         }
-
-        // Check for duplicates
-        const duplicateCheck = await this.validator.checkDuplicate(draft, realmId);
-        if (duplicateCheck.exists) {
-          this.logger.info(`Adapter already exists: ${detector.type}`, {
-            existingId: duplicateCheck.existingId,
-          });
-          result.skipped.push({
-            type: detector.type,
-            reason: `Already exists (ID: ${duplicateCheck.existingId})`,
-          });
-          continue;
-        }
-
-        // Create adapter
-        const created = await this.adapterService.create(draft, userId);
-        this.logger.info(`Adapter created: ${detector.type}`, {
-          id: created.id,
-          name: created.name,
-        });
-
-        result.created.push({
-          type: detector.type,
-          id: created.id,
-          config: created,
-        });
       } catch (error) {
         this.logger.error(`Error bootstrapping adapter: ${detector.type}`, error as Error);
         result.errors.push({
@@ -197,7 +211,17 @@ export class AdapterBootstrapService {
       deviceName,
     };
 
-    const draft = await generator.generate(detection, context);
+    const generatedDrafts = await generator.generate(detection, context);
+
+    // Normalize to array (support both single and multiple drafts)
+    const drafts = Array.isArray(generatedDrafts) ? generatedDrafts : [generatedDrafts];
+
+    // For single-adapter generation, only process the first one
+    if (drafts.length === 0) {
+      throw new Error('Generator returned no adapter configurations');
+    }
+
+    const draft = drafts[0]!; // Safe: we checked length above
 
     // Validate
     const validation = await this.validator.validate(draft);
