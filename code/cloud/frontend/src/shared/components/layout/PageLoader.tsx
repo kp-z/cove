@@ -1,10 +1,17 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 /**
  * 页面级别的 Loading 组件
  * 移植自 claude_manager 的 SimpleLoader
  */
-export function PageLoader({ text }: { text?: string } = {}) {
+interface PageLoaderProps {
+  text?: string;
+  progress?: number;
+  showProgress?: boolean;
+}
+
+export function PageLoader({ text, progress, showProgress }: PageLoaderProps = {}) {
   return (
     <div className="fixed inset-0 bg-[#0f111a] flex items-center justify-center z-50">
       <div className="flex flex-col items-center gap-6">
@@ -29,6 +36,28 @@ export function PageLoader({ text }: { text?: string } = {}) {
         {/* 可选文本 */}
         {text && (
           <p className="text-sm text-gray-400 animate-pulse">{text}</p>
+        )}
+
+        {/* Progress Bar */}
+        {showProgress && progress !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-2 w-64"
+          >
+            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
+                initial={{ width: '0%' }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-2">
+              {progress}%
+            </p>
+          </motion.div>
         )}
       </div>
 

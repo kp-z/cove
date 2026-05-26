@@ -6,7 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { router } from '@/core/router';
 import { trpc, trpcClient } from '@/lib/trpc';
-import { GlobalLoader } from '@/shared/components/layout/GlobalLoader';
+import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { useLoadingStore } from '@/shared/stores';
 import i18n from '@/core/i18n';
 
@@ -40,8 +40,8 @@ function App() {
           {/* Global Loader */}
           <AnimatePresence>
             {isLoading && (
-              <GlobalLoader
-                message={message}
+              <PageLoader
+                text={message}
                 progress={progress}
                 showProgress={showProgress}
               />
@@ -49,7 +49,7 @@ function App() {
           </AnimatePresence>
 
           {/* Router */}
-          <Suspense fallback={<GlobalLoader message="Loading..." />}>
+          <Suspense fallback={<PageLoader text="Loading..." />}>
             <RouterProvider router={router} />
           </Suspense>
         </QueryClientProvider>
