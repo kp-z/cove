@@ -66,11 +66,26 @@ export const channelRouter = (channelService: ChannelService) =>
   router({
     // 获取频道列表
     list: procedure
-      .input(z.object({ projectId: z.string().optional() }).optional())
-      .query(async ({ input }) => {
+      .input(z.object({
+        projectId: z.string().optional(),
+        userId: z.string().optional(), // 添加 userId 参数用于过滤
+      }).optional())
+      .query(async ({ input, ctx }) => {
         try {
           let channels;
-          if (input?.projectId) {
+
+          // 优先使用传入的 userId，否则使用 context 中的 userId
+          const userId = input?.userId || ctx.userId;
+
+          if (userId) {
+            // 如果有 userId，只返回用户参与的 channel
+            channels = await channelService.getChannelsByMember(userId);
+
+            // 如果还指定了 projectId，进一步过滤
+            if (input?.projectId) {
+              channels = channels.filter(c => c.projectId === input.projectId);
+            }
+          } else if (input?.projectId) {
             channels = await channelService.getChannelsByProject(input.projectId);
           } else {
             channels = await channelService.getAllChannels();

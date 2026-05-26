@@ -1,8 +1,10 @@
 import { trpc } from '@/lib/trpc';
 import { notify } from '@/core/services/notificationService';
+import { useCurrentUser } from '@/core/auth/useCurrentUser';
 
 export function useChannels() {
-  return trpc.channel.list.useQuery();
+  const { userId } = useCurrentUser();
+  return trpc.channel.list.useQuery({ userId });
 }
 
 export function useChannel(id: string) {
