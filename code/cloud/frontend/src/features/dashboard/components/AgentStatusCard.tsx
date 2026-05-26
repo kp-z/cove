@@ -4,6 +4,7 @@ import { EChartWrapper } from '@/shared/components/charts/EChartWrapper';
 import type { EChartsOption } from 'echarts';
 import { useNavigate } from 'react-router';
 import { cn } from '@/shared/lib/utils';
+import { useAgents } from '@/lib/trpc/hooks/agent.hooks';
 
 type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
 
@@ -19,20 +20,6 @@ interface RunningAgent {
   category: string;
   uptime: number;
 }
-
-// Mock 数据 - 后续替换为 API 调用
-const mockStatusData: AgentStatusDistribution[] = [
-  { status: 'active', count: 5 },
-  { status: 'idle', count: 12 },
-  { status: 'disabled', count: 2 },
-  { status: 'error', count: 1 },
-];
-
-const mockRunningAgents: RunningAgent[] = [
-  { id: '1', name: 'Code Assistant', status: 'active', category: 'engineering', uptime: 3600 },
-  { id: '2', name: 'QA Bot', status: 'active', category: 'qa', uptime: 1800 },
-  { id: '3', name: 'Design Helper', status: 'active', category: 'design', uptime: 7200 },
-];
 
 const STATUS_COLORS: Record<AgentStatus, string> = {
   active: '#10b981',
@@ -65,8 +52,31 @@ function getStatusDotColor(status: 'active' | 'idle'): string {
 export function AgentStatusCard() {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
-  const statusData = mockStatusData;
-  const runningAgents = mockRunningAgents;
+  const { data: agentsData, isLoading } = useAgents();
+
+  // Calculate status distribution from real data
+  const statusData: AgentStatusDistribution[] = agentsData?.agents
+    ? [
+        { status: 'active', count: agentsData.agents.filter((a) => a.status === 'active').length },
+        { status: 'idle', count: agentsData.agents.filter((a) => a.status === 'idle').length },
+        { status: 'disabled', count: agentsData.agents.filter((a) => a.status === 'disabled').length },
+        { status: 'error', count: agentsData.agents.filter((a) => a.status === 'error').length },
+      ]
+    : [];
+
+  // Get running agents (active or idle)
+  const runningAgents: RunningAgent[] = agentsData?.agents
+    ? agentsData.agents
+        .filter((a) => a.status === 'active' || a.status === 'idle')
+        .slice(0, 5) // Show top 5
+        .map((a) => ({
+          id: a.agent_id,
+          name: a.display_name || a.name,
+          status: a.status as 'active' | 'idle',
+          category: a.scope || 'general',
+          uptime: 0, // TODO: Add uptime tracking in backend
+        }))
+    : [];
 
   const chartData = statusData.map((item) => ({
     name: STATUS_LABELS[item.status],
@@ -113,39 +123,46 @@ export function AgentStatusCard() {
       <div className="p-6">
         <h2 className="text-xl font-semibold mb-6">{t('agentStatus.title')}</h2>
 
-        {/* 状态分布饼图 */}
-        <div className="mb-6">
-          <EChartWrapper option={option} height={200} />
-        </div>
-
-        {/* 运行中的 Agent 列表 */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-400 mb-3">{t('agentStatus.runningAgents')}</h3>
-          <div className="space-y-2">
-            {runningAgents.map((agent) => (
-              <div
-                key={agent.id}
-                className="p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-                onClick={() => navigate(`/agents/${agent.id}`)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={cn('w-2 h-2 rounded-full', getStatusDotColor(agent.status))} />
-                    <span className="font-medium text-sm">{agent.name}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">{formatUptime(agent.uptime)}</span>
-                </div>
-              </div>
-            ))}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <div className="text-gray-400">Loading...</div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* 状态分布饼图 */}
+            <div className="mb-6">
+              <EChartWrapper option={option} height={200} />
+            </div>
 
-        {/* 空状态提示 */}
-        <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <p className="text-xs text-blue-400">
-            💡 {t('agentStatus.apiNote')}
-          </p>
-        </div>
+            {/* 运行中的 Agent 列表 */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">{t('agentStatus.runningAgents')}</h3>
+              {runningAgents.length > 0 ? (
+                <div className="space-y-2">
+                  {runningAgents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/agents/${agent.id}`)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={cn('w-2 h-2 rounded-full', getStatusDotColor(agent.status))} />
+                          <span className="font-medium text-sm">{agent.name}</span>
+                        </div>
+                        <span className="text-xs text-gray-400">{agent.uptime > 0 ? formatUptime(agent.uptime) : 'N/A'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-gray-400 text-sm">
+                  No running agents
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </GlassCard>
   );

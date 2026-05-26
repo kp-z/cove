@@ -1,24 +1,20 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
+import { useAgents } from '@/lib/trpc/hooks/agent.hooks';
+import { useProjects } from '@/lib/trpc/hooks/project.hooks';
+import { useAdapters } from '@/lib/trpc/hooks/adapter.hooks';
 
 type SystemStatus = 'healthy' | 'degraded' | 'down';
 
 interface SystemComponent {
   name: string;
   status: SystemStatus;
+  count?: number;
   uptime?: number;
   lastCheck?: string;
   message?: string;
 }
-
-// Mock 数据 - 后续替换为 API 调用
-const mockComponents: SystemComponent[] = [
-  { name: 'API Service', status: 'healthy', uptime: 86400 },
-  { name: 'Claude Code CLI', status: 'healthy', uptime: 43200 },
-  { name: 'OpenClaw', status: 'healthy', uptime: 21600 },
-  { name: 'Database', status: 'healthy', uptime: 172800 },
-];
 
 function formatUptime(seconds: number): string {
   const days = Math.floor(seconds / 86400);
@@ -64,7 +60,31 @@ function getOverallStatusText(status: SystemStatus): string {
 
 export function SystemStatusCard() {
   const { t } = useTranslation('dashboard');
-  const components = mockComponents;
+  const { data: agentsData, isLoading: agentsLoading } = useAgents();
+  const { data: projectsData, isLoading: projectsLoading } = useProjects();
+  const { data: adaptersData, isLoading: adaptersLoading } = useAdapters();
+
+  const isLoading = agentsLoading || projectsLoading || adaptersLoading;
+
+  // Build components list with real data
+  const components: SystemComponent[] = [
+    {
+      name: 'Agents',
+      status: 'healthy',
+      count: agentsData?.total ?? 0,
+    },
+    {
+      name: 'Projects',
+      status: 'healthy',
+      count: projectsData?.total ?? 0,
+    },
+    {
+      name: 'Adapters',
+      status: 'healthy',
+      count: adaptersData?.total ?? 0,
+    },
+  ];
+
   const overallStatus = getOverallStatus(components);
 
   return (
@@ -78,29 +98,28 @@ export function SystemStatusCard() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {components.map((component) => (
-            <div
-              key={component.name}
-              className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn('w-2 h-2 rounded-full', getStatusColor(component.status))} />
-                <span className="font-medium">{component.name}</span>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-[120px]">
+            <div className="text-gray-400">Loading...</div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {components.map((component) => (
+              <div
+                key={component.name}
+                className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn('w-2 h-2 rounded-full', getStatusColor(component.status))} />
+                  <span className="font-medium">{component.name}</span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  {component.count !== undefined ? `Count: ${component.count}` : component.uptime ? `Uptime: ${formatUptime(component.uptime)}` : 'N/A'}
+                </div>
               </div>
-              <div className="text-sm text-gray-400">
-                {component.uptime ? `Uptime: ${formatUptime(component.uptime)}` : 'N/A'}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* 空状态提示 */}
-        <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <p className="text-sm text-blue-400">
-            💡 {t('systemStatus.apiNote')}
-          </p>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </GlassCard>
   );
