@@ -140,7 +140,7 @@ function EnhancedAvatarStack({ items, size = 'sm', max = 3, onClick }: AvatarSta
           >
             <button
               onClick={() => onClick?.(item)}
-              className={`${sizeClass} rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] transition-transform hover:scale-110 relative`}
+              className={`${sizeClass} rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ring-1 ring-[#0f111a] transition-transform hover:scale-110`}
               title={item.name}
             >
               {item.avatarUrl ? (

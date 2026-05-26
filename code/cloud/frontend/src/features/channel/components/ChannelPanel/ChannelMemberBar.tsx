@@ -435,23 +435,6 @@ function CollapsedMemberBar({
       {/* 使用新的 AvatarStack */}
       <CollapsedAvatarsWithData members={avatarItems} />
 
-      {/* 名称 + 模型 */}
-      <span className="text-xs text-gray-300 truncate min-w-0">
-        {displayName}
-      </span>
-
-      {isAgent && agent && (
-        <div className="flex items-center gap-0.5 text-[10px] text-gray-500 flex-shrink-0">
-          <Sparkles className="w-2.5 h-2.5" />
-          {getModelLabel(agent)}
-        </div>
-      )}
-
-      {/* 叠层 skill/tool 图标 */}
-      {isAgent && (skills.length > 0 || tools.length > 0) && (
-        <StackedIcons skills={skills} tools={tools} />
-      )}
-
       {/* 成员数量 */}
       {totalMembers > 1 && (
         <span className="text-[10px] text-gray-500 flex-shrink-0">
