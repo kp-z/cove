@@ -69,7 +69,7 @@ describe('HybridThreadRepository', () => {
 
   const createTestThread = (overrides?: Partial<any>): ThreadEntity => {
     return ThreadEntity.create({
-      realmId: 'realm-1',
+      realmId: 'test-realm-1',
       threadId: 'thread-1',
       channelId: 'channel-1',
       rootMessageId: 'thread-1',

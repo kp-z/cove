@@ -73,6 +73,7 @@ describe('HybridWorkflowRepository', () => {
 
   const createTestWorkflow = (overrides?: Partial<any>): WorkflowEntity => {
     return WorkflowEntity.create({
+      realmId: 'test-realm-1',
       workflowId: 'workflow-1',
       name: 'Test Workflow',
       description: 'Test workflow description',
