@@ -72,6 +72,9 @@ Thumbs.db
 **/.cove/logs/
 **/.cove/temp/
 
+# Backend storage directory (should use ~/.cove/storage instead)
+code/cloud/backend/storage/
+
 # Test temporary files
 **/.test-storage/
 
