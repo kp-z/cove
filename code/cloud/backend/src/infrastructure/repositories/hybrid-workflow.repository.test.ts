@@ -410,6 +410,7 @@ describe('HybridWorkflowRepository', () => {
     it('should handle parallel steps in a stage', async () => {
       const workflow = WorkflowEntity.create({
         workflowId: 'workflow-1',
+        realmId: 'test-realm-1',
         name: 'Parallel Workflow',
         projectId: 'project-1',
         status: 'draft',
@@ -427,7 +428,7 @@ describe('HybridWorkflowRepository', () => {
         meta: {},
       });
 
-      await repository.save(workflow, 'realm-1');
+      await repository.save(workflow, 'test-realm-1');
 
       const found = await repository.findById('workflow-1');
       expect(found!.steps[0]).toHaveLength(3);
@@ -436,6 +437,7 @@ describe('HybridWorkflowRepository', () => {
     it('should handle multiple sequential stages', async () => {
       const workflow = WorkflowEntity.create({
         workflowId: 'workflow-1',
+        realmId: 'test-realm-1',
         name: 'Sequential Workflow',
         projectId: 'project-1',
         status: 'draft',
