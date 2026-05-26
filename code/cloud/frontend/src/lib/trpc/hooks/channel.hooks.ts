@@ -22,7 +22,8 @@ export function useCreateChannel() {
   return trpc.channel.create.useMutation({
     onSuccess: () => {
       utils.channel.list.invalidate();
-      notify.toast.success('Channel created', 'The channel has been created successfully');
+      // Use generic message since backend may return existing channel (idempotent)
+      notify.toast.success('Channel ready', 'You can now start chatting');
     },
     onError: (error) => {
       notify.toast.error('Failed to create channel', error.message || 'An unexpected error occurred');

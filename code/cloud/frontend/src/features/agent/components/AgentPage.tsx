@@ -116,6 +116,8 @@ export default function AgentPage() {
       return;
     }
 
+    console.log('[DEBUG] Creating/finding DM channel for agent:', agent.agent_id);
+
     // Create a DM channel with the agent
     createChannel.mutate(
       {
@@ -127,8 +129,14 @@ export default function AgentPage() {
       },
       {
         onSuccess: async (data) => {
+          console.log('[DEBUG] Channel response:', data);
+          console.log('[DEBUG] Channel ID:', data.channel_id);
+          console.log('[DEBUG] Channel members:', data.members);
+
           // Wait for channel list to refresh before navigating
           await utils.channel.list.invalidate();
+
+          console.log('[DEBUG] Navigating to channel:', data.channel_id);
           // Navigate to the newly created channel (use singular 'channel')
           navigate(`/channel/${data.channel_id}`);
         },

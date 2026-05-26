@@ -20,6 +20,12 @@ export default function ChannelPageWrapper() {
   const channels = channelsData?.channels || [];
   const currentChannel = channels.find(ch => ch.channel_id === channelId);
 
+  // Debug logging
+  console.log('[DEBUG] ChannelPageWrapper - channelId:', channelId);
+  console.log('[DEBUG] ChannelPageWrapper - total channels:', channels.length);
+  console.log('[DEBUG] ChannelPageWrapper - channel IDs:', channels.map(ch => ch.channel_id));
+  console.log('[DEBUG] ChannelPageWrapper - currentChannel:', currentChannel ? 'found' : 'NOT FOUND');
+
   // 根据 channel 类型选择图标（移到条件外）
   const ChannelIcon = useMemo(() => {
     if (!currentChannel) return Hash;
