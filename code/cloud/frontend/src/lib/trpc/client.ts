@@ -15,10 +15,13 @@ export const trpcVanillaClient = createTRPCProxyClient<AppRouter>({
       headers() {
         const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
         const userId = localStorage.getItem('userId') || '';
+        const currentRealmId = localStorage.getItem('current_realm_id') ||
+                               sessionStorage.getItem('current_realm_id') ||
+                               'realm-nexus';
         return {
           authorization: token ? `Bearer ${token}` : '',
           'x-user-id': userId,
-          'x-realm-id': 'realm-nexus',
+          'x-realm-id': currentRealmId,
         };
       },
     }),
