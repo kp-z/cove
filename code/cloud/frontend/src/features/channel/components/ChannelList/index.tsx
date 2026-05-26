@@ -74,33 +74,15 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
       {pinnedChannels.length > 0 && (
         <div className={sectionClass}>
           {!compact && <h3 className={headerClass}>{t('list.pinned')}</h3>}
-          {compact ? (
-            <div className={listClass}>
-              {pinnedChannels.map((channel) => (
-                <ChannelListItem
-                  key={channel.channel_id}
-                  channel={channel}
-                  isActive={selectedChannelId === channel.channel_id}
-                  isPinned={isPinned(channel.channel_id)}
-                  onClick={() => onChannelSelect(channel.channel_id)}
-                  onTogglePin={handleTogglePin}
-                  onMarkAsRead={handleMarkAsRead}
-                  onOpenSettings={handleOpenSettings}
-                  onLeaveChannel={handleLeaveChannel}
-                  compact={true}
-                />
-              ))}
-            </div>
-          ) : (
-            <PinnedChannels
-              channels={pinnedChannels}
-              selectedChannelId={selectedChannelId}
-              onChannelSelect={onChannelSelect}
-              onTogglePin={handleTogglePin}
-              onMarkAsRead={handleMarkAsRead}
-              onOpenSettings={handleOpenSettings}
-            />
-          )}
+          <PinnedChannels
+            channels={pinnedChannels}
+            selectedChannelId={selectedChannelId}
+            onChannelSelect={onChannelSelect}
+            onTogglePin={handleTogglePin}
+            onMarkAsRead={handleMarkAsRead}
+            onOpenSettings={handleOpenSettings}
+            compact={compact}
+          />
         </div>
       )}
 

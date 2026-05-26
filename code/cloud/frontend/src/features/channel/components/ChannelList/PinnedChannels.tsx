@@ -13,6 +13,7 @@ interface PinnedChannelsProps {
   onTogglePin?: (channel: ChannelEntity) => void;
   onMarkAsRead?: (channel: ChannelEntity) => void;
   onOpenSettings?: (channel: ChannelEntity) => void;
+  compact?: boolean; // 紧凑模式：缩小图标和尺寸
 }
 
 interface PinnedChannelItemProps {
@@ -22,19 +23,22 @@ interface PinnedChannelItemProps {
   onTogglePin?: () => void;
   onMarkAsRead?: () => void;
   onOpenSettings?: () => void;
+  compact?: boolean; // 紧凑模式
 }
 
-function getChannelIcon(type: ChannelType) {
+function getChannelIcon(type: ChannelType, compact = false) {
+  const size = compact ? 10 : 16;
+  const className = compact ? 'w-2.5 h-2.5' : 'w-4 h-4';
   switch (type) {
     case 'public':
-      return <Hash className="w-4 h-4" />;
+      return <Hash className={className} size={size} />;
     case 'private':
-      return <Lock className="w-4 h-4" />;
+      return <Lock className={className} size={size} />;
     case 'dm':
     case 'thread':
-      return <MessageSquare className="w-4 h-4" />;
+      return <MessageSquare className={className} size={size} />;
     default:
-      return <Hash className="w-4 h-4" />;
+      return <Hash className={className} size={size} />;
   }
 }
 
@@ -45,8 +49,14 @@ function PinnedChannelItem({
   onTogglePin,
   onMarkAsRead,
   onOpenSettings,
+  compact = false,
 }: PinnedChannelItemProps) {
   const { t } = useTranslation('channel');
+
+  // Compact mode: smaller sizes
+  const buttonSize = compact ? 'w-7 h-7' : 'w-10 h-10';
+  const textSize = compact ? 'text-[10px]' : 'text-xs';
+  const gridWidth = compact ? '48px' : '64px';
 
   return (
     <ContextMenu.Root>
@@ -57,7 +67,7 @@ function PinnedChannelItem({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`
-              w-10 h-10 rounded-lg flex items-center justify-center
+              ${buttonSize} rounded-lg flex items-center justify-center
               cursor-pointer transition-all
               ${isActive
                 ? 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)]'
@@ -65,9 +75,9 @@ function PinnedChannelItem({
               }
             `}
           >
-            {getChannelIcon(channel.type as ChannelType)}
+            {getChannelIcon(channel.type as ChannelType, compact)}
           </motion.button>
-          <span className="text-xs text-gray-400 w-full text-center truncate px-1">
+          <span className={`${textSize} text-gray-400 w-full text-center truncate px-1`}>
             {channel.name}
           </span>
         </div>
@@ -137,11 +147,15 @@ export function PinnedChannels({
   onTogglePin,
   onMarkAsRead,
   onOpenSettings,
+  compact = false,
 }: PinnedChannelsProps) {
   if (channels.length === 0) return null;
 
+  // Compact mode: smaller grid cells
+  const gridCols = compact ? 'grid-cols-[repeat(auto-fill,48px)]' : 'grid-cols-[repeat(auto-fill,64px)]';
+
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,64px)] gap-2">
+    <div className={`grid ${gridCols} gap-2`}>
       {channels.map((channel) => (
         <PinnedChannelItem
           key={channel.channel_id}
@@ -151,6 +165,7 @@ export function PinnedChannels({
           onTogglePin={onTogglePin ? () => onTogglePin(channel) : undefined}
           onMarkAsRead={onMarkAsRead ? () => onMarkAsRead(channel) : undefined}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(channel) : undefined}
+          compact={compact}
         />
       ))}
     </div>
