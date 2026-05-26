@@ -321,9 +321,149 @@ describe('ChannelEntity', () => {
     });
   });
 
+  describe('createRegularChannel', () => {
+    it('should create a valid regular channel with creator as owner', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-001',
+        name: 'Engineering',
+        type: 'public',
+        createdBy: { id: 'user-001', type: 'human' },
+        description: 'Engineering team channel',
+        projectId: 'proj-001',
+      });
+
+      expect(channel.channelId).toBe('channel-regular-001');
+      expect(channel.name).toBe('Engineering');
+      expect(channel.type).toBe('public');
+      expect(channel.members.length).toBe(1);
+      expect(channel.hasMember('user-001')).toBe(true);
+      expect(channel.isOwner('user-001')).toBe(true);
+    });
+
+    it('should automatically add creator as owner even without additionalMemberIds', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-002',
+        name: 'Design',
+        type: 'private',
+        createdBy: { id: 'user-002', type: 'human' },
+      });
+
+      expect(channel.members.length).toBe(1);
+      expect(channel.hasMember('user-002')).toBe(true);
+      expect(channel.getMemberRole('user-002')).toBe('owner');
+    });
+
+    it('should add additional members with member role', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-003',
+        name: 'Marketing',
+        type: 'public',
+        createdBy: { id: 'user-003', type: 'human' },
+        additionalMemberIds: ['user-004', 'user-005'],
+      });
+
+      expect(channel.members.length).toBe(3);
+      expect(channel.isOwner('user-003')).toBe(true);
+      expect(channel.getMemberRole('user-004')).toBe('member');
+      expect(channel.getMemberRole('user-005')).toBe('member');
+    });
+
+    it('should not duplicate creator if they are in additionalMemberIds', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-004',
+        name: 'Sales',
+        type: 'private',
+        createdBy: { id: 'user-006', type: 'human' },
+        additionalMemberIds: ['user-006', 'user-007'],
+      });
+
+      expect(channel.members.length).toBe(2);
+      expect(channel.isOwner('user-006')).toBe(true);
+      expect(channel.getMemberRole('user-007')).toBe('member');
+    });
+
+    it('should correctly detect agent members and populate agentPool', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-005',
+        name: 'AI Team',
+        type: 'public',
+        createdBy: { id: 'user-008', type: 'human' },
+        additionalMemberIds: ['agent-001', 'agent-002', 'user-009'],
+      });
+
+      expect(channel.members.length).toBe(4);
+      expect(channel.agentPool).toEqual(['agent-001', 'agent-002']);
+      expect(channel.hasAgent('agent-001')).toBe(true);
+      expect(channel.hasAgent('agent-002')).toBe(true);
+    });
+
+    it('should create channel with agent as creator and owner', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-006',
+        name: 'Bot Channel',
+        type: 'public',
+        createdBy: { id: 'agent-003', type: 'agent' },
+        additionalMemberIds: ['user-010'],
+      });
+
+      expect(channel.members.length).toBe(2);
+      expect(channel.isOwner('agent-003')).toBe(true);
+      expect(channel.getMember('agent-003')?.memberType).toBe('agent');
+      expect(channel.agentPool).toEqual(['agent-003']);
+    });
+
+    it('should set correct communication rules', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-007',
+        name: 'Support',
+        type: 'public',
+        createdBy: { id: 'user-011', type: 'human' },
+      });
+
+      expect(channel.communicationRules.allowMentions).toBe(true);
+      expect(channel.communicationRules.allowThreads).toBe(true);
+      expect(channel.communicationRules.allowAttachments).toBe(true);
+      expect(channel.communicationRules.maxMessageLength).toBe(10000);
+    });
+
+    it('should set active status by default', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-008',
+        name: 'General',
+        type: 'public',
+        createdBy: { id: 'user-012', type: 'human' },
+      });
+
+      expect(channel.status).toBe('active');
+    });
+
+    it('should set correct workspace paths', () => {
+      const channel = ChannelEntity.createRegularChannel({
+        realmId: 'realm-001',
+        channelId: 'channel-regular-009',
+        name: 'Dev',
+        type: 'private',
+        createdBy: { id: 'user-013', type: 'human' },
+      });
+
+      expect(channel.workspace.root).toBe('/workspace/channel-regular-009');
+      expect(channel.workspace.sharedFiles).toBe('/workspace/channel-regular-009/shared');
+      expect(channel.workspace.attachments).toBe('/workspace/channel-regular-009/attachments');
+    });
+  });
+
   describe('isDMWithAgent', () => {
     it('should return true for DM channel with specified agent', () => {
       const dmChannel = ChannelEntity.createDMChannel({
+        realmId: 'realm-001',
         channelId: 'dm-006',
         agentId: 'agent-006',
         userId: 'user-006',
@@ -335,6 +475,7 @@ describe('ChannelEntity', () => {
 
     it('should return false for DM channel with different agent', () => {
       const dmChannel = ChannelEntity.createDMChannel({
+        realmId: 'realm-001',
         channelId: 'dm-007',
         agentId: 'agent-007',
         userId: 'user-007',

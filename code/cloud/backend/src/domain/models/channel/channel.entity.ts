@@ -88,6 +88,87 @@ export class ChannelEntity {
   }
 
   /**
+   * 创建普通 Channel 的工厂方法
+   *
+   * 普通 Channel 的领域规则：
+   * - 创建者自动成为 owner 成员
+   * - 可以指定额外的成员（默认角色为 member）
+   * - 类型为 'public' 或 'private'
+   *
+   * @param params - 普通 channel 创建参数
+   * @returns Channel 实体
+   */
+  static createRegularChannel(params: {
+    realmId: string;
+    channelId: string;
+    name: string;
+    type: 'public' | 'private';
+    createdBy: { id: string; type: 'human' | 'agent' };
+    description?: string;
+    projectId?: string;
+    additionalMemberIds?: readonly string[];
+  }): ChannelEntity {
+    const now = new Date();
+
+    // 创建者自动成为 owner
+    const creatorMember = {
+      memberId: params.createdBy.id,
+      memberType: params.createdBy.type,
+      role: 'owner' as const,
+      joinedAt: now,
+    };
+
+    // 额外成员默认为 member 角色
+    const additionalMembers = (params.additionalMemberIds || [])
+      .filter(id => id !== params.createdBy.id) // 避免重复添加创建者
+      .map(memberId => ({
+        memberId,
+        memberType: memberId.startsWith('agent-') ? ('agent' as const) : ('human' as const),
+        role: 'member' as const,
+        joinedAt: now,
+      }));
+
+    const allMembers = [creatorMember, ...additionalMembers];
+
+    // 提取 agent IDs 用于 agentPool
+    const agentIds = allMembers
+      .filter(m => m.memberType === 'agent')
+      .map(m => m.memberId);
+
+    return ChannelEntity.create({
+      realmId: params.realmId,
+      channelId: params.channelId,
+      name: params.name,
+      displayName: params.name,
+      description: params.description,
+      type: params.type,
+      status: 'active',
+      projectId: params.projectId,
+      members: allMembers,
+      agentPool: agentIds,
+      taskPool: [],
+      conversationPool: [],
+      communicationRules: {
+        allowMentions: true,
+        allowThreads: true,
+        allowAttachments: true,
+        maxMessageLength: 10000,
+      },
+      workspace: {
+        root: `/workspace/${params.channelId}`,
+        sharedFiles: `/workspace/${params.channelId}/shared`,
+        attachments: `/workspace/${params.channelId}/attachments`,
+      },
+      meta: {
+        messageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: params.createdBy,
+      },
+    });
+  }
+
+  /**
    * 创建 DM Channel 的工厂方法
    *
    * DM Channel 的领域规则：

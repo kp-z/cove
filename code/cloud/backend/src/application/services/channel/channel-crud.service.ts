@@ -107,54 +107,19 @@ export class ChannelCrudService {
   }
 
   private async createRegularChannel(dto: CreateChannelDTO, channelId: string, realmId: string): Promise<ChannelEntity> {
-    const now = new Date();
-
-    // Auto-detect member type based on ID prefix
-    const members = (dto.memberIds || []).map(memberId => ({
-      memberId,
-      memberType: this.detectMemberType(memberId),
-      role: memberId === dto.createdBy ? ('owner' as const) : ('member' as const),
-      joinedAt: now,
-    }));
-
-    // Extract agent IDs for agentPool
-    const agentIds = members
-      .filter(m => m.memberType === 'agent')
-      .map(m => m.memberId);
-
-    const channel = ChannelEntity.create({
-      channelId,
+    // 使用领域工厂方法创建普通 channel
+    const channel = ChannelEntity.createRegularChannel({
       realmId,
+      channelId,
       name: dto.name,
-      displayName: dto.name,
+      type: dto.type as 'public' | 'private',
+      createdBy: {
+        id: dto.createdBy,
+        type: this.detectMemberType(dto.createdBy),
+      },
       description: dto.description,
-      type: dto.type,
-      status: 'active',
       projectId: dto.projectId,
-      members,
-      agentPool: agentIds,
-      taskPool: [],
-      conversationPool: [],
-      communicationRules: {
-        allowMentions: true,
-        allowThreads: true,
-        allowAttachments: true,
-        maxMessageLength: 10000,
-      },
-      workspace: {
-        root: `/workspace/${channelId}`,
-        sharedFiles: `/workspace/${channelId}/shared`,
-        attachments: `/workspace/${channelId}/attachments`,
-      },
-      meta: {
-        messageCount: 0,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: {
-          id: dto.createdBy,
-          type: 'human',
-        },
-      },
+      additionalMemberIds: dto.memberIds,
     });
 
     await this.channelRepository.save(channel, realmId);
