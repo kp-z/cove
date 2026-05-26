@@ -26,9 +26,9 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, canEdit }: R
     <div className="p-6 bg-white/[0.02] border border-white/[0.08] rounded-xl">
       <div className="flex items-start gap-4">
         {/* Logo */}
-        {realm.logo_url ? (
+        {realm.logo ? (
           <img
-            src={getAvatarUrl(realm.logo_url)}
+            src={getAvatarUrl(realm.logo)}
             alt={realm.display_name}
             className="w-16 h-16 rounded-xl object-cover shrink-0"
           />
