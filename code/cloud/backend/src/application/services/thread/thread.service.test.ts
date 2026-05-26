@@ -106,10 +106,10 @@ describe('ThreadService', () => {
       expect(result.participants).toContain('user-1');
       expect(mockThreadRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
-          threadId: 'msg-1',
-          channelId: 'channel-1',
-        }),
-        'test-server-id'
+          thread_id: 'msg-1',
+          channel_id: 'channel-1',
+          realm_id: 'test-server-id',
+        })
       );
     });
 
@@ -151,6 +151,7 @@ describe('ThreadService', () => {
 
       const thread = ThreadEntity.create({
         threadId: 'msg-1',
+        realmId: 'test-server-id',
         channelId: 'channel-1',
         rootMessageId: 'msg-1',
         participants: ['user-1'],
@@ -249,6 +250,7 @@ describe('ThreadService', () => {
 
       const thread = ThreadEntity.create({
         threadId: 'msg-1',
+        realmId: 'test-server-id',
         channelId: 'channel-1',
         rootMessageId: 'msg-1',
         participants: ['user-1'],
@@ -266,9 +268,9 @@ describe('ThreadService', () => {
       expect(mockThreadRepository.update).toHaveBeenCalledWith(
         expect.objectContaining({
           participants: expect.arrayContaining(['user-1', 'user-2']),
-          replyCount: 1,
-        }),
-        'test-server-id'
+          reply_count: 1,
+          realm_id: 'test-server-id',
+        })
       );
     });
   });
