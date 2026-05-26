@@ -432,6 +432,12 @@ export class TestDatabaseHelper {
     // 按照依赖关系的逆序删除数据
     // 使用 try-catch 来处理表不存在的情况
     try {
+      await this.prisma.attachment.deleteMany();
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
       await this.prisma.message.deleteMany();
     } catch (e) {
       // Table might not exist
@@ -468,13 +474,43 @@ export class TestDatabaseHelper {
     }
 
     try {
+      await this.prisma.agent.deleteMany();
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
       await this.prisma.project.deleteMany();
     } catch (e) {
       // Table might not exist
     }
 
     try {
+      await this.prisma.device.deleteMany();
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
+      await this.prisma.$executeRawUnsafe('DELETE FROM "realm_members"');
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
+      await this.prisma.realm.deleteMany();
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
       await this.prisma.user.deleteMany();
+    } catch (e) {
+      // Table might not exist
+    }
+
+    try {
+      await this.prisma.auditLog.deleteMany();
     } catch (e) {
       // Table might not exist
     }

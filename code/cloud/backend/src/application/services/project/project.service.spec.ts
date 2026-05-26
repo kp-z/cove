@@ -90,10 +90,10 @@ describe('ProjectService', () => {
         expect.objectContaining({
           name: dto.name,
           description: dto.description,
-          ownerId: dto.ownerId,
+          owner_id: dto.ownerId,
           status: 'active',
-        }),
-        'test-server-id'
+          realm_id: 'test-server-id',
+        })
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -256,8 +256,8 @@ describe('ProjectService', () => {
       expect(mockProjectRepository.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'archived',
-        }),
-        'test-server-id'
+          realm_id: 'test-server-id',
+        })
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -291,8 +291,8 @@ describe('ProjectService', () => {
       expect(mockProjectRepository.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'active',
-        }),
-        'test-server-id'
+          realm_id: 'test-server-id',
+        })
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -463,6 +463,7 @@ describe('ProjectService', () => {
 function createTestProject(overrides?: Partial<ProjectEntity>): ProjectEntity {
   const project = ProjectEntity.create({
     projectId: 'project-123',
+    realmId: 'test-server-id',
     name: 'Test Project',
     displayName: 'Test Project',
     description: 'Test Description',
@@ -479,10 +480,12 @@ function createTestProject(overrides?: Partial<ProjectEntity>): ProjectEntity {
   project.archive = vi.fn().mockReturnValue({
     ...project,
     status: 'archived',
+    realmId: 'test-server-id',
   });
   project.activate = vi.fn().mockReturnValue({
     ...project,
     status: 'active',
+    realmId: 'test-server-id',
   });
 
   return project;

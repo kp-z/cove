@@ -108,8 +108,8 @@ describe('TaskService', () => {
           description: dto.description,
           priority: dto.priority,
           status: 'todo',
-        }),
-        'test-server-id'
+          realm_id: 'test-server-id',
+        })
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -24,6 +24,7 @@ describe('DefaultDataInitializer', () => {
       realm: {
         findUnique: vi.fn(),
         create: vi.fn(),
+        upsert: vi.fn(),
       },
       realmMember: {
         findUnique: vi.fn(),
@@ -38,6 +39,7 @@ describe('DefaultDataInitializer', () => {
       channel: {
         findUnique: vi.fn(),
         create: vi.fn(),
+        update: vi.fn(),
       },
       message: {
         findMany: vi.fn(),
@@ -67,7 +69,7 @@ describe('DefaultDataInitializer', () => {
   describe('initialize', () => {
     it('should skip initialization if Nexus realm already exists', async () => {
       // Arrange
-      mockPrisma.realm.findUnique.mockResolvedValue({
+      mockPrisma.realm.upsert.mockResolvedValue({
         id: 'realm-nexus',
         name: 'nexus',
       });
@@ -84,16 +86,23 @@ describe('DefaultDataInitializer', () => {
         id: 'channel-nexus-general',
         name: 'general',
       });
-      mockPrisma.message.findMany.mockResolvedValue([]);
+      mockPrisma.channel.update.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.message.findMany.mockResolvedValue([
+        { id: 'msg-1', content: 'Welcome' }
+      ]);
 
       // Act
       await initializer.initialize();
 
       // Assert
-      expect(mockPrisma.realm.findUnique).toHaveBeenCalledWith({
+      expect(mockPrisma.realm.upsert).toHaveBeenCalledWith({
         where: { id: 'realm-nexus' },
+        update: expect.any(Object),
+        create: expect.any(Object),
       });
-      expect(mockPrisma.realm.create).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Starting default data initialization...'
       );
@@ -106,6 +115,10 @@ describe('DefaultDataInitializer', () => {
     it('should create Nexus realm with default channels and members', async () => {
       // Arrange
       mockPrisma.realm.findUnique.mockResolvedValue(null);
+      mockPrisma.realm.upsert.mockResolvedValue({
+        id: 'realm-nexus',
+        name: 'nexus',
+      });
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-admin',
         role: 'owner',
@@ -122,9 +135,14 @@ describe('DefaultDataInitializer', () => {
       await initializer.initialize();
 
       // Assert
-      // 1. Should create Nexus realm
-      expect(mockPrisma.realm.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      // 1. Should upsert Nexus realm
+      expect(mockPrisma.realm.upsert).toHaveBeenCalledWith({
+        where: { id: 'realm-nexus' },
+        update: expect.objectContaining({
+          displayName: 'Nexus',
+          description: 'The central hub connecting all realms',
+        }),
+        create: expect.objectContaining({
           id: 'realm-nexus',
           name: 'nexus',
           displayName: 'Nexus',
@@ -221,6 +239,10 @@ describe('DefaultDataInitializer', () => {
     it('should handle missing admin user gracefully', async () => {
       // Arrange
       mockPrisma.realm.findUnique.mockResolvedValue(null);
+      mockPrisma.realm.upsert.mockResolvedValue({
+        id: 'realm-nexus',
+        name: 'nexus',
+      });
       mockPrisma.user.findFirst.mockResolvedValue(null); // No admin user
       mockPrisma.agent.findUnique.mockResolvedValue({
         id: 'agent-zhang',
@@ -234,8 +256,8 @@ describe('DefaultDataInitializer', () => {
       await initializer.initialize();
 
       // Assert
-      // Should still create realm and channels
-      expect(mockPrisma.realm.create).toHaveBeenCalled();
+      // Should still upsert realm and create channels
+      expect(mockPrisma.realm.upsert).toHaveBeenCalled();
       expect(mockPrisma.channel.create).toHaveBeenCalledTimes(2);
 
       // Should NOT add any members (no admin, agents are not realm members)
@@ -248,7 +270,7 @@ describe('DefaultDataInitializer', () => {
     it('should log errors if initialization fails', async () => {
       // Arrange
       const testError = new Error('Database error');
-      mockPrisma.realm.findUnique.mockRejectedValue(testError);
+      mockPrisma.realm.upsert.mockRejectedValue(testError);
 
       // Act & Assert
       await expect(initializer.initialize()).rejects.toThrow('Database error');

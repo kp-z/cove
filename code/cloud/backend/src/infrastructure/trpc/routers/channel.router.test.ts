@@ -713,7 +713,7 @@ describe('channelRouter', () => {
           operatorId: 'user-1',
         });
       } catch (err: any) {
-        expect(err.code).toBe('BAD_REQUEST');
+        expect(err.code).toBe('CONFLICT');
       }
     });
   });
