@@ -14,7 +14,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { ToolLog } from '../../types';
+import type { ToolLog } from '../../types';
 
 interface ToolLogItemProps {
   log: ToolLog;

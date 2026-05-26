@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
 import { BarChart3, Brain, Wrench, Coins, Clock, Loader2 } from 'lucide-react';
-import { AgentMetadata } from '../../types';
+import type { AgentMetadata } from '../../types';
 
 interface StatsTabProps {
   metadata: AgentMetadata;

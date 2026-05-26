@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Brain, Wrench, Coins, Loader2, ChevronRight } from 'lucide-react';
-import { AgentMetadata } from '../../types';
+import type { AgentMetadata } from '../../types';
 
 interface AgentExecutionStatusBarProps {
   metadata: AgentMetadata;

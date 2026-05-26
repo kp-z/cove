@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { X } from 'lucide-react';
-import { AgentMetadata } from '../../types';
+import type { AgentMetadata } from '../../types';
 import { ThinkingTab } from './ThinkingTab';
 import { ToolsTab } from './ToolsTab';
 import { UsageTab } from './UsageTab';

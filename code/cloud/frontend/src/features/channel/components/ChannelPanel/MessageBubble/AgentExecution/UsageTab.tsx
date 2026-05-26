@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Coins, TrendingUp, Clock, Zap } from 'lucide-react';
-import { TokenUsage } from '../../types';
+import type { TokenUsage } from '../../types';
 
 interface UsageTabProps {
   usage: TokenUsage;

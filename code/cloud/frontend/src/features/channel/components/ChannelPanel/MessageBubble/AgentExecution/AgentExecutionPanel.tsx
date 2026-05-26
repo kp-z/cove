@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { AgentMetadata } from '../../types';
+import type { AgentMetadata } from '../../types';
 import { AgentExecutionStatusBar } from './AgentExecutionStatusBar';
 import { AgentExecutionModal } from './AgentExecutionModal';
 

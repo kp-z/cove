@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
 import { Wrench, Loader2 } from 'lucide-react';
-import { ToolLog } from '../../types';
+import type { ToolLog } from '../../types';
 import { ToolLogItem } from './ToolLogItem';
 
 interface ToolsTabProps {
