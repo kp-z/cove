@@ -120,7 +120,7 @@ export default function AgentPage() {
         name: `DM-${agent.name}`,
         type: 'dm',
         createdBy: userId,
-        memberIds: [userId],
+        memberIds: [userId, agent.agent_id], // Add both user and agent as members
         agentIds: [agent.agent_id],
       },
       {
