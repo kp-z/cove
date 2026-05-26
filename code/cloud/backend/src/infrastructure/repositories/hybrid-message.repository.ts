@@ -11,6 +11,7 @@ import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import { IMessageRepository } from '../../application/interfaces/repositories/message.repository.interface';
 import { MessageEntity, MessageStatus, MessageContent } from '../../domain/models/message/message.entity';
+import { getRealmContext } from '../../application/context/realm-context-store';
 
 // 数据库记录类型
 interface MessageDbRecord {
@@ -300,8 +301,12 @@ export class HybridMessageRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<MessageDbRecord | null> {
-    return await this.prisma.message.findUnique({
-      where: { id: entityId },
+    const context = getRealmContext();
+    return await this.prisma.message.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
     }) as MessageDbRecord | null;
   }
 
@@ -322,8 +327,12 @@ export class HybridMessageRepository
     limit?: number,
     offset?: number
   ): Promise<MessageEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.message.findMany({
-      where: { channelId },
+      where: {
+        channelId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
@@ -333,8 +342,12 @@ export class HybridMessageRepository
   }
 
   async findBySender(senderId: string): Promise<MessageEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.message.findMany({
-      where: { senderId },
+      where: {
+        senderId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -342,8 +355,12 @@ export class HybridMessageRepository
   }
 
   async findByThread(threadId: string): Promise<MessageEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.message.findMany({
-      where: { threadId },
+      where: {
+        threadId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -375,16 +392,29 @@ export class HybridMessageRepository
   }
 
   async exists(messageId: string): Promise<boolean> {
+    const context = getRealmContext();
     const count = await this.prisma.message.count({
-      where: { id: messageId },
+      where: {
+        id: messageId,
+        realmId: context.realmId,
+      },
     });
     return count > 0;
   }
 
   async findByChannelCursor(channelId: string, cursor: string | null, limit: number): Promise<{ messages: MessageEntity[]; nextCursor: string | null }> {
-    const where: any = { channelId };
+    const context = getRealmContext();
+    const where: any = {
+      channelId,
+      realmId: context.realmId,
+    };
     if (cursor) {
-      const cursorRecord = await this.prisma.message.findUnique({ where: { id: cursor } });
+      const cursorRecord = await this.prisma.message.findFirst({
+        where: {
+          id: cursor,
+          realmId: context.realmId,
+        },
+      });
       if (cursorRecord) {
         where.createdAt = { lt: cursorRecord.createdAt };
       }

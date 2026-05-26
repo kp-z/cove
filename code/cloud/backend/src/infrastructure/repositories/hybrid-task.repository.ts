@@ -3,6 +3,7 @@ import { TaskEntity, TaskStatus, TaskPriority, TaskType } from '../../domain/mod
 import { ITaskRepository } from '../../application/interfaces/repositories/task.repository.interface';
 import { ActorRef } from '../../domain/models/value-objects/actor-ref';
 import { AssigneeRef } from '../../domain/models/value-objects/assignee-ref';
+import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface TaskDbRecord {
   id: string;
@@ -99,48 +100,70 @@ export class HybridTaskRepository
   }
 
   async findByChannel(channelId: string): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.task.findMany({
-      where: { channelId },
+      where: {
+        channelId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as TaskDbRecord[]);
   }
 
   async findByProject(projectId: string): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.task.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as TaskDbRecord[]);
   }
 
   async findByStatus(status: TaskStatus): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.task.findMany({
-      where: { status },
+      where: {
+        status,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as TaskDbRecord[]);
   }
 
   async findByPriority(priority: TaskPriority): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.task.findMany({
-      where: { priority },
+      where: {
+        priority,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as TaskDbRecord[]);
   }
 
   async findByAssignee(assigneeId: string): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     const records = await this.prisma.task.findMany({
-      where: { assigneeId },
+      where: {
+        assigneeId,
+        realmId: context.realmId,
+      },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as TaskDbRecord[]);
   }
 
   async findByKR(krId: string): Promise<TaskEntity[]> {
+    const context = getRealmContext();
     // KR is not in the database, need to load all and filter
     const all = await this.prisma.task.findMany({
+      where: { realmId: context.realmId },
       orderBy: { createdAt: 'desc' },
     });
     const entities = await this.loadEntities(all as unknown as TaskDbRecord[]);
@@ -160,12 +183,24 @@ export class HybridTaskRepository
   }
 
   async exists(taskId: string): Promise<boolean> {
-    const count = await this.prisma.task.count({ where: { id: taskId } });
+    const context = getRealmContext();
+    const count = await this.prisma.task.count({
+      where: {
+        id: taskId,
+        realmId: context.realmId,
+      },
+    });
     return count > 0;
   }
 
   async getNextTaskNumber(channelId: string): Promise<number> {
-    const count = await this.prisma.task.count({ where: { channelId } });
+    const context = getRealmContext();
+    const count = await this.prisma.task.count({
+      where: {
+        channelId,
+        realmId: context.realmId,
+      },
+    });
     return count + 1;
   }
 
@@ -212,7 +247,13 @@ export class HybridTaskRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<TaskDbRecord | null> {
-    const record = await this.prisma.task.findUnique({ where: { id: entityId } });
+    const context = getRealmContext();
+    const record = await this.prisma.task.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
+    });
     return record as unknown as TaskDbRecord | null;
   }
 }

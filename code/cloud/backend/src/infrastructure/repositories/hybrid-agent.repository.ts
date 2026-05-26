@@ -10,6 +10,7 @@ import {
   TriggersConfig,
   AgentFilePaths,
 } from '../../application/interfaces/agent-config-store.interface';
+import { getRealmContext } from '../../application/context/realm-context-store';
 import fs from 'fs/promises';
 import path from 'path';
 import YAML from 'yaml';
@@ -325,8 +326,12 @@ export class HybridAgentRepository
   }
 
   protected async findInDatabase(entityId: string): Promise<AgentDbRecord | null> {
-    return await this.prisma.agent.findUnique({
-      where: { id: entityId },
+    const context = getRealmContext();
+    return await this.prisma.agent.findFirst({
+      where: {
+        id: entityId,
+        realmId: context.realmId,
+      },
     });
   }
 
@@ -468,8 +473,12 @@ export class HybridAgentRepository
   }
 
   async findByStatus(status: AgentStatus): Promise<AgentEntity[]> {
+    const context = getRealmContext();
     const dbRecords = await this.prisma.agent.findMany({
-      where: { status },
+      where: {
+        status,
+        realmId: context.realmId,
+      },
     });
     return this.loadEntities(dbRecords);
   }
@@ -481,7 +490,10 @@ export class HybridAgentRepository
   }
 
   async findAll(): Promise<AgentEntity[]> {
-    const dbRecords = await this.prisma.agent.findMany();
+    const context = getRealmContext();
+    const dbRecords = await this.prisma.agent.findMany({
+      where: { realmId: context.realmId },
+    });
     return this.loadEntities(dbRecords);
   }
 
@@ -498,8 +510,12 @@ export class HybridAgentRepository
   }
 
   async exists(agentId: string): Promise<boolean> {
+    const context = getRealmContext();
     const count = await this.prisma.agent.count({
-      where: { id: agentId },
+      where: {
+        id: agentId,
+        realmId: context.realmId,
+      },
     });
     return count > 0;
   }
