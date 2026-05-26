@@ -10,15 +10,17 @@ export function useRealmList(options?: { status?: 'active' | 'archived' }) {
 }
 
 export function useCurrentRealmRole() {
-  const { currentRealmId } = useAuthStore();
+  const { currentRealmId, userId } = useAuthStore();
 
-  // TODO: 后端需要实现 getUserRole API
-  // 临时返回 mock 数据避免崩溃
-  return {
-    data: 'member' as const,
-    isLoading: false,
-    error: null,
-  };
+  return trpc.realm.getUserRole.useQuery(
+    {
+      realmId: currentRealmId || '',
+      userId: userId || '',
+    },
+    {
+      enabled: !!currentRealmId && !!userId,
+    }
+  );
 }
 
 export function useRealm(realmId: string, options?: { enabled?: boolean }) {

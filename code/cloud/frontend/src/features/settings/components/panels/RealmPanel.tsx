@@ -11,11 +11,12 @@ export function RealmPanel() {
   const { currentRealmId, setCurrentRealmId } = useAuthStore();
   const { data: currentRealm } = useRealm(currentRealmId || '');
   const { data: realmsData } = useRealmList({ status: 'active' });
-  const { data: userRole } = useCurrentRealmRole();
+  const { data: userRoleData } = useCurrentRealmRole();
   const updateRealm = useUpdateRealm();
   const [isEditing, setIsEditing] = useState(false);
 
   const allRealms = realmsData?.realms || [];
+  const userRole = userRoleData?.role || null;
   const canEdit = userRole ? canManageRealm(userRole) : false;
 
   const handleRealmSwitch = (realmId: string) => {
