@@ -84,7 +84,7 @@ describe('HybridDeviceRepository', () => {
       mockStorage.loadJson.mockResolvedValue(content);
 
       const result = await runWithContext(testContext, async () => {
-        return await repository.findById('device-1');
+        return await repository.findById('device-1', 'test-realm-id');
       });
 
       expect(result).toBeInstanceOf(DeviceEntity);
@@ -303,7 +303,7 @@ describe('HybridDeviceRepository', () => {
       });
 
       expect(mockPrisma.device.delete).toHaveBeenCalledWith({
-        where: { id: 'device-1' },
+        where: { id: 'device-1', realmId: 'server-1' },
       });
     });
   });

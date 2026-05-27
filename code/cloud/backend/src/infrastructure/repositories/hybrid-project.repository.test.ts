@@ -52,7 +52,7 @@ describe('HybridProjectRepository Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    testContext = RealmContext.create('test-realm-id', 'test-user-id');
+    testContext = RealmContext.create('test-realm', 'test-user-id');
 
     await dbHelper.clearAllTables();
 
