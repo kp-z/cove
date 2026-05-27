@@ -162,8 +162,8 @@ export class MemberService {
     return await this.memberRepository.findByChannel(channelId);
   }
 
-  async getUserChannels(userId: string): Promise<MemberEntity[]> {
-    return await this.memberRepository.findByUser(userId);
+  async getUserChannels(userId: string, realmId: string): Promise<MemberEntity[]> {
+    return await this.memberRepository.findByUser(userId, realmId);
   }
 
   async updateMemberRole(dto: UpdateMemberRoleDTO): Promise<MemberEntity> {

@@ -157,7 +157,18 @@ export class HybridRealmMemberRepository
     return await this.loadEntities(records);
   }
 
-  async findByUser(userId: string): Promise<RealmMemberEntity[]> {
+  async findByUser(userId: string, realmId: string): Promise<RealmMemberEntity[]> {
+    const records = await this.prisma.realmMember.findMany({
+      where: {
+        userId,
+        realmId
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+    return await this.loadEntities(records);
+  }
+
+  async findAllByUser(userId: string): Promise<RealmMemberEntity[]> {
     const records = await this.prisma.realmMember.findMany({
       where: { userId },
       orderBy: { joinedAt: 'desc' },

@@ -19,7 +19,8 @@
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
-    "repair:agents": "tsx scripts/repair-agents.ts"
+    "repair:agents": "tsx scripts/repair-agents.ts",
+    "fix:nexus": "tsx scripts/fix-nexus-realm.ts"
   },
   "keywords": [
     "backend",

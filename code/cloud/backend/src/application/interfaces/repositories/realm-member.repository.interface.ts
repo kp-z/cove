@@ -17,7 +17,8 @@ export interface IRealmMemberRepository {
 
   // 查询
   findByServer(realmId: string): Promise<RealmMemberEntity[]>;
-  findByUser(userId: string): Promise<RealmMemberEntity[]>;
+  findByUser(userId: string, realmId: string): Promise<RealmMemberEntity[]>;
+  findAllByUser(userId: string): Promise<RealmMemberEntity[]>; // 获取用户在所有 realm 中的成员关系
   findByRole(realmId: string, role: RealmRole): Promise<RealmMemberEntity[]>;
   findByStatus(realmId: string, status: MemberStatus): Promise<RealmMemberEntity[]>;
 

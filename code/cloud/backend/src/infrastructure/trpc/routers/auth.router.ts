@@ -169,7 +169,7 @@ export function createAuthRouter(authService: AuthService) {
       .input(changePasswordSchema)
       .mutation(async ({ input, ctx }) => {
         try {
-          await authService.changePassword(ctx.userId!, input.oldPassword, input.newPassword);
+          await authService.changePassword(ctx.userId!, input.oldPassword, input.newPassword, ctx.realmId!);
 
           return {
             success: true,

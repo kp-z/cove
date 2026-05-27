@@ -316,7 +316,8 @@ describe('authRouter', () => {
       expect(mockAuthService.changePassword).toHaveBeenCalledWith(
         'test-user-id',
         'oldpass123',
-        'newpass123'
+        'newpass123',
+        'test-realm-id'
       );
     });
 

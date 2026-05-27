@@ -34,6 +34,7 @@ import { HybridAuditLogRepository } from './infrastructure/repositories/hybrid-a
 import { StorageService } from './infrastructure/storage/storage.service';
 import { getPrismaClient } from './infrastructure/database/prisma-client';
 import { DatabaseInitializer } from './infrastructure/database/database-initializer';
+import { DefaultChannelsInitializer } from './infrastructure/database/default-channels-initializer';
 import { DeviceConnectionManager } from './infrastructure/websocket/device-connection-manager';
 import { PresetAvatarsInitializer } from './application/services/avatar/preset-avatars-initializer';
 
@@ -206,6 +207,11 @@ function initializeDependencies() {
     eventBus,
     logger
   );
+
+  const defaultChannelsInitializer = new DefaultChannelsInitializer({
+    prisma,
+    logger,
+  });
 
   const channelQueryService = new ChannelQueryService(
     channelRepository,
@@ -399,7 +405,8 @@ function initializeDependencies() {
     undefined, // agentRepository (optional)
     adapterBootstrapService, // adapterBootstrapService (optional)
     deviceService, // deviceService (optional)
-    deviceAuthService // deviceAuthService (optional)
+    deviceAuthService, // deviceAuthService (optional)
+    defaultChannelsInitializer // defaultChannelsInitializer (optional)
   );
 
   const authService = new AuthService(

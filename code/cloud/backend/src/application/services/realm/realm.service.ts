@@ -42,6 +42,7 @@ import { AdapterBootstrapService } from '../adapter/adapter-bootstrap.service';
 import { DeviceService } from '../device/device.service';
 import { DeviceAuthService } from '../device/device-auth.service';
 import { DeviceEntity } from '../../../domain/models/device/device.entity';
+import { DefaultChannelsInitializer } from '../../../infrastructure/database/default-channels-initializer';
 
 export interface CreateRealmDTO {
   readonly name: string;
@@ -92,7 +93,8 @@ export class RealmService {
     private readonly agentRepository?: IAgentRepository,
     private readonly adapterBootstrapService?: AdapterBootstrapService,
     private readonly deviceService?: DeviceService,
-    private readonly deviceAuthService?: DeviceAuthService
+    private readonly deviceAuthService?: DeviceAuthService,
+    private readonly defaultChannelsInitializer?: DefaultChannelsInitializer
   ) {}
 
   async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
@@ -199,6 +201,21 @@ export class RealmService {
       } catch (error) {
         // Log error but don't fail realm creation
         this.logger.error('Failed to bootstrap adapters', error as Error, { realmId });
+      }
+    }
+
+    // Auto-create default channels
+    if (this.defaultChannelsInitializer) {
+      try {
+        this.logger.info('Creating default channels for new realm', { realmId });
+        await this.defaultChannelsInitializer.initializeForRealm(
+          realmId,
+          dto.ownerId
+        );
+        this.logger.info('Default channels created', { realmId });
+      } catch (error) {
+        // Log error but don't fail realm creation
+        this.logger.error('Failed to create default channels', error as Error, { realmId });
       }
     }
 
@@ -851,7 +868,7 @@ export class RealmService {
     this.logger.info('Getting user realms', { userId, filters });
 
     // 获取用户的所有 realm 成员关系
-    const members = await this.serverMemberRepository.findByUser(userId);
+    const members = await this.serverMemberRepository.findAllByUser(userId);
 
     if (members.length === 0) {
       return [];

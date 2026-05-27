@@ -16,7 +16,6 @@ import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from '.
 import { AuditService } from '../audit/audit.service';
 import { TRPCError } from '@trpc/server';
 import { RealmMemberEntity } from '../../../domain/models/realm-member/realm-member.entity';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface JWTPayload {
   userId: string;
@@ -344,7 +343,8 @@ export class AuthService {
         throw new InvalidTokenError('Invalid reset token');
       }
 
-      const user = await this.userRepository.findById(payload.userId, getRealmContext().realmId);
+      // User is global (not realm-scoped), so realmId is not used in findById
+      const user = await this.userRepository.findById(payload.userId, 'global');
       if (!user) {
         throw new Error('User not found');
       }
@@ -526,7 +526,7 @@ export class AuthService {
 
     try {
       // 获取用户所有的 realm 成员关系，按加入时间排序
-      const members = await this.realmMemberRepository.findByUser(userId);
+      const members = await this.realmMemberRepository.findAllByUser(userId);
 
       if (members.length === 0) {
         this.logger.warn('User has no realm memberships', { userId });

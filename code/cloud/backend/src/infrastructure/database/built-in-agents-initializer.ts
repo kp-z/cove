@@ -38,13 +38,13 @@ export class BuiltInAgentsInitializer {
       count: BUILT_IN_AGENTS.length,
     });
 
-    // Get default realm
+    // Get nexus realm (the default realm)
     const defaultRealm = await this.prisma.realm.findFirst({
-      where: { name: 'default' },
+      where: { name: 'nexus' },
     });
 
     if (!defaultRealm) {
-      this.logger.error('Default realm not found, cannot initialize built-in agents');
+      this.logger.error('Nexus realm not found, cannot initialize built-in agents');
       return;
     }
 

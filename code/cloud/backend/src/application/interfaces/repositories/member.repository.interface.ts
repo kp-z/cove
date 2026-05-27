@@ -9,7 +9,7 @@ import { MemberEntity, MemberRole, MemberStatus } from '../../../domain/models/m
 export interface IMemberRepository {
   findById(memberId: string, realmId: string): Promise<MemberEntity | null>;
   findByChannel(channelId: string): Promise<MemberEntity[]>;
-  findByUser(userId: string): Promise<MemberEntity[]>;
+  findByUser(userId: string, realmId: string): Promise<MemberEntity[]>;
   findByChannelAndUser(channelId: string, userId: string): Promise<MemberEntity | null>;
   findByRole(channelId: string, role: MemberRole): Promise<MemberEntity[]>;
   findByStatus(channelId: string, status: MemberStatus): Promise<MemberEntity[]>;
