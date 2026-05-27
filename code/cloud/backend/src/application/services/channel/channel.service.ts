@@ -21,6 +21,7 @@ import {
 } from './channel-member.service';
 import { ChannelLifecycleService } from './channel-lifecycle.service';
 import { ChannelMessagingService, ChannelSendMessageDTO } from './channel-messaging.service';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export {
   CreateChannelDTO,

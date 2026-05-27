@@ -7,7 +7,7 @@
 import { MemberEntity, MemberRole, MemberStatus } from '../../../domain/models/member/member.entity';
 
 export interface IMemberRepository {
-  findById(memberId: string): Promise<MemberEntity | null>;
+  findById(memberId: string, realmId: string): Promise<MemberEntity | null>;
   findByChannel(channelId: string): Promise<MemberEntity[]>;
   findByUser(userId: string): Promise<MemberEntity[]>;
   findByChannelAndUser(channelId: string, userId: string): Promise<MemberEntity | null>;
@@ -15,7 +15,7 @@ export interface IMemberRepository {
   findByStatus(channelId: string, status: MemberStatus): Promise<MemberEntity[]>;
   save(member: MemberEntity, realmId: string): Promise<void>;
   update(member: MemberEntity, realmId: string): Promise<void>;
-  delete(memberId: string): Promise<void>;
+  delete(memberId: string, realmId: string): Promise<void>;
   exists(memberId: string): Promise<boolean>;
   existsByChannelAndUser(channelId: string, userId: string): Promise<boolean>;
 }

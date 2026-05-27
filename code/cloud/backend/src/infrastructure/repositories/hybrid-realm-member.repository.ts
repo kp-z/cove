@@ -118,18 +118,17 @@ export class HybridRealmMemberRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
     await this.prisma.realmMember.delete({
-      where: { id: entityId },
+      where: { id: entityId, realmId },
     });
   }
 
-  protected async findInDatabase(entityId: string): Promise<RealmMemberDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<RealmMemberDbRecord | null> {
     return await this.prisma.realmMember.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
   }
@@ -138,8 +137,8 @@ export class HybridRealmMemberRepository
   // IRealmMemberRepository 接口实现
   // ============================================
 
-  async findById(memberId: string): Promise<RealmMemberEntity | null> {
-    return await this.findEntityById(memberId);
+  async findById(memberId: string, realmId: string): Promise<RealmMemberEntity | null> {
+    return await this.findEntityById(memberId, realmId);
   }
 
   async findByServer(realmId: string): Promise<RealmMemberEntity[]> {
@@ -212,8 +211,8 @@ export class HybridRealmMemberRepository
     await this.updateEntity(member, this.realmId);
   }
 
-  async delete(memberId: string): Promise<void> {
-    await this.deleteEntity(memberId);
+  async delete(memberId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(memberId, realmId);
   }
 
   async exists(memberId: string): Promise<boolean> {

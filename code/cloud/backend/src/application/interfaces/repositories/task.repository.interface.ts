@@ -12,7 +12,7 @@ export interface ITaskRepository {
    * @param taskId - Task ID
    * @returns Task 实体，不存在返回 null
    */
-  findById(taskId: string): Promise<TaskEntity | null>;
+  findById(taskId: string, realmId: string): Promise<TaskEntity | null>;
 
   /**
    * 根据频道查找 Tasks
@@ -81,12 +81,12 @@ export interface ITaskRepository {
    * 删除 Task
    * @param taskId - Task ID
    */
-  delete(taskId: string): Promise<void>;
+  delete(taskId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 Task 是否存在
    * @param taskId - Task ID
    * @returns 是否存在
    */
-  exists(taskId: string): Promise<boolean>;
+  exists(taskId: string, realmId: string): Promise<boolean>;
 }

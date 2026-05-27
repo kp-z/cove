@@ -36,7 +36,7 @@ export class AgentResponseService {
       realmId: context.realmId,
     });
 
-    const channel = await this.channelRepository.findById(message.channelId);
+    const channel = await this.channelRepository.findById(message.channelId, getRealmContext().realmId);
     if (!channel) return;
 
     const agentIds = channel.agentPool;
@@ -44,7 +44,7 @@ export class AgentResponseService {
 
     for (const agentId of agentIds) {
       try {
-        const agent = await this.agentRepository.findById(agentId);
+        const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
         if (!agent) continue;
 
         const shouldRespond = await this.shouldAgentRespond(agent, message, channel);
@@ -362,6 +362,7 @@ Respond in ${lang}. Be ${verbosity}. Be helpful and professional.`;
   ): MessageEntity {
     const message = MessageEntity.create({
       messageId: this.generateMessageId(),
+      realmId: originalMessage.realmId,
       msgShortId: this.generateShortId(),
       senderId: agent.agentId,
       senderType: 'agent',

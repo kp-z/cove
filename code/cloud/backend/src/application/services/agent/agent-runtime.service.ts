@@ -20,6 +20,7 @@ import {
   IRuntimeAdapter,
 } from '../../interfaces';
 import { AgentNotFoundError } from './agent.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class AgentRuntimeService {
   constructor(
@@ -35,7 +36,7 @@ export class AgentRuntimeService {
   async startAgent(agentId: string): Promise<void> {
     this.logger.info('Starting agent runtime', { agentId });
 
-    const agent = await this.agentRepository.findById(agentId);
+    const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(agentId);
     }
@@ -67,7 +68,7 @@ export class AgentRuntimeService {
   async stopAgent(agentId: string): Promise<void> {
     this.logger.info('Stopping agent runtime', { agentId });
 
-    const agent = await this.agentRepository.findById(agentId);
+    const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(agentId);
     }

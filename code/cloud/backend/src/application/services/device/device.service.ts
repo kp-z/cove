@@ -128,7 +128,7 @@ export class DeviceService {
   }
 
   async getDeviceById(deviceId: string): Promise<DeviceEntity> {
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (!device) {
       throw new DeviceNotFoundError(deviceId);
     }
@@ -331,7 +331,7 @@ export class DeviceService {
 
     const device = await this.getDeviceById(deviceId);
 
-    await this.deviceRepository.delete(deviceId);
+    await this.deviceRepository.delete(deviceId, getRealmContext().realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),

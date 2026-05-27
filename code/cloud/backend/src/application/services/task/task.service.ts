@@ -86,7 +86,7 @@ export class TaskService {
   }
 
   async getTaskById(taskId: string): Promise<TaskEntity> {
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) throw new TaskNotFoundError(taskId);
     return task;
   }
@@ -150,7 +150,7 @@ export class TaskService {
       throw new TaskNotDeletableError(taskId, task.status);
     }
 
-    await this.taskRepository.delete(taskId);
+    await this.taskRepository.delete(taskId, getRealmContext().realmId);
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'task.deleted',
@@ -169,7 +169,7 @@ export class TaskService {
       throw new Error('MessageRepository is required for convertMessageToTask');
     }
 
-    const message = await this.messageRepository.findById(messageId);
+    const message = await this.messageRepository.findById(messageId, getRealmContext().realmId);
     if (!message) throw new MessageNotFoundError(messageId);
 
     const taskNumber = await this.taskRepository.getNextTaskNumber(message.channelId);

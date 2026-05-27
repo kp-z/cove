@@ -99,7 +99,7 @@ export class ProjectService {
    * 根据 ID 获取 Project
    */
   async getProjectById(projectId: string): Promise<ProjectEntity> {
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
@@ -273,7 +273,7 @@ export class ProjectService {
     }
 
     // 删除
-    await this.projectRepository.delete(projectId);
+    await this.projectRepository.delete(projectId, getRealmContext().realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -296,7 +296,7 @@ export class ProjectService {
 
     const agents: AgentEntity[] = [];
     for (const agentId of project.agentIds) {
-      const agent = await this.agentRepository.findById(agentId);
+      const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
       if (agent) {
         agents.push(agent);
       }
@@ -313,7 +313,7 @@ export class ProjectService {
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId);
+      const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
       if (channel) {
         channels.push(channel);
       }

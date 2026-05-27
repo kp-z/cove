@@ -15,6 +15,7 @@ import {
   IChannelQueryService,
 } from '../../interfaces';
 import { MessageNotFoundError } from './message.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class MessageQueryService {
   constructor(
@@ -23,7 +24,7 @@ export class MessageQueryService {
   ) {}
 
   async getMessageById(messageId: string): Promise<MessageEntity> {
-    const message = await this.messageRepository.findById(messageId);
+    const message = await this.messageRepository.findById(messageId, getRealmContext().realmId);
     if (!message) {
       throw new MessageNotFoundError(messageId);
     }

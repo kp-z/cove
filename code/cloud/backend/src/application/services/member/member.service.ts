@@ -57,10 +57,10 @@ export class MemberService {
   ) {}
 
   async joinChannel(dto: JoinChannelDTO): Promise<MemberEntity> {
-      const context = getRealmContext();
+    const context = getRealmContext();
     this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, realmId: context.realmId });
 
-    const channelExists = await this.channelRepository.exists(dto.channelId);
+    const channelExists = await this.channelRepository.exists(dto.channelId, context.realmId);
     if (!channelExists) {
       throw new ChannelNotFoundForMemberError(dto.channelId);
     }
@@ -151,7 +151,7 @@ export class MemberService {
   }
 
   async getMemberById(memberId: string): Promise<MemberEntity> {
-    const member = await this.memberRepository.findById(memberId);
+    const member = await this.memberRepository.findById(memberId, getRealmContext().realmId);
     if (!member) {
       throw new MemberNotFoundError(memberId);
     }

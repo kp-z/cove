@@ -10,42 +10,48 @@ export interface IWorkflowRepository {
   /**
    * 根据 ID 查找 Workflow
    * @param workflowId - Workflow ID
+   * @param realmId - Realm ID
    * @returns Workflow 实体，不存在返回 null
    */
-  findById(workflowId: string): Promise<WorkflowEntity | null>;
+  findById(workflowId: string, realmId: string): Promise<WorkflowEntity | null>;
 
   /**
    * 根据项目查找 Workflows
    * @param projectId - Project ID
+   * @param realmId - Realm ID
    * @returns Workflow 实体数组
    */
-  findByProject(projectId: string): Promise<WorkflowEntity[]>;
+  findByProject(projectId: string, realmId: string): Promise<WorkflowEntity[]>;
 
   /**
    * 根据 KR 查找 Workflows
    * @param krId - KR ID
+   * @param realmId - Realm ID
    * @returns Workflow 实体数组
    */
-  findByKR(krId: string): Promise<WorkflowEntity[]>;
+  findByKR(krId: string, realmId: string): Promise<WorkflowEntity[]>;
 
   /**
    * 根据状态查找 Workflows
    * @param status - Workflow 状态
+   * @param realmId - Realm ID
    * @returns Workflow 实体数组
    */
-  findByStatus(status: WorkflowStatus): Promise<WorkflowEntity[]>;
+  findByStatus(status: WorkflowStatus, realmId: string): Promise<WorkflowEntity[]>;
 
   /**
    * 查找所有激活的 Workflows
+   * @param realmId - Realm ID
    * @returns Workflow 实体数组
    */
-  findActive(): Promise<WorkflowEntity[]>;
+  findActive(realmId: string): Promise<WorkflowEntity[]>;
 
   /**
    * 查找所有 Workflows
+   * @param realmId - Realm ID
    * @returns Workflow 实体数组
    */
-  findAll(): Promise<WorkflowEntity[]>;
+  findAll(realmId: string): Promise<WorkflowEntity[]>;
 
   /**
    * 保存新 Workflow
@@ -64,13 +70,15 @@ export interface IWorkflowRepository {
   /**
    * 删除 Workflow
    * @param workflowId - Workflow ID
+   * @param realmId - Realm ID
    */
-  delete(workflowId: string): Promise<void>;
+  delete(workflowId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 Workflow 是否存在
    * @param workflowId - Workflow ID
+   * @param realmId - Realm ID
    * @returns 是否存在
    */
-  exists(workflowId: string): Promise<boolean>;
+  exists(workflowId: string, realmId: string): Promise<boolean>;
 }

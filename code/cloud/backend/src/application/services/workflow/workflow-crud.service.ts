@@ -91,7 +91,7 @@ export class WorkflowCrudService {
       const context = getRealmContext();
     this.logger.info('Updating workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -128,7 +128,7 @@ export class WorkflowCrudService {
   async deleteWorkflow(workflowId: string): Promise<void> {
     this.logger.info('Deleting workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -137,7 +137,7 @@ export class WorkflowCrudService {
       throw new WorkflowNotArchivedError(workflowId);
     }
 
-    await this.workflowRepository.delete(workflowId);
+    await this.workflowRepository.delete(workflowId, getRealmContext().realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -154,7 +154,7 @@ export class WorkflowCrudService {
   private async validateWorkflowSteps(steps: readonly (readonly WorkflowStep[])[]): Promise<void> {
     for (const stage of steps) {
       for (const step of stage) {
-        const task = await this.taskRepository.findById(step.taskId);
+        const task = await this.taskRepository.findById(step.taskId, getRealmContext().realmId);
         if (!task) {
           throw new TaskNotFoundError(step.taskId);
         }

@@ -12,6 +12,7 @@ import {
 import { ProjectNotFoundError, ProjectNotArchivedError } from './project.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
 import { ChannelNotFoundError } from '../channel/channel.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AddAgentToProjectDTO {
   readonly projectId: string;
@@ -46,13 +47,13 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-    const project = await this.projectRepository.findById(dto.projectId);
+    const project = await this.projectRepository.findById(dto.projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
     }
 
     // 验证 Agent 存在
-    const agent = await this.agentRepository.findById(dto.agentId);
+    const agent = await this.agentRepository.findById(dto.agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(dto.agentId);
     }
@@ -94,7 +95,7 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-    const project = await this.projectRepository.findById(dto.projectId);
+    const project = await this.projectRepository.findById(dto.projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
     }
@@ -136,13 +137,13 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-    const project = await this.projectRepository.findById(dto.projectId);
+    const project = await this.projectRepository.findById(dto.projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
     }
 
     // 验证 Channel 存在
-    const channel = await this.channelRepository.findById(dto.channelId);
+    const channel = await this.channelRepository.findById(dto.channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(dto.channelId);
     }
@@ -184,7 +185,7 @@ export class ProjectCompositionService {
     // TODO: Fix logger call
 
     // 获取 Project
-    const project = await this.projectRepository.findById(dto.projectId);
+    const project = await this.projectRepository.findById(dto.projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(dto.projectId);
     }
@@ -226,7 +227,7 @@ export class ProjectCompositionService {
     this.logger.info('Archiving project', { projectId });
 
     // 获取 Project
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
@@ -259,7 +260,7 @@ export class ProjectCompositionService {
     this.logger.info('Activating project', { projectId });
 
     // 获取 Project
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
@@ -292,7 +293,7 @@ export class ProjectCompositionService {
     this.logger.info('Deleting project', { projectId });
 
     // 获取 Project
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
@@ -303,7 +304,7 @@ export class ProjectCompositionService {
     }
 
     // 删除
-    await this.projectRepository.delete(projectId);
+    await this.projectRepository.delete(projectId, getRealmContext().realmId);
 
     // 发布事件
     await this.publishEvent({
@@ -322,14 +323,14 @@ export class ProjectCompositionService {
    * 获取 Project 的所有 Agents
    */
   async getProjectAgents(projectId: string): Promise<AgentEntity[]> {
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
 
     const agents: AgentEntity[] = [];
     for (const agentId of project.agentIds) {
-      const agent = await this.agentRepository.findById(agentId);
+      const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
       if (agent) {
         agents.push(agent);
       }
@@ -342,14 +343,14 @@ export class ProjectCompositionService {
    * 获取 Project 的所有 Channels
    */
   async getProjectChannels(projectId: string): Promise<ChannelEntity[]> {
-    const project = await this.projectRepository.findById(projectId);
+    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId);
+      const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
       if (channel) {
         channels.push(channel);
       }

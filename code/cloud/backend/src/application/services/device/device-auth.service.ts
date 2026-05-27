@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { DeviceEntity } from '../../../domain/models/device/device.entity';
 import { IDeviceRepository } from '../../interfaces/repositories/device.repository.interface';
 import { DeviceNotFoundError } from './device.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 const SALT_ROUNDS = 10;
 const API_KEY_PREFIX = 'wn_'; // worknode prefix
@@ -27,7 +28,7 @@ export class DeviceAuthService {
     const apiKeyHash = await bcrypt.hash(apiKey, SALT_ROUNDS);
 
     // Update device with hashed API key
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (!device) {
       throw new DeviceNotFoundError(deviceId);
     }
@@ -75,7 +76,7 @@ export class DeviceAuthService {
     realmId: string
   ): Promise<DeviceAuthResult> {
     // Find device
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (!device) {
       return {
         device: null as any,
@@ -115,7 +116,7 @@ export class DeviceAuthService {
    * Revoke device API key
    */
   async revokeApiKey(deviceId: string): Promise<void> {
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (!device) {
       throw new DeviceNotFoundError(deviceId);
     }

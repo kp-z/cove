@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { IAuditLogger, AuditLogEntry, AuditLogFilters } from './audit-logger.interface';
 import { IAuditLogStore } from './audit-log-store.interface';
+import { getRealmContext } from '../../context/realm-context-store';
 
 /**
  * Audit Logger Service

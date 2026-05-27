@@ -7,7 +7,6 @@
  */
 
 import { HybridRepository } from './hybrid-repository.base';
-import { getRealmContext } from '../../application/context/realm-context-store';
 import { WorkflowEntity, WorkflowStatus } from '../../domain/models/workflow/workflow.entity';
 import { IWorkflowRepository } from '../../application/interfaces/repositories/workflow.repository.interface';
 
@@ -97,48 +96,45 @@ export class HybridWorkflowRepository
 
   // --- IWorkflowRepository ---
 
-  async findById(workflowId: string): Promise<WorkflowEntity | null> {
-    return this.findEntityById(workflowId);
+  async findById(workflowId: string, realmId: string): Promise<WorkflowEntity | null> {
+    return this.findEntityById(workflowId, realmId);
   }
 
-  async findByProject(projectId: string): Promise<WorkflowEntity[]> {
-    const context = getRealmContext();
+  async findByProject(projectId: string, realmId: string): Promise<WorkflowEntity[]> {
     const records = await this.prisma.workflow.findMany({
       where: {
         projectId,
-        realmId: context.realmId,
+        realmId,
       },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
   }
 
-  async findByKR(krId: string): Promise<WorkflowEntity[]> {
+  async findByKR(krId: string, realmId: string): Promise<WorkflowEntity[]> {
     // KR filtering would need to be done in memory since it's in the content
-    const all = await this.findAll();
+    const all = await this.findAll(realmId);
     return all.filter(w => w.krId === krId);
   }
 
-  async findByStatus(status: WorkflowStatus): Promise<WorkflowEntity[]> {
-    const context = getRealmContext();
+  async findByStatus(status: WorkflowStatus, realmId: string): Promise<WorkflowEntity[]> {
     const records = await this.prisma.workflow.findMany({
       where: {
         status,
-        realmId: context.realmId,
+        realmId,
       },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
   }
 
-  async findActive(): Promise<WorkflowEntity[]> {
-    return this.findByStatus('active');
+  async findActive(realmId: string): Promise<WorkflowEntity[]> {
+    return this.findByStatus('active', realmId);
   }
 
-  async findAll(): Promise<WorkflowEntity[]> {
-    const context = getRealmContext();
+  async findAll(realmId: string): Promise<WorkflowEntity[]> {
     const records = await this.prisma.workflow.findMany({
-      where: { realmId: context.realmId },
+      where: { realmId },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as WorkflowDbRecord[]);
@@ -152,16 +148,15 @@ export class HybridWorkflowRepository
     await this.updateEntity(workflow, workflow.realmId);
   }
 
-  async delete(workflowId: string): Promise<void> {
-    await this.deleteEntity(workflowId);
+  async delete(workflowId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(workflowId, realmId);
   }
 
-  async exists(workflowId: string): Promise<boolean> {
-    const context = getRealmContext();
+  async exists(workflowId: string, realmId: string): Promise<boolean> {
     const count = await this.prisma.workflow.count({
       where: {
         id: workflowId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return count > 0;
@@ -198,16 +193,20 @@ export class HybridWorkflowRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
-    await this.prisma.workflow.delete({ where: { id: entityId } });
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
+    await this.prisma.workflow.delete({
+      where: {
+        id: entityId,
+        realmId,
+      }
+    });
   }
 
-  protected async findInDatabase(entityId: string): Promise<WorkflowDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<WorkflowDbRecord | null> {
     const record = await this.prisma.workflow.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return record as unknown as WorkflowDbRecord | null;

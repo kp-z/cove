@@ -9,6 +9,7 @@ import {
 } from '../../interfaces';
 import { AgentNotFoundError } from './agent.errors';
 import type { AdapterService } from '../adapter/adapter.service';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class AgentQueryService {
   constructor(
@@ -18,7 +19,8 @@ export class AgentQueryService {
   ) {}
 
   async getAgentById(agentId: string): Promise<AgentEntity> {
-    const agent = await this.agentRepository.findById(agentId);
+    const { realmId } = getRealmContext();
+    const agent = await this.agentRepository.findById(agentId, realmId);
     if (!agent) {
       throw new AgentNotFoundError(agentId);
     }

@@ -13,6 +13,7 @@ import { IEventBus, DomainEvent } from '../../interfaces/event-bus.interface';
 import { IChannelRepository } from '../../interfaces/repositories/channel.repository.interface';
 import { ILogger } from '../../interfaces/logger.interface';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
+import { getRealmContext } from '../../context/realm-context-store';
 
 // 配置常量
 const DEFAULT_CHANNEL_NAME = 'general';

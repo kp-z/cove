@@ -107,7 +107,7 @@ export class UserService {
   }
 
   async getUserById(userId: string): Promise<UserEntity> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findById(userId, getRealmContext().realmId);
     if (!user) {
       throw new UserNotFoundError(userId);
     }

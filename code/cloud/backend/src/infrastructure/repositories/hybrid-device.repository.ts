@@ -116,10 +116,9 @@ export class HybridDeviceRepository
 
   // --- IDeviceRepository ---
 
-  async findById(deviceId: string): Promise<DeviceEntity | null> {
-    const context = getRealmContext();
+  async findById(deviceId: string, realmId: string): Promise<DeviceEntity | null> {
     const record = await this.prisma.device.findFirst({
-      where: { id: deviceId, realmId: context.realmId },
+      where: { id: deviceId, realmId },
     });
     if (!record) return null;
     const content = await this.storage.loadJson(record.configPath);
@@ -168,8 +167,8 @@ export class HybridDeviceRepository
     await this.updateEntity(device, realmId);
   }
 
-  async delete(deviceId: string): Promise<void> {
-    await this.deleteEntity(deviceId);
+  async delete(deviceId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(deviceId, realmId);
   }
 
   async exists(deviceId: string): Promise<boolean> {
@@ -182,9 +181,12 @@ export class HybridDeviceRepository
 
   // --- Database operations (required by HybridRepository) ---
 
-  protected async findInDatabase(entityId: string): Promise<DeviceDbRecord | null> {
-    const record = await this.prisma.device.findUnique({
-      where: { id: entityId },
+  protected async findInDatabase(entityId: string, realmId: string): Promise<DeviceDbRecord | null> {
+    const record = await this.prisma.device.findFirst({
+      where: {
+        id: entityId,
+        realmId,
+      },
     });
     return record as unknown as DeviceDbRecord | null;
   }
@@ -223,9 +225,9 @@ export class HybridDeviceRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
     await this.prisma.device.delete({
-      where: { id: entityId },
+      where: { id: entityId, realmId },
     });
   }
 

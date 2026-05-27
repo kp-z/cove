@@ -8,6 +8,7 @@ import {
 } from '../../interfaces';
 import { TaskNotFoundError, TaskNotAssignableError } from './task.errors';
 import { AgentNotFoundError } from '../agent/agent.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface AssignTaskDTO {
   readonly taskId: string;
@@ -48,7 +49,7 @@ export class TaskAssignmentService {
     }
 
     if (dto.assigneeType === 'agent') {
-      const agent = await this.agentRepository.findById(dto.assigneeId);
+      const agent = await this.agentRepository.findById(dto.assigneeId, getRealmContext().realmId);
       if (!agent) throw new AgentNotFoundError(dto.assigneeId);
     }
 
@@ -79,7 +80,7 @@ export class TaskAssignmentService {
     }
 
     if (dto.assigneeType === 'agent') {
-      const agent = await this.agentRepository.findById(dto.assigneeId);
+      const agent = await this.agentRepository.findById(dto.assigneeId, getRealmContext().realmId);
       if (!agent) throw new AgentNotFoundError(dto.assigneeId);
     }
 
@@ -140,7 +141,7 @@ export class TaskAssignmentService {
   }
 
   private async findTask(taskId: string): Promise<TaskEntity> {
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) throw new TaskNotFoundError(taskId);
     return task;
   }

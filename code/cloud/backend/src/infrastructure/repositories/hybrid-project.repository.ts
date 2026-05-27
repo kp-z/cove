@@ -85,8 +85,8 @@ export class HybridProjectRepository
 
   // --- IProjectRepository ---
 
-  async findById(projectId: string): Promise<ProjectEntity | null> {
-    return this.findEntityById(projectId);
+  async findById(projectId: string, realmId: string): Promise<ProjectEntity | null> {
+    return this.findEntityById(projectId, realmId);
   }
 
   async findByOwner(ownerId: string): Promise<ProjectEntity[]> {
@@ -130,8 +130,8 @@ export class HybridProjectRepository
     await this.updateEntity(project, project.realmId);
   }
 
-  async delete(projectId: string): Promise<void> {
-    await this.deleteEntity(projectId);
+  async delete(projectId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(projectId, realmId);
   }
 
   async exists(projectId: string): Promise<boolean> {
@@ -176,16 +176,15 @@ export class HybridProjectRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
-    await this.prisma.project.delete({ where: { id: entityId } });
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
+    await this.prisma.project.delete({ where: { id: entityId, realmId } });
   }
 
-  protected async findInDatabase(entityId: string): Promise<ProjectDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<ProjectDbRecord | null> {
     const record = await this.prisma.project.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return record as unknown as ProjectDbRecord | null;

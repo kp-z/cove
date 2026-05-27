@@ -66,8 +66,8 @@ export class HybridThreadRepository
 
   // --- IThreadRepository ---
 
-  async findById(threadId: string): Promise<ThreadEntity | null> {
-    return this.findEntityById(threadId);
+  async findById(threadId: string, realmId: string): Promise<ThreadEntity | null> {
+    return this.findEntityById(threadId, realmId);
   }
 
   async findByChannel(channelId: string): Promise<ThreadEntity[]> {
@@ -91,7 +91,7 @@ export class HybridThreadRepository
       },
     });
     if (!record) return null;
-    return this.findEntityById(record.id);
+    return this.findEntityById(record.id, context.realmId);
   }
 
   async save(thread: ThreadEntity): Promise<void> {
@@ -102,8 +102,8 @@ export class HybridThreadRepository
     await this.updateEntity(thread, thread.realmId);
   }
 
-  async delete(threadId: string): Promise<void> {
-    await this.deleteEntity(threadId);
+  async delete(threadId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(threadId, realmId);
   }
 
   async exists(threadId: string): Promise<boolean> {
@@ -160,16 +160,15 @@ export class HybridThreadRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
-    await this.prisma.thread.delete({ where: { id: entityId } });
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
+    await this.prisma.thread.delete({ where: { id: entityId, realmId } });
   }
 
-  protected async findInDatabase(entityId: string): Promise<ThreadDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<ThreadDbRecord | null> {
     const record = await this.prisma.thread.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return record as unknown as ThreadDbRecord | null;

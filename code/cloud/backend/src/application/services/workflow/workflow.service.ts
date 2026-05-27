@@ -14,6 +14,7 @@ import { WorkflowEntity, WorkflowStatus, WorkflowStep } from '../../../domain/mo
 import { WorkflowCrudService, CreateWorkflowDTO, UpdateWorkflowDTO } from './workflow-crud.service';
 import { WorkflowQueryService } from './workflow-query.service';
 import { WorkflowLifecycleService } from './workflow-lifecycle.service';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class WorkflowService {
   constructor(

@@ -15,7 +15,7 @@ export interface IDeviceRepository {
    * @param deviceId - Device ID
    * @returns Device 实体，如果不存在返回 null
    */
-  findById(deviceId: string): Promise<DeviceEntity | null>;
+  findById(deviceId: string, realmId: string): Promise<DeviceEntity | null>;
 
   /**
    * 根据 Server ID 查找所有 Device
@@ -63,12 +63,12 @@ export interface IDeviceRepository {
    * 删除 Device
    * @param deviceId - Device ID
    */
-  delete(deviceId: string): Promise<void>;
+  delete(deviceId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 Device 是否存在
    * @param deviceId - Device ID
    * @returns 是否存在
    */
-  exists(deviceId: string): Promise<boolean>;
+  exists(deviceId: string, realmId: string): Promise<boolean>;
 }

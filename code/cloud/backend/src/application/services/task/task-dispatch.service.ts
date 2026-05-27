@@ -11,6 +11,7 @@ import { DeviceEntity } from '../../../domain/models/device/device.entity';
 import { ITaskRepository } from '../../interfaces/repositories/task.repository.interface';
 import { IDeviceRepository } from '../../interfaces/repositories/device.repository.interface';
 import { DeviceConnectionManager } from '../../../infrastructure/websocket/device-connection-manager';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface TaskDispatchResult {
   taskId: string;
@@ -42,7 +43,7 @@ export class TaskDispatchService {
    */
   async dispatchTask(taskId: string, realmId: string): Promise<TaskDispatchResult> {
     // Get task
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) {
       throw new Error('Task not found');
     }
@@ -164,13 +165,13 @@ export class TaskDispatchService {
     taskId: string,
     deviceId: string
   ): Promise<void> {
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) {
       throw new Error('Task not found');
     }
 
     // Update device statistics
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (device) {
       const newActiveCount = Math.max(0, device.activeTaskCount - 1);
       const newTotalExecuted = device.totalTasksExecuted + 1;
@@ -213,7 +214,7 @@ export class TaskDispatchService {
    * Cancel a task
    */
   async cancelTask(taskId: string, deviceId: string): Promise<void> {
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) {
       throw new Error('Task not found');
     }
@@ -228,7 +229,7 @@ export class TaskDispatchService {
     });
 
     // Update device active task count
-    const device = await this.deviceRepository.findById(deviceId);
+    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
     if (device) {
       const updatedDevice = DeviceEntity.create({
         device_id: device.device_id,

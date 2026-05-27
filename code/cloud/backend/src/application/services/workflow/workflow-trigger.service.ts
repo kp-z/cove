@@ -90,7 +90,7 @@ export class WorkflowTriggerService {
   }
 
   private async findWorkflow(workflowId: string): Promise<WorkflowEntity> {
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) throw new WorkflowNotFoundError(workflowId);
     return workflow;
   }

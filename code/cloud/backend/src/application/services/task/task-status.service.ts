@@ -5,6 +5,7 @@ import {
   ILogger,
 } from '../../interfaces';
 import { TaskNotFoundError, InvalidStatusTransitionError } from './task.service';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class TaskStatusService {
   constructor(
@@ -80,7 +81,7 @@ export class TaskStatusService {
   }
 
   private async findTask(taskId: string): Promise<TaskEntity> {
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById(taskId, getRealmContext().realmId);
     if (!task) throw new TaskNotFoundError(taskId);
     return task;
   }

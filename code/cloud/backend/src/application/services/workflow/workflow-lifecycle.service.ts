@@ -23,7 +23,7 @@ export class WorkflowLifecycleService {
       const context = getRealmContext();
     this.logger.info('Activating workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -50,7 +50,7 @@ export class WorkflowLifecycleService {
       const context = getRealmContext();
     this.logger.info('Pausing workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -77,7 +77,7 @@ export class WorkflowLifecycleService {
       const context = getRealmContext();
     this.logger.info('Resuming workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -104,7 +104,7 @@ export class WorkflowLifecycleService {
       const context = getRealmContext();
     this.logger.info('Completing workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -131,7 +131,7 @@ export class WorkflowLifecycleService {
       const context = getRealmContext();
     this.logger.info('Archiving workflow', { workflowId });
 
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }

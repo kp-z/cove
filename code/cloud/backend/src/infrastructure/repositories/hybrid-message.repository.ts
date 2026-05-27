@@ -294,18 +294,17 @@ export class HybridMessageRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
     await this.prisma.message.delete({
-      where: { id: entityId },
+      where: { id: entityId, realmId },
     });
   }
 
-  protected async findInDatabase(entityId: string): Promise<MessageDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<MessageDbRecord | null> {
     return await this.prisma.message.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     }) as MessageDbRecord | null;
   }
@@ -318,8 +317,8 @@ export class HybridMessageRepository
   // 实现 IMessageRepository 接口
   // ============================================
 
-  async findById(messageId: string): Promise<MessageEntity | null> {
-    return await this.findEntityById(messageId);
+  async findById(messageId: string, realmId: string): Promise<MessageEntity | null> {
+    return await this.findEntityById(messageId, realmId);
   }
 
   async findByChannel(
@@ -387,8 +386,8 @@ export class HybridMessageRepository
     await this.updateEntity(message, message.realmId);
   }
 
-  async delete(messageId: string): Promise<void> {
-    await this.deleteEntity(messageId);
+  async delete(messageId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(messageId, realmId);
   }
 
   async exists(messageId: string): Promise<boolean> {

@@ -15,6 +15,7 @@ import {
 import { AdapterService } from './adapter.service';
 import { AdapterType } from '../../../domain/models/adapter/adapter-config.entity';
 import { ILogger } from '../../interfaces/logger.interface';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class AdapterBootstrapService {
   constructor(

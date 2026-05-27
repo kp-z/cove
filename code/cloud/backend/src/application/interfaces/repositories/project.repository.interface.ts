@@ -12,7 +12,7 @@ export interface IProjectRepository {
    * @param projectId - Project ID
    * @returns Project 实体，不存在返回 null
    */
-  findById(projectId: string): Promise<ProjectEntity | null>;
+  findById(projectId: string, realmId: string): Promise<ProjectEntity | null>;
 
   /**
    * 根据所有者查找 Projects
@@ -50,12 +50,12 @@ export interface IProjectRepository {
    * 删除 Project
    * @param projectId - Project ID
    */
-  delete(projectId: string): Promise<void>;
+  delete(projectId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 Project 是否存在
    * @param projectId - Project ID
    * @returns 是否存在
    */
-  exists(projectId: string): Promise<boolean>;
+  exists(projectId: string, realmId: string): Promise<boolean>;
 }

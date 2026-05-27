@@ -234,7 +234,7 @@ export class AgentCrudService {
       throw new AgentInUseError(agentId);
     }
 
-    await this.agentRepository.delete(agentId);
+    await this.agentRepository.delete(agentId, getRealmContext().realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -249,7 +249,7 @@ export class AgentCrudService {
   }
 
   private async getAgentById(agentId: string): Promise<AgentEntity> {
-    const agent = await this.agentRepository.findById(agentId);
+    const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(agentId);
     }

@@ -5,6 +5,7 @@
 import { WorkflowEntity, WorkflowStatus, WorkflowStep } from '../../../domain/models/workflow/workflow.entity';
 import { IWorkflowRepository } from '../../interfaces';
 import { WorkflowNotFoundError } from './workflow.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class WorkflowQueryService {
   constructor(
@@ -12,7 +13,7 @@ export class WorkflowQueryService {
   ) {}
 
   async getWorkflowById(workflowId: string): Promise<WorkflowEntity> {
-    const workflow = await this.workflowRepository.findById(workflowId);
+    const workflow = await this.workflowRepository.findById(workflowId, getRealmContext().realmId);
     if (!workflow) {
       throw new WorkflowNotFoundError(workflowId);
     }
@@ -20,19 +21,19 @@ export class WorkflowQueryService {
   }
 
   async getWorkflowsByProject(projectId: string): Promise<WorkflowEntity[]> {
-    return await this.workflowRepository.findByProject(projectId);
+    return await this.workflowRepository.findByProject(projectId, getRealmContext().realmId);
   }
 
   async getWorkflowsByKR(krId: string): Promise<WorkflowEntity[]> {
-    return await this.workflowRepository.findByKR(krId);
+    return await this.workflowRepository.findByKR(krId, getRealmContext().realmId);
   }
 
   async getWorkflowsByStatus(status: WorkflowStatus): Promise<WorkflowEntity[]> {
-    return await this.workflowRepository.findByStatus(status);
+    return await this.workflowRepository.findByStatus(status, getRealmContext().realmId);
   }
 
   async getActiveWorkflows(): Promise<WorkflowEntity[]> {
-    return await this.workflowRepository.findActive();
+    return await this.workflowRepository.findActive(getRealmContext().realmId);
   }
 
   async getWorkflowSteps(workflowId: string): Promise<readonly (readonly WorkflowStep[])[]> {

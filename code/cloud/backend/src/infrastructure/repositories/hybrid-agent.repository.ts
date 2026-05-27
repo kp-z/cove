@@ -319,18 +319,18 @@ export class HybridAgentRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
     await this.prisma.agent.delete({
-      where: { id: entityId },
+      where: { id: entityId, realmId },
     });
   }
 
-  protected async findInDatabase(entityId: string): Promise<AgentDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<AgentDbRecord | null> {
+    
     return await this.prisma.agent.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
   }
@@ -441,8 +441,8 @@ export class HybridAgentRepository
   /**
    * 重写 findEntityById 以支持目录结构
    */
-  protected async findEntityById(entityId: string): Promise<AgentEntity | null> {
-    const dbRecord = await this.findInDatabase(entityId);
+  protected async findEntityById(entityId: string, realmId: string): Promise<AgentEntity | null> {
+    const dbRecord = await this.findInDatabase(entityId, realmId);
     if (!dbRecord) return null;
 
     const contentPath = this.getContentPath(dbRecord);
@@ -468,8 +468,8 @@ export class HybridAgentRepository
   // IAgentRepository 接口实现
   // ============================================
 
-  async findById(agentId: string): Promise<AgentEntity | null> {
-    return this.findEntityById(agentId);
+  async findById(agentId: string, realmId: string): Promise<AgentEntity | null> {
+    return this.findEntityById(agentId, realmId);
   }
 
   async findByStatus(status: AgentStatus): Promise<AgentEntity[]> {
@@ -505,8 +505,8 @@ export class HybridAgentRepository
     await this.updateEntity(agent, agent.realmId);
   }
 
-  async delete(agentId: string): Promise<void> {
-    await this.deleteEntity(agentId);
+  async delete(agentId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(agentId, realmId);
   }
 
   async exists(agentId: string): Promise<boolean> {
@@ -567,7 +567,8 @@ export class HybridAgentRepository
       return YAML.parse(raw) as PersonaConfig;
     } catch {
       // Return default persona
-      const agent = await this.findById(agentId);
+      const { realmId } = getRealmContext();
+      const agent = await this.findById(agentId, realmId);
       return {
         name: agent?.displayName || 'Agent',
         title: 'AI Assistant',

@@ -118,6 +118,7 @@ export class MessageCrudService {
         senderType: dto.senderType,
         threadId: dto.threadId,
         mentions: dto.mentions,
+        realmId: context.realmId,
       },
     });
 
@@ -189,7 +190,7 @@ export class MessageCrudService {
   }
 
   private async getMessageById(messageId: string): Promise<MessageEntity> {
-    const message = await this.messageRepository.findById(messageId);
+    const message = await this.messageRepository.findById(messageId, getRealmContext().realmId);
     if (!message) {
       throw new MessageNotFoundError(messageId);
     }

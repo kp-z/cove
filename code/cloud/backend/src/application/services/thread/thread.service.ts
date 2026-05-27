@@ -33,12 +33,12 @@ export class ThreadService {
 
   async getOrCreateThread(rootMessageId: string): Promise<ThreadEntity> {
       const context = getRealmContext();
-    const existing = await this.threadRepository.findById(rootMessageId);
+    const existing = await this.threadRepository.findById(rootMessageId, getRealmContext().realmId);
     if (existing) {
       return existing;
     }
 
-    const rootMessage = await this.messageRepository.findById(rootMessageId);
+    const rootMessage = await this.messageRepository.findById(rootMessageId, getRealmContext().realmId);
     if (!rootMessage) {
       throw new RootMessageNotFoundError(rootMessageId);
     }
@@ -67,7 +67,7 @@ export class ThreadService {
     content: string,
   ): Promise<MessageEntity> {
     const context = getRealmContext();
-    const rootMessage = await this.messageRepository.findById(rootMessageId);
+    const rootMessage = await this.messageRepository.findById(rootMessageId, getRealmContext().realmId);
     if (!rootMessage) {
       throw new RootMessageNotFoundError(rootMessageId);
     }

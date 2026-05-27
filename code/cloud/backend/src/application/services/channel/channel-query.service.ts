@@ -14,6 +14,7 @@ import {
   IMessageRepository,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class ChannelQueryService {
   constructor(
@@ -22,7 +23,7 @@ export class ChannelQueryService {
   ) {}
 
   async getChannelById(channelId: string): Promise<ChannelEntity> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(channelId);
     }
@@ -30,7 +31,7 @@ export class ChannelQueryService {
   }
 
   async canSendMessage(channelId: string, senderId: string): Promise<{ allowed: boolean; reason?: string }> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
       return { allowed: false, reason: 'Channel not found' };
     }

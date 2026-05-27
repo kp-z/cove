@@ -10,7 +10,7 @@ import { RealmMemberEntity, RealmRole, MemberStatus } from '../../../domain/mode
 
 export interface IRealmMemberRepository {
   // 基本 CRUD
-  findById(memberId: string): Promise<RealmMemberEntity | null>;
+  findById(memberId: string, realmId: string): Promise<RealmMemberEntity | null>;
   findByServerAndUser(realmId: string, userId: string): Promise<RealmMemberEntity | null>;
   save(member: RealmMemberEntity, realmId: string): Promise<void>;
   update(member: RealmMemberEntity, realmId: string): Promise<void>;

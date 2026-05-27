@@ -95,8 +95,8 @@ export class HybridTaskRepository
 
   // --- ITaskRepository ---
 
-  async findById(taskId: string): Promise<TaskEntity | null> {
-    return this.findEntityById(taskId);
+  async findById(taskId: string, realmId: string): Promise<TaskEntity | null> {
+    return this.findEntityById(taskId, realmId);
   }
 
   async findByChannel(channelId: string): Promise<TaskEntity[]> {
@@ -178,8 +178,8 @@ export class HybridTaskRepository
     await this.updateEntity(task, task.realmId);
   }
 
-  async delete(taskId: string): Promise<void> {
-    await this.deleteEntity(taskId);
+  async delete(taskId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(taskId, realmId);
   }
 
   async exists(taskId: string): Promise<boolean> {
@@ -242,16 +242,15 @@ export class HybridTaskRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
-    await this.prisma.task.delete({ where: { id: entityId } });
+  protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {
+    await this.prisma.task.delete({ where: { id: entityId, realmId } });
   }
 
-  protected async findInDatabase(entityId: string): Promise<TaskDbRecord | null> {
-    const context = getRealmContext();
+  protected async findInDatabase(entityId: string, realmId: string): Promise<TaskDbRecord | null> {
     const record = await this.prisma.task.findFirst({
       where: {
         id: entityId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return record as unknown as TaskDbRecord | null;

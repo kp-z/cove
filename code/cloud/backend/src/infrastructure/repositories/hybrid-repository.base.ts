@@ -115,12 +115,12 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   /**
    * 删除实体（数据库 + 文件）
    */
-  protected async deleteEntity(entityId: string): Promise<void> {
+  protected async deleteEntity(entityId: string, realmId: string): Promise<void> {
     const entityType = this.getEntityType();
 
     try {
       // 1. 从数据库删除
-      await this.deleteFromDatabase(entityId);
+      await this.deleteFromDatabase(entityId, realmId);
 
       // 2. 删除文件（可选，也可以保留用于审计）
       const relativePath = `storage/${entityType}/${entityId}.json`;
@@ -136,13 +136,13 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   /**
    * 根据 ID 查找实体
    */
-  protected async findEntityById(entityId: string): Promise<TEntity | null> {
+  protected async findEntityById(entityId: string, realmId: string): Promise<TEntity | null> {
     const entityType = this.getEntityType();
     const startTime = Date.now();
 
     try {
       // 1. 从数据库查询索引
-      const dbRecord = await this.findInDatabase(entityId);
+      const dbRecord = await this.findInDatabase(entityId, realmId);
 
       if (!dbRecord) {
         return null;
@@ -252,12 +252,12 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   /**
    * 从数据库删除
    */
-  protected abstract deleteFromDatabase(entityId: string): Promise<void>;
+  protected abstract deleteFromDatabase(entityId: string, realmId: string): Promise<void>;
 
   /**
    * 从数据库查找
    */
-  protected abstract findInDatabase(entityId: string): Promise<TDbRecord | null>;
+  protected abstract findInDatabase(entityId: string, realmId: string): Promise<TDbRecord | null>;
 
   /**
    * 从数据库记录获取内容路径

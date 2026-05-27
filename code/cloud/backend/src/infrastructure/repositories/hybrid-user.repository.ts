@@ -99,8 +99,8 @@ export class HybridUserRepository
 
   // --- IUserRepository ---
 
-  async findById(userId: string): Promise<UserEntity | null> {
-    return this.findEntityById(userId);
+  async findById(userId: string, _realmId: string): Promise<UserEntity | null> {
+    return this.findEntityById(userId, _realmId);
   }
 
   async findByUsername(username: string): Promise<UserEntity | null> {
@@ -163,8 +163,8 @@ export class HybridUserRepository
     await this.updateEntity(user, realmId);
   }
 
-  async delete(userId: string): Promise<void> {
-    await this.deleteEntity(userId);
+  async delete(userId: string, _realmId: string): Promise<void> {
+    await this.deleteEntity(userId, _realmId);
   }
 
   async exists(userId: string): Promise<boolean> {
@@ -223,11 +223,13 @@ export class HybridUserRepository
     });
   }
 
-  protected async deleteFromDatabase(entityId: string): Promise<void> {
+  protected async deleteFromDatabase(entityId: string, _realmId: string): Promise<void> {
+    // User is global, not realm-scoped
     await this.prisma.user.delete({ where: { id: entityId } });
   }
 
-  protected async findInDatabase(entityId: string): Promise<UserDbRecord | null> {
+  protected async findInDatabase(entityId: string, _realmId: string): Promise<UserDbRecord | null> {
+    // User is global, not realm-scoped
     const record = await this.prisma.user.findUnique({ where: { id: entityId } });
     return record as unknown as UserDbRecord | null;
   }

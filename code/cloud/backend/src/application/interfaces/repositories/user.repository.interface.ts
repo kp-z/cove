@@ -24,9 +24,10 @@ export interface IUserRepository {
   /**
    * 根据 ID 查找 User
    * @param userId - User ID
+   * @param realmId - Realm ID (not used for User, but kept for interface consistency)
    * @returns User 实体，不存在返回 null
    */
-  findById(userId: string): Promise<UserEntity | null>;
+  findById(userId: string, realmId: string): Promise<UserEntity | null>;
 
   /**
    * 根据 username 查找 User
@@ -79,8 +80,9 @@ export interface IUserRepository {
   /**
    * 删除 User
    * @param userId - User ID
+   * @param realmId - Realm ID (not used for User, but kept for interface consistency)
    */
-  delete(userId: string): Promise<void>;
+  delete(userId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 User 是否存在

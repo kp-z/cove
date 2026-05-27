@@ -32,7 +32,7 @@ export class AgentTaskService {
       const context = getRealmContext();
     this.logger.info('Assigning task to agent', { ...dto, realmId: context.realmId });
 
-    const agent = await this.agentRepository.findById(dto.agentId);
+    const agent = await this.agentRepository.findById(dto.agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(dto.agentId);
     }
@@ -41,7 +41,7 @@ export class AgentTaskService {
       throw new AgentNotAvailableError(dto.agentId, agent.status);
     }
 
-    const task = await this.taskRepository.findById(dto.taskId);
+    const task = await this.taskRepository.findById(dto.taskId, getRealmContext().realmId);
     if (!task) {
       throw new TaskNotFoundError(dto.taskId);
     }

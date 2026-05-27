@@ -16,6 +16,7 @@ import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from '.
 import { AuditService } from '../audit/audit.service';
 import { TRPCError } from '@trpc/server';
 import { RealmMemberEntity } from '../../../domain/models/realm-member/realm-member.entity';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface JWTPayload {
   userId: string;
@@ -278,7 +279,7 @@ export class AuthService {
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
     this.logger.info('Changing password', { userId });
 
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findById(userId, getRealmContext().realmId);
     if (!user) {
       throw new Error('User not found');
     }
@@ -343,7 +344,7 @@ export class AuthService {
         throw new InvalidTokenError('Invalid reset token');
       }
 
-      const user = await this.userRepository.findById(payload.userId);
+      const user = await this.userRepository.findById(payload.userId, getRealmContext().realmId);
       if (!user) {
         throw new Error('User not found');
       }

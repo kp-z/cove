@@ -87,7 +87,7 @@ export class AgentConfigService {
   }
 
   private async getAgentById(agentId: string): Promise<AgentEntity> {
-    const agent = await this.agentRepository.findById(agentId);
+    const agent = await this.agentRepository.findById(agentId, getRealmContext().realmId);
     if (!agent) {
       throw new AgentNotFoundError(agentId);
     }

@@ -14,6 +14,7 @@
 import type { MessageEntity } from '../../../domain/models/message/message.entity';
 import type { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 import type { AgentEntity } from '../../../domain/models/agent/agent.entity';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export interface TriggerContext {
   message: MessageEntity;

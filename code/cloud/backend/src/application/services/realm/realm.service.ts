@@ -132,7 +132,7 @@ export class RealmService {
       limits: defaultLimits,
       logo: {
         url: '/storage/assets/cove-logo.svg',
-        type: 'static',
+        type: 'default',
       },
       created_at: new Date(),
       updated_at: new Date(),
@@ -621,7 +621,7 @@ export class RealmService {
 
     try {
       // 查找 agent-zhang
-      const zhangAgent = await this.agentRepository.findById('agent-zhang');
+      const zhangAgent = await this.agentRepository.findById('agent-zhang', getRealmContext().realmId);
       if (!zhangAgent) {
         this.logger.warn('Platform agent (agent-zhang) not found, skipping auto-add');
         return;

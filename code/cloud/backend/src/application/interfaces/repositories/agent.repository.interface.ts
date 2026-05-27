@@ -18,7 +18,7 @@ export interface IAgentRepository {
    * @param agentId - Agent ID
    * @returns Agent 实体，不存在返回 null
    */
-  findById(agentId: string): Promise<AgentEntity | null>;
+  findById(agentId: string, realmId: string): Promise<AgentEntity | null>;
 
   /**
    * 根据状态查找 Agents
@@ -56,12 +56,12 @@ export interface IAgentRepository {
    * 删除 Agent
    * @param agentId - Agent ID
    */
-  delete(agentId: string): Promise<void>;
+  delete(agentId: string, realmId: string): Promise<void>;
 
   /**
    * 检查 Agent 是否存在
    * @param agentId - Agent ID
    * @returns 是否存在
    */
-  exists(agentId: string): Promise<boolean>;
+  exists(agentId: string, realmId: string): Promise<boolean>;
 }

@@ -410,7 +410,13 @@ function initializeDependencies() {
    */
   eventBus.subscribe('message.created', (event) => {
     if (event.payload.senderType === 'agent') return;
-    messageRepository.findById(event.payload.messageId as string).then(message => {
+    // Event payload should include realmId for proper context
+    const realmId = (event.payload as any).realmId;
+    if (!realmId) {
+      logger.warn('message.created event missing realmId', { messageId: event.payload.messageId });
+      return;
+    }
+    messageRepository.findById(event.payload.messageId as string, realmId).then(message => {
       if (message) agentService.handleIncomingMessage(message);
     }).catch(err => logger.error('Agent response trigger failed', err as Error));
   });
