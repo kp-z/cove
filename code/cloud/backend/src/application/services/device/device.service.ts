@@ -107,7 +107,7 @@ export class DeviceService {
       meta: {},
     });
 
-    await this.deviceRepository.save(device, context.realmId);
+    await this.deviceRepository.save(device, dto.realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -207,7 +207,7 @@ export class DeviceService {
       });
     }
 
-    await this.deviceRepository.update(device, context.realmId);
+    await this.deviceRepository.update(device, device.realm_id);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -223,7 +223,6 @@ export class DeviceService {
   }
 
   async updateDeviceSpecs(deviceId: string, dto: UpdateDeviceSpecsDTO): Promise<DeviceEntity> {
-    const context = getRealmContext();
     this.logger.info('Updating device specs', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -237,7 +236,7 @@ export class DeviceService {
 
     device = device.updateSpecs(specsUpdate);
 
-    await this.deviceRepository.update(device, context.realmId);
+    await this.deviceRepository.update(device, device.realm_id);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -253,7 +252,6 @@ export class DeviceService {
   }
 
   async updateDeviceNetwork(deviceId: string, dto: UpdateDeviceNetworkDTO): Promise<DeviceEntity> {
-    const context = getRealmContext();
     this.logger.info('Updating device network', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -268,7 +266,7 @@ export class DeviceService {
 
     device = device.updateNetwork(networkUpdate);
 
-    await this.deviceRepository.update(device, context.realmId);
+    await this.deviceRepository.update(device, device.realm_id);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -284,7 +282,6 @@ export class DeviceService {
   }
 
   async updateDeviceLocation(deviceId: string, dto: UpdateDeviceLocationDTO): Promise<DeviceEntity> {
-    const context = getRealmContext();
     this.logger.info('Updating device location', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
@@ -298,7 +295,7 @@ export class DeviceService {
 
     device = device.updateLocation(locationUpdate);
 
-    await this.deviceRepository.update(device, context.realmId);
+    await this.deviceRepository.update(device, device.realm_id);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -314,12 +311,10 @@ export class DeviceService {
   }
 
   async updateDeviceHeartbeat(deviceId: string): Promise<DeviceEntity> {
-    const context = getRealmContext();
-
     let device = await this.getDeviceById(deviceId);
     device = device.updateHeartbeat();
 
-    await this.deviceRepository.update(device, context.realmId);
+    await this.deviceRepository.update(device, device.realm_id);
 
     // No event for heartbeat updates (too frequent)
     return device;

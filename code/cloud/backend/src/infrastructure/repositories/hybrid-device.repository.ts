@@ -23,6 +23,7 @@ interface DeviceDbRecord {
   lastSeenAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  apiKeyHash: string | null;
 }
 
 interface DeviceContent {
@@ -80,6 +81,7 @@ export class HybridDeviceRepository
       created_at: dbRecord.createdAt,
       updated_at: dbRecord.updatedAt,
       meta: content.meta,
+      apiKeyHash: dbRecord.apiKeyHash || undefined,
     });
   }
 
@@ -96,6 +98,7 @@ export class HybridDeviceRepository
       lastSeenAt: entity.last_seen_at || null,
       createdAt: entity.created_at,
       updatedAt: entity.updated_at,
+      apiKeyHash: entity.apiKeyHash || null,
     };
   }
 
@@ -160,11 +163,24 @@ export class HybridDeviceRepository
   }
 
   async save(device: DeviceEntity, realmId: string): Promise<void> {
+    this.logger.info('HybridDeviceRepository.save called', {
+      deviceId: device.device_id,
+      realmId,
+      hasApiKeyHash: !!device.apiKeyHash
+    });
     await this.saveEntity(device, realmId);
+    this.logger.info('HybridDeviceRepository.save completed', { deviceId: device.device_id });
   }
 
   async update(device: DeviceEntity, realmId: string): Promise<void> {
+    this.logger.info('HybridDeviceRepository.update called', {
+      deviceId: device.device_id,
+      realmId,
+      hasApiKeyHash: !!device.apiKeyHash,
+      apiKeyHashLength: device.apiKeyHash?.length
+    });
     await this.updateEntity(device, realmId);
+    this.logger.info('HybridDeviceRepository.update completed', { deviceId: device.device_id });
   }
 
   async delete(deviceId: string, realmId: string): Promise<void> {
@@ -192,37 +208,58 @@ export class HybridDeviceRepository
   }
 
   protected async saveToDatabase(dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
-    await this.prisma.device.create({
-      data: {
-        id: dbRecord.id,
-        realmId: dbRecord.realmId,
-        name: dbRecord.name,
-        displayName: dbRecord.displayName,
-        type: dbRecord.type,
-        status: dbRecord.status,
-        platform: dbRecord.platform,
-        configPath: contentPath,
-        lastSeenAt: dbRecord.lastSeenAt,
-        createdAt: dbRecord.createdAt,
-        updatedAt: dbRecord.updatedAt,
-      },
-    });
+    try {
+      await this.prisma.device.create({
+        data: {
+          id: dbRecord.id,
+          realmId: dbRecord.realmId,
+          name: dbRecord.name,
+          displayName: dbRecord.displayName,
+          type: dbRecord.type,
+          status: dbRecord.status,
+          platform: dbRecord.platform,
+          configPath: contentPath,
+          lastSeenAt: dbRecord.lastSeenAt,
+          createdAt: dbRecord.createdAt,
+          updatedAt: dbRecord.updatedAt,
+          apiKeyHash: dbRecord.apiKeyHash,
+        },
+      });
+      this.logger.info('Device saved to database', { deviceId: dbRecord.id, configPath: contentPath });
+    } catch (error: any) {
+      this.logger.error('Failed to save device to database', error, { deviceId: dbRecord.id });
+      throw error;
+    }
   }
 
   protected async updateInDatabase(entityId: string, dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
-    await this.prisma.device.update({
-      where: { id: entityId },
-      data: {
-        name: dbRecord.name,
-        displayName: dbRecord.displayName,
-        type: dbRecord.type,
-        status: dbRecord.status,
-        platform: dbRecord.platform,
-        configPath: contentPath,
-        lastSeenAt: dbRecord.lastSeenAt,
-        updatedAt: dbRecord.updatedAt,
-      },
-    });
+    try {
+      this.logger.info('Updating device in database', {
+        entityId,
+        hasApiKeyHash: !!dbRecord.apiKeyHash,
+        apiKeyHashLength: dbRecord.apiKeyHash?.length
+      });
+
+      await this.prisma.device.update({
+        where: { id: entityId },
+        data: {
+          name: dbRecord.name,
+          displayName: dbRecord.displayName,
+          type: dbRecord.type,
+          status: dbRecord.status,
+          platform: dbRecord.platform,
+          configPath: contentPath,
+          lastSeenAt: dbRecord.lastSeenAt,
+          updatedAt: dbRecord.updatedAt,
+          apiKeyHash: dbRecord.apiKeyHash,
+        },
+      });
+
+      this.logger.info('Device updated in database successfully', { entityId });
+    } catch (error: any) {
+      this.logger.error('Failed to update device in database', error, { entityId });
+      throw error;
+    }
   }
 
   protected async deleteFromDatabase(entityId: string, realmId: string): Promise<void> {

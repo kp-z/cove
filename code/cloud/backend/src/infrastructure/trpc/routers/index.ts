@@ -32,6 +32,7 @@ import type { WorkflowService } from '../../../application/services/workflow/wor
 import type { ProjectService } from '../../../application/services/project/project.service';
 import type { RealmService } from '../../../application/services/realm/realm.service';
 import type { DeviceService } from '../../../application/services/device/device.service';
+import type { DeviceAuthService } from '../../../application/services/device/device-auth.service';
 import type { FileSystemService } from '../../../application/services/filesystem/filesystem.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
@@ -53,6 +54,7 @@ export interface RouterDependencies {
   projectService: ProjectService;
   realmService: RealmService;
   deviceService: DeviceService;
+  deviceAuthService: DeviceAuthService;
   fileSystemService: FileSystemService;
   eventBus: IEventBus;
   deviceConnectionManager: DeviceConnectionManager;
@@ -118,7 +120,7 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     realm: realmRouter(deps.realmService),
 
     // Device router
-    device: deviceRouter(deps.deviceService),
+    device: deviceRouter(deps.deviceService, deps.deviceAuthService),
 
     // FileSystem router
     filesystem: createFileSystemRouter(deps.fileSystemService),

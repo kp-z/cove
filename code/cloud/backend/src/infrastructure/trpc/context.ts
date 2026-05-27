@@ -2,7 +2,9 @@ import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { ILogger } from '../../application/interfaces/logger.interface';
 import type { AuthService } from '../../application/services/auth/auth.service';
+import type { DeviceAuthService } from '../../application/services/device/device-auth.service';
 import type { IRealmMemberVerificationService } from '../../application/services/realm/realm-member-verification.service';
+import { TRPCError } from '@trpc/server';
 
 export interface Context {
   realmId?: string;
@@ -18,6 +20,7 @@ export interface Context {
 export interface CreateContextOptions {
   logger: ILogger;
   authService: AuthService;
+  deviceAuthService: DeviceAuthService;
   realmMemberVerification: IRealmMemberVerificationService;
 }
 
@@ -64,8 +67,74 @@ export function createContext(opts: CreateContextOptions) {
           res,
         };
       } catch (_error) {
-        // Token invalid, fall through to legacy headers
-        opts.logger.debug('JWT verification failed, falling back to legacy headers');
+        // Token invalid, fall through to device auth or legacy headers
+        opts.logger.debug('JWT verification failed, trying device auth');
+      }
+    }
+
+    // Try device authentication (for Local Device connections)
+    const deviceId = req.headers['x-device-id'] as string | undefined;
+    const apiKey = req.headers['x-api-key'] as string | undefined;
+
+    if (deviceId && apiKey) {
+      // Device credentials provided - must authenticate successfully or fail
+      if (!realmId) {
+        opts.logger.error('Device auth failed: missing realm ID');
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Device authentication requires x-realm-id header',
+        });
+      }
+
+      opts.logger.info('Attempting device authentication');
+
+      try {
+        const authResult = await opts.deviceAuthService.authenticateDevice(
+          deviceId,
+          apiKey,
+          realmId
+        );
+
+        opts.logger.info('Device auth result');
+
+        if (!authResult.isValid) {
+          opts.logger.error('Device auth failed: invalid credentials');
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Invalid device credentials',
+          });
+        }
+
+        // Check if device has API key (not revoked)
+        if (!authResult.device.apiKeyHash) {
+          opts.logger.error('Device auth failed: API key revoked');
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Device API key has been revoked',
+          });
+        }
+
+        opts.logger.info('Device authenticated successfully');
+
+        return {
+          realmId,
+          userId: deviceId,
+          userType: 'agent',
+          logger: opts.logger,
+          realmMemberVerification: opts.realmMemberVerification,
+          req,
+          res,
+        };
+      } catch (error) {
+        // Device authentication failed - throw error instead of falling back
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        opts.logger.error('Device authentication error', error as Error);
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Device authentication failed',
+        });
       }
     }
 

@@ -75,6 +75,7 @@ import { WorkflowQueryService } from './application/services/workflow/workflow-q
 import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
 import { RealmService } from './application/services/realm/realm.service';
 import { DeviceService } from './application/services/device/device.service';
+import { DeviceAuthService } from './application/services/device/device-auth.service';
 import { AuthService } from './application/services/auth/auth.service';
 import { AuditService } from './application/services/audit/audit.service';
 import { AvatarService } from './application/services/avatar/avatar.service';
@@ -387,6 +388,10 @@ function initializeDependencies() {
     logger
   );
 
+  const deviceAuthService = new DeviceAuthService(
+    deviceRepository
+  );
+
   const authService = new AuthService(
     userRepository,
     logger,
@@ -447,6 +452,7 @@ function initializeDependencies() {
     workflowService,
     realmService,
     deviceService,
+    deviceAuthService,
     fileSystemService,
   };
 }
@@ -471,6 +477,7 @@ function createStandaloneServer(deps: {
   workflowService: WorkflowService;
   realmService: RealmService;
   deviceService: DeviceService;
+  deviceAuthService: DeviceAuthService;
   fileSystemService: FileSystemService;
 }) {
   // Create app router
@@ -490,6 +497,7 @@ function createStandaloneServer(deps: {
     workflowService: deps.workflowService,
     realmService: deps.realmService,
     deviceService: deps.deviceService,
+    deviceAuthService: deps.deviceAuthService,
     fileSystemService: deps.fileSystemService,
     eventBus: deps.eventBus,
     deviceConnectionManager: deps.deviceConnectionManager,
@@ -502,6 +510,7 @@ function createStandaloneServer(deps: {
     createContext: createContext({
       logger: deps.logger,
       authService: deps.authService,
+      deviceAuthService: deps.deviceAuthService,
       realmMemberVerification: deps.realmMemberVerification,
     }),
   });

@@ -3,7 +3,6 @@ import { randomBytes } from 'crypto';
 import { DeviceEntity } from '../../../domain/models/device/device.entity';
 import { IDeviceRepository } from '../../interfaces/repositories/device.repository.interface';
 import { DeviceNotFoundError } from './device.errors';
-import { getRealmContext } from '../../context/realm-context-store';
 
 const SALT_ROUNDS = 10;
 const API_KEY_PREFIX = 'wn_'; // worknode prefix
@@ -19,7 +18,7 @@ export class DeviceAuthService {
   /**
    * Generate a new API key for a device
    */
-  async generateApiKey(deviceId: string): Promise<string> {
+  async generateApiKey(deviceId: string, realmId: string): Promise<string> {
     // Generate random API key
     const randomPart = randomBytes(32).toString('hex');
     const apiKey = `${API_KEY_PREFIX}${randomPart}`;
@@ -28,7 +27,7 @@ export class DeviceAuthService {
     const apiKeyHash = await bcrypt.hash(apiKey, SALT_ROUNDS);
 
     // Update device with hashed API key
-    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
+    const device = await this.deviceRepository.findById(deviceId, realmId);
     if (!device) {
       throw new DeviceNotFoundError(deviceId);
     }
@@ -75,8 +74,8 @@ export class DeviceAuthService {
     apiKey: string,
     realmId: string
   ): Promise<DeviceAuthResult> {
-    // Find device
-    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
+    // Find device - use provided realmId instead of getRealmContext()
+    const device = await this.deviceRepository.findById(deviceId, realmId);
     if (!device) {
       return {
         device: null as any,
@@ -115,8 +114,8 @@ export class DeviceAuthService {
   /**
    * Revoke device API key
    */
-  async revokeApiKey(deviceId: string): Promise<void> {
-    const device = await this.deviceRepository.findById(deviceId, getRealmContext().realmId);
+  async revokeApiKey(deviceId: string, realmId: string): Promise<void> {
+    const device = await this.deviceRepository.findById(deviceId, realmId);
     if (!device) {
       throw new DeviceNotFoundError(deviceId);
     }
@@ -154,8 +153,8 @@ export class DeviceAuthService {
   /**
    * Rotate device API key (revoke old, generate new)
    */
-  async rotateApiKey(deviceId: string): Promise<string> {
-    await this.revokeApiKey(deviceId);
-    return this.generateApiKey(deviceId);
+  async rotateApiKey(deviceId: string, realmId: string): Promise<string> {
+    await this.revokeApiKey(deviceId, realmId);
+    return this.generateApiKey(deviceId, realmId);
   }
 }
