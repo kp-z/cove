@@ -74,6 +74,7 @@ import { WorkflowCrudService } from './application/services/workflow/workflow-cr
 import { WorkflowQueryService } from './application/services/workflow/workflow-query.service';
 import { WorkflowLifecycleService } from './application/services/workflow/workflow-lifecycle.service';
 import { RealmService } from './application/services/realm/realm.service';
+import { RealmPermissionService } from './application/services/realm/realm-permission.service';
 import { DeviceService } from './application/services/device/device.service';
 import { DeviceAuthService } from './application/services/device/device-auth.service';
 import { AuthService } from './application/services/auth/auth.service';
@@ -373,15 +374,6 @@ function initializeDependencies() {
     workflowLifecycleService
   );
 
-  const realmService = new RealmService(
-    serverRepository,
-    serverMemberRepository,
-    eventBus,
-    logger,
-    undefined, // agentRepository (optional)
-    adapterBootstrapService // adapterBootstrapService (optional)
-  );
-
   const deviceService = new DeviceService(
     deviceRepository,
     eventBus,
@@ -390,6 +382,24 @@ function initializeDependencies() {
 
   const deviceAuthService = new DeviceAuthService(
     deviceRepository
+  );
+
+  // Create RealmPermissionService
+  const realmPermissionService = new RealmPermissionService(
+    serverMemberRepository,
+    logger
+  );
+
+  const realmService = new RealmService(
+    serverRepository,
+    serverMemberRepository,
+    realmPermissionService,
+    eventBus,
+    logger,
+    undefined, // agentRepository (optional)
+    adapterBootstrapService, // adapterBootstrapService (optional)
+    deviceService, // deviceService (optional)
+    deviceAuthService // deviceAuthService (optional)
   );
 
   const authService = new AuthService(
@@ -441,6 +451,7 @@ function initializeDependencies() {
     adapterService,
     authService,
     realmMemberVerification,
+    realmPermissionService,
     auditService,
     avatarService,
     channelService,
@@ -466,6 +477,7 @@ function createStandaloneServer(deps: {
   adapterService: AdapterService;
   authService: AuthService;
   realmMemberVerification: RealmMemberVerificationService;
+  realmPermissionService: RealmPermissionService;
   auditService: AuditService;
   avatarService: AvatarService;
   channelService: ChannelService;
@@ -512,6 +524,7 @@ function createStandaloneServer(deps: {
       authService: deps.authService,
       deviceAuthService: deps.deviceAuthService,
       realmMemberVerification: deps.realmMemberVerification,
+      permissionService: deps.realmPermissionService,
     }),
   });
 
@@ -748,16 +761,35 @@ async function startServer() {
       createContext: ({ req, res }) => {
         // Extract user info from WebSocket connection
         const url = new URL(req.url || '', `ws://localhost:${PORT}`);
+
+        // Support both frontend (userId) and Local Agent (deviceId) connections
         const userId = url.searchParams.get('userId') || url.searchParams.get('token');
+        const deviceId = url.searchParams.get('deviceId');
+        const apiKey = url.searchParams.get('apiKey');
+        const realmId = url.searchParams.get('realmId');
         const userType = url.searchParams.get('userType') as 'human' | 'agent' | undefined;
 
-        deps.logger.info('WebSocket connection established', { userId, userType });
+        // Determine if this is a Local Agent connection
+        const isAgent = !!deviceId;
+        const effectiveUserId = deviceId || userId;
+        const effectiveUserType = isAgent ? 'agent' : (userType || 'human');
+
+        deps.logger.info('WebSocket connection established', {
+          userId: effectiveUserId,
+          userType: effectiveUserType,
+          ...(deviceId && { deviceId }),
+          ...(realmId && { realmId })
+        });
 
         return {
-          userId: userId || undefined,
-          userType: userType || 'human',
+          userId: effectiveUserId || undefined,
+          userType: effectiveUserType,
+          deviceId: deviceId || undefined,
+          apiKey: apiKey || undefined,
+          realmId: realmId || undefined,
           logger: deps.logger,
           realmMemberVerification: deps.realmMemberVerification,
+          permissionService: deps.realmPermissionService,
           req,
           res,
         };

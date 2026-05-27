@@ -151,6 +151,22 @@ export class DeviceService {
     return await this.deviceRepository.findAll();
   }
 
+  /**
+   * Check if a realm has any device (for 1:1 constraint validation)
+   */
+  async hasDevice(realmId: string): Promise<boolean> {
+    const devices = await this.deviceRepository.findByServer(realmId);
+    return devices.length > 0;
+  }
+
+  /**
+   * Get the device for a realm (assumes 1:1 relationship)
+   */
+  async getRealmDevice(realmId: string): Promise<DeviceEntity | null> {
+    const devices = await this.deviceRepository.findByServer(realmId);
+    return devices.length > 0 ? devices[0]! : null;
+  }
+
   async updateDevice(deviceId: string, dto: UpdateDeviceDTO): Promise<DeviceEntity> {
     const context = getRealmContext();
     this.logger.info('Updating device', { deviceId });

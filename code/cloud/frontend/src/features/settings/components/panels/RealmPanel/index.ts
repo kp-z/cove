@@ -6,4 +6,5 @@ export { RealmStatsCard } from './RealmStatsCard';
 export { RealmMembersCard } from './RealmMembersCard';
 export { RealmAdaptersCard } from './RealmAdaptersCard';
 export { RealmEditDialog } from './RealmEditDialog';
+export { RealmDeviceCard } from './RealmDeviceCard';
 export type { RealmUpdateData, RealmStats, RealmMember, RealmAdapter } from './types';

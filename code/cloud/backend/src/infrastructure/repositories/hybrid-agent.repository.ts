@@ -354,9 +354,20 @@ export class HybridAgentRepository
    * 从目录结构加载 agent 配置
    */
   private async loadFromDirectory(dirPath: string): Promise<AgentContent> {
-    // 读取 agent.md
+    // 读取 agent.md（如果不存在则使用默认值）
     const agentMdPath = path.join(dirPath, 'agent.md');
-    const agentMd = await fs.readFile(agentMdPath, 'utf-8');
+    let agentMd: string;
+
+    try {
+      agentMd = await fs.readFile(agentMdPath, 'utf-8');
+    } catch (error) {
+      // agent.md 文件不存在，使用默认值
+      this.logger.warn(`agent.md not found at ${agentMdPath}, using defaults`, {
+        path: agentMdPath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      agentMd = '# Agent\n\nNo description available.\n\n## Capabilities\n\n## Tags\n';
+    }
 
     // 解析 agent.md
     const parsed = this.parseAgentMd(agentMd);

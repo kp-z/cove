@@ -89,13 +89,16 @@ export class DefaultDataInitializer {
       // Step 1: 确保默认 Realm (Nexus) 存在
       await this.ensureDefaultRealm();
 
-      // Step 2: 确保初始成员存在（admin + agent-zhang）
+      // Step 2: 确保 Nexus Device 存在
+      await this.ensureNexusDevice();
+
+      // Step 3: 确保初始成员存在（admin + agent-zhang）
       await this.ensureInitialMembers();
 
-      // Step 3: 确保默认 Channels 存在
+      // Step 4: 确保默认 Channels 存在
       await this.ensureDefaultChannels();
 
-      // Step 4: 确保欢迎消息存在
+      // Step 5: 确保欢迎消息存在
       await this.ensureWelcomeMessage();
 
       this.logger.info('Default data initialization completed successfully');
@@ -162,6 +165,103 @@ export class DefaultDataInitializer {
     });
 
     this.logger.debug('Default realm already exists', { realmId: this.DEFAULT_REALM.id });
+  }
+
+  /**
+   * 确保 Nexus Device 存在
+   *
+   * 注意：这里直接使用 Prisma 而不是 DeviceService，因为：
+   * 1. DeviceService 在 initializeDependencies() 中才创建
+   * 2. 初始化场景下，直接操作数据库是可接受的
+   * 3. 保持与 ensureDefaultRealm() 的实现模式一致
+   */
+  private async ensureNexusDevice(): Promise<void> {
+    const now = new Date();
+    const deviceId = `device-${this.DEFAULT_REALM.id}`;
+
+    // 检查 device 是否已存在（通过 realmId unique 约束）
+    const existingDevice = await this.prisma.device.findUnique({
+      where: { realmId: this.DEFAULT_REALM.id },
+    });
+
+    if (existingDevice) {
+      this.logger.debug('Nexus device already exists', {
+        deviceId: existingDevice.id,
+        realmId: this.DEFAULT_REALM.id
+      });
+      return;
+    }
+
+    this.logger.info('Creating device for Nexus realm...');
+
+    // Device 配置（存储在文件系统）
+    const deviceConfig = {
+      description: 'Auto-generated device for Nexus realm',
+      provider: 'local',
+      specs: {
+        cpu_cores: 1,
+        memory_gb: 1,
+        storage_gb: 1,
+      },
+      network: {
+        hostname: 'localhost',
+        protocol: 'http' as const,
+      },
+      location: {},
+      meta: {
+        auto_generated: true,
+        created_by: 'default-data-initializer',
+      },
+    };
+
+    // 创建 device 配置文件
+    const deviceConfigPath = path.join(
+      this.storageRoot,
+      'storage',
+      'devices',
+      `${deviceId}.json`
+    );
+
+    await fs.mkdir(path.dirname(deviceConfigPath), { recursive: true });
+    await fs.writeFile(
+      deviceConfigPath,
+      JSON.stringify(deviceConfig, null, 2),
+      'utf-8'
+    );
+
+    // 存储相对路径（相对于 storageRoot）
+    const relativeConfigPath = path.relative(this.storageRoot, deviceConfigPath);
+
+    // 创建 Device 记录
+    await this.prisma.device.create({
+      data: {
+        id: deviceId,
+        realmId: this.DEFAULT_REALM.id,
+        name: `${this.DEFAULT_REALM.name}-device`,
+        displayName: `Device for ${this.DEFAULT_REALM.displayName}`,
+        type: 'virtual',
+        status: 'provisioning',
+        platform: null,
+        configPath: relativeConfigPath,
+        lastSeenAt: null,
+        apiKeyHash: null,
+        activeTaskCount: 0,
+        totalTasksExecuted: 0,
+        averageTaskDuration: null,
+        lastExecutedAgentId: null,
+        region: null,
+        tags: '[]',
+        cpuUsage: null,
+        memoryUsage: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+
+    this.logger.info('Nexus device created successfully', {
+      deviceId,
+      realmId: this.DEFAULT_REALM.id
+    });
   }
 
   /**

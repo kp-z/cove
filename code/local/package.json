@@ -1,10 +1,10 @@
 {
-  "name": "@cove/local",
+  "name": "@cove/local-device",
   "version": "0.1.0",
   "description": "Cove Local Agent - Connect your local machine to Cove Cloud",
   "main": "dist/main.js",
   "bin": {
-    "cove-local": "dist/main.js"
+    "cove-local-device": "dist/main.js"
   },
   "files": [
     "dist",

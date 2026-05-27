@@ -26,7 +26,6 @@ import {
   RealmNotActiveError,
   RealmAlreadyArchivedError,
   RealmNotArchivedError,
-  UnauthorizedRealmAccessError,
 } from './realm.errors';
 import {
   IRealmRepository,
@@ -36,8 +35,13 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
+import { IRealmPermissionService } from '../../interfaces/services/realm-permission.service.interface';
+import { RealmPermission } from '../../../domain/models/realm-member/realm-member.entity';
 import { getRealmContext } from '../../context/realm-context-store';
 import { AdapterBootstrapService } from '../adapter/adapter-bootstrap.service';
+import { DeviceService } from '../device/device.service';
+import { DeviceAuthService } from '../device/device-auth.service';
+import { DeviceEntity } from '../../../domain/models/device/device.entity';
 
 export interface CreateRealmDTO {
   readonly name: string;
@@ -82,14 +86,17 @@ export class RealmService {
   constructor(
     private readonly serverRepository: IRealmRepository,
     private readonly serverMemberRepository: IRealmMemberRepository,
+    private readonly permissionService: IRealmPermissionService,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
     private readonly agentRepository?: IAgentRepository,
-    private readonly adapterBootstrapService?: AdapterBootstrapService
+    private readonly adapterBootstrapService?: AdapterBootstrapService,
+    private readonly deviceService?: DeviceService,
+    private readonly deviceAuthService?: DeviceAuthService
   ) {}
 
   async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
-    getRealmContext(); // Validate context exists
+    // Note: No RealmContext needed for creating a new realm
     this.logger.info('Creating new realm', { name: dto.name, ownerId: dto.ownerId });
 
     // Check if server name already exists
@@ -158,6 +165,21 @@ export class RealmService {
     // Auto-add platform agent (agent-zhang) as admin
     await this.addPlatformAgentToRealm(realmId);
 
+    // Auto-create device and bootstrap adapters with real device context
+    let deviceId = 'system'; // fallback
+    let deviceName = 'System';
+
+    if (this.deviceService && this.deviceAuthService) {
+      try {
+        const device = await this.createRealmDevice(realmId);
+        deviceId = device.device_id;
+        deviceName = device.display_name || device.name;
+      } catch (error) {
+        this.logger.error('Failed to create device for realm', error as Error, { realmId });
+        // Continue with fallback 'system' device
+      }
+    }
+
     // Auto-bootstrap adapters (CC-Switch profiles, etc.)
     if (this.adapterBootstrapService) {
       try {
@@ -165,8 +187,8 @@ export class RealmService {
         const bootstrapResult = await this.adapterBootstrapService.bootstrap(
           realmId,
           dto.ownerId,
-          'system', // deviceId - use 'system' for realm initialization
-          'System'  // deviceName
+          deviceId,    // Use real device ID
+          deviceName   // Use real device name
         );
         this.logger.info('Adapter bootstrap completed', {
           realmId,
@@ -197,6 +219,99 @@ export class RealmService {
     return server;
   }
 
+  /**
+   * Create a realm and return device information (including API key and start command)
+   */
+  async createRealmWithDevice(dto: CreateRealmDTO): Promise<{
+    realm: RealmEntity;
+    device: {
+      deviceId: string;
+      apiKey: string;
+      startCommand: string;
+      warning: string;
+    } | null;
+  }> {
+    const realm = await this.createRealm(dto);
+
+    if (!this.deviceService || !this.deviceAuthService) {
+      this.logger.warn('Device services not configured, cannot return device info');
+      return { realm, device: null };
+    }
+
+    try {
+      const device = await this.deviceService.getRealmDevice(realm.realm_id);
+      if (!device) {
+        throw new Error('Device not found after realm creation');
+      }
+
+      // Generate fresh API key for immediate use
+      const apiKey = await this.deviceAuthService.generateApiKey(
+        device.device_id,
+        realm.realm_id
+      );
+
+      const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
+      const startCommand = `npx @cove/local-device --server ${serverUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${realm.realm_id}`;
+
+      return {
+        realm,
+        device: {
+          deviceId: device.device_id,
+          apiKey,
+          startCommand,
+          warning: '⚠️ API Key will only be shown once. Please save it securely.',
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to get device info', error as Error, { realmId: realm.realm_id });
+      return { realm, device: null };
+    }
+  }
+
+  /**
+   * Create a device for a realm (private helper)
+   */
+  private async createRealmDevice(
+    realmId: string
+  ): Promise<DeviceEntity> {
+    if (!this.deviceService || !this.deviceAuthService) {
+      throw new Error('Device services not configured');
+    }
+
+    // Check 1:1 constraint
+    const hasDevice = await this.deviceService.hasDevice(realmId);
+    if (hasDevice) {
+      this.logger.info('Realm already has device, skipping creation', { realmId });
+      const device = await this.deviceService.getRealmDevice(realmId);
+      if (!device) {
+        throw new Error('Device check inconsistency');
+      }
+      return device;
+    }
+
+    // Create device
+    const device = await this.deviceService.createDevice({
+      name: `${realmId}-device`,
+      displayName: `Device for ${realmId}`,
+      description: `Auto-generated device for realm ${realmId}`,
+      type: 'virtual',
+      provider: 'local',
+      specs: {
+        cpu_cores: 1,
+        memory_gb: 1,
+        storage_gb: 1,
+      },
+      realmId,
+    });
+
+    this.logger.info('Device created for realm', {
+      realmId,
+      deviceId: device.device_id,
+    });
+
+    return device;
+  }
+
   async getRealmById(realmId: string): Promise<RealmEntity> {
     const servers = await this.serverRepository.find({ id: realmId });
     if (servers.length === 0) {
@@ -213,12 +328,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Updating realm', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     if (dto.name !== undefined) {
       // Check if new name already exists
@@ -264,12 +381,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Updating realm settings', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     const settingsUpdate: Partial<RealmSettings> = {
       ...(dto.allowPublicChannels !== undefined && { allow_public_channels: dto.allowPublicChannels }),
@@ -300,12 +419,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Updating realm limits', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     const limitsUpdate: Partial<RealmLimits> = {
       ...(dto.maxMembers !== undefined && { max_members: dto.maxMembers }),
@@ -336,12 +457,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Suspending server', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     if (!server.isActive()) {
       throw new RealmNotActiveError(realmId);
@@ -368,12 +491,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Activating realm', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     if (!server.isSuspended()) {
       throw new Error('Only suspended realms can be activated');
@@ -400,12 +525,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Archiving realm', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     if (server.isArchived()) {
       throw new RealmAlreadyArchivedError(realmId);
@@ -432,12 +559,14 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Unarchiving server', { realmId });
 
-    let server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_MANAGE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    let server = await this.getRealmById(realmId);
 
     if (!server.isArchived()) {
       throw new RealmNotArchivedError(realmId);
@@ -464,12 +593,15 @@ export class RealmService {
     const context = getRealmContext();
     this.logger.info('Deleting realm', { realmId });
 
-    const server = await this.getRealmById(realmId);
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.SERVER_DELETE
+    );
 
-    // Check authorization
-    if (server.owner_id !== context.userId) {
-      throw new UnauthorizedRealmAccessError(realmId, context.userId);
-    }
+    // Verify realm exists before deleting
+    await this.getRealmById(realmId);
 
     await this.serverRepository.delete(realmId);
 
@@ -513,7 +645,26 @@ export class RealmService {
   // ============================================
 
   async addRealmMember(realmId: string, userId: string, role: RealmRole): Promise<RealmMemberEntity> {
+    const context = getRealmContext();
     this.logger.info('Adding member to server', { realmId, userId, role });
+
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.MEMBER_INVITE
+    );
+
+    // Business rule: Cannot add owner role (only via transfer)
+    if (role === 'owner') {
+      throw new Error('Cannot add owner role directly. Use transferOwnership instead.');
+    }
+
+    // Business rule: Admin can only add member/guest, not admin
+    const currentMember = await this.serverMemberRepository.findByServerAndUser(realmId, context.userId);
+    if (currentMember?.role === 'admin' && role === 'admin') {
+      throw new Error('Admin cannot add another admin. Only owner can add admin.');
+    }
 
     // Check if server exists
     await this.getRealmById(realmId);
@@ -551,16 +702,35 @@ export class RealmService {
   }
 
   async updateRealmMember(realmId: string, userId: string, dto: UpdateRealmMemberDTO): Promise<RealmMemberEntity> {
+    const context = getRealmContext();
     this.logger.info('Updating realm member', { realmId, userId, dto });
+
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.MEMBER_MANAGE_ROLES
+    );
 
     const member = await this.serverMemberRepository.findByServerAndUser(realmId, userId);
     if (!member) {
       throw new Error(`Member not found: ${userId} in server ${realmId}`);
     }
 
-    // Cannot modify owner
+    // Business rule: Cannot modify owner
     if (member.role === 'owner') {
       throw new Error('Cannot modify owner. Transfer ownership first.');
+    }
+
+    // Business rule: Cannot modify self
+    if (userId === context.userId) {
+      throw new Error('Cannot modify your own role or status.');
+    }
+
+    // Business rule: Admin cannot promote to admin
+    const currentMember = await this.serverMemberRepository.findByServerAndUser(realmId, context.userId);
+    if (currentMember?.role === 'admin' && dto.role === 'admin') {
+      throw new Error('Admin cannot promote members to admin. Only owner can do this.');
     }
 
     let updatedMember = member;
@@ -597,6 +767,15 @@ export class RealmService {
   }
 
   async getRealmMembers(realmId: string, filters?: { role?: RealmRole; status?: MemberStatus }): Promise<RealmMemberEntity[]> {
+    const context = getRealmContext();
+
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.MEMBER_VIEW
+    );
+
     if (filters?.role) {
       return await this.serverMemberRepository.findByRole(realmId, filters.role);
     }
@@ -607,6 +786,15 @@ export class RealmService {
   }
 
   async getServerMember(realmId: string, userId: string): Promise<RealmMemberEntity | null> {
+    const context = getRealmContext();
+
+    // Check permission using RBAC system
+    await this.permissionService.requirePermission(
+      context.userId,
+      realmId,
+      RealmPermission.MEMBER_VIEW
+    );
+
     return await this.serverMemberRepository.findByServerAndUser(realmId, userId);
   }
 
@@ -621,7 +809,7 @@ export class RealmService {
 
     try {
       // 查找 agent-zhang
-      const zhangAgent = await this.agentRepository.findById('agent-zhang', getRealmContext().realmId);
+      const zhangAgent = await this.agentRepository.findById('agent-zhang', realmId);
       if (!zhangAgent) {
         this.logger.warn('Platform agent (agent-zhang) not found, skipping auto-add');
         return;

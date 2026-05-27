@@ -45,6 +45,10 @@ describe('DefaultDataInitializer', () => {
         findMany: vi.fn(),
         create: vi.fn(),
       },
+      device: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+      },
     };
 
     // Mock Logger
@@ -72,6 +76,10 @@ describe('DefaultDataInitializer', () => {
       mockPrisma.realm.upsert.mockResolvedValue({
         id: 'realm-nexus',
         name: 'nexus',
+      });
+      mockPrisma.device.findUnique.mockResolvedValue({
+        id: 'device-realm-nexus',
+        realmId: 'realm-nexus',
       });
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-admin',
@@ -119,6 +127,11 @@ describe('DefaultDataInitializer', () => {
         id: 'realm-nexus',
         name: 'nexus',
       });
+      mockPrisma.device.findUnique.mockResolvedValue(null);
+      mockPrisma.device.create.mockResolvedValue({
+        id: 'device-realm-nexus',
+        realmId: 'realm-nexus',
+      });
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-admin',
         role: 'owner',
@@ -152,7 +165,18 @@ describe('DefaultDataInitializer', () => {
         }),
       });
 
-      // 2. Should add only admin as member (agents are not realm members)
+      // 2. Should create device for Nexus realm
+      expect(mockPrisma.device.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          id: 'device-realm-nexus',
+          realmId: 'realm-nexus',
+          name: 'nexus-device',
+          type: 'virtual',
+          status: 'provisioning',
+        }),
+      });
+
+      // 3. Should add only admin as member (agents are not realm members)
       expect(mockPrisma.realmMember.create).toHaveBeenCalledTimes(1);
       expect(mockPrisma.realmMember.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -163,10 +187,10 @@ describe('DefaultDataInitializer', () => {
         }),
       });
 
-      // 3. Should create default channels (#general, #welcome)
+      // 4. Should create default channels (#general, #welcome)
       expect(mockPrisma.channel.create).toHaveBeenCalledTimes(2);
 
-      // 4. Should send welcome message
+      // 5. Should send welcome message
       expect(mockPrisma.message.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           channelId: 'channel-nexus-welcome',
@@ -277,6 +301,125 @@ describe('DefaultDataInitializer', () => {
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to initialize default data',
         testError
+      );
+    });
+  });
+
+  describe('ensureNexusDevice', () => {
+    it('should create device for Nexus realm if not exists', async () => {
+      // Arrange
+      mockPrisma.realm.upsert.mockResolvedValue({
+        id: 'realm-nexus',
+        name: 'nexus',
+      });
+      mockPrisma.device.findUnique.mockResolvedValue(null);
+      mockPrisma.device.create.mockResolvedValue({
+        id: 'device-realm-nexus',
+        realmId: 'realm-nexus',
+      });
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.channel.findUnique.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.channel.update.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.message.findMany.mockResolvedValue([
+        { id: 'msg-1', content: 'Welcome' }
+      ]);
+
+      // Act
+      await initializer.initialize();
+
+      // Assert
+      expect(mockPrisma.device.findUnique).toHaveBeenCalledWith({
+        where: { realmId: 'realm-nexus' },
+      });
+
+      expect(mockPrisma.device.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          id: 'device-realm-nexus',
+          realmId: 'realm-nexus',
+          name: 'nexus-device',
+          displayName: 'Device for Nexus',
+          type: 'virtual',
+          status: 'provisioning',
+          platform: null,
+          apiKeyHash: null,
+          activeTaskCount: 0,
+          totalTasksExecuted: 0,
+        }),
+      });
+
+      // Should create device config file
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('devices/device-realm-nexus.json'),
+        expect.stringContaining('Auto-generated device for Nexus realm'),
+        'utf-8'
+      );
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Nexus device created successfully',
+        expect.objectContaining({
+          deviceId: 'device-realm-nexus',
+          realmId: 'realm-nexus',
+        })
+      );
+    });
+
+    it('should skip device creation if already exists', async () => {
+      // Arrange
+      mockPrisma.realm.upsert.mockResolvedValue({
+        id: 'realm-nexus',
+        name: 'nexus',
+      });
+      mockPrisma.device.findUnique.mockResolvedValue({
+        id: 'device-realm-nexus',
+        realmId: 'realm-nexus',
+      });
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.channel.findUnique.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.channel.update.mockResolvedValue({
+        id: 'channel-nexus-general',
+        name: 'general',
+      });
+      mockPrisma.message.findMany.mockResolvedValue([
+        { id: 'msg-1', content: 'Welcome' }
+      ]);
+
+      // Act
+      await initializer.initialize();
+
+      // Assert
+      expect(mockPrisma.device.create).not.toHaveBeenCalled();
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Nexus device already exists',
+        expect.objectContaining({
+          deviceId: 'device-realm-nexus',
+          realmId: 'realm-nexus',
+        })
+      );
+    });
+
+    it('should handle device creation errors', async () => {
+      // Arrange
+      mockPrisma.realm.upsert.mockResolvedValue({
+        id: 'realm-nexus',
+        name: 'nexus',
+      });
+      mockPrisma.device.findUnique.mockResolvedValue(null);
+      mockPrisma.device.create.mockRejectedValue(new Error('DB error'));
+
+      // Act & Assert
+      await expect(initializer.initialize()).rejects.toThrow('DB error');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to initialize default data',
+        expect.any(Error)
       );
     });
   });

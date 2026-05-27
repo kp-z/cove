@@ -64,7 +64,10 @@ const updateDeviceSchema = z.object({
 
 export const deviceRouter = (deviceService: DeviceService, deviceAuthService: DeviceAuthService) =>
   router({
-    // 简化的本地设备注册（用于 Local Device Agent）
+    /**
+     * @deprecated Use realm.createWithDevice instead
+     * This API will be removed in a future version
+     */
     registerLocalDevice: publicProcedure
       .input(z.object({
         name: z.string().min(1).max(100),
@@ -72,6 +75,7 @@ export const deviceRouter = (deviceService: DeviceService, deviceAuthService: De
         metadata: z.record(z.unknown()).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        console.warn('[DEPRECATED] registerLocalDevice is deprecated. Use realm.createWithDevice instead.');
         try {
           const realmId = ctx.realmId || 'realm-nexus';
           const context = RealmContext.create(realmId, 'system');
@@ -141,13 +145,17 @@ export const deviceRouter = (deviceService: DeviceService, deviceAuthService: De
         }
       }),
 
-    // 生成设备启动命令
+    /**
+     * @deprecated Use realm.createWithDevice instead
+     * This API will be removed in a future version
+     */
     generateStartCommand: publicProcedure
       .input(z.object({
         realmId: z.string(),
         deviceName: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        console.warn('[DEPRECATED] generateStartCommand is deprecated. Use realm.createWithDevice instead.');
         try {
           const context = RealmContext.create(input.realmId, ctx.userId || 'system');
           return await runWithContext(context, async () => {

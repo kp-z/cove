@@ -8,8 +8,10 @@ import {
   RealmAlreadyArchivedError,
   RealmNotArchivedError,
   UnauthorizedRealmAccessError,
+  InsufficientPermissionError,
 } from './realm.errors';
 import { IRealmRepository, IEventBus, ILogger } from '../../interfaces';
+import { IRealmPermissionService } from '../../interfaces/services/realm-permission.service.interface';
 import { RealmContext } from '../../context/realm-context';
 import { runWithContext } from '../../context/realm-context-store';
 
@@ -17,6 +19,7 @@ describe('RealmService', () => {
   let service: RealmService;
   let mockServerRepository: IRealmRepository;
   let mockServerMemberRepository: any;
+  let mockPermissionService: IRealmPermissionService;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
   let testContext: RealmContext;
@@ -42,6 +45,14 @@ describe('RealmService', () => {
       findByStatus: vi.fn(),
     } as any;
 
+    mockPermissionService = {
+      requirePermission: vi.fn().mockResolvedValue(undefined),
+      requireAnyPermission: vi.fn().mockResolvedValue(undefined),
+      requireAllPermissions: vi.fn().mockResolvedValue(undefined),
+      hasPermission: vi.fn().mockResolvedValue(true),
+      clearCache: vi.fn(),
+    } as any;
+
     mockEventBus = {
       publish: vi.fn(),
     } as any;
@@ -53,7 +64,13 @@ describe('RealmService', () => {
       debug: vi.fn(),
     } as any;
 
-    service = new RealmService(mockServerRepository, mockServerMemberRepository, mockEventBus, mockLogger);
+    service = new RealmService(
+      mockServerRepository,
+      mockServerMemberRepository,
+      mockPermissionService,
+      mockEventBus,
+      mockLogger
+    );
   });
 
   describe('createRealm', () => {
@@ -221,9 +238,12 @@ describe('RealmService', () => {
       expect(mockServerRepository.update).toHaveBeenCalledWith(updatedServer, 'server-123');
     });
 
-    it('should throw error when user is not owner', async () => {
+    it('should throw error when user lacks permission', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
+      vi.mocked(mockPermissionService.requirePermission).mockRejectedValue(
+        new InsufficientPermissionError('owner-123', 'server-123', 'SERVER_MANAGE')
+      );
 
       const dto: UpdateRealmDTO = {
         name: 'updated-name',
@@ -233,7 +253,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.updateRealm('server-123', dto);
         })
-      ).rejects.toThrow(UnauthorizedRealmAccessError);
+      ).rejects.toThrow(InsufficientPermissionError);
     });
 
     it('should throw error when new name already exists', async () => {
@@ -281,9 +301,12 @@ describe('RealmService', () => {
       expect(mockServerRepository.update).toHaveBeenCalledWith(updatedServer, 'server-123');
     });
 
-    it('should throw error when user is not owner', async () => {
+    it('should throw error when user lacks permission', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
+      vi.mocked(mockPermissionService.requirePermission).mockRejectedValue(
+        new InsufficientPermissionError('owner-123', 'server-123', 'SERVER_MANAGE')
+      );
 
       const dto: UpdateRealmSettingsDTO = {
         allowPublicChannels: false,
@@ -293,7 +316,7 @@ describe('RealmService', () => {
         runWithContext(testContext, async () => {
           return await service.updateRealmSettings('server-123', dto);
         })
-      ).rejects.toThrow(UnauthorizedRealmAccessError);
+      ).rejects.toThrow(InsufficientPermissionError);
     });
   });
 
@@ -452,15 +475,257 @@ describe('RealmService', () => {
       );
     });
 
-    it('should throw error when user is not owner', async () => {
+    it('should throw error when user lacks permission', async () => {
       const mockServer = createTestServer({ owner_id: 'other-owner' });
       vi.mocked(mockServerRepository.find).mockResolvedValue([mockServer]);
+      vi.mocked(mockPermissionService.requirePermission).mockRejectedValue(
+        new InsufficientPermissionError('owner-123', 'server-123', 'SERVER_DELETE')
+      );
 
       await expect(
         runWithContext(testContext, async () => {
           return await service.deleteRealm('server-123');
         })
-      ).rejects.toThrow(UnauthorizedRealmAccessError);
+      ).rejects.toThrow(InsufficientPermissionError);
+    });
+  });
+
+  describe('createRealm with Device auto-creation', () => {
+    let mockDeviceService: any;
+    let mockDeviceAuthService: any;
+
+    beforeEach(() => {
+      mockDeviceService = {
+        createDevice: vi.fn(),
+        getDevicesByServer: vi.fn(),
+        hasDevice: vi.fn(),
+        getRealmDevice: vi.fn(),
+      };
+
+      mockDeviceAuthService = {
+        generateApiKey: vi.fn(),
+      };
+
+      service = new RealmService(
+        mockServerRepository,
+        mockServerMemberRepository,
+        mockPermissionService,
+        mockEventBus,
+        mockLogger,
+        undefined, // agentRepository
+        undefined, // adapterBootstrapService
+        mockDeviceService,
+        mockDeviceAuthService
+      );
+    });
+
+    it('should create realm and device automatically', async () => {
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+      vi.mocked(mockDeviceService.hasDevice).mockResolvedValue(false);
+      vi.mocked(mockDeviceService.createDevice).mockResolvedValue({
+        device_id: 'device-123',
+        name: 'test-realm-device',
+        display_name: 'Device for test-realm',
+        realm_id: 'test-realm-id',
+      } as any);
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.createRealm(dto);
+      });
+
+      expect(result).toBeInstanceOf(RealmEntity);
+      expect(mockDeviceService.hasDevice).toHaveBeenCalled();
+      expect(mockDeviceService.createDevice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'virtual',
+          provider: 'local',
+        })
+      );
+    });
+
+    it('should skip device creation if realm already has device', async () => {
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+      vi.mocked(mockDeviceService.hasDevice).mockResolvedValue(true);
+      vi.mocked(mockDeviceService.getRealmDevice).mockResolvedValue({
+        device_id: 'existing-device',
+      } as any);
+
+      await runWithContext(testContext, async () => {
+        return await service.createRealm(dto);
+      });
+
+      expect(mockDeviceService.createDevice).not.toHaveBeenCalled();
+    });
+
+    it('should not fail realm creation if device creation fails', async () => {
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+      vi.mocked(mockDeviceService.hasDevice).mockResolvedValue(false);
+      vi.mocked(mockDeviceService.createDevice).mockRejectedValue(
+        new Error('Device creation failed')
+      );
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.createRealm(dto);
+      });
+
+      expect(result).toBeInstanceOf(RealmEntity);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to create device for realm',
+        expect.any(Error),
+        expect.any(Object)
+      );
+    });
+
+    it('should work without device services configured', async () => {
+      const serviceWithoutDevice = new RealmService(
+        mockServerRepository,
+        mockServerMemberRepository,
+        mockPermissionService,
+        mockEventBus,
+        mockLogger
+      );
+
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+
+      const result = await runWithContext(testContext, async () => {
+        return await serviceWithoutDevice.createRealm(dto);
+      });
+
+      expect(result).toBeInstanceOf(RealmEntity);
+    });
+  });
+
+  describe('createRealmWithDevice', () => {
+    let mockDeviceService: any;
+    let mockDeviceAuthService: any;
+
+    beforeEach(() => {
+      mockDeviceService = {
+        createDevice: vi.fn(),
+        getDevicesByServer: vi.fn(),
+        hasDevice: vi.fn(),
+        getRealmDevice: vi.fn(),
+      };
+
+      mockDeviceAuthService = {
+        generateApiKey: vi.fn(),
+      };
+
+      service = new RealmService(
+        mockServerRepository,
+        mockServerMemberRepository,
+        mockPermissionService,
+        mockEventBus,
+        mockLogger,
+        undefined,
+        undefined,
+        mockDeviceService,
+        mockDeviceAuthService
+      );
+    });
+
+    it('should return realm and device info with API key', async () => {
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+      vi.mocked(mockDeviceService.hasDevice).mockResolvedValue(false);
+      vi.mocked(mockDeviceService.createDevice).mockResolvedValue({
+        device_id: 'device-123',
+        name: 'test-realm-device',
+        display_name: 'Device for test-realm',
+        realm_id: 'test-realm-id',
+      } as any);
+      vi.mocked(mockDeviceService.getRealmDevice).mockResolvedValue({
+        device_id: 'device-123',
+        name: 'test-realm-device',
+      } as any);
+      vi.mocked(mockDeviceAuthService.generateApiKey).mockResolvedValue('api-key-123');
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.createRealmWithDevice(dto);
+      });
+
+      expect(result.realm).toBeInstanceOf(RealmEntity);
+      expect(result.device).toBeDefined();
+      expect(result.device?.deviceId).toBe('device-123');
+      expect(result.device?.apiKey).toBe('api-key-123');
+      expect(result.device?.startCommand).toContain('npx @cove/local-device');
+      expect(result.device?.warning).toContain('only be shown once');
+    });
+
+    it('should return null device if services not configured', async () => {
+      const serviceWithoutDevice = new RealmService(
+        mockServerRepository,
+        mockServerMemberRepository,
+        mockPermissionService,
+        mockEventBus,
+        mockLogger
+      );
+
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+
+      const result = await runWithContext(testContext, async () => {
+        return await serviceWithoutDevice.createRealmWithDevice(dto);
+      });
+
+      expect(result.realm).toBeInstanceOf(RealmEntity);
+      expect(result.device).toBeNull();
+    });
+
+    it('should return null device if getting device info fails', async () => {
+      const dto: CreateRealmDTO = {
+        name: 'test-realm',
+        displayName: 'Test Realm',
+        ownerId: 'owner-123',
+      };
+
+      vi.mocked(mockServerRepository.find).mockResolvedValue([]);
+      vi.mocked(mockDeviceService.hasDevice).mockResolvedValue(false);
+      vi.mocked(mockDeviceService.createDevice).mockResolvedValue({
+        device_id: 'device-123',
+      } as any);
+      vi.mocked(mockDeviceService.getRealmDevice).mockResolvedValue(null);
+
+      const result = await runWithContext(testContext, async () => {
+        return await service.createRealmWithDevice(dto);
+      });
+
+      expect(result.realm).toBeInstanceOf(RealmEntity);
+      expect(result.device).toBeNull();
     });
   });
 });

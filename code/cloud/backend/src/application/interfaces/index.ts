@@ -7,6 +7,9 @@
 // Repository Interfaces
 export * from './repositories';
 
+// Service Interfaces
+export * from './services/realm-permission.service.interface';
+
 // Infrastructure Interfaces
 export * from './event-bus.interface';
 export * from './logger.interface';

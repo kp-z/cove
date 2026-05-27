@@ -58,7 +58,7 @@ export async function fetchModelsFromAPI(
       throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
     }
 
-    const data: ModelsResponse = await response.json();
+    const data = await response.json() as ModelsResponse;
     return data.data || [];
   } catch (error) {
     if (useFallback) {

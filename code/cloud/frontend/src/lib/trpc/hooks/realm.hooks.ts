@@ -3,9 +3,14 @@ import { notify } from '@/core/services/notificationService';
 import { useAuthStore } from '@/core/auth/authStore';
 
 export function useRealmList(options?: { status?: 'active' | 'archived' }) {
+  const { userId, isAuthenticated } = useAuthStore();
+
   return trpc.realm.list.useQuery(
     { status: options?.status },
-    { enabled: true }
+    {
+      enabled: isAuthenticated && !!userId,
+      staleTime: 5 * 60 * 1000,
+    }
   );
 }
 
@@ -24,10 +29,15 @@ export function useCurrentRealmRole() {
 }
 
 export function useRealm(realmId: string, options?: { enabled?: boolean }) {
+  const { userId, isAuthenticated } = useAuthStore();
+
   return trpc.realm.getById.useQuery(
     { realmId },
     {
-      enabled: options?.enabled !== undefined ? options.enabled : !!realmId,
+      enabled: options?.enabled !== undefined
+        ? options.enabled && isAuthenticated && !!userId && !!realmId
+        : isAuthenticated && !!userId && !!realmId,
+      staleTime: 5 * 60 * 1000,
     }
   );
 }
@@ -62,10 +72,30 @@ export function useCreateRealm() {
 }
 
 export function useRealmMembers(realmId: string, options?: { enabled?: boolean }) {
+  const { userId, isAuthenticated } = useAuthStore();
+
   return trpc.realm.getMembers.useQuery(
     { realmId },
     {
-      enabled: options?.enabled !== undefined ? options.enabled : !!realmId,
+      enabled: options?.enabled !== undefined
+        ? options.enabled && isAuthenticated && !!userId && !!realmId
+        : isAuthenticated && !!userId && !!realmId,
+      staleTime: 2 * 60 * 1000,
+    }
+  );
+}
+
+export function useDeviceStatus(realmId: string, options?: { enabled?: boolean }) {
+  const { userId, isAuthenticated } = useAuthStore();
+
+  return trpc.realm.getDeviceStatus.useQuery(
+    { realmId },
+    {
+      enabled: options?.enabled !== undefined
+        ? options.enabled && isAuthenticated && !!userId && !!realmId
+        : isAuthenticated && !!userId && !!realmId,
+      refetchInterval: 30000,
+      staleTime: 30 * 1000,
     }
   );
 }

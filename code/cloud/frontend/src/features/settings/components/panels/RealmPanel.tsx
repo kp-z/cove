@@ -11,6 +11,7 @@ import {
   RealmMembersCard,
   RealmAdaptersCard,
   RealmEditDialog,
+  RealmDeviceCard,
   type RealmUpdateData,
   type RealmStats,
   type RealmMember,
@@ -19,9 +20,11 @@ import {
 import { canManageRealm } from '@/shared/utils/permissions';
 
 export function RealmPanel() {
-  const { currentRealmId, setCurrentRealmId, userId } = useAuthStore();
-  const { data: currentRealm } = useRealm(currentRealmId || '');
-  const { data: realmsData } = useRealmList({ status: 'active' });
+  const { currentRealmId, setCurrentRealmId, userId, isAuthenticated } = useAuthStore();
+  const { data: realmsData, isLoading: realmsLoading } = useRealmList({ status: 'active' });
+  const { data: currentRealm, isLoading: realmLoading } = useRealm(currentRealmId || '', {
+    enabled: !!currentRealmId
+  });
   const { data: userRoleData } = useCurrentRealmRole();
   const { data: membersData, isLoading: membersLoading } = useRealmMembers(currentRealmId || '', { enabled: !!currentRealmId });
   const updateRealm = useUpdateRealm();
@@ -29,6 +32,16 @@ export function RealmPanel() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const utils = trpc.useUtils();
+
+  // Authentication check
+  if (!isAuthenticated) {
+    return <div className="p-4 text-center text-white/60">Please log in to view realm settings</div>;
+  }
+
+  // Loading state
+  if (realmsLoading || realmLoading) {
+    return <div className="p-4 text-center text-white/60">Loading realm data...</div>;
+  }
 
   const allRealms = realmsData?.realms || [];
   const userRole = userRoleData?.role || null;
@@ -146,6 +159,11 @@ export function RealmPanel() {
           onSwitch={allRealms.length > 1 ? handleRealmSwitch : undefined}
           canEdit={canEdit}
         />
+      )}
+
+      {/* Device Status */}
+      {currentRealm && (
+        <RealmDeviceCard realmId={currentRealm.realm_id} />
       )}
 
       {/* Statistics */}

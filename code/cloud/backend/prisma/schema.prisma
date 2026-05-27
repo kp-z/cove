@@ -363,7 +363,7 @@ model RealmMember {
 
 model Device {
   id          String   @id
-  realmId    String
+  realmId    String   @unique
   name        String
   displayName String?
   type        String   // desktop, mobile, tablet, server, iot

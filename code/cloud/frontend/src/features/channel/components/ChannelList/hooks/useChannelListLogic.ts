@@ -33,7 +33,7 @@ export function useChannelListLogic(options: ChannelListLogicOptions = {}) {
   const { userId } = useCurrentUser();
 
   // Use current user ID from auth store
-  const { pinnedChannels: pinnedChannelIds, togglePin, isPinned } = useChannelPin(userId || '');
+  const { pinnedChannels: pinnedChannelIds, togglePin, isPinned } = useChannelPin(userId);
 
   // Extract channels from backend response
   const channels = data?.channels || [];

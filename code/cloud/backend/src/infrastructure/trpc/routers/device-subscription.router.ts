@@ -10,11 +10,15 @@ import { router, publicProcedure } from '../trpc';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
 import type { ILogger } from '../../../application/interfaces/logger.interface';
+import type { DeviceService } from '../../../application/services/device/device.service';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 export interface DeviceSubscriptionRouterDependencies {
   eventBus: IEventBus;
   deviceConnectionManager: DeviceConnectionManager;
   logger: ILogger;
+  deviceService?: DeviceService;
 }
 
 export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDependencies): ReturnType<typeof router> {
@@ -102,6 +106,7 @@ export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDep
       .input(
         z.object({
           deviceId: z.string(),
+          realmId: z.string().optional(),
           status: z.object({
             cpu: z.number().optional(),
             memory: z.number().optional(),
@@ -109,9 +114,24 @@ export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDep
           }).optional(),
         })
       )
-      .mutation(({ input }) => {
-        const { deviceId, status } = input;
+      .mutation(async ({ input }) => {
+        const { deviceId, realmId, status } = input;
         deps.deviceConnectionManager.updateHeartbeat(deviceId);
+
+        // Update lastSeenAt in database
+        if (deps.deviceService && realmId) {
+          try {
+            const context = RealmContext.create(realmId, deviceId);
+            await runWithContext(context, async () => {
+              const device = await deps.deviceService!.getDeviceById(deviceId);
+              if (device) {
+                await deps.deviceService!.updateDeviceHeartbeat(deviceId);
+              }
+            });
+          } catch (error) {
+            deps.logger.error('Failed to update device heartbeat in database', error as Error);
+          }
+        }
 
         // 发布心跳事件
         deps.eventBus.publish({

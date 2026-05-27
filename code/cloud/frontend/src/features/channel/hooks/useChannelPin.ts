@@ -3,11 +3,24 @@ import { usePinnedChannels } from './usePinnedChannels';
 /**
  * Hook for pin/unpin/reorder operations on channels
  *
- * @param userId - The user ID to manage pins for
+ * @param userId - The user ID to manage pins for (undefined if not authenticated)
  * @returns Object with pin operations and state
  */
-export function useChannelPin(userId: string) {
+export function useChannelPin(userId: string | undefined) {
   const { pinnedChannels, setPinnedChannels, isLoading } = usePinnedChannels(userId);
+
+  // Return empty state if no userId
+  if (!userId) {
+    return {
+      pinnedChannels: [],
+      pinChannel: async () => {},
+      unpinChannel: async () => {},
+      togglePin: async () => {},
+      reorderPinned: async () => {},
+      isPinned: () => false,
+      isLoading: false,
+    };
+  }
 
   /**
    * Pin a channel (add to end of pinned list)

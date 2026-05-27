@@ -77,7 +77,7 @@ describe('DeviceService', () => {
       expect(result.status).toBe('provisioning');
       expect(mockDeviceRepository.save).toHaveBeenCalledWith(
         expect.any(DeviceEntity),
-        testContext.realmId
+        dto.realmId
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -182,7 +182,7 @@ describe('DeviceService', () => {
       expect(result.display_name).toBe(dto.displayName);
       expect(mockDeviceRepository.update).toHaveBeenCalledWith(
         expect.any(DeviceEntity),
-        testContext.realmId
+        device.realm_id
       );
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({

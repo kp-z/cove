@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmService } from '../../../application/services/realm/realm.service';
+import { DeviceService } from '../../../application/services/device/device.service';
+import { DeviceAuthService } from '../../../application/services/device/device-auth.service';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
 
@@ -34,7 +36,11 @@ const updateRealmSchema = z.object({
   features: z.array(z.string()).optional(),
 });
 
-export const realmRouter = (realmService: RealmService) =>
+export const realmRouter = (
+  realmService: RealmService,
+  deviceService?: DeviceService,
+  deviceAuthService?: DeviceAuthService
+) =>
   router({
     // 创建服务器
     create: publicProcedure
@@ -45,6 +51,24 @@ export const realmRouter = (realmService: RealmService) =>
           return await runWithContext(context, async () => {
             const server = await realmService.createRealm(input);
             return server.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 创建服务器并返回设备信息（推荐使用）
+    createWithDevice: publicProcedure
+      .input(createRealmSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const result = await realmService.createRealmWithDevice(input);
+            return {
+              realm: result.realm.toJSON(),
+              device: result.device,
+            };
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -255,6 +279,74 @@ export const realmRouter = (realmService: RealmService) =>
             return {
               role,
               hasAccess: role !== null,
+            };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 获取设备状态和启动命令
+    getDeviceStatus: publicProcedure
+      .input(z.object({
+        realmId: z.string(),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(input.realmId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            // Check if device services are available
+            if (!deviceService || !deviceAuthService) {
+              throw new Error('Device management not available');
+            }
+
+            // Get realm device
+            const device = await deviceService.getRealmDevice(input.realmId);
+
+            if (!device) {
+              return {
+                hasDevice: false,
+              };
+            }
+
+            // Check if device is online (last seen within 5 minutes)
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const isOnline = device.last_seen_at && new Date(device.last_seen_at) > fiveMinutesAgo;
+
+            if (isOnline) {
+              // Device is online, return status without generating new key
+              return {
+                hasDevice: true,
+                isOnline: true,
+                device: {
+                  deviceId: device.device_id,
+                  name: device.display_name || device.name,
+                  status: device.status,
+                  lastSeenAt: device.last_seen_at,
+                },
+              };
+            }
+
+            // Device is offline, rotate API key and generate startup command
+            const apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
+            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
+            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
+
+            // Generate simple npx command
+            const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+
+            return {
+              hasDevice: true,
+              isOnline: false,
+              device: {
+                deviceId: device.device_id,
+                name: device.display_name || device.name,
+                status: device.status,
+                lastSeenAt: device.last_seen_at,
+              },
+              startCommand,
+              apiKey,
+              warning: '⚠️ API Key will only be shown once. Please save it securely.',
             };
           });
         } catch (error: any) {

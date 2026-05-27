@@ -16,10 +16,35 @@ interface RealmSwitcherProps {
 export function RealmSwitcher({ open, onOpenChange, children }: RealmSwitcherProps) {
   const navigate = useNavigate();
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const { currentRealmId, setCurrentRealmId } = useAuthStore();
-  const { data: realmsData } = useRealmList({ status: 'active' });
+  const { currentRealmId, setCurrentRealmId, isAuthenticated } = useAuthStore();
+  const { data: realmsData, isLoading } = useRealmList({ status: 'active' });
+
+  // Don't render if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const allRealms = realmsData?.realms || [];
+
+  // Show loading state in dropdown
+  if (isLoading) {
+    return (
+      <DropdownMenu.Root open={open} onOpenChange={onOpenChange}>
+        <DropdownMenu.Trigger asChild>
+          {children}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            align="start"
+            sideOffset={8}
+            className="w-64 bg-[#111114] border border-white/[0.10] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1 z-50"
+          >
+            <div className="p-4 text-sm text-white/60">Loading realms...</div>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    );
+  }
 
   const handleSwitchRealm = (realmId: string) => {
     setCurrentRealmId(realmId);

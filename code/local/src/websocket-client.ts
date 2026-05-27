@@ -11,7 +11,7 @@ import { AdapterExecutor } from './adapter-executor';
 interface TRPCMessage {
   id: number | string;
   jsonrpc?: '2.0';
-  method?: 'subscription.create' | 'subscription.stop';
+  method?: 'subscription.create' | 'subscription.stop' | 'mutation' | 'query';
   params?: {
     path: string;
     input: any;
@@ -250,33 +250,38 @@ export class WebSocketClient {
   }
 
   private startHeartbeat(): void {
-    this.heartbeatTimer = setInterval(() => {
+    this.heartbeatTimer = setInterval(async () => {
       if (!this.isConnected) {
         return;
       }
 
-      // Send heartbeat via tRPC mutation
-      const message: TRPCMessage = {
-        id: this.nextMessageId(),
-        jsonrpc: '2.0',
-        method: 'subscription.create',
-        params: {
-          path: 'deviceSubscription.sendToDevice',
-          input: {
-            deviceId: this.config.device.id,
-            message: {
-              type: 'heartbeat',
-              payload: {
-                status: 'online',
-                activeTaskCount: this.adapterExecutor.getActiveTaskCount(),
-                timestamp: Date.now(),
-              },
-            },
+      // Send heartbeat via HTTP (tRPC mutations don't work well over WebSocket)
+      try {
+        const serverUrl = this.config.server.url.replace('ws://', 'http://').replace('/trpc', '');
+        const response = await fetch(`${serverUrl}/trpc/deviceSubscription.heartbeat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        },
-      };
+          body: JSON.stringify({
+            deviceId: this.config.device.id,
+            realmId: this.config.device.realmId,
+            status: {
+              cpu: 0,
+              memory: 0,
+              disk: 0,
+            },
+          }),
+        });
 
-      this.send(message);
+        if (response.ok) {
+          console.log('💓 Heartbeat sent');
+        } else {
+          console.warn('⚠️ Heartbeat failed:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ Heartbeat error:', error);
+      }
     }, this.config.local.heartbeatInterval);
   }
 

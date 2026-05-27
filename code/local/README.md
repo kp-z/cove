@@ -18,7 +18,7 @@ Connect your local machine to Cove Cloud and execute AI agent tasks locally.
 Run directly without installation:
 
 ```bash
-npx @cove/local
+npx @cove/local-device
 ```
 
 ### Option 2: Global Installation
@@ -26,8 +26,8 @@ npx @cove/local
 Install globally and run as a command:
 
 ```bash
-npm install -g @cove/local
-cove-local
+npm install -g @cove/local-device
+cove-local-device
 ```
 
 ### Option 3: Local Installation
@@ -35,8 +35,8 @@ cove-local
 Install in your project:
 
 ```bash
-npm install @cove/local
-npx cove-local
+npm install @cove/local-device
+npx cove-local-device
 ```
 
 ## Quick Start
@@ -46,7 +46,7 @@ npx cove-local
 On first run, the agent will guide you through setup:
 
 ```bash
-npx @cove/local
+npx @cove/local-device
 ```
 
 You'll be prompted to:
@@ -77,13 +77,13 @@ Example configuration:
 
 ```bash
 # Use default config
-npx @cove/local
+npx @cove/local-device
 
 # Specify custom config
-npx @cove/local --config /path/to/config.json
+npx @cove/local-device --config /path/to/config.json
 
 # Set log level
-npx @cove/local --log-level debug
+npx @cove/local-device --log-level debug
 ```
 
 ## Configuration Options
@@ -121,7 +121,7 @@ npm run build
 
 # Test locally
 npm link
-cove-local --help
+cove-local-device --help
 ```
 
 ## How It Works
@@ -165,7 +165,7 @@ cat ~/.cove/config.json
 
 ```bash
 # Run in debug mode
-npx @cove/local --log-level debug
+npx @cove/local-device --log-level debug
 
 # Check task logs in Cove Cloud
 ```

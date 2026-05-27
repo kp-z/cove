@@ -1,8 +1,10 @@
 import { z } from 'zod';
-import { router, procedure } from '../trpc';
+import { router, protectedProcedure } from '../trpc';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import { mapErrorToTRPC } from '../../../common/errors';
+import { RealmContext } from '../../../application/context/realm-context';
+import { runWithContext } from '../../../application/context/realm-context-store';
 
 // Zod schemas for input validation
 const createAgentSchema = z.object({
@@ -70,137 +72,161 @@ interface AgentRouterDeps {
 export function createAgentRouter(deps: AgentRouterDeps) {
   return router({
     // List all agents
-    list: procedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       try {
-        const agents = await deps.agentService.getAllAgents();
-        return {
-          agents: agents.map(a => a.toJSON()),
-          total: agents.length,
-        };
+        const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+        return await runWithContext(context, async () => {
+          const agents = await deps.agentService.getAllAgents();
+          return {
+            agents: agents.map(a => a.toJSON()),
+            total: agents.length,
+          };
+        });
       } catch (error) {
         throw mapErrorToTRPC(error);
       }
     }),
 
     // Get agent by ID
-    getById: procedure
+    getById: protectedProcedure
       .input(z.object({ agentId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const detail = await deps.agentService.getAgentDetail(input.agentId);
-          return detail;
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            const detail = await deps.agentService.getAgentDetail(input.agentId);
+            return detail;
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Create agent
-    create: procedure
+    create: protectedProcedure
       .input(createAgentSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          // Set default avatar if not provided
-          let persona = input.persona;
-          if (persona && !persona.avatar) {
-            persona = {
-              ...persona,
-              avatar: {
-                url: `https://api.dicebear.com/9.x/bottts/svg?seed=${input.name}`,
-                type: 'dicebear'
-              }
-            };
-          }
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            // Set default avatar if not provided
+            let persona = input.persona;
+            if (persona && !persona.avatar) {
+              persona = {
+                ...persona,
+                avatar: {
+                  url: `https://api.dicebear.com/9.x/bottts/svg?seed=${input.name}`,
+                  type: 'dicebear'
+                }
+              };
+            }
 
-          const dto = {
-            name: input.name,
-            displayName: input.displayName ?? input.name,
-            description: input.description,
-            scope: input.scope,
-            projectIds: input.projectIds,
-            capabilities: input.capabilities,
-            tags: input.tags,
-            repositoryPath: input.repositoryPath,
-            createdBy: input.createdBy ?? 'system',
-            runtimeConfig: input.runtimeConfig,
-            persona: persona,
-          };
-          const agent = await deps.agentService.createAgent(dto);
-          return agent.toJSON();
+            const dto = {
+              name: input.name,
+              displayName: input.displayName ?? input.name,
+              description: input.description,
+              scope: input.scope,
+              projectIds: input.projectIds,
+              capabilities: input.capabilities,
+              tags: input.tags,
+              repositoryPath: input.repositoryPath,
+              createdBy: input.createdBy ?? 'system',
+              runtimeConfig: input.runtimeConfig,
+              persona: persona,
+            };
+            const agent = await deps.agentService.createAgent(dto);
+            return agent.toJSON();
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Update agent (unified endpoint for all updates)
-    update: procedure
+    update: protectedProcedure
       .input(
         z.object({
           agentId: z.string(),
           data: updateAgentSchema,
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          const agent = await deps.agentService.updateAgent(
-            input.agentId,
-            input.data
-          );
-          return agent.toJSON();
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            const agent = await deps.agentService.updateAgent(
+              input.agentId,
+              input.data
+            );
+            return agent.toJSON();
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Start agent
-    start: procedure
+    start: protectedProcedure
       .input(z.object({ agentId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await deps.agentRuntimeService.startAgent(input.agentId);
-          return { message: 'Agent start initiated' };
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            await deps.agentRuntimeService.startAgent(input.agentId);
+            return { message: 'Agent start initiated' };
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Stop agent
-    stop: procedure
+    stop: protectedProcedure
       .input(z.object({ agentId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await deps.agentRuntimeService.stopAgent(input.agentId);
-          return { message: 'Agent stop initiated' };
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            await deps.agentRuntimeService.stopAgent(input.agentId);
+            return { message: 'Agent stop initiated' };
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Get agent status
-    getStatus: procedure
+    getStatus: protectedProcedure
       .input(z.object({ agentId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
-          const status = await deps.agentRuntimeService.getStatus(input.agentId);
-          return status;
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            const status = await deps.agentRuntimeService.getStatus(input.agentId);
+            return status;
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Delete agent
-    delete: procedure
+    delete: protectedProcedure
       .input(z.object({ agentId: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
-          await deps.agentService.deleteAgent(input.agentId);
-          return { message: 'Agent deleted successfully' };
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            await deps.agentService.deleteAgent(input.agentId);
+            return { message: 'Agent deleted successfully' };
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Switch agent's adapter configuration
-    switchAdapter: procedure
+    switchAdapter: protectedProcedure
       .input(
         z.object({
           agentId: z.string(),
@@ -209,33 +235,36 @@ export function createAgentRouter(deps: AgentRouterDeps) {
       )
       .mutation(async ({ input, ctx }) => {
         try {
-          if (!deps.adapterService) {
-            throw new Error('AdapterService not available');
-          }
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            if (!deps.adapterService) {
+              throw new Error('AdapterService not available');
+            }
 
-          const actorId = ctx.userId || 'system';
+            const actorId = ctx.userId || 'system';
 
-          // Verify adapter exists
-          await deps.adapterService.getById(input.adapterId, actorId);
+            // Verify adapter exists
+            await deps.adapterService.getById(input.adapterId, actorId);
 
-          // Update agent's runtime config to use the new adapter
-          await deps.agentService.updateRuntimeConfig(input.agentId, {
-            adapter_id: input.adapterId,
+            // Update agent's runtime config to use the new adapter
+            await deps.agentService.updateRuntimeConfig(input.agentId, {
+              adapter_id: input.adapterId,
+            });
+
+            const agent = await deps.agentService.getAgentById(input.agentId);
+
+            return {
+              message: 'Adapter switched successfully',
+              agent: agent.toJSON(),
+            };
           });
-
-          const agent = await deps.agentService.getAgentById(input.agentId);
-
-          return {
-            message: 'Adapter switched successfully',
-            agent: agent.toJSON(),
-          };
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Update agent's adapter configuration
-    updateAdapter: procedure
+    updateAdapter: protectedProcedure
       .input(
         z.object({
           agentId: z.string(),
@@ -248,38 +277,41 @@ export function createAgentRouter(deps: AgentRouterDeps) {
       )
       .mutation(async ({ input, ctx }) => {
         try {
-          if (!deps.adapterService) {
-            throw new Error('AdapterService not available');
-          }
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            if (!deps.adapterService) {
+              throw new Error('AdapterService not available');
+            }
 
-          const actorId = ctx.userId || 'system';
+            const actorId = ctx.userId || 'system';
 
-          // Get agent's current adapter
-          const agent = await deps.agentService.getAgentById(input.agentId);
-          const runtimeConfig = agent.runtimeConfig as any;
+            // Get agent's current adapter
+            const agent = await deps.agentService.getAgentById(input.agentId);
+            const runtimeConfig = agent.runtimeConfig as any;
 
-          if (!runtimeConfig?.adapter_id) {
-            throw new Error('Agent does not have an adapter configured');
-          }
+            if (!runtimeConfig?.adapter_id) {
+              throw new Error('Agent does not have an adapter configured');
+            }
 
-          // Update the adapter configuration
-          const updatedAdapter = await deps.adapterService.update(
-            runtimeConfig.adapter_id,
-            input.adapterUpdates,
-            actorId
-          );
+            // Update the adapter configuration
+            const updatedAdapter = await deps.adapterService.update(
+              runtimeConfig.adapter_id,
+              input.adapterUpdates,
+              actorId
+            );
 
-          return {
-            message: 'Adapter updated successfully',
-            adapter: updatedAdapter,
-          };
+            return {
+              message: 'Adapter updated successfully',
+              adapter: updatedAdapter,
+            };
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Fork (duplicate) an adapter for this agent
-    forkAdapter: procedure
+    forkAdapter: protectedProcedure
       .input(
         z.object({
           agentId: z.string(),
@@ -289,83 +321,89 @@ export function createAgentRouter(deps: AgentRouterDeps) {
       )
       .mutation(async ({ input, ctx }) => {
         try {
-          if (!deps.adapterService) {
-            throw new Error('AdapterService not available');
-          }
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            if (!deps.adapterService) {
+              throw new Error('AdapterService not available');
+            }
 
-          const actorId = ctx.userId || 'system';
+            const actorId = ctx.userId || 'system';
 
-          // Get the source adapter
-          const sourceAdapter = await deps.adapterService.getById(
-            input.sourceAdapterId,
-            actorId
-          );
+            // Get the source adapter
+            const sourceAdapter = await deps.adapterService.getById(
+              input.sourceAdapterId,
+              actorId
+            );
 
-          if (!sourceAdapter) {
-            throw new Error('Source adapter not found');
-          }
+            if (!sourceAdapter) {
+              throw new Error('Source adapter not found');
+            }
 
-          // Create a new private adapter with the same configuration
-          const agent = await deps.agentService.getAgentById(input.agentId);
-          const newAdapterName =
-            input.newAdapterName || `${agent.name}-adapter-fork`;
+            // Create a new private adapter with the same configuration
+            const agent = await deps.agentService.getAgentById(input.agentId);
+            const newAdapterName =
+              input.newAdapterName || `${agent.name}-adapter-fork`;
 
-          const newAdapter = await deps.adapterService.create({
-            name: newAdapterName,
-            description: `Forked from ${sourceAdapter.name}`,
-            scope: 'private',
-            owner_id: agent.agentId,
-            type: sourceAdapter.type,
-            config: sourceAdapter.config,
-          }, actorId);
+            const newAdapter = await deps.adapterService.create({
+              name: newAdapterName,
+              description: `Forked from ${sourceAdapter.name}`,
+              scope: 'private',
+              owner_id: agent.agentId,
+              type: sourceAdapter.type,
+              config: sourceAdapter.config,
+            }, actorId);
 
-          // Update agent to use the new adapter
-          await deps.agentService.updateRuntimeConfig(input.agentId, {
-            adapter_id: newAdapter.id,
+            // Update agent to use the new adapter
+            await deps.agentService.updateRuntimeConfig(input.agentId, {
+              adapter_id: newAdapter.id,
+            });
+
+            const updatedAgent = await deps.agentService.getAgentById(input.agentId);
+
+            return {
+              message: 'Adapter forked successfully',
+              adapter: newAdapter,
+              agent: updatedAgent.toJSON(),
+            };
           });
-
-          const updatedAgent = await deps.agentService.getAgentById(input.agentId);
-
-          return {
-            message: 'Adapter forked successfully',
-            adapter: newAdapter,
-            agent: updatedAgent.toJSON(),
-          };
         } catch (error) {
           throw mapErrorToTRPC(error);
         }
       }),
 
     // Get agent's current adapter configuration
-    getAdapter: procedure
+    getAdapter: protectedProcedure
       .input(z.object({ agentId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          if (!deps.adapterService) {
-            throw new Error('AdapterService not available');
-          }
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            if (!deps.adapterService) {
+              throw new Error('AdapterService not available');
+            }
 
-          const actorId = ctx.userId || 'system';
+            const actorId = ctx.userId || 'system';
 
-          const agent = await deps.agentService.getAgentById(input.agentId);
-          const runtimeConfig = agent.runtimeConfig as any;
+            const agent = await deps.agentService.getAgentById(input.agentId);
+            const runtimeConfig = agent.runtimeConfig as any;
 
-          if (!runtimeConfig?.adapter_id) {
+            if (!runtimeConfig?.adapter_id) {
+              return {
+                hasAdapter: false,
+                message: 'Agent uses legacy inline configuration',
+              };
+            }
+
+            const adapter = await deps.adapterService.getById(
+              runtimeConfig.adapter_id,
+              actorId
+            );
+
             return {
-              hasAdapter: false,
-              message: 'Agent uses legacy inline configuration',
+              hasAdapter: true,
+              adapter,
             };
-          }
-
-          const adapter = await deps.adapterService.getById(
-            runtimeConfig.adapter_id,
-            actorId
-          );
-
-          return {
-            hasAdapter: true,
-            adapter,
-          };
+          });
         } catch (error) {
           throw mapErrorToTRPC(error);
         }

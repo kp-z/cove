@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Cove Local Device Agent
  *

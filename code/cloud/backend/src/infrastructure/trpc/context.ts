@@ -4,6 +4,7 @@ import type { ILogger } from '../../application/interfaces/logger.interface';
 import type { AuthService } from '../../application/services/auth/auth.service';
 import type { DeviceAuthService } from '../../application/services/device/device-auth.service';
 import type { IRealmMemberVerificationService } from '../../application/services/realm/realm-member-verification.service';
+import type { IRealmPermissionService } from '../../application/interfaces/services/realm-permission.service.interface';
 import { TRPCError } from '@trpc/server';
 
 export interface Context {
@@ -13,6 +14,7 @@ export interface Context {
   userRole?: string;
   logger: ILogger;
   realmMemberVerification: IRealmMemberVerificationService;
+  permissionService: IRealmPermissionService;
   req: IncomingMessage;
   res: ServerResponse;
 }
@@ -22,6 +24,7 @@ export interface CreateContextOptions {
   authService: AuthService;
   deviceAuthService: DeviceAuthService;
   realmMemberVerification: IRealmMemberVerificationService;
+  permissionService: IRealmPermissionService;
 }
 
 export function createContext(opts: CreateContextOptions) {
@@ -42,6 +45,7 @@ export function createContext(opts: CreateContextOptions) {
         userType: 'human',
         logger: opts.logger,
         realmMemberVerification: opts.realmMemberVerification,
+        permissionService: opts.permissionService,
         req,
         res,
       };
@@ -63,6 +67,7 @@ export function createContext(opts: CreateContextOptions) {
           userRole: payload.role,
           logger: opts.logger,
           realmMemberVerification: opts.realmMemberVerification,
+          permissionService: opts.permissionService,
           req,
           res,
         };
@@ -122,6 +127,7 @@ export function createContext(opts: CreateContextOptions) {
           userType: 'agent',
           logger: opts.logger,
           realmMemberVerification: opts.realmMemberVerification,
+          permissionService: opts.permissionService,
           req,
           res,
         };
@@ -148,6 +154,7 @@ export function createContext(opts: CreateContextOptions) {
       userType: userType || 'human',
       logger: opts.logger,
       realmMemberVerification: opts.realmMemberVerification,
+      permissionService: opts.permissionService,
       req,
       res,
     };

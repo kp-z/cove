@@ -52,3 +52,19 @@ export class UnauthorizedRealmAccessError extends AuthorizationError {
     super(`User ${userId} is not authorized to access server ${realmId}`, { realmId, userId });
   }
 }
+
+export class InsufficientPermissionError extends AuthorizationError {
+  readonly code = ERROR_CODES.INSUFFICIENT_PERMISSION;
+
+  constructor(
+    public readonly userId: string,
+    public readonly realmId: string,
+    public readonly requiredPermission: string
+  ) {
+    super(
+      `User ${userId} lacks permission ${requiredPermission} in realm ${realmId}`,
+      { userId, realmId, requiredPermission }
+    );
+    this.name = 'InsufficientPermissionError';
+  }
+}

@@ -28,6 +28,8 @@ describe('agentRouter', () => {
     } as unknown as AgentRuntimeService;
 
     mockContext = {
+      userId: 'test-user-id',
+      realmId: 'test-realm-id',
       logger: {
         info: vi.fn(),
         error: vi.fn(),
