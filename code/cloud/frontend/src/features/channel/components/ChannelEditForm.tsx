@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Save, Check } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
+import { ButtonGroup } from '@/shared/components/ui/ButtonGroup';
 import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { PageContent } from '@/shared/components/layout/PageContent';
@@ -218,10 +218,18 @@ export function ChannelEditForm({ channel, onSaved }: ChannelEditFormProps) {
         title={isCreateMode ? 'Create Channel' : (channel?.display_name || channel?.name || 'Edit Channel')}
         subtitle={isCreateMode ? 'Create a new communication channel' : `Channel ID: ${channel?.channel_id}`}
         actions={
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saved ? <Check size={16} /> : <Save size={16} />}
-            {saved ? 'Saved' : 'Save'}
-          </Button>
+          <ButtonGroup
+            options={[
+              {
+                label: saved ? 'Saved' : 'Save',
+                value: 'save',
+                icon: saved ? <Check size={16} /> : <Save size={16} />,
+                onClick: handleSave,
+                disabled: !canSave,
+              },
+            ]}
+            variant="default"
+          />
         }
       />
 

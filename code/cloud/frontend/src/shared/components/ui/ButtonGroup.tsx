@@ -8,6 +8,7 @@ interface ButtonGroupOption {
   value: string;
   icon?: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
 interface ButtonGroupProps extends VariantProps<typeof buttonVariants> {
@@ -32,6 +33,7 @@ export function ButtonGroup({
           key={option.value}
           variant={value === option.value ? 'default' : variant}
           size={size}
+          disabled={option.disabled}
           onClick={() => {
             if (option.onClick) {
               option.onClick();
