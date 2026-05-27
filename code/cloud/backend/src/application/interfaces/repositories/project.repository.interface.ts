@@ -17,22 +17,25 @@ export interface IProjectRepository {
   /**
    * 根据所有者查找 Projects
    * @param ownerId - 所有者 ID
+   * @param realmId - Realm ID
    * @returns Project 实体数组
    */
-  findByOwner(ownerId: string): Promise<ProjectEntity[]>;
+  findByOwner(ownerId: string, realmId: string): Promise<ProjectEntity[]>;
 
   /**
    * 根据状态查找 Projects
    * @param status - Project 状态
+   * @param realmId - Realm ID
    * @returns Project 实体数组
    */
-  findByStatus(status: ProjectStatus): Promise<ProjectEntity[]>;
+  findByStatus(status: ProjectStatus, realmId: string): Promise<ProjectEntity[]>;
 
   /**
    * 查找所有 Projects
+   * @param realmId - Realm ID
    * @returns Project 实体数组
    */
-  findAll(): Promise<ProjectEntity[]>;
+  findAll(realmId: string): Promise<ProjectEntity[]>;
 
   /**
    * 保存新 Project

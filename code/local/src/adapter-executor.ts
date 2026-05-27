@@ -37,7 +37,8 @@ export class AdapterExecutor {
           model,
           messages,
           maxTokens,
-          temperature
+          temperature,
+          abortController.signal
         );
         output = result.output;
         usage = result.usage;
@@ -46,7 +47,8 @@ export class AdapterExecutor {
           model,
           messages,
           maxTokens,
-          temperature
+          temperature,
+          abortController.signal
         );
         output = result.output;
         usage = result.usage;
@@ -61,6 +63,11 @@ export class AdapterExecutor {
         executionTime,
         usage,
       };
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Task cancelled');
+      }
+      throw error;
     } finally {
       this.runningTasks.delete(request.taskId);
     }
@@ -70,21 +77,25 @@ export class AdapterExecutor {
     model: string,
     messages: Message[],
     maxTokens = 4096,
-    temperature = 1.0
+    temperature = 1.0,
+    signal?: AbortSignal
   ): Promise<{ output: string; usage: { inputTokens: number; outputTokens: number } }> {
     if (!this.anthropic) {
       throw new Error('Anthropic API key not configured');
     }
 
-    const response = await this.anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      messages: messages.map((msg) => ({
-        role: msg.role === 'system' ? 'user' : msg.role,
-        content: msg.content,
-      })),
-    });
+    const response = await this.anthropic.messages.create(
+      {
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        messages: messages.map((msg) => ({
+          role: msg.role === 'system' ? 'user' : msg.role,
+          content: msg.content,
+        })),
+      },
+      { signal }
+    );
 
     const content = response.content[0];
     if (content.type !== 'text') {
@@ -104,21 +115,25 @@ export class AdapterExecutor {
     model: string,
     messages: Message[],
     maxTokens = 4096,
-    temperature = 1.0
+    temperature = 1.0,
+    signal?: AbortSignal
   ): Promise<{ output: string; usage: { inputTokens: number; outputTokens: number } }> {
     if (!this.openai) {
       throw new Error('OpenAI API key not configured');
     }
 
-    const response = await this.openai.chat.completions.create({
-      model,
-      messages: messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      max_tokens: maxTokens,
-      temperature,
-    });
+    const response = await this.openai.chat.completions.create(
+      {
+        model,
+        messages: messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        max_tokens: maxTokens,
+        temperature,
+      },
+      { signal }
+    );
 
     const choice = response.choices[0];
     if (!choice.message.content) {
@@ -144,5 +159,28 @@ export class AdapterExecutor {
 
   getActiveTaskCount(): number {
     return this.runningTasks.size;
+  }
+
+  async cleanup(): Promise<void> {
+    const tasks = Array.from(this.runningTasks.entries());
+
+    if (tasks.length > 0) {
+      console.log(`📋 Cancelling ${tasks.length} running task(s)...`);
+    }
+
+    for (const [taskId, controller] of tasks) {
+      controller.abort();
+    }
+
+    const startTime = Date.now();
+    while (this.runningTasks.size > 0 && Date.now() - startTime < 5000) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (this.runningTasks.size === 0) {
+      console.log('✅ All tasks cancelled');
+    } else {
+      console.log(`⚠️  ${this.runningTasks.size} task(s) still running`);
+    }
   }
 }

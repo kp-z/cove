@@ -126,8 +126,8 @@ export class ThreadService {
     return this.messageRepository.findByThread(threadId);
   }
 
-  async listChannelThreads(channelId: string): Promise<ThreadEntity[]> {
-    return this.threadRepository.findByChannel(channelId);
+  async listChannelThreads(channelId: string, realmId: string): Promise<ThreadEntity[]> {
+    return this.threadRepository.findByChannel(channelId, realmId);
   }
 
   // --- Private helpers ---

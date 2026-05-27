@@ -415,7 +415,7 @@ describe('threadRouter', () => {
 
       expect(result.threads).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(mockThreadService.listChannelThreads).toHaveBeenCalledWith('channel-1');
+      expect(mockThreadService.listChannelThreads).toHaveBeenCalledWith('channel-1', 'default-server');
     });
 
     it('should return empty list when no threads found', async () => {

@@ -1,7 +1,6 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { ThreadEntity } from '../../domain/models/thread/thread.entity';
 import { IThreadRepository } from '../../application/interfaces/repositories/thread.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface ThreadDbRecord {
   id: string;
@@ -75,28 +74,26 @@ export class HybridThreadRepository
     return this.findEntityById(threadId, realmId);
   }
 
-  async findByChannel(channelId: string): Promise<ThreadEntity[]> {
-    const context = getRealmContext();
+  async findByChannel(channelId: string, realmId: string): Promise<ThreadEntity[]> {
     const records = await this.prisma.thread.findMany({
       where: {
         channelId,
-        realmId: context.realmId,
+        realmId,
       },
       orderBy: { createdAt: 'desc' },
     });
     return this.loadEntities(records as unknown as ThreadDbRecord[]);
   }
 
-  async findByRootMessage(rootMessageId: string): Promise<ThreadEntity | null> {
-    const context = getRealmContext();
+  async findByRootMessage(rootMessageId: string, realmId: string): Promise<ThreadEntity | null> {
     const record = await this.prisma.thread.findFirst({
       where: {
         rootMessageId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     if (!record) return null;
-    return this.findEntityById(record.id, context.realmId);
+    return this.findEntityById(record.id, realmId);
   }
 
   async save(thread: ThreadEntity): Promise<void> {
@@ -111,12 +108,11 @@ export class HybridThreadRepository
     await this.deleteEntity(threadId, realmId);
   }
 
-  async exists(threadId: string): Promise<boolean> {
-    const context = getRealmContext();
+  async exists(threadId: string, realmId: string): Promise<boolean> {
     const count = await this.prisma.thread.count({
       where: {
         id: threadId,
-        realmId: context.realmId,
+        realmId,
       },
     });
     return count > 0;

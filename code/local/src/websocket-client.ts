@@ -31,6 +31,7 @@ export class WebSocketClient {
   private maxReconnectAttempts = 10;
   private isConnected = false;
   private subscriptionId: string | null = null;
+  private isShuttingDown = false;
 
   constructor(
     private config: Config,
@@ -89,6 +90,10 @@ export class WebSocketClient {
   async disconnect(): Promise<void> {
     console.log('🔌 Disconnecting from Cloud Backend...');
 
+    this.isShuttingDown = true;
+
+    await this.unsubscribe();
+
     this.stopHeartbeat();
     this.stopReconnect();
 
@@ -127,6 +132,8 @@ export class WebSocketClient {
   }
 
   private handleMessage(data: string): void {
+    if (this.isShuttingDown) return;
+
     try {
       const message: TRPCMessage = JSON.parse(data);
 
@@ -350,5 +357,30 @@ export class WebSocketClient {
 
   private nextMessageId(): number {
     return ++this.messageId;
+  }
+
+  async unsubscribe(): Promise<void> {
+    if (!this.subscriptionId || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    console.log('📡 Unsubscribing from device events...');
+
+    const message: TRPCMessage = {
+      id: this.nextMessageId(),
+      jsonrpc: '2.0',
+      method: 'subscription.stop',
+      params: {
+        path: 'deviceSubscription.onDeviceEvent',
+        input: { subscriptionId: this.subscriptionId },
+      },
+    };
+
+    this.send(message);
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    this.subscriptionId = null;
+    console.log('✅ Unsubscribed');
   }
 }

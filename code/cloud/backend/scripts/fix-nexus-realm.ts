@@ -2,7 +2,7 @@
 /**
  * Fix Nexus Realm Script
  *
- * 检查并修复 Nexus realm 的 built-in agents 初始化问题
+ * 检查并修复 Nexus realm 的 built-in agents 和 channels 初始化问题
  *
  * Usage:
  *   npm run fix:nexus
@@ -10,9 +10,25 @@
 
 import { PrismaClient } from '@prisma/client';
 import { BuiltInAgentsInitializer } from '../src/infrastructure/database/built-in-agents-initializer';
-import { ConsoleLogger } from '../src/infrastructure/logging/console-logger';
+import { ILogger } from '../src/application/interfaces/logger.interface';
 import * as path from 'path';
 import * as os from 'os';
+
+// Simple console logger implementation
+class ConsoleLogger implements ILogger {
+  debug(message: string): void {
+    console.log(`[DEBUG] ${message}`);
+  }
+  info(message: string): void {
+    console.log(`[INFO] ${message}`);
+  }
+  warn(message: string): void {
+    console.warn(`[WARN] ${message}`);
+  }
+  error(message: string, error?: Error): void {
+    console.error(`[ERROR] ${message}`, error || '');
+  }
+}
 
 async function main() {
   const prisma = new PrismaClient();
@@ -88,12 +104,67 @@ async function main() {
     console.log(`📊 Current channels: ${channels.length}`);
     if (channels.length > 0) {
       channels.forEach(channel => {
-        console.log(`   - #${channel.name} (${channel.displayName}) [${channel.visibility}]`);
+        console.log(`   - #${channel.name} (${channel.displayName}) [${channel.type}]`);
       });
+      console.log('\n✅ Channels already exist, no action needed');
     } else {
       console.log('   (no channels found)');
-      console.log('\n💡 Channels should be created by DefaultDataInitializer on startup');
+      console.log('\n🔧 Creating default channels...\n');
+
+      // 创建 #general channel
+      await prisma.channel.create({
+        data: {
+          id: 'channel-nexus-general',
+          realmId: nexusRealm.id,
+          name: 'general',
+          displayName: 'General',
+          description: 'General discussion channel',
+          type: 'public',
+          status: 'active',
+          createdById: 'system',
+          createdByType: 'system',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      console.log('   ✅ Created #general channel');
+
+      // 创建 #welcome channel
+      await prisma.channel.create({
+        data: {
+          id: 'channel-nexus-welcome',
+          realmId: nexusRealm.id,
+          name: 'welcome',
+          displayName: 'Welcome',
+          description: 'Welcome new members',
+          type: 'public',
+          status: 'active',
+          createdById: 'system',
+          createdByType: 'system',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      console.log('   ✅ Created #welcome channel');
+
+      console.log('\n✅ Default channels created successfully');
+
+      // 验证结果
+      const updatedChannels = await prisma.channel.findMany({
+        where: { realmId: nexusRealm.id },
+      });
+
+      console.log(`\n📊 Updated channels: ${updatedChannels.length}`);
+      updatedChannels.forEach(channel => {
+        console.log(`   - #${channel.name} (${channel.displayName}) [${channel.type}]`);
+      });
     }
+
+    console.log('\n✅ Nexus realm check complete!');
+    console.log('\n💡 Next steps:');
+    console.log('   1. Restart the backend if it\'s running');
+    console.log('   2. Refresh the frontend');
+    console.log('   3. You should now see channels in the sidebar');
 
   } catch (error: any) {
     console.error('\n❌ Error:', error.message);

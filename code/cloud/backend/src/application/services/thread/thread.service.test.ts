@@ -331,10 +331,10 @@ describe('ThreadService', () => {
 
       vi.mocked(mockThreadRepository.findByChannel).mockResolvedValue(threads);
 
-      const result = await threadService.listChannelThreads('channel-1');
+      const result = await threadService.listChannelThreads('channel-1', testContext.realmId);
 
       expect(result).toEqual(threads);
-      expect(mockThreadRepository.findByChannel).toHaveBeenCalledWith('channel-1');
+      expect(mockThreadRepository.findByChannel).toHaveBeenCalledWith('channel-1', testContext.realmId);
     });
   });
 });

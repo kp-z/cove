@@ -90,9 +90,10 @@ export const threadRouter = (threadService: ThreadService) =>
       .input(z.object({ channelId: z.string() }))
       .query(async ({ input, ctx }) => {
         try {
-          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          const realmId = ctx.realmId || 'default-server';
+          const context = RealmContext.create(realmId, ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            const threads = await threadService.listChannelThreads(input.channelId);
+            const threads = await threadService.listChannelThreads(input.channelId, realmId);
 
           return {
             threads: threads.map(t => t.toJSON()),

@@ -96,40 +96,35 @@ export class HybridProjectRepository
 
   // --- IProjectRepository ---
 
-  async findById(projectId: string, realmId?: string): Promise<ProjectEntity | null> {
-    const context = getRealmContext();
-    const effectiveRealmId = realmId ?? context.realmId;
-    return this.findEntityById(projectId, effectiveRealmId);
+  async findById(projectId: string, realmId: string): Promise<ProjectEntity | null> {
+    return this.findEntityById(projectId, realmId);
   }
 
-  async findByOwner(ownerId: string): Promise<ProjectEntity[]> {
-    const context = getRealmContext();
+  async findByOwner(ownerId: string, realmId: string): Promise<ProjectEntity[]> {
     const records = await this.prisma.project.findMany({
       where: {
         ownerId,
-        realmId: context.realmId,
+        realmId,
       },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
-  async findByStatus(status: ProjectStatus): Promise<ProjectEntity[]> {
-    const context = getRealmContext();
+  async findByStatus(status: ProjectStatus, realmId: string): Promise<ProjectEntity[]> {
     const records = await this.prisma.project.findMany({
       where: {
         status,
-        realmId: context.realmId,
+        realmId,
       },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
   }
 
-  async findAll(): Promise<ProjectEntity[]> {
-    const context = getRealmContext();
+  async findAll(realmId: string): Promise<ProjectEntity[]> {
     const records = await this.prisma.project.findMany({
-      where: { realmId: context.realmId },
+      where: { realmId },
       orderBy: { name: 'asc' },
     });
     return this.loadEntities(records as unknown as ProjectDbRecord[]);
@@ -143,19 +138,15 @@ export class HybridProjectRepository
     await this.updateEntity(project, project.realmId);
   }
 
-  async delete(projectId: string, realmId?: string): Promise<void> {
-    const context = getRealmContext();
-    const effectiveRealmId = realmId ?? context.realmId;
-    await this.deleteEntity(projectId, effectiveRealmId);
+  async delete(projectId: string, realmId: string): Promise<void> {
+    await this.deleteEntity(projectId, realmId);
   }
 
-  async exists(projectId: string, realmId?: string): Promise<boolean> {
-    const context = getRealmContext();
-    const effectiveRealmId = realmId ?? context.realmId;
+  async exists(projectId: string, realmId: string): Promise<boolean> {
     const count = await this.prisma.project.count({
       where: {
         id: projectId,
-        realmId: effectiveRealmId,
+        realmId,
       },
     });
     return count > 0;
