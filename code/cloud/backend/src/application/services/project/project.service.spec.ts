@@ -125,10 +125,12 @@ describe('ProjectService', () => {
       const mockProject = createTestProject();
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
-      const result = await service.getProjectById('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectById('project-123');
+      });
 
       expect(result).toBe(mockProject);
-      expect(mockProjectRepository.findById).toHaveBeenCalledWith('project-123');
+      expect(mockProjectRepository.findById).toHaveBeenCalledWith('project-123', 'test-server-id');
     });
 
     it('should throw ProjectNotFoundError when project not found', async () => {
@@ -314,7 +316,7 @@ describe('ProjectService', () => {
         return await service.deleteProject('project-123');;
       });
 
-      expect(mockProjectRepository.delete).toHaveBeenCalledWith('project-123');
+      expect(mockProjectRepository.delete).toHaveBeenCalledWith('project-123', 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.deleted',
@@ -353,7 +355,9 @@ describe('ProjectService', () => {
         .mockResolvedValueOnce(mockAgent1)
         .mockResolvedValueOnce(mockAgent2);
 
-      const result = await service.getProjectAgents('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectAgents('project-123');
+      });
 
       expect(result).toHaveLength(2);
       expect(result).toContain(mockAgent1);
@@ -371,7 +375,9 @@ describe('ProjectService', () => {
         .mockResolvedValueOnce(mockAgent1)
         .mockResolvedValueOnce(null);
 
-      const result = await service.getProjectAgents('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectAgents('project-123');
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(mockAgent1);
@@ -381,7 +387,9 @@ describe('ProjectService', () => {
       const mockProject = createTestProject({ agentIds: [] });
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
-      const result = await service.getProjectAgents('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectAgents('project-123');
+      });
 
       expect(result).toEqual([]);
     });
@@ -400,7 +408,9 @@ describe('ProjectService', () => {
         .mockResolvedValueOnce(mockChannel1)
         .mockResolvedValueOnce(mockChannel2);
 
-      const result = await service.getProjectChannels('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectChannels('project-123');
+      });
 
       expect(result).toHaveLength(2);
       expect(result).toContain(mockChannel1);
@@ -418,7 +428,9 @@ describe('ProjectService', () => {
         .mockResolvedValueOnce(mockChannel1)
         .mockResolvedValueOnce(null);
 
-      const result = await service.getProjectChannels('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectChannels('project-123');
+      });
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(mockChannel1);
@@ -428,7 +440,9 @@ describe('ProjectService', () => {
       const mockProject = createTestProject({ channelIds: [] });
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(mockProject);
 
-      const result = await service.getProjectChannels('project-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectChannels('project-123');
+      });
 
       expect(result).toEqual([]);
     });

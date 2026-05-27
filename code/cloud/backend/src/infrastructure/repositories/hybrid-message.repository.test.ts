@@ -324,7 +324,7 @@ describe('HybridMessageRepository', () => {
             msgShortId: `abc${i}`,
             createdAt: new Date(`2026-01-0${i}T00:00:00Z`),
           });
-          await repository.save(msg, 'realm-1');
+          await repository.save(msg);
         }
       });
 
@@ -401,7 +401,7 @@ describe('HybridMessageRepository', () => {
         isThreadRoot: true,
       });
       await runWithContext(testContext, async () => {
-        await repository.save(rootMsg, 'realm-1');
+        await repository.save(rootMsg);
       });
 
       const reply1 = createTestMessage({
@@ -418,8 +418,8 @@ describe('HybridMessageRepository', () => {
       });
 
       await runWithContext(testContext, async () => {
-        await repository.save(reply1, 'realm-1');
-        await repository.save(reply2, 'realm-1');
+        await repository.save(reply1);
+        await repository.save(reply2);
       });
 
       const found = await runWithContext(testContext, async () => {

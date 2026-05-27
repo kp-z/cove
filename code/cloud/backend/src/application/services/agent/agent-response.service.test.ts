@@ -207,7 +207,7 @@ describe('AgentResponseService', () => {
       });
 
       expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
-      expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-1');
+      expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-1', 'test-server-id');
       expect(mockMessageRepository.save).toHaveBeenCalled();
       expect(mockEventBus.publish).toHaveBeenCalled();
     });

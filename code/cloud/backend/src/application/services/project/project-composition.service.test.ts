@@ -479,9 +479,11 @@ describe('ProjectCompositionService', () => {
 
       vi.mocked(mockProjectRepository.findById).mockResolvedValue(project);
 
-      await service.deleteProject('proj-1');
+      await runWithContext(testContext, async () => {
+        return await service.deleteProject('proj-1');
+      });
 
-      expect(mockProjectRepository.delete).toHaveBeenCalledWith('proj-1');
+      expect(mockProjectRepository.delete).toHaveBeenCalledWith('proj-1', 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'project.deleted',
@@ -551,7 +553,9 @@ describe('ProjectCompositionService', () => {
         .mockResolvedValueOnce(agent1)
         .mockResolvedValueOnce(agent2);
 
-      const result = await service.getProjectAgents('proj-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectAgents('proj-1');
+      });
 
       expect(result).toHaveLength(2);
       expect(result).toContain(agent1);
@@ -598,7 +602,9 @@ describe('ProjectCompositionService', () => {
         .mockResolvedValueOnce(channel1)
         .mockResolvedValueOnce(channel2);
 
-      const result = await service.getProjectChannels('proj-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectChannels('proj-1');
+      });
 
       expect(result).toHaveLength(2);
       expect(result).toContain(channel1);

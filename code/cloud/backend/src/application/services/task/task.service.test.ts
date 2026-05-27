@@ -184,7 +184,7 @@ describe('TaskService', () => {
       });
 
       expect(result).toBe(mockTask);
-      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-1');
+      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-1', 'test-server-id');
     });
 
     it('should throw TaskNotFoundError when task not found', async () => {
@@ -441,7 +441,7 @@ describe('TaskService', () => {
 
       });
 
-      expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1');
+      expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1', 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'task.deleted',
@@ -470,7 +470,7 @@ describe('TaskService', () => {
 
       });
 
-      expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1');
+      expect(mockTaskRepository.delete).toHaveBeenCalledWith('task-1', 'test-server-id');
     });
 
     it('should throw TaskNotDeletableError when status is not done or cancelled', async () => {

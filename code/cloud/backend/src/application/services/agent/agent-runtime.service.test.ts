@@ -8,6 +8,7 @@ import {
   ILogger,
   IRuntimeAdapter,
 } from '../../interfaces';
+import { runWithContext } from '../../context/realm-context-store';
 
 describe('AgentRuntimeService', () => {
   let service: AgentRuntimeService;
@@ -15,6 +16,7 @@ describe('AgentRuntimeService', () => {
   let mockRuntimeAdapter: IRuntimeAdapter;
   let mockEventBus: IEventBus;
   let mockLogger: ILogger;
+  const testContext = { realmId: 'test-realm-id', userId: 'test-user' };
 
   beforeEach(() => {
     mockAgentRepository = {
@@ -62,7 +64,9 @@ describe('AgentRuntimeService', () => {
       vi.spyOn(agent, 'canBeStarted').mockReturnValue(true);
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(agent);
 
-      await service.startAgent('agent-1');
+      await runWithContext(testContext, async () => {
+        await service.startAgent('agent-1');
+      });
 
       expect(mockRuntimeAdapter.startAgent).toHaveBeenCalledWith('agent-1', undefined);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
@@ -79,9 +83,11 @@ describe('AgentRuntimeService', () => {
     it('should throw AgentNotFoundError when agent not found', async () => {
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(null);
 
-      await expect(service.startAgent('nonexistent')).rejects.toThrow(
-        AgentNotFoundError
-      );
+      await expect(
+        runWithContext(testContext, async () => {
+          return await service.startAgent('nonexistent');
+        })
+      ).rejects.toThrow(AgentNotFoundError);
     });
 
     it('should throw AgentNotReadyError when agent cannot be started', async () => {
@@ -99,9 +105,11 @@ describe('AgentRuntimeService', () => {
       vi.spyOn(agent, 'canBeStarted').mockReturnValue(false);
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(agent);
 
-      await expect(service.startAgent('agent-1')).rejects.toThrow(
-        AgentNotReadyError
-      );
+      await expect(
+        runWithContext(testContext, async () => {
+          return await service.startAgent('agent-1');
+        })
+      ).rejects.toThrow(AgentNotReadyError);
     });
   });
 
@@ -120,7 +128,9 @@ describe('AgentRuntimeService', () => {
 
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(agent);
 
-      await service.stopAgent('agent-1');
+      await runWithContext(testContext, async () => {
+        await service.stopAgent('agent-1');
+      });
 
       expect(mockRuntimeAdapter.stopAgent).toHaveBeenCalledWith('agent-1');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
@@ -137,9 +147,11 @@ describe('AgentRuntimeService', () => {
     it('should throw AgentNotFoundError when agent not found', async () => {
       vi.mocked(mockAgentRepository.findById).mockResolvedValue(null);
 
-      await expect(service.stopAgent('nonexistent')).rejects.toThrow(
-        AgentNotFoundError
-      );
+      await expect(
+        runWithContext(testContext, async () => {
+          return await service.stopAgent('nonexistent');
+        })
+      ).rejects.toThrow(AgentNotFoundError);
     });
   });
 
@@ -147,7 +159,9 @@ describe('AgentRuntimeService', () => {
     it('should return agent runtime status', async () => {
       vi.mocked(mockRuntimeAdapter.getRuntimeStatus).mockResolvedValue('running');
 
-      const result = await service.getStatus('agent-1');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getStatus('agent-1');
+      });
 
       expect(result).toEqual({ status: 'running' });
       expect(mockRuntimeAdapter.getRuntimeStatus).toHaveBeenCalledWith('agent-1');

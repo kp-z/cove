@@ -79,7 +79,7 @@ describe('TaskAssignmentService', () => {
       });
 
       expect(result).toBe(assignedTask);
-      expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-123');
+      expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-123', 'test-server-id');
       expect(mockTask.assignTo).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'agent-123',
@@ -289,8 +289,8 @@ describe('TaskAssignmentService', () => {
       });
 
       expect(result).toBe(updatedTask);
-      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-123');
-      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-456');
+      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-123', 'test-server-id');
+      expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-456', 'test-server-id');
       expect(mockTask.addDependency).toHaveBeenCalledWith('task-456');
       expect(mockTaskRepository.update).toHaveBeenCalledWith(updatedTask);
       expect(mockEventBus.publish).toHaveBeenCalledWith(
