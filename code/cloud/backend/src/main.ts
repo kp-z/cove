@@ -49,6 +49,8 @@ import { ChannelQueryService } from './application/services/channel/channel-quer
 import { ChannelMemberService } from './application/services/channel/channel-member.service';
 import { ChannelLifecycleService } from './application/services/channel/channel-lifecycle.service';
 import { ChannelMessagingService } from './application/services/channel/channel-messaging.service';
+import { DefaultChannelsAutoJoinService } from './application/services/channel/default-channels-auto-join.service';
+import { RealmMemberChannelAutoJoinService } from './application/services/channel/realm-member-channel-auto-join.service';
 import { AgentService } from './application/services/agent/agent.service';
 import { AgentCrudService } from './application/services/agent/agent-crud.service';
 import { AgentQueryService } from './application/services/agent/agent-query.service';
@@ -406,7 +408,8 @@ function initializeDependencies() {
     adapterBootstrapService, // adapterBootstrapService (optional)
     deviceService, // deviceService (optional)
     deviceAuthService, // deviceAuthService (optional)
-    defaultChannelsInitializer // defaultChannelsInitializer (optional)
+    defaultChannelsInitializer, // defaultChannelsInitializer (optional)
+    channelRepository // channelRepository (optional)
   );
 
   const authService = new AuthService(
@@ -442,6 +445,23 @@ function initializeDependencies() {
       if (message) agentService.handleIncomingMessage(message);
     }).catch(err => logger.error('Agent response trigger failed', err as Error));
   });
+
+  // Initialize and start auto-join services
+  const defaultChannelsAutoJoinService = new DefaultChannelsAutoJoinService(
+    eventBus,
+    channelRepository,
+    logger
+  );
+  defaultChannelsAutoJoinService.start();
+
+  const realmMemberChannelAutoJoinService = new RealmMemberChannelAutoJoinService(
+    eventBus,
+    channelRepository,
+    logger
+  );
+  realmMemberChannelAutoJoinService.start();
+
+  logger.info('Auto-join services started successfully');
 
   logger.info('Dependencies initialized successfully');
 

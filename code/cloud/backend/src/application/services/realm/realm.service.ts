@@ -35,6 +35,7 @@ import {
   ILogger,
   DomainEvent,
 } from '../../interfaces';
+import { IChannelRepository } from '../../interfaces/repositories/channel.repository.interface';
 import { IRealmPermissionService } from '../../interfaces/services/realm-permission.service.interface';
 import { RealmPermission } from '../../../domain/models/realm-member/realm-member.entity';
 import { getRealmContext } from '../../context/realm-context-store';
@@ -94,7 +95,8 @@ export class RealmService {
     private readonly adapterBootstrapService?: AdapterBootstrapService,
     private readonly deviceService?: DeviceService,
     private readonly deviceAuthService?: DeviceAuthService,
-    private readonly defaultChannelsInitializer?: DefaultChannelsInitializer
+    private readonly defaultChannelsInitializer?: DefaultChannelsInitializer,
+    private readonly channelRepository?: IChannelRepository
   ) {}
 
   async createRealm(dto: CreateRealmDTO): Promise<RealmEntity> {
@@ -213,6 +215,38 @@ export class RealmService {
           dto.ownerId
         );
         this.logger.info('Default channels created', { realmId });
+
+        // Add owner to default channels
+        if (this.channelRepository) {
+          try {
+            this.logger.info('Adding owner to default channels', { realmId, ownerId: dto.ownerId });
+
+            const allChannels = await this.channelRepository.findAll(realmId);
+            const defaultChannels = allChannels.filter(ch =>
+              ch.name === 'general' || ch.name === 'welcome'
+            );
+
+            for (const channel of defaultChannels) {
+              if (!channel.hasMember(dto.ownerId)) {
+                const updatedChannel = channel.addMember({
+                  memberId: dto.ownerId,
+                  memberType: 'human',
+                  role: 'member',
+                  joinedAt: new Date(),
+                });
+                await this.channelRepository.update(updatedChannel, realmId);
+                this.logger.info('Owner added to channel', {
+                  channelId: channel.channelId,
+                  channelName: channel.name,
+                });
+              }
+            }
+
+            this.logger.info('Owner added to default channels successfully', { realmId });
+          } catch (error) {
+            this.logger.error('Failed to add owner to default channels', error as Error, { realmId });
+          }
+        }
       } catch (error) {
         // Log error but don't fail realm creation
         this.logger.error('Failed to create default channels', error as Error, { realmId });
