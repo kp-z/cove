@@ -97,6 +97,19 @@ export class HybridUserRepository
     return dbRecord.profilePath;
   }
 
+  protected async reconstructEntity(dbRecord: UserDbRecord): Promise<UserEntity> {
+    // Reconstruct entity from database record with default content
+    const defaultContent: UserContent = {
+      avatar: {
+        url: 'storage/avatars/presets/default-user.svg',
+        type: 'default',
+      },
+      permissions: [],
+      preference: {},
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- IUserRepository ---
 
   async findById(userId: string, _realmId: string): Promise<UserEntity | null> {

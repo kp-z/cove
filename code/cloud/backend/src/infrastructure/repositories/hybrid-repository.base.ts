@@ -229,6 +229,90 @@ export abstract class HybridRepository<TEntity, TDbRecord = any, TContent = any>
   }
 
   // ============================================
+  // 验证和修复钩子（子类可覆盖）
+  // ============================================
+
+  /**
+   * 验证实体一致性（数据库 + 文件系统）
+   * 子类可覆盖以添加特定验证逻辑
+   */
+  protected async validateEntityConsistency(
+    entityId: string,
+    realmId: string
+  ): Promise<{ valid: boolean; issues: string[] }> {
+    const issues: string[] = [];
+    const entityType = this.getEntityType();
+
+    try {
+      // 1. 检查数据库记录
+      const dbRecord = await this.findInDatabase(entityId, realmId);
+      if (!dbRecord) {
+        issues.push('MISSING_DB_RECORD');
+        return { valid: false, issues };
+      }
+
+      // 2. 检查内容文件
+      const contentPath = this.getContentPath(dbRecord);
+      try {
+        await this.storage.loadJson(contentPath);
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          issues.push('MISSING_CONTENT_FILE');
+        } else {
+          issues.push(`INVALID_CONTENT_FILE: ${error.message}`);
+        }
+      }
+
+      return { valid: issues.length === 0, issues };
+    } catch (error: any) {
+      this.logger.error(`Failed to validate ${entityType} ${entityId}`, error);
+      issues.push(`VALIDATION_ERROR: ${error.message}`);
+      return { valid: false, issues };
+    }
+  }
+
+  /**
+   * 修复实体文件（从数据库重新生成）
+   */
+  protected async repairEntityFiles(
+    entityId: string,
+    realmId: string
+  ): Promise<void> {
+    const entityType = this.getEntityType();
+
+    this.logger.info(`Repairing entity ${entityId}`, {
+      entityType,
+      entityId,
+      realmId,
+    });
+
+    try {
+      const dbRecord = await this.findInDatabase(entityId, realmId);
+      if (!dbRecord) {
+        throw new Error(`Cannot repair: entity ${entityId} not found in database`);
+      }
+
+      // 重建实体并重新保存
+      const entity = await this.reconstructEntity(dbRecord);
+      await this.updateEntity(entity, realmId);
+
+      this.logger.info(`Successfully repaired entity ${entityId}`, {
+        entityType,
+        entityId,
+      });
+    } catch (error: any) {
+      this.logger.error(`Failed to repair entity ${entityId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从数据库记录重建实体（子类实现）
+   * 用于修复缺失或损坏的文件
+   */
+  protected abstract reconstructEntity(dbRecord: TDbRecord): Promise<TEntity>;
+
+  // ============================================
   // 抽象方法 - 数据库操作（子类实现）
   // ============================================
 

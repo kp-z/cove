@@ -31,9 +31,10 @@ export interface IChannelRepository {
   /**
    * 根据成员查找 Channels
    * @param memberId - 成员 ID
+   * @param realmId - Server ID (optional, 如果未提供则从 RealmContext 获取)
    * @returns Channel 实体数组
    */
-  findByMember(memberId: string): Promise<ChannelEntity[]>;
+  findByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]>;
 
   /**
    * 查找与指定 agent 的 DM channel（用于唯一性检查）

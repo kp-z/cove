@@ -117,6 +117,17 @@ export class HybridDeviceRepository
     return dbRecord.configPath;
   }
 
+  protected async reconstructEntity(dbRecord: DeviceDbRecord): Promise<DeviceEntity> {
+    const defaultContent: DeviceContent = {
+      specs: {
+        cpu_cores: 0,
+        memory_gb: 0,
+        storage_gb: 0,
+      },
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- IDeviceRepository ---
 
   async findById(deviceId: string, realmId: string): Promise<DeviceEntity | null> {

@@ -94,6 +94,16 @@ export class HybridWorkflowRepository
     return dbRecord.definitionPath;
   }
 
+  protected async reconstructEntity(dbRecord: WorkflowDbRecord): Promise<WorkflowEntity> {
+    const defaultContent: WorkflowContent = {
+      steps: [],
+      triggers: [],
+      createdBy: { id: 'system', type: 'system' as any },
+      meta: {},
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- IWorkflowRepository ---
 
   async findById(workflowId: string, realmId: string): Promise<WorkflowEntity | null> {

@@ -93,6 +93,14 @@ export class HybridTaskRepository
     return dbRecord.detailsPath;
   }
 
+  protected async reconstructEntity(dbRecord: TaskDbRecord): Promise<TaskEntity> {
+    const defaultContent: TaskContent = {
+      taskType: 'feature' as any,
+      createdBy: { id: 'system', type: 'system' as any },
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- ITaskRepository ---
 
   async findById(taskId: string, realmId: string): Promise<TaskEntity | null> {

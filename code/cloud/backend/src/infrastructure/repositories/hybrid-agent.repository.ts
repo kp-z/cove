@@ -155,14 +155,17 @@ export class HybridAgentRepository
 
   /**
    * Override saveEntity to create directory structure instead of single JSON file
+   * Includes rollback mechanism for atomicity
    */
   protected async saveEntity(entity: AgentEntity, _realmId: string): Promise<void> {
     const entityId = this.getEntityId(entity);
     const entityType = this.getEntityType();
+    let filesCreated = false;
+    let agentDir: string | undefined;
 
     try {
       // 1. Create directory structure
-      const agentDir = path.join(
+      agentDir = path.join(
         this.coveRoot,
         'storage',
         entityType,
@@ -193,14 +196,37 @@ export class HybridAgentRepository
         await this.writeYamlAtomic(path.join(agentDir, 'config'), 'triggers.yaml', content.triggers);
       }
 
+      filesCreated = true;
+
       // 4. Save to database with relative path
       const relativePath = path.join('storage', entityType, entityId);
       const dbRecord = this.toDatabase(entity);
       await this.saveToDatabase(dbRecord, relativePath);
 
+      // 5. Validate save result
+      const validation = await this.validateEntityConsistency(entityId, _realmId);
+      if (!validation.valid) {
+        this.logger.warn(`Entity ${entityId} validation failed after save`, {
+          issues: validation.issues,
+        });
+        // Attempt repair
+        await this.repairEntityFiles(entityId, _realmId);
+      }
+
       this.logger.info(`Saved agent ${entityId} to directory structure`);
     } catch (error) {
       this.logger.error(`Failed to save agent ${entityId}:`, error instanceof Error ? error : new Error(String(error)));
+
+      // Rollback: if database save failed, delete created files
+      if (filesCreated && agentDir) {
+        try {
+          await fs.rm(agentDir, { recursive: true, force: true });
+          this.logger.info(`Rolled back files for agent ${entityId}`);
+        } catch (cleanupError) {
+          this.logger.error(`Failed to cleanup files after save error`, cleanupError as Error);
+        }
+      }
+
       throw error;
     }
   }
@@ -337,6 +363,83 @@ export class HybridAgentRepository
 
   protected getContentPath(dbRecord: AgentDbRecord): string {
     return dbRecord.configPath;
+  }
+
+  /**
+   * 从数据库记录重建 AgentEntity
+   * 用于修复缺失或损坏的文件
+   */
+  protected async reconstructEntity(dbRecord: AgentDbRecord): Promise<AgentEntity> {
+    // 从数据库记录创建 AgentEntity，使用默认值填充缺失的字段
+    const avatar = dbRecord.avatarUrl ? {
+      url: dbRecord.avatarUrl,
+      type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
+    } : undefined;
+
+    const persona = avatar ? {
+      name: dbRecord.displayName,
+      role: 'assistant',
+      avatar,
+    } : undefined;
+
+    return AgentEntity.create({
+      agentId: dbRecord.id,
+      realmId: dbRecord.realmId,
+      name: dbRecord.name,
+      displayName: dbRecord.displayName,
+      description: `${dbRecord.displayName} agent`,
+      status: dbRecord.status as AgentStatus,
+      scope: dbRecord.scope as AgentScope,
+      projectIds: JSON.parse(dbRecord.projectIds || '[]'),
+      capabilities: [],
+      tags: [],
+      persona,
+      createdBy: dbRecord.createdBy,
+      createdAt: dbRecord.createdAt,
+    });
+  }
+
+  /**
+   * 覆盖验证方法，添加 agent.md 特定检查
+   */
+  protected async validateEntityConsistency(
+    entityId: string,
+    realmId: string
+  ): Promise<{ valid: boolean; issues: string[] }> {
+    // 调用基类验证
+    const baseResult = await super.validateEntityConsistency(entityId, realmId);
+
+    if (!baseResult.valid) {
+      return baseResult;
+    }
+
+    // Agent 特定验证：检查 agent.md
+    try {
+      const dbRecord = await this.findInDatabase(entityId, realmId);
+      if (!dbRecord) {
+        return baseResult;
+      }
+
+      const agentDir = path.join(this.coveRoot, dbRecord.configPath);
+      const agentMdPath = path.join(agentDir, 'agent.md');
+
+      try {
+        const content = await fs.readFile(agentMdPath, 'utf-8');
+        if (content.trim().length === 0) {
+          baseResult.issues.push('EMPTY_AGENT_MD');
+          baseResult.valid = false;
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          baseResult.issues.push('MISSING_AGENT_MD');
+          baseResult.valid = false;
+        }
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to validate agent.md for ${entityId}`, error);
+    }
+
+    return baseResult;
   }
 
   /**

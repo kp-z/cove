@@ -88,6 +88,14 @@ export class HybridRealmMemberRepository
     return `storage/${this.getEntityType()}/${dbRecord.id}.json`;
   }
 
+  protected async reconstructEntity(dbRecord: RealmMemberDbRecord): Promise<RealmMemberEntity> {
+    const defaultContent: RealmMemberContent = {
+      customPermissions: [],
+      meta: {},
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // ============================================
   // 抽象方法实现 - 数据库操作
   // ============================================

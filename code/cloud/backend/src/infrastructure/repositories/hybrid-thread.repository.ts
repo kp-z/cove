@@ -64,6 +64,11 @@ export class HybridThreadRepository
     return dbRecord.detailsPath;
   }
 
+  protected async reconstructEntity(dbRecord: ThreadDbRecord): Promise<ThreadEntity> {
+    const defaultContent: ThreadContent = {};
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- IThreadRepository ---
 
   async findById(threadId: string, realmId: string): Promise<ThreadEntity | null> {

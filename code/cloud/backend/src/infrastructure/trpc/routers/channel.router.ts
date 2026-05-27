@@ -79,7 +79,7 @@ export const channelRouter = (channelService: ChannelService) =>
 
           if (userId) {
             // 如果有 userId，只返回用户参与的 channel
-            channels = await channelService.getChannelsByMember(userId);
+            channels = await channelService.getChannelsByMember(userId, ctx.realmId);
 
             // 如果还指定了 projectId，进一步过滤
             if (input?.projectId) {

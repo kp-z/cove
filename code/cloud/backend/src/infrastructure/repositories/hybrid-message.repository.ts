@@ -313,6 +313,26 @@ export class HybridMessageRepository
     return dbRecord.contentPath;
   }
 
+  protected async reconstructEntity(dbRecord: MessageDbRecord): Promise<MessageEntity> {
+    const defaultContent: MessageContent = {
+      content: '',
+      senderName: 'Unknown',
+      channelName: 'Unknown',
+      contentFormat: 'plain',
+      attachments: [],
+      mentions: [],
+      references: [],
+      reactions: [],
+      editHistory: [],
+      meta: {
+        client: 'system',
+        isPinned: false,
+        isImportant: false,
+      },
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // ============================================
   // 实现 IMessageRepository 接口
   // ============================================

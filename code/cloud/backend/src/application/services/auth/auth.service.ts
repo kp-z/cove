@@ -276,10 +276,10 @@ export class AuthService {
   /**
    * 修改密码
    */
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string, realmId: string): Promise<void> {
     this.logger.info('Changing password', { userId });
 
-    const user = await this.userRepository.findById(userId, getRealmContext().realmId);
+    const user = await this.userRepository.findById(userId, realmId);
     if (!user) {
       throw new Error('User not found');
     }

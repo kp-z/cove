@@ -201,14 +201,15 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findByMember(memberId: string): Promise<ChannelEntity[]> {
+  async findByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]> {
     try {
-      this.logger.info('[DEBUG] Finding channels by member', { memberId });
+      this.logger.info('[DEBUG] Finding channels by member', { memberId, realmId });
 
-      const context = getRealmContext();
+      // Use provided realmId or get from context
+      const contextRealmId = realmId || getRealmContext().realmId;
       const records = await this.prisma.channel.findMany({
         where: {
-          realmId: context.realmId,
+          realmId: contextRealmId,
           membersData: {
             contains: `"${memberId}"`,
           },

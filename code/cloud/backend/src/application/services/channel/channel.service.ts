@@ -68,8 +68,8 @@ export class ChannelService implements IChannelQueryService {
     return this.queryService.getChannelsByStatus(status);
   }
 
-  async getChannelsByMember(memberId: string): Promise<ChannelEntity[]> {
-    return this.queryService.getChannelsByMember(memberId);
+  async getChannelsByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]> {
+    return this.queryService.getChannelsByMember(memberId, realmId);
   }
 
   async getAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {

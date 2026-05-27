@@ -31,6 +31,7 @@ describe('channelRouter', () => {
 
     mockContext = {
       userId: 'test-user',
+      realmId: 'test-realm-id',
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -109,7 +110,7 @@ describe('channelRouter', () => {
 
       expect(result.channels).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user');
+      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user', 'test-realm-id');
     });
 
     it('should list channels by projectId', async () => {
@@ -150,7 +151,7 @@ describe('channelRouter', () => {
       expect(result.channels).toHaveLength(1);
       expect(result.total).toBe(1);
       // 由于有 userId，会先调用 getChannelsByMember，然后在内存中过滤 projectId
-      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user');
+      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user', 'test-realm-id');
     });
 
     it('should throw INTERNAL_SERVER_ERROR on failure', async () => {

@@ -18,7 +18,8 @@
     "type-check": "tsc --noEmit",
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "repair:agents": "tsx scripts/repair-agents.ts"
   },
   "keywords": [
     "backend",

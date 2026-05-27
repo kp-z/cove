@@ -83,6 +83,17 @@ export class HybridProjectRepository
     return dbRecord.metadataPath;
   }
 
+  protected async reconstructEntity(dbRecord: ProjectDbRecord): Promise<ProjectEntity> {
+    const defaultContent: ProjectContent = {
+      displayName: dbRecord.name,
+      visibility: 'private',
+      channelIds: [],
+      agentIds: [],
+      okrIds: [],
+    };
+    return this.toDomain(dbRecord, defaultContent);
+  }
+
   // --- IProjectRepository ---
 
   async findById(projectId: string, realmId?: string): Promise<ProjectEntity | null> {

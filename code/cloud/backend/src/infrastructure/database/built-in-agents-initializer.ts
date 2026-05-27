@@ -58,6 +58,11 @@ export class BuiltInAgentsInitializer {
     }
 
     this.logger.info('Built-in agents initialization complete');
+
+    // Validate and repair built-in agents
+    if (process.env.SKIP_AGENT_VALIDATION !== 'true') {
+      await this.validateAndRepair(defaultRealm.id);
+    }
   }
 
   /**
@@ -165,6 +170,46 @@ ${config.tags.join(', ')}
     }
 
     this.logger.info(`Built-in agent initialized: ${config.displayName} (${config.name})`);
+  }
+
+  /**
+   * Validate and repair built-in agents
+   * Checks for missing or empty agent.md files and repairs them
+   */
+  private async validateAndRepair(realmId: string): Promise<void> {
+    this.logger.info('Validating built-in agents...');
+    let repairedCount = 0;
+
+    for (const agentConfig of BUILT_IN_AGENTS) {
+      const agentMdPath = path.join(
+        this.storageRoot,
+        'storage',
+        'agents',
+        agentConfig.id,
+        'agent.md'
+      );
+
+      try {
+        const content = await fs.readFile(agentMdPath, 'utf-8');
+        if (content.trim().length === 0) {
+          this.logger.warn(`agent.md is empty for ${agentConfig.name}, repairing...`);
+          await this.createOrUpdateAgent(agentConfig, realmId);
+          repairedCount++;
+        }
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          this.logger.warn(`agent.md missing for ${agentConfig.name}, repairing...`);
+          await this.createOrUpdateAgent(agentConfig, realmId);
+          repairedCount++;
+        }
+      }
+    }
+
+    if (repairedCount > 0) {
+      this.logger.info(`Repaired ${repairedCount} built-in agents`);
+    } else {
+      this.logger.info('All built-in agents are valid');
+    }
   }
 
   /**

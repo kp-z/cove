@@ -55,8 +55,8 @@ export class ChannelQueryService {
     return allChannels.filter(channel => channel.status === status);
   }
 
-  async getChannelsByMember(memberId: string): Promise<ChannelEntity[]> {
-    return await this.channelRepository.findByMember(memberId);
+  async getChannelsByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]> {
+    return await this.channelRepository.findByMember(memberId, realmId);
   }
 
   async getAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {
