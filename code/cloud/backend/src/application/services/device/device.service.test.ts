@@ -121,7 +121,7 @@ describe('DeviceService', () => {
       });
 
       expect(result).toBe(device);
-      expect(mockDeviceRepository.findById).toHaveBeenCalledWith('device-123');
+      expect(mockDeviceRepository.findById).toHaveBeenCalledWith('device-123', 'test-server-id');
     });
 
     it('should throw DeviceNotFoundError when device not found', async () => {
@@ -378,7 +378,7 @@ describe('DeviceService', () => {
         await service.deleteDevice('device-123');
       });
 
-      expect(mockDeviceRepository.delete).toHaveBeenCalledWith('device-123');
+      expect(mockDeviceRepository.delete).toHaveBeenCalledWith('device-123', 'test-server-id');
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: 'device.deleted',
