@@ -20,6 +20,7 @@ describe('channelRouter', () => {
       getChannelsByProject: vi.fn(),
       getAllChannels: vi.fn(),
       getChannelById: vi.fn(),
+      getChannelsByMember: vi.fn(),
       createChannel: vi.fn(),
       updateChannel: vi.fn(),
       deleteChannel: vi.fn(),
@@ -29,6 +30,7 @@ describe('channelRouter', () => {
     } as unknown as ChannelService;
 
     mockContext = {
+      userId: 'test-user',
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -99,6 +101,7 @@ describe('channelRouter', () => {
         }),
       ];
 
+      vi.mocked(mockChannelService.getChannelsByMember).mockResolvedValue(channels);
       vi.mocked(mockChannelService.getAllChannels).mockResolvedValue(channels);
 
       const caller = router.createCaller(mockContext);
@@ -106,7 +109,7 @@ describe('channelRouter', () => {
 
       expect(result.channels).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(mockChannelService.getAllChannels).toHaveBeenCalled();
+      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user');
     });
 
     it('should list channels by projectId', async () => {
@@ -138,6 +141,7 @@ describe('channelRouter', () => {
         }),
       ];
 
+      vi.mocked(mockChannelService.getChannelsByMember).mockResolvedValue(channels);
       vi.mocked(mockChannelService.getChannelsByProject).mockResolvedValue(channels);
 
       const caller = router.createCaller(mockContext);
@@ -145,7 +149,8 @@ describe('channelRouter', () => {
 
       expect(result.channels).toHaveLength(1);
       expect(result.total).toBe(1);
-      expect(mockChannelService.getChannelsByProject).toHaveBeenCalledWith('project-1');
+      // 由于有 userId，会先调用 getChannelsByMember，然后在内存中过滤 projectId
+      expect(mockChannelService.getChannelsByMember).toHaveBeenCalledWith('test-user');
     });
 
     it('should throw INTERNAL_SERVER_ERROR on failure', async () => {
@@ -348,7 +353,7 @@ describe('channelRouter', () => {
         });
 
         expect(result).toEqual(dmChannel.toJSON());
-        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1');
+        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1', 'test-user');
         expect(mockChannelService.createChannel).toHaveBeenCalledWith({
           name: 'DM-agent-1',
           type: 'dm',
@@ -399,7 +404,7 @@ describe('channelRouter', () => {
         });
 
         expect(result).toEqual(existingDM.toJSON());
-        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1');
+        expect(mockChannelService.getAgentDMChannel).toHaveBeenCalledWith('agent-1', 'test-user');
         expect(mockChannelService.createChannel).not.toHaveBeenCalled();
       });
 

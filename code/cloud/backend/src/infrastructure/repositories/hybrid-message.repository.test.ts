@@ -4,6 +4,7 @@ import { MessageEntity } from '../../domain/models/message/message.entity';
 import { TestDatabaseHelper } from './test-database.helper';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { runWithContext } from '../../application/context/realm-context-store';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -13,6 +14,7 @@ describe('HybridMessageRepository', () => {
   let storageService: StorageService;
   let mockLogger: ILogger;
   let testStorageRoot: string;
+  const testContext = { realmId: 'test-realm-1', userId: 'test-user' };
 
   beforeEach(async () => {
     testDb = new TestDatabaseHelper();
@@ -105,9 +107,13 @@ describe('HybridMessageRepository', () => {
     it('should save a new message with content to storage', async () => {
       const message = createTestMessage();
 
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
       expect(found).not.toBeNull();
       expect(found?.messageId).toBe('msg-1');
       expect(found?.msgShortId).toBe('abc123');
@@ -133,9 +139,13 @@ describe('HybridMessageRepository', () => {
         ],
       });
 
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-2');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-2');
+      });
       expect(found?.attachments).toHaveLength(1);
       expect(found?.attachments[0].fileName).toBe('test.pdf');
       expect(found?.attachments[0].fileType).toBe('application/pdf');
@@ -156,9 +166,13 @@ describe('HybridMessageRepository', () => {
         ],
       });
 
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-3');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-3');
+      });
       expect(found?.mentions).toHaveLength(1);
       expect(found?.mentions[0].mentionId).toBe('user-2');
       expect(found?.mentions[0].mentionName).toBe('User Two');
@@ -182,9 +196,13 @@ describe('HybridMessageRepository', () => {
         ],
       });
 
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-4');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-4');
+      });
       expect(found?.reactions).toHaveLength(2);
       expect(found?.reactions[0].emoji).toBe('👍');
       expect(found?.reactions[0].count).toBe(2);
@@ -198,9 +216,13 @@ describe('HybridMessageRepository', () => {
         isThreadRoot: true,
       });
 
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-5');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-5');
+      });
       expect(found?.isThreadRoot).toBe(true);
       expect(found?.threadId).toBeUndefined();
     });
@@ -212,7 +234,9 @@ describe('HybridMessageRepository', () => {
         msgShortId: 'root123',
         isThreadRoot: true,
       });
-      await repository.save(rootMessage, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(rootMessage, 'realm-1');
+      });
 
       // Then create reply
       const replyMessage = createTestMessage({
@@ -221,9 +245,13 @@ describe('HybridMessageRepository', () => {
         threadId: 'msg-root',
         isThreadRoot: false,
       });
-      await repository.save(replyMessage, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(replyMessage, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-reply');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-reply');
+      });
       expect(found?.threadId).toBe('msg-root');
       expect(found?.isThreadRoot).toBe(false);
     });
@@ -232,16 +260,22 @@ describe('HybridMessageRepository', () => {
   describe('findById', () => {
     it('should find message by id', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
 
       expect(found).not.toBeNull();
       expect(found?.messageId).toBe('msg-1');
     });
 
     it('should return null for non-existent message', async () => {
-      const found = await repository.findById('non-existent');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('non-existent');
+      });
 
       expect(found).toBeNull();
     });
@@ -265,11 +299,15 @@ describe('HybridMessageRepository', () => {
         createdAt: new Date('2026-01-03T00:00:00Z'),
       });
 
-      await repository.save(msg1, 'realm-1');
-      await repository.save(msg2, 'realm-1');
-      await repository.save(msg3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(msg1, 'realm-1');
+        await repository.save(msg2, 'realm-1');
+        await repository.save(msg3, 'realm-1');
+      });
 
-      const found = await repository.findByChannel('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('channel-1');
+      });
 
       expect(found).toHaveLength(3);
       // Should be ordered by createdAt desc
@@ -279,17 +317,23 @@ describe('HybridMessageRepository', () => {
     });
 
     it('should support pagination with limit and offset', async () => {
-      for (let i = 1; i <= 5; i++) {
-        const msg = createTestMessage({
-          messageId: `msg-${i}`,
-          msgShortId: `abc${i}`,
-          createdAt: new Date(`2026-01-0${i}T00:00:00Z`),
-        });
-        await repository.save(msg, 'realm-1');
-      }
+      await runWithContext(testContext, async () => {
+        for (let i = 1; i <= 5; i++) {
+          const msg = createTestMessage({
+            messageId: `msg-${i}`,
+            msgShortId: `abc${i}`,
+            createdAt: new Date(`2026-01-0${i}T00:00:00Z`),
+          });
+          await repository.save(msg, 'realm-1');
+        }
+      });
 
-      const page1 = await repository.findByChannel('channel-1', 2, 0);
-      const page2 = await repository.findByChannel('channel-1', 2, 2);
+      const page1 = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('channel-1', 2, 0);
+      });
+      const page2 = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('channel-1', 2, 2);
+      });
 
       expect(page1).toHaveLength(2);
       expect(page2).toHaveLength(2);
@@ -300,7 +344,9 @@ describe('HybridMessageRepository', () => {
     });
 
     it('should return empty array when no messages in channel', async () => {
-      const found = await repository.findByChannel('non-existent-channel');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('non-existent-channel');
+      });
 
       expect(found).toEqual([]);
     });
@@ -324,18 +370,24 @@ describe('HybridMessageRepository', () => {
         senderId: 'user-2',
       });
 
-      await repository.save(msg1, 'realm-1');
-      await repository.save(msg2, 'realm-1');
-      await repository.save(msg3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(msg1, 'realm-1');
+        await repository.save(msg2, 'realm-1');
+        await repository.save(msg3, 'realm-1');
+      });
 
-      const found = await repository.findBySender('user-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findBySender('user-1');
+      });
 
       expect(found).toHaveLength(2);
       expect(found.map(m => m.messageId).sort()).toEqual(['msg-1', 'msg-2']);
     });
 
     it('should return empty array when sender has no messages', async () => {
-      const found = await repository.findBySender('non-existent-user');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findBySender('non-existent-user');
+      });
 
       expect(found).toEqual([]);
     });
@@ -348,7 +400,9 @@ describe('HybridMessageRepository', () => {
         msgShortId: 'root',
         isThreadRoot: true,
       });
-      await repository.save(rootMsg, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(rootMsg, 'realm-1');
+      });
 
       const reply1 = createTestMessage({
         messageId: 'msg-reply-1',
@@ -363,10 +417,14 @@ describe('HybridMessageRepository', () => {
         createdAt: new Date('2026-01-02T00:00:00Z'),
       });
 
-      await repository.save(reply1, 'realm-1');
-      await repository.save(reply2, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(reply1, 'realm-1');
+        await repository.save(reply2, 'realm-1');
+      });
 
-      const found = await repository.findByThread('msg-root');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByThread('msg-root');
+      });
 
       expect(found).toHaveLength(2);
       // Should be ordered by createdAt asc
@@ -375,7 +433,9 @@ describe('HybridMessageRepository', () => {
     });
 
     it('should return empty array when thread has no replies', async () => {
-      const found = await repository.findByThread('non-existent-thread');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByThread('non-existent-thread');
+      });
 
       expect(found).toEqual([]);
     });
@@ -399,12 +459,18 @@ describe('HybridMessageRepository', () => {
         status: 'failed',
       });
 
-      await repository.save(sentMsg, 'test-realm-1');
-      await repository.save(draftMsg, 'test-realm-1');
-      await repository.save(failedMsg, 'test-realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(sentMsg, 'test-realm-1');
+        await repository.save(draftMsg, 'test-realm-1');
+        await repository.save(failedMsg, 'test-realm-1');
+      });
 
-      const sentMessages = await repository.findByStatus('sent', 'test-realm-1');
-      const draftMessages = await repository.findByStatus('draft', 'test-realm-1');
+      const sentMessages = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('sent', 'test-realm-1');
+      });
+      const draftMessages = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('draft', 'test-realm-1');
+      });
 
       expect(sentMessages).toHaveLength(1);
       expect(sentMessages[0].status).toBe('sent');
@@ -416,12 +482,18 @@ describe('HybridMessageRepository', () => {
   describe('update', () => {
     it('should update message content', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
       const updatedMessage = message.updateContent('Updated content', 'user-1');
-      await repository.update(updatedMessage, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(updatedMessage, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
       expect(found?.content).toBe('Updated content');
       expect(found?.isEdited).toBe(true);
       expect(found?.editHistory).toHaveLength(1);
@@ -429,12 +501,18 @@ describe('HybridMessageRepository', () => {
 
     it('should update message reactions', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
       const updatedMessage = message.addReaction('👍', 'user-2');
-      await repository.update(updatedMessage, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(updatedMessage, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
       expect(found?.reactions).toHaveLength(1);
       expect(found?.reactions[0].emoji).toBe('👍');
       expect(found?.reactions[0].userIds).toContain('user-2');
@@ -442,12 +520,18 @@ describe('HybridMessageRepository', () => {
 
     it('should update message status', async () => {
       const message = createTestMessage({ status: 'draft' });
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
       const updatedMessage = message.updateStatus('sent');
-      await repository.update(updatedMessage, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(updatedMessage, 'realm-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
       expect(found?.status).toBe('sent');
     });
   });
@@ -455,31 +539,47 @@ describe('HybridMessageRepository', () => {
   describe('delete', () => {
     it('should delete message', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      await repository.delete('msg-1');
+      await runWithContext(testContext, async () => {
+        await repository.delete('msg-1');
+      });
 
-      const found = await repository.findById('msg-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('msg-1');
+      });
       expect(found).toBeNull();
     });
 
     it('should throw when deleting non-existent message', async () => {
-      await expect(repository.delete('non-existent')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.delete('non-existent');
+        })
+      ).rejects.toThrow();
     });
   });
 
   describe('exists', () => {
     it('should return true when message exists', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
-      const exists = await repository.exists('msg-1');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('msg-1');
+      });
 
       expect(exists).toBe(true);
     });
 
     it('should return false when message does not exist', async () => {
-      const exists = await repository.exists('non-existent');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('non-existent');
+      });
 
       expect(exists).toBe(false);
     });
@@ -487,30 +587,40 @@ describe('HybridMessageRepository', () => {
 
   describe('findByChannelCursor', () => {
     it('should support cursor-based pagination', async () => {
-      for (let i = 1; i <= 5; i++) {
-        const msg = createTestMessage({
-          messageId: `msg-${i}`,
-          msgShortId: `abc${i}`,
-          createdAt: new Date(`2026-01-0${i}T00:00:00Z`),
-        });
-        await repository.save(msg, 'realm-1');
-      }
+      await runWithContext(testContext, async () => {
+        for (let i = 1; i <= 5; i++) {
+          const msg = createTestMessage({
+            messageId: `msg-${i}`,
+            msgShortId: `abc${i}`,
+            createdAt: new Date(`2026-01-0${i}T00:00:00Z`),
+          });
+          await repository.save(msg, 'realm-1');
+        }
+      });
 
-      const page1 = await repository.findByChannelCursor('channel-1', null, 2);
+      const page1 = await runWithContext(testContext, async () => {
+        return await repository.findByChannelCursor('channel-1', null, 2);
+      });
       expect(page1.messages).toHaveLength(2);
       expect(page1.messages[0].messageId).toBe('msg-5');
       expect(page1.nextCursor).not.toBeNull();
 
-      const page2 = await repository.findByChannelCursor('channel-1', page1.nextCursor, 2);
+      const page2 = await runWithContext(testContext, async () => {
+        return await repository.findByChannelCursor('channel-1', page1.nextCursor, 2);
+      });
       expect(page2.messages).toHaveLength(2);
       expect(page2.messages[0].messageId).toBe('msg-3');
     });
 
     it('should return null cursor when no more messages', async () => {
       const msg = createTestMessage();
-      await repository.save(msg, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(msg, 'realm-1');
+      });
 
-      const result = await repository.findByChannelCursor('channel-1', null, 10);
+      const result = await runWithContext(testContext, async () => {
+        return await repository.findByChannelCursor('channel-1', null, 10);
+      });
 
       expect(result.messages).toHaveLength(1);
       expect(result.nextCursor).toBeNull();
@@ -536,16 +646,22 @@ describe('HybridMessageRepository', () => {
         createdAt: tenMinutesAgo,
       });
 
-      await repository.save(recentMsg, 'realm-1');
-      await repository.save(oldMsg, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(recentMsg, 'realm-1');
+        await repository.save(oldMsg, 'realm-1');
+      });
 
-      const count = await repository.countRecentByChannelAndSender('channel-1', 'user-1', 7);
+      const count = await runWithContext(testContext, async () => {
+        return await repository.countRecentByChannelAndSender('channel-1', 'user-1', 7);
+      });
 
       expect(count).toBe(1); // Only the message from 5 minutes ago
     });
 
     it('should return 0 when no recent messages', async () => {
-      const count = await repository.countRecentByChannelAndSender('channel-1', 'user-1', 5);
+      const count = await runWithContext(testContext, async () => {
+        return await repository.countRecentByChannelAndSender('channel-1', 'user-1', 5);
+      });
 
       expect(count).toBe(0);
     });
@@ -554,10 +670,16 @@ describe('HybridMessageRepository', () => {
   describe('error handling', () => {
     it('should log errors on save failure', async () => {
       const message = createTestMessage();
-      await repository.save(message, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(message, 'realm-1');
+      });
 
       // Try to save duplicate
-      await expect(repository.save(message, 'realm-1')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.save(message, 'realm-1');
+        })
+      ).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
@@ -565,7 +687,11 @@ describe('HybridMessageRepository', () => {
       const message = createTestMessage();
 
       // Try to update non-existent message
-      await expect(repository.update(message, 'realm-1')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.update(message, 'realm-1');
+        })
+      ).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });

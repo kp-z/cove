@@ -4,6 +4,8 @@ import { AgentEntity, AgentStatus, AgentScope } from '../../domain/models/agent/
 import { StorageService } from '../storage/storage.service';
 import { TestDatabaseHelper } from './test-database.helper';
 import { Logger } from '../../application/interfaces/logger.interface';
+import { RealmContext } from '../../application/context/realm-context';
+import { runWithContext } from '../../application/context/realm-context-store';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -13,8 +15,10 @@ describe('HybridAgentRepository', () => {
   let storage: StorageService;
   let logger: Logger;
   let testCoveRoot: string;
+  let testContext: RealmContext;
 
   beforeEach(async () => {
+    testContext = RealmContext.create('test-realm', 'user-1');
     console.log('🧪 Starting test suite...');
     testDb = new TestDatabaseHelper();
     await testDb.setup();
@@ -147,9 +151,13 @@ Created By: ${content.createdBy || 'system'}
     it('should save agent to database and create directory structure', async () => {
       const agent = createTestAgent();
 
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found).toBeDefined();
       expect(found?.agentId).toBe('agent-1');
       expect(found?.name).toBe('test-agent');
@@ -175,9 +183,13 @@ Created By: ${content.createdBy || 'system'}
         },
       });
 
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.description).toBe('Full test agent');
       expect(found?.capabilities).toEqual(['coding', 'testing', 'debugging']);
       expect(found?.tags).toEqual(['backend', 'typescript', 'nodejs']);
@@ -191,9 +203,13 @@ Created By: ${content.createdBy || 'system'}
         projectIds: ['project-1', 'project-2'],
       });
 
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.scope).toBe('project');
       expect(found?.projectIds).toEqual(['project-1', 'project-2']);
     });
@@ -202,23 +218,35 @@ Created By: ${content.createdBy || 'system'}
   describe('update', () => {
     it('should update agent in database and storage', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       const updated = agent.updateDisplayName('Updated Agent');
-      await repository.update(updated, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updated, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.displayName).toBe('Updated Agent');
     });
 
     it('should update agent status', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       const activated = agent.activate();
-      await repository.update(activated, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(activated, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.status).toBe('active');
     });
   });
@@ -226,26 +254,38 @@ Created By: ${content.createdBy || 'system'}
   describe('delete', () => {
     it('should delete agent from database', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      await repository.delete('agent-1');
+      await runWithContext(testContext, async () => {
+        return await repository.delete('agent-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found).toBeNull();
     });
   });
 
   describe('findById', () => {
     it('should return null for non-existent agent', async () => {
-      const found = await repository.findById('non-existent');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('non-existent');
+      });
       expect(found).toBeNull();
     });
 
     it('should find agent by id', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found).toBeDefined();
       expect(found?.agentId).toBe('agent-1');
     });
@@ -257,20 +297,28 @@ Created By: ${content.createdBy || 'system'}
       const agent2 = createTestAgent({ agentId: 'agent-2', status: 'idle' as AgentStatus });
       const agent3 = createTestAgent({ agentId: 'agent-3', status: 'active' as AgentStatus });
 
-      await repository.save(agent1, 'realm-1');
-      await repository.save(agent2, 'realm-1');
-      await repository.save(agent3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(agent1, 'realm-1');
+        await repository.save(agent2, 'realm-1');
+        await repository.save(agent3, 'realm-1');
+      });
 
-      const activeAgents = await repository.findByStatus('active');
+      const activeAgents = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('active');
+      });
       expect(activeAgents).toHaveLength(2);
       expect(activeAgents.map(a => a.agentId).sort()).toEqual(['agent-1', 'agent-3']);
     });
 
     it('should return empty array when no agents match status', async () => {
       const agent = createTestAgent({ status: 'idle' as AgentStatus });
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const activeAgents = await repository.findByStatus('active');
+      const activeAgents = await runWithContext(testContext, async () => {
+        return await repository.findByStatus('active');
+      });
       expect(activeAgents).toHaveLength(0);
     });
   });
@@ -281,11 +329,15 @@ Created By: ${content.createdBy || 'system'}
       const agent2 = createTestAgent({ agentId: 'agent-2', createdBy: 'user-2' });
       const agent3 = createTestAgent({ agentId: 'agent-3', createdBy: 'user-1' });
 
-      await repository.save(agent1, 'realm-1');
-      await repository.save(agent2, 'realm-1');
-      await repository.save(agent3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(agent1, 'realm-1');
+        await repository.save(agent2, 'realm-1');
+        await repository.save(agent3, 'realm-1');
+      });
 
-      const user1Agents = await repository.findByCreator('user-1');
+      const user1Agents = await runWithContext(testContext, async () => {
+        return await repository.findByCreator('user-1');
+      });
       expect(user1Agents).toHaveLength(2);
       expect(user1Agents.map(a => a.agentId).sort()).toEqual(['agent-1', 'agent-3']);
     });
@@ -293,7 +345,9 @@ Created By: ${content.createdBy || 'system'}
 
   describe('findAll', () => {
     it('should return empty array when no agents exist', async () => {
-      const agents = await repository.findAll();
+      const agents = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(agents).toHaveLength(0);
     });
 
@@ -301,10 +355,14 @@ Created By: ${content.createdBy || 'system'}
       const agent1 = createTestAgent({ agentId: 'agent-1' });
       const agent2 = createTestAgent({ agentId: 'agent-2' });
 
-      await repository.save(agent1, 'realm-1');
-      await repository.save(agent2, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(agent1, 'realm-1');
+        await repository.save(agent2, 'realm-1');
+      });
 
-      const agents = await repository.findAll();
+      const agents = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(agents).toHaveLength(2);
       expect(agents.map(a => a.agentId).sort()).toEqual(['agent-1', 'agent-2']);
     });
@@ -312,15 +370,21 @@ Created By: ${content.createdBy || 'system'}
 
   describe('exists', () => {
     it('should return false for non-existent agent', async () => {
-      const exists = await repository.exists('non-existent');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('non-existent');
+      });
       expect(exists).toBe(false);
     });
 
     it('should return true for existing agent', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const exists = await repository.exists('agent-1');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('agent-1');
+      });
       expect(exists).toBe(true);
     });
   });
@@ -328,24 +392,34 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - Runtime Config', () => {
     it('should get default runtime config when file does not exist', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const runtime = await repository.getRuntime('agent-1');
+      const runtime = await runWithContext(testContext, async () => {
+        return await repository.getRuntime('agent-1');
+      });
       expect(runtime).toBeDefined();
       expect(runtime.model).toBeDefined();
     });
 
     it('should update runtime config', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const updated = await repository.updateRuntime('agent-1', {
-        model: { model_name: 'claude-opus-4' },
+      const updated = await runWithContext(testContext, async () => {
+        return await repository.updateRuntime('agent-1', {
+          model: { model_name: 'claude-opus-4' },
+        });
       });
 
       expect(updated.model.model_name).toBe('claude-opus-4');
 
-      const retrieved = await repository.getRuntime('agent-1');
+      const retrieved = await runWithContext(testContext, async () => {
+        return await repository.getRuntime('agent-1');
+      });
       expect(retrieved.model.model_name).toBe('claude-opus-4');
     });
   });
@@ -353,26 +427,36 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - Persona', () => {
     it('should get default persona when file does not exist', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const persona = await repository.getPersona('agent-1');
+      const persona = await runWithContext(testContext, async () => {
+        return await repository.getPersona('agent-1');
+      });
       expect(persona).toBeDefined();
       expect(persona.name).toBeDefined();
     });
 
     it('should update persona config', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const updated = await repository.updatePersona('agent-1', {
-        name: 'Custom Bot',
-        title: 'Senior Developer',
+      const updated = await runWithContext(testContext, async () => {
+        return await repository.updatePersona('agent-1', {
+          name: 'Custom Bot',
+          title: 'Senior Developer',
+        });
       });
 
       expect(updated.name).toBe('Custom Bot');
       expect(updated.title).toBe('Senior Developer');
 
-      const retrieved = await repository.getPersona('agent-1');
+      const retrieved = await runWithContext(testContext, async () => {
+        return await repository.getPersona('agent-1');
+      });
       expect(retrieved.name).toBe('Custom Bot');
     });
   });
@@ -380,24 +464,34 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - Skills', () => {
     it('should return null when skills file does not exist', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const skills = await repository.getSkills('agent-1');
+      const skills = await runWithContext(testContext, async () => {
+        return await repository.getSkills('agent-1');
+      });
       expect(skills).toBeNull();
     });
 
     it('should update and retrieve skills', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       const skillsConfig = {
         enabled: ['skill-1', 'skill-2'],
         disabled: ['skill-3'],
       };
 
-      await repository.updateSkills('agent-1', skillsConfig);
+      await runWithContext(testContext, async () => {
+        return await repository.updateSkills('agent-1', skillsConfig);
+      });
 
-      const retrieved = await repository.getSkills('agent-1');
+      const retrieved = await runWithContext(testContext, async () => {
+        return await repository.getSkills('agent-1');
+      });
       expect(retrieved).toEqual(skillsConfig);
     });
   });
@@ -405,24 +499,34 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - Tools', () => {
     it('should return null when tools file does not exist', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const tools = await repository.getTools('agent-1');
+      const tools = await runWithContext(testContext, async () => {
+        return await repository.getTools('agent-1');
+      });
       expect(tools).toBeNull();
     });
 
     it('should update and retrieve tools', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       const toolsConfig = {
         enabled: ['tool-1', 'tool-2'],
         disabled: ['tool-3'],
       };
 
-      await repository.updateTools('agent-1', toolsConfig);
+      await runWithContext(testContext, async () => {
+        return await repository.updateTools('agent-1', toolsConfig);
+      });
 
-      const retrieved = await repository.getTools('agent-1');
+      const retrieved = await runWithContext(testContext, async () => {
+        return await repository.getTools('agent-1');
+      });
       expect(retrieved).toEqual(toolsConfig);
     });
   });
@@ -430,15 +534,21 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - Triggers', () => {
     it('should return null when triggers file does not exist', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const triggers = await repository.getTriggers('agent-1');
+      const triggers = await runWithContext(testContext, async () => {
+        return await repository.getTriggers('agent-1');
+      });
       expect(triggers).toBeNull();
     });
 
     it('should update and retrieve triggers', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       const triggersConfig = {
         onMention: true,
@@ -446,9 +556,13 @@ Created By: ${content.createdBy || 'system'}
         onSchedule: '0 9 * * *',
       };
 
-      await repository.updateTriggers('agent-1', triggersConfig);
+      await runWithContext(testContext, async () => {
+        return await repository.updateTriggers('agent-1', triggersConfig);
+      });
 
-      const retrieved = await repository.getTriggers('agent-1');
+      const retrieved = await runWithContext(testContext, async () => {
+        return await repository.getTriggers('agent-1');
+      });
       expect(retrieved).toEqual(triggersConfig);
     });
   });
@@ -456,9 +570,13 @@ Created By: ${content.createdBy || 'system'}
   describe('IAgentConfigStore - File Paths', () => {
     it('should return correct file paths for agent', async () => {
       const agent = createTestAgent();
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const paths = await repository.getFilePaths('agent-1');
+      const paths = await runWithContext(testContext, async () => {
+        return await repository.getFilePaths('agent-1');
+      });
 
       expect(paths.root).toContain('agents/agent-1');
       expect(paths.agent_md).toContain('agent.md');
@@ -476,9 +594,13 @@ Created By: ${content.createdBy || 'system'}
         scope: 'built-in' as AgentScope,
       });
 
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.scope).toBe('built-in');
     });
 
@@ -487,9 +609,13 @@ Created By: ${content.createdBy || 'system'}
         scope: 'admin' as AgentScope,
       });
 
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
-      const found = await repository.findById('agent-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.scope).toBe('admin');
     });
   });
@@ -497,24 +623,38 @@ Created By: ${content.createdBy || 'system'}
   describe('Agent Status Transitions', () => {
     it('should handle status transitions correctly', async () => {
       const agent = createTestAgent({ status: 'idle' as AgentStatus });
-      await repository.save(agent, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(agent, 'realm-1');
+      });
 
       // Activate
       const activated = agent.activate();
-      await repository.update(activated, 'realm-1');
-      let found = await repository.findById('agent-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(activated, 'realm-1');
+      });
+      let found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.status).toBe('active');
 
       // Deactivate
       const deactivated = activated.deactivate();
-      await repository.update(deactivated, 'realm-1');
-      found = await repository.findById('agent-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(deactivated, 'realm-1');
+      });
+      found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.status).toBe('idle');
 
       // Disable
       const disabled = deactivated.disable();
-      await repository.update(disabled, 'realm-1');
-      found = await repository.findById('agent-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(disabled, 'realm-1');
+      });
+      found = await runWithContext(testContext, async () => {
+        return await repository.findById('agent-1');
+      });
       expect(found?.status).toBe('disabled');
     });
   });

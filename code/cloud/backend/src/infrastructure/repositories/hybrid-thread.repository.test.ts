@@ -7,6 +7,8 @@ import { HybridThreadRepository } from './hybrid-thread.repository';
 import { ThreadEntity } from '../../domain/models/thread/thread.entity';
 import { TestDatabaseHelper } from './test-database.helper';
 import { StorageService } from '../storage/storage.service';
+import { RealmContext } from '../../application/context/realm-context';
+import { runWithContext } from '../../application/context/realm-context-store';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -22,8 +24,10 @@ describe('HybridThreadRepository', () => {
   let repository: HybridThreadRepository;
   let storageService: StorageService;
   let testStorageRoot: string;
+  let testContext: RealmContext;
 
   beforeEach(async () => {
+    testContext = RealmContext.create('test-realm-1', 'user-1');
     testDb = new TestDatabaseHelper();
     await testDb.setup();
 
@@ -85,9 +89,13 @@ describe('HybridThreadRepository', () => {
     it('should save a new thread', async () => {
       const thread = createTestThread();
 
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found).not.toBeNull();
       expect(found!.threadId).toBe('thread-1');
       expect(found!.channelId).toBe('channel-1');
@@ -99,9 +107,13 @@ describe('HybridThreadRepository', () => {
     it('should save thread with reply count', async () => {
       const thread = createTestThread({ replyCount: 5 });
 
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.replyCount).toBe(5);
     });
 
@@ -109,18 +121,26 @@ describe('HybridThreadRepository', () => {
       const lastReplyAt = new Date('2026-01-02T00:00:00Z');
       const thread = createTestThread({ lastReplyAt });
 
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.lastReplyAt).toEqual(lastReplyAt);
     });
 
     it('should save thread without lastReplyAt', async () => {
       const thread = createTestThread({ lastReplyAt: undefined });
 
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.lastReplyAt).toBeUndefined();
     });
   });
@@ -128,38 +148,58 @@ describe('HybridThreadRepository', () => {
   describe('update', () => {
     it('should update an existing thread', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
       const updatedThread = thread.addReply();
-      await repository.update(updatedThread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updatedThread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.replyCount).toBe(1);
       expect(found!.lastReplyAt).toBeDefined();
     });
 
     it('should update thread participants', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
       const updatedThread = thread.addParticipant('user-3');
-      await repository.update(updatedThread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updatedThread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.participants).toEqual(['user-1', 'user-2', 'user-3']);
     });
 
     it('should handle multiple replies', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
       let updated = thread.addReply();
-      await repository.update(updated, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updated, 'realm-1');
+      });
 
       updated = updated.addReply();
-      await repository.update(updated, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updated, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.replyCount).toBe(2);
     });
   });
@@ -167,16 +207,22 @@ describe('HybridThreadRepository', () => {
   describe('findById', () => {
     it('should find thread by id', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
 
       expect(found).not.toBeNull();
       expect(found!.threadId).toBe('thread-1');
     });
 
     it('should return null if thread not found', async () => {
-      const found = await repository.findById('non-existent');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('non-existent');
+      });
 
       expect(found).toBeNull();
     });
@@ -201,19 +247,25 @@ describe('HybridThreadRepository', () => {
         createdAt: new Date('2026-01-03T00:00:00Z'),
       });
 
-      await repository.save(thread1, 'realm-1');
-      await repository.save(thread2, 'realm-1');
-      await repository.save(thread3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(thread1, 'realm-1');
+        await repository.save(thread2, 'realm-1');
+        await repository.save(thread3, 'realm-1');
+      });
     });
 
     it('should find all threads in a channel', async () => {
-      const threads = await repository.findByChannel('channel-1');
+      const threads = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('channel-1');
+      });
 
       expect(threads).toHaveLength(3);
     });
 
     it('should return threads in descending order by creation time', async () => {
-      const threads = await repository.findByChannel('channel-1');
+      const threads = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('channel-1');
+      });
 
       expect(threads[0].threadId).toBe('thread-3');
       expect(threads[1].threadId).toBe('thread-2');
@@ -221,7 +273,9 @@ describe('HybridThreadRepository', () => {
     });
 
     it('should return empty array if no threads in channel', async () => {
-      const threads = await repository.findByChannel('non-existent-channel');
+      const threads = await runWithContext(testContext, async () => {
+        return await repository.findByChannel('non-existent-channel');
+      });
 
       expect(threads).toHaveLength(0);
     });
@@ -230,9 +284,13 @@ describe('HybridThreadRepository', () => {
   describe('findByRootMessage', () => {
     it('should find thread by root message id', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findByRootMessage('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByRootMessage('thread-1');
+      });
 
       expect(found).not.toBeNull();
       expect(found!.threadId).toBe('thread-1');
@@ -240,7 +298,9 @@ describe('HybridThreadRepository', () => {
     });
 
     it('should return null if thread not found', async () => {
-      const found = await repository.findByRootMessage('non-existent');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByRootMessage('non-existent');
+      });
 
       expect(found).toBeNull();
     });
@@ -249,31 +309,47 @@ describe('HybridThreadRepository', () => {
   describe('delete', () => {
     it('should delete a thread', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      await repository.delete('thread-1');
+      await runWithContext(testContext, async () => {
+        return await repository.delete('thread-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found).toBeNull();
     });
 
     it('should not throw error when deleting non-existent thread', async () => {
-      await expect(repository.delete('non-existent')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          return await repository.delete('non-existent');
+        })
+      ).rejects.toThrow();
     });
   });
 
   describe('exists', () => {
     it('should return true if thread exists', async () => {
       const thread = createTestThread();
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const exists = await repository.exists('thread-1');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('thread-1');
+      });
 
       expect(exists).toBe(true);
     });
 
     it('should return false if thread does not exist', async () => {
-      const exists = await repository.exists('non-existent');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('non-existent');
+      });
 
       expect(exists).toBe(false);
     });
@@ -282,28 +358,42 @@ describe('HybridThreadRepository', () => {
   describe('Thread Participants', () => {
     it('should handle thread with single participant', async () => {
       const thread = createTestThread({ participants: ['user-1'] });
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.participants).toEqual(['user-1']);
     });
 
     it('should handle thread with multiple participants', async () => {
       const thread = createTestThread({ participants: ['user-1', 'user-2', 'user-3'] });
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.participants).toEqual(['user-1', 'user-2', 'user-3']);
     });
 
     it('should not add duplicate participants', async () => {
       const thread = createTestThread({ participants: ['user-1', 'user-2'] });
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
       const updated = thread.addParticipant('user-1');
-      await repository.update(updated, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.update(updated, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.participants).toEqual(['user-1', 'user-2']);
     });
   });
@@ -311,17 +401,25 @@ describe('HybridThreadRepository', () => {
   describe('Edge Cases', () => {
     it('should handle thread with zero replies', async () => {
       const thread = createTestThread({ replyCount: 0 });
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.replyCount).toBe(0);
     });
 
     it('should handle thread with empty participants array', async () => {
       const thread = createTestThread({ participants: [] });
-      await repository.save(thread, 'realm-1');
+      await runWithContext(testContext, async () => {
+        return await repository.save(thread, 'realm-1');
+      });
 
-      const found = await repository.findById('thread-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('thread-1');
+      });
       expect(found!.participants).toEqual([]);
     });
 
