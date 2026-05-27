@@ -119,6 +119,9 @@ export class AgentCrudService {
         name: agent.name,
         createdBy: dto.createdBy,
       },
+      metadata: {
+        realmId: context.realmId,
+      },
     });
 
     this.logger.info('Agent created successfully', { agentId: agent.agentId });
