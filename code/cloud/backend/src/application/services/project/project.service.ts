@@ -313,7 +313,7 @@ export class ProjectService {
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
+      const channel = await this.channelRepository.findById(channelId);
       if (channel) {
         channels.push(channel);
       }

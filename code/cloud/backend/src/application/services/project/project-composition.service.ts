@@ -143,7 +143,7 @@ export class ProjectCompositionService {
     }
 
     // 验证 Channel 存在
-    const channel = await this.channelRepository.findById(dto.channelId, getRealmContext().realmId);
+    const channel = await this.channelRepository.findById(dto.channelId);
     if (!channel) {
       throw new ChannelNotFoundError(dto.channelId);
     }
@@ -350,7 +350,7 @@ export class ProjectCompositionService {
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
+      const channel = await this.channelRepository.findById(channelId);
       if (channel) {
         channels.push(channel);
       }

@@ -12,7 +12,7 @@ export interface IChannelRepository {
    * @param channelId - Channel ID
    * @returns Channel 实体，不存在返回 null
    */
-  findById(channelId: string, realmId: string): Promise<ChannelEntity | null>;
+  findById(channelId: string): Promise<ChannelEntity | null>;
 
   /**
    * 根据项目查找 Channels
@@ -38,9 +38,10 @@ export interface IChannelRepository {
   /**
    * 查找与指定 agent 的 DM channel（用于唯一性检查）
    * @param agentId - Agent ID
+   * @param userId - User ID (optional)
    * @returns DM Channel 实体，不存在返回 null
    */
-  findAgentDMChannel(agentId: string): Promise<ChannelEntity | null>;
+  findAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null>;
 
   /**
    * 查找所有 Channels
@@ -66,12 +67,12 @@ export interface IChannelRepository {
    * 删除 Channel
    * @param channelId - Channel ID
    */
-  delete(channelId: string, realmId: string): Promise<void>;
+  delete(channelId: string): Promise<void>;
 
   /**
    * 检查 Channel 是否存在
    * @param channelId - Channel ID
    * @returns 是否存在
    */
-  exists(channelId: string, realmId: string): Promise<boolean>;
+  exists(channelId: string): Promise<boolean>;
 }

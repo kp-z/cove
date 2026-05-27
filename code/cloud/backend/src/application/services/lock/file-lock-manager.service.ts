@@ -1,6 +1,5 @@
 import * as lockfile from 'proper-lockfile';
 import { ILockManager, LockOptions } from './lock-manager.interface';
-import { getRealmContext } from '../../context/realm-context-store';
 
 /**
  * File Lock Manager

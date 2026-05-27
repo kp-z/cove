@@ -13,7 +13,6 @@ import { ILogger } from '../../interfaces/logger.interface';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface UploadFileOptions {
   /**

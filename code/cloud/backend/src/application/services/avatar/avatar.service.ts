@@ -13,7 +13,6 @@
 import { ILogger } from '../../interfaces/logger.interface';
 import { StorageService } from '../storage/storage.service';
 import { PRESET_AVATARS } from './preset-avatars.config';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export type EntityType = 'user' | 'agent' | 'channel' | 'realm';
 

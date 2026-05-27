@@ -9,7 +9,6 @@
 
 import { IRealmMemberRepository } from '../../interfaces/repositories/realm-member.repository.interface';
 import { ILogger } from '../../interfaces/logger.interface';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface IRealmMemberVerificationService {
   /**

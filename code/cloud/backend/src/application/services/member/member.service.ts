@@ -60,7 +60,7 @@ export class MemberService {
     const context = getRealmContext();
     this.logger.info('User joining channel', { channelId: dto.channelId, userId: dto.userId, realmId: context.realmId });
 
-    const channelExists = await this.channelRepository.exists(dto.channelId, context.realmId);
+    const channelExists = await this.channelRepository.exists(dto.channelId);
     if (!channelExists) {
       throw new ChannelNotFoundForMemberError(dto.channelId);
     }

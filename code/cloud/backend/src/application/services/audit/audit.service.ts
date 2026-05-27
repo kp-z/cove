@@ -1,6 +1,5 @@
 import { AuditLogEntity, AuditAction, AuditLogDetails } from '../../../domain/models/audit/audit-log.entity';
 import { AuditLogRepository, AuditLogQueryParams } from '../../interfaces/repositories/audit-log.repository.interface';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export class AuditService {
   constructor(private auditLogRepository: AuditLogRepository) {}

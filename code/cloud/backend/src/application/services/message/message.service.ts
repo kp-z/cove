@@ -16,7 +16,6 @@ import { MessageReaction } from '../../../domain/models/message/message.types';
 import { MessageCrudService, SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service';
 import { MessageQueryService } from './message-query.service';
 import { MessageReactionService, AddReactionDTO, RemoveReactionDTO } from './message-reaction.service';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, AddReactionDTO, RemoveReactionDTO };
 

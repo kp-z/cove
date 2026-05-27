@@ -36,7 +36,7 @@ export class AgentResponseService {
       realmId: context.realmId,
     });
 
-    const channel = await this.channelRepository.findById(message.channelId, getRealmContext().realmId);
+    const channel = await this.channelRepository.findById(message.channelId);
     if (!channel) return;
 
     const agentIds = channel.agentPool;
@@ -321,6 +321,7 @@ Respond in ${lang}. Be ${verbosity}. Be helpful and professional.`;
    * @param data - 事件数据
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Reserved for future streaming implementation
   private async publishStreamingEvent(
     messageId: string,
     eventType: 'thinking' | 'tool_log' | 'usage' | 'status',
@@ -354,6 +355,7 @@ Respond in ${lang}. Be ${verbosity}. Be helpful and professional.`;
    * @returns 初始化了执行元数据的消息实体
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Reserved for future streaming implementation
   private createMessageWithMetadata(
     agent: AgentEntity,
     channel: ChannelEntity,

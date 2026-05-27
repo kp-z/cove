@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { ILogger } from '../../interfaces/logger.interface';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export interface ReadDirectoryOptions {
   withFileTypes?: boolean;

@@ -11,7 +11,6 @@ import { AgentQueryService } from './agent-query.service';
 import { AgentConfigService } from './agent-config.service';
 import { AgentTaskService, AgentAssignTaskDTO } from './agent-task.service';
 import { AgentResponseService } from './agent-response.service';
-import { getRealmContext } from '../../context/realm-context-store';
 
 export { CreateAgentDTO, UpdateAgentDTO, AgentAssignTaskDTO };
 

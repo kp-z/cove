@@ -1,5 +1,4 @@
 import { ISecretManager } from './secret-manager.interface';
-import { getRealmContext } from '../../context/realm-context-store';
 
 /**
  * Secret Manager Implementation

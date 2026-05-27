@@ -2,7 +2,6 @@ import { IAdapterConfigStore } from '../../interfaces/adapter-config-store.inter
 import { AdapterConfig, AdapterScope } from '../../../domain/models/adapter/adapter-config.entity';
 import { adapterConfigSchema } from '../../../domain/models/adapter/adapter-config.validation';
 import * as crypto from 'crypto';
-import { getRealmContext } from '../../context/realm-context-store';
 
 /**
  * Adapter Configuration Service
