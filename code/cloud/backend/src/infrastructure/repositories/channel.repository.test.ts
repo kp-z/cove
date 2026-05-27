@@ -3,11 +3,13 @@ import { ChannelRepository } from './channel.repository';
 import { ChannelEntity } from '../../domain/models/channel/channel.entity';
 import { TestDatabaseHelper } from './test-database.helper';
 import { ILogger } from '../../application/interfaces/logger.interface';
+import { runWithContext } from '../../application/context/realm-context-store';
 
 describe('ChannelRepository', () => {
   let testDb: TestDatabaseHelper;
   let repository: ChannelRepository;
   let mockLogger: ILogger;
+  const testContext = { realmId: 'test-realm', userId: 'test-user' };
 
   beforeEach(async () => {
     testDb = new TestDatabaseHelper();
@@ -83,9 +85,13 @@ describe('ChannelRepository', () => {
     it('should save a new channel', async () => {
       const channel = createTestChannel();
 
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found).not.toBeNull();
       expect(found?.channelId).toBe('channel-1');
       expect(found?.name).toBe('test-channel');
@@ -107,9 +113,13 @@ describe('ChannelRepository', () => {
         projectId: undefined, // Remove project association to avoid FK constraint
       });
 
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-2');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-2');
+      });
       expect(found?.projectId).toBeUndefined();
     });
 
@@ -117,15 +127,21 @@ describe('ChannelRepository', () => {
       const parentChannel = createTestChannel({
         channelId: 'parent-channel',
       });
-      await repository.save(parentChannel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(parentChannel, 'realm-1');
+      });
 
       const childChannel = createTestChannel({
         channelId: 'child-channel',
         parentChannelId: 'parent-channel',
       });
-      await repository.save(childChannel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(childChannel, 'realm-1');
+      });
 
-      const found = await repository.findById('child-channel');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('child-channel');
+      });
       expect(found?.parentChannelId).toBe('parent-channel');
     });
 
@@ -153,9 +169,13 @@ describe('ChannelRepository', () => {
         ],
       });
 
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found?.members).toHaveLength(3);
       expect(found?.members.map(m => m.memberId)).toEqual(['user-1', 'user-2', 'agent-1']);
     });
@@ -164,16 +184,22 @@ describe('ChannelRepository', () => {
   describe('findById', () => {
     it('should find channel by id', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
 
       expect(found).not.toBeNull();
       expect(found?.channelId).toBe('channel-1');
     });
 
     it('should return null for non-existent channel', async () => {
-      const found = await repository.findById('non-existent');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('non-existent');
+      });
 
       expect(found).toBeNull();
     });
@@ -197,9 +223,13 @@ describe('ChannelRepository', () => {
           },
         ],
       });
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
 
       expect(found?.agentPool.agents).toEqual(['agent-1', 'agent-2']);
       expect(found?.agentPool.maxAgents).toBe(5);
@@ -226,17 +256,27 @@ describe('ChannelRepository', () => {
         projectId: undefined,
       });
 
-      await repository.save(channel1, 'realm-1');
-      await repository.save(channel2, 'realm-1');
-      await repository.save(channel3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel1, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel2, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel3, 'realm-1');
+      });
 
       // Test finding channels without project
-      const found = await repository.findByProject('non-existent-project');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByProject('non-existent-project');
+      });
       expect(found).toEqual([]);
     });
 
     it('should return empty array when no channels for project', async () => {
-      const found = await repository.findByProject('non-existent-project');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByProject('non-existent-project');
+      });
 
       expect(found).toEqual([]);
     });
@@ -253,11 +293,17 @@ describe('ChannelRepository', () => {
         projectId: undefined,
       });
 
-      await repository.save(channelB, 'realm-1');
-      await repository.save(channelA, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channelB, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channelA, 'realm-1');
+      });
 
       // Test ordering with findAll instead
-      const found = await repository.findAll();
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
       expect(found.map(c => c.name)).toEqual(['a-channel', 'b-channel']);
     });
   });
@@ -291,12 +337,22 @@ describe('ChannelRepository', () => {
         ],
       });
 
-      await repository.save(publicChannel, 'realm-1');
-      await repository.save(privateChannel, 'realm-1');
-      await repository.save(dmChannel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(publicChannel, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(privateChannel, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(dmChannel, 'realm-1');
+      });
 
-      const publicChannels = await repository.findByType('public');
-      const privateChannels = await repository.findByType('private');
+      const publicChannels = await runWithContext(testContext, async () => {
+        return await repository.findByType('public');
+      });
+      const privateChannels = await runWithContext(testContext, async () => {
+        return await repository.findByType('private');
+      });
 
       expect(publicChannels).toHaveLength(1);
       expect(publicChannels[0].type).toBe('public');
@@ -305,7 +361,9 @@ describe('ChannelRepository', () => {
     });
 
     it('should return empty array when no channels of type', async () => {
-      const found = await repository.findByType('private');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByType('private');
+      });
 
       expect(found).toEqual([]);
     });
@@ -353,12 +411,22 @@ describe('ChannelRepository', () => {
         ],
       });
 
-      await repository.save(channel1, 'realm-1');
-      await repository.save(channel2, 'realm-1');
-      await repository.save(channel3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel1, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel2, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel3, 'realm-1');
+      });
 
-      const user1Channels = await repository.findByMember('user-1');
-      const user2Channels = await repository.findByMember('user-2');
+      const user1Channels = await runWithContext(testContext, async () => {
+        return await repository.findByMember('user-1');
+      });
+      const user2Channels = await runWithContext(testContext, async () => {
+        return await repository.findByMember('user-2');
+      });
 
       expect(user1Channels).toHaveLength(2);
       expect(user1Channels.map(c => c.channelId).sort()).toEqual(['channel-1', 'channel-2']);
@@ -367,7 +435,9 @@ describe('ChannelRepository', () => {
     });
 
     it('should return empty array when member has no channels', async () => {
-      const found = await repository.findByMember('non-existent-user');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findByMember('non-existent-user');
+      });
 
       expect(found).toEqual([]);
     });
@@ -379,18 +449,28 @@ describe('ChannelRepository', () => {
       const channel2 = createTestChannel({ channelId: 'channel-2' });
       const channel3 = createTestChannel({ channelId: 'channel-3' });
 
-      await repository.save(channel1, 'realm-1');
-      await repository.save(channel2, 'realm-1');
-      await repository.save(channel3, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel1, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel2, 'realm-1');
+      });
+      await runWithContext(testContext, async () => {
+        await repository.save(channel3, 'realm-1');
+      });
 
-      const found = await repository.findAll();
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
 
       expect(found).toHaveLength(3);
       expect(found.map(c => c.channelId).sort()).toEqual(['channel-1', 'channel-2', 'channel-3']);
     });
 
     it('should return empty array when no channels', async () => {
-      const found = await repository.findAll();
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findAll();
+      });
 
       expect(found).toEqual([]);
     });
@@ -399,7 +479,9 @@ describe('ChannelRepository', () => {
   describe('update', () => {
     it('should update channel', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
       // Use immutable update methods
       const updatedChannel = channel
@@ -407,9 +489,13 @@ describe('ChannelRepository', () => {
         .updateDescription('Updated description')
         .archive();
 
-      await repository.update(updatedChannel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(updatedChannel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found?.displayName).toBe('Updated Channel');
       expect(found?.description).toBe('Updated description');
       expect(found?.status).toBe('archived');
@@ -417,7 +503,9 @@ describe('ChannelRepository', () => {
 
     it('should update channel members', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
       channel.members.push({
         memberId: 'user-2',
@@ -426,16 +514,22 @@ describe('ChannelRepository', () => {
         joinedAt: new Date('2026-01-02T00:00:00Z'),
       });
 
-      await repository.update(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found?.members).toHaveLength(2);
       expect(found?.members.map(m => m.memberId)).toEqual(['user-1', 'user-2']);
     });
 
     it('should update complex nested data', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
       channel.agentPool.agents = ['agent-1', 'agent-2'];
       channel.conversationPool.push({
@@ -445,9 +539,13 @@ describe('ChannelRepository', () => {
         messageCount: 5,
       });
 
-      await repository.update(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.update(channel, 'realm-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found?.agentPool.agents).toEqual(['agent-1', 'agent-2']);
       expect(found?.conversationPool).toHaveLength(1);
     });
@@ -456,31 +554,47 @@ describe('ChannelRepository', () => {
   describe('delete', () => {
     it('should delete channel', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      await repository.delete('channel-1');
+      await runWithContext(testContext, async () => {
+        await repository.delete('channel-1');
+      });
 
-      const found = await repository.findById('channel-1');
+      const found = await runWithContext(testContext, async () => {
+        return await repository.findById('channel-1');
+      });
       expect(found).toBeNull();
     });
 
     it('should not throw when deleting non-existent channel', async () => {
-      await expect(repository.delete('non-existent')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.delete('non-existent');
+        })
+      ).rejects.toThrow();
     });
   });
 
   describe('exists', () => {
     it('should return true when channel exists', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
-      const exists = await repository.exists('channel-1');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('channel-1');
+      });
 
       expect(exists).toBe(true);
     });
 
     it('should return false when channel does not exist', async () => {
-      const exists = await repository.exists('non-existent');
+      const exists = await runWithContext(testContext, async () => {
+        return await repository.exists('non-existent');
+      });
 
       expect(exists).toBe(false);
     });
@@ -489,10 +603,16 @@ describe('ChannelRepository', () => {
   describe('error handling', () => {
     it('should log errors on save failure', async () => {
       const channel = createTestChannel();
-      await repository.save(channel, 'realm-1');
+      await runWithContext(testContext, async () => {
+        await repository.save(channel, 'realm-1');
+      });
 
       // Try to save duplicate
-      await expect(repository.save(channel, 'realm-1')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.save(channel, 'realm-1');
+        })
+      ).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
@@ -500,7 +620,11 @@ describe('ChannelRepository', () => {
       const channel = createTestChannel();
 
       // Try to update non-existent channel
-      await expect(repository.update(channel, 'realm-1')).rejects.toThrow();
+      await expect(
+        runWithContext(testContext, async () => {
+          await repository.update(channel, 'realm-1');
+        })
+      ).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });
