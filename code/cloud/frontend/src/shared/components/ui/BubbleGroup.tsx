@@ -1,12 +1,18 @@
 import { useState, useMemo, ReactNode } from 'react';
 import { WaterLevel } from './WaterLevel';
 
+export interface BubbleCapsule {
+  text: string;
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
+}
+
 export interface BubbleItem {
   id: string;
   label: string;
   state: 'active' | 'available' | 'disabled';
   progress?: number;
   tooltip?: ReactNode;
+  capsule?: BubbleCapsule;
 }
 
 export interface BubbleGroupProps {
@@ -124,11 +130,26 @@ function BubbleGroupColumn({
   return (
     <div className={cfg.container}>
       {bubbles.map(bubble => {
-        const { position, index, state, label, progress, tooltip, id } = bubble;
+        const { position, index, state, label, progress, tooltip, id, capsule } = bubble;
         const isActive = state === 'active';
         const isAvailable = state === 'available';
         const isDisabled = state === 'disabled';
         const hasProgress = progress !== undefined;
+
+        const getCapsuleColor = (variant?: string) => {
+          switch (variant) {
+            case 'success':
+              return 'bg-green-500/90 text-white border-green-400/50';
+            case 'warning':
+              return 'bg-yellow-500/90 text-white border-yellow-400/50';
+            case 'error':
+              return 'bg-red-500/90 text-white border-red-400/50';
+            case 'info':
+              return 'bg-blue-500/90 text-white border-blue-400/50';
+            default:
+              return 'bg-gray-500/90 text-white border-gray-400/50';
+          }
+        };
 
         return (
           <div
@@ -172,10 +193,17 @@ function BubbleGroupColumn({
                     <div className="absolute top-[12%] right-[22%] w-[18%] h-[18%] rounded-full bg-white/30 blur-[1px]" />
                   )}
                   {hasProgress && <WaterLevel percentage={progress} size={position.size} />}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
                     <span className={`${cfg.labelClass} font-bold text-white drop-shadow-lg text-center leading-tight px-1`}>
                       {label}
                     </span>
+                    {capsule && (
+                      <span
+                        className={`mt-1 px-1.5 py-0.5 rounded-full text-[6px] font-bold border ${getCapsuleColor(capsule.variant)}`}
+                      >
+                        {capsule.text}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {hoveredItem === id && tooltip && (
@@ -208,10 +236,17 @@ function BubbleGroupColumn({
                     <div className="absolute top-[12%] right-[22%] w-[18%] h-[18%] rounded-full bg-white/30 blur-[1px]" />
                   )}
                   {hasProgress && <WaterLevel percentage={progress} size={position.size} />}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
                     <span className={`${cfg.labelClass} font-bold text-white drop-shadow-lg text-center leading-tight px-1`}>
                       {label}
                     </span>
+                    {capsule && (
+                      <span
+                        className={`mt-1 px-1.5 py-0.5 rounded-full text-[6px] font-bold border ${getCapsuleColor(capsule.variant)}`}
+                      >
+                        {capsule.text}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {hoveredItem === id && tooltip && (
@@ -238,10 +273,17 @@ function BubbleGroupColumn({
                   {cfg.tooltipComfortable && (
                     <div className="absolute top-[12%] right-[22%] w-[18%] h-[18%] rounded-full bg-white/30 blur-[1px]" />
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className={`${cfg.labelClass} font-medium text-center leading-tight px-1 text-gray-400`}>
                       {label}
                     </span>
+                    {capsule && (
+                      <span
+                        className={`mt-1 px-1.5 py-0.5 rounded-full text-[6px] font-bold border ${getCapsuleColor(capsule.variant)}`}
+                      >
+                        {capsule.text}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {hoveredItem === id && tooltip && (
