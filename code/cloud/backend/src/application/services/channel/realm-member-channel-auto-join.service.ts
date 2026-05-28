@@ -12,7 +12,6 @@
 import { IEventBus, DomainEvent } from '../../interfaces/event-bus.interface';
 import { IChannelRepository } from '../../interfaces/repositories/channel.repository.interface';
 import { ILogger } from '../../interfaces/logger.interface';
-import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 
 export class RealmMemberChannelAutoJoinService {
   private unsubscribers: Array<() => void> = [];

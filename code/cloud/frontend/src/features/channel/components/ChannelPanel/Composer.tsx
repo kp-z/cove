@@ -12,7 +12,10 @@ import {
   Wrench,
   Maximize2,
   Minimize2,
+  WifiOff,
+  Clock,
 } from 'lucide-react';
+import { useSendMessage, useTypingState, useMessageQueue } from '../../hooks';
 
 type ComposerMode = 'normal' | 'code' | 'markdown';
 
@@ -24,10 +27,7 @@ interface Attachment {
 }
 
 interface ComposerProps {
-  threadId: string;
-  isGenerating: boolean;
-  onSend: (content: string) => void;
-  onStop: () => void;
+  channelId: string;
   placeholder?: string;
   className?: string;
 }
@@ -86,15 +86,17 @@ const MODE_ACCENTS: Record<ComposerMode, { trigger: string; icon: string; active
 };
 
 export function Composer({
-  threadId,
-  isGenerating,
-  onSend,
-  onStop,
+  channelId,
   placeholder: placeholderProp,
   className = '',
 }: ComposerProps) {
   const { t } = useTranslation('channel');
-  const draftKey = `composer-draft-${threadId}`;
+  const draftKey = `composer-draft-${channelId}`;
+
+  // 使用新架构的 hooks
+  const { send, isLoading: isSending } = useSendMessage();
+  const { startTyping, stopTyping } = useTypingState(channelId);
+  const { queueSize, isOnline } = useMessageQueue();
 
   // Initialize content from localStorage
   const [content, setContent] = useState(() => {
@@ -136,10 +138,19 @@ export function Composer({
 
   // Focus textarea when not generating
   useEffect(() => {
-    if (textareaRef.current && !isGenerating) {
+    if (textareaRef.current && !isSending) {
       textareaRef.current.focus();
     }
-  }, [threadId, isGenerating]);
+  }, [channelId, isSending]);
+
+  // 输入状态管理
+  useEffect(() => {
+    if (content.trim()) {
+      startTyping();
+    } else {
+      stopTyping();
+    }
+  }, [content, startTyping, stopTyping]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -157,17 +168,40 @@ export function Composer({
     }
   }, [toolMenuOpen, modeMenuOpen]);
 
-  const handleSend = () => {
-    const trimmedContent = content.trim();
-    if (!trimmedContent || isGenerating) return;
+  const handleSend = async () => {
+    console.log('[Composer] handleSend called', {
+      contentLength: content.length,
+      trimmedLength: content.trim().length,
+      isSending,
+      channelId,
+    });
 
-    onSend(trimmedContent);
+    const trimmedContent = content.trim();
+    if (!trimmedContent || isSending) {
+      console.warn('[Composer] Send blocked', {
+        hasContent: !!trimmedContent,
+        isSending,
+      });
+      return;
+    }
+
+    console.log('[Composer] Sending message via new architecture:', trimmedContent.substring(0, 50));
+
+    // 停止输入状态
+    stopTyping();
+
+    // 使用新架构发送消息
+    await send(channelId, trimmedContent);
+
+    // 清空输入框和草稿
     setContent('');
     localStorage.removeItem(draftKey);
+    console.log('[Composer] Content cleared and draft removed');
   };
 
   const handleStop = () => {
-    onStop();
+    // TODO: 实现停止生成功能
+    console.log('[Composer] Stop generation not implemented yet');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -239,12 +273,28 @@ export function Composer({
   const modeAccent = MODE_ACCENTS[mode];
 
   const computedPlaceholder = useMemo(() => {
-    if (isGenerating) return 'AI 正在回复...';
+    if (isSending) return 'AI 正在回复...';
     return placeholder;
-  }, [placeholder, isGenerating]);
+  }, [placeholder, isSending]);
 
   return (
     <div className={`border-t border-white/10 bg-[#1a1d2e] ${className}`}>
+      {/* 网络状态提示 */}
+      {!isOnline && (
+        <div className="px-3 pt-2 flex items-center gap-2 text-xs text-yellow-400">
+          <WifiOff className="w-3 h-3" />
+          <span>网络已断开，消息将在恢复后自动发送</span>
+        </div>
+      )}
+
+      {/* 队列提示 */}
+      {queueSize > 0 && (
+        <div className="px-3 pt-2 flex items-center gap-2 text-xs text-blue-400">
+          <Clock className="w-3 h-3" />
+          <span>{queueSize} 条消息等待发送</span>
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -314,7 +364,7 @@ export function Composer({
             }`}
             onClick={() => setToolMenuOpen(v => !v)}
             title="工具"
-            disabled={isGenerating}
+            disabled={isSending}
           >
             <Wrench className="w-3.5 h-3.5" />
           </button>
@@ -354,7 +404,7 @@ export function Composer({
             className={`shrink-0 h-[34px] w-[34px] flex items-center justify-center rounded-lg border transition-colors border-white/10 hover:border-white/20 hover:bg-white/5 ${modeAccent.trigger}`}
             onClick={() => setModeMenuOpen(v => !v)}
             title={activeMode?.label}
-            disabled={isGenerating}
+            disabled={isSending}
           >
             <ActiveModeIcon className="w-3.5 h-3.5" />
           </button>
@@ -397,7 +447,7 @@ export function Composer({
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={computedPlaceholder}
-          disabled={isGenerating}
+          disabled={isSending}
           className="flex-1 min-w-0 h-[34px] bg-white/5 border border-white/10 rounded-lg px-3 py-[6px] text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 resize-none leading-5 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           rows={1}
           style={{
@@ -408,7 +458,7 @@ export function Composer({
         />
 
         {/* Send/Stop Button */}
-        {isGenerating ? (
+        {isSending ? (
           <button
             onClick={handleStop}
             className="shrink-0 h-[34px] px-3 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40 text-sm font-medium transition-colors focus:outline-none"

@@ -63,15 +63,15 @@ export function CompactFilterBar({
               key={type.value}
               onClick={() => onTypeToggle(type.value)}
               className={`
-                h-8 px-3 rounded-md transition-all flex items-center gap-2
+                h-8 w-8 rounded-md transition-all flex items-center justify-center shrink-0
                 ${isSelected
                   ? 'bg-primary text-primary-foreground border border-primary'
                   : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
                 }
               `}
+              title={type.label}
             >
               <Icon className="w-4 h-4" />
-              <span className="text-sm">{type.label}</span>
             </button>
           );
         })}

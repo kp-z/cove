@@ -1,5 +1,5 @@
 import { Settings, ChevronDown } from 'lucide-react';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { Realm } from '@/lib/trpc-types';
 
 interface RealmInfoCardProps {

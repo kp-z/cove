@@ -74,6 +74,16 @@ export const trpcClient = trpc.createClient({
           const currentRealmId = localStorage.getItem('current_realm_id') ||
                                  sessionStorage.getItem('current_realm_id') ||
                                  'realm-nexus';
+
+          // Log warning if authentication data is missing
+          if (!token || !userId || !currentRealmId) {
+            console.warn('[TRPC] Missing authentication data:', {
+              hasToken: !!token,
+              hasUserId: !!userId,
+              hasRealmId: !!currentRealmId,
+            });
+          }
+
           return {
             authorization: token ? `Bearer ${token}` : '',
             'x-user-id': userId || '',

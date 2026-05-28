@@ -29,6 +29,14 @@ export interface CreateContextOptions {
 
 export function createContext(opts: CreateContextOptions) {
   return async ({ req, res }: CreateHTTPContextOptions): Promise<Context> => {
+    // Debug logging for incoming request
+    console.log('[Context Creation] Headers:', {
+      authorization: req.headers.authorization ? 'Bearer ***' : undefined,
+      'x-realm-id': req.headers['x-realm-id'],
+      'x-user-id': req.headers['x-user-id'],
+      'x-device-id': req.headers['x-device-id'],
+    });
+
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -60,6 +68,11 @@ export function createContext(opts: CreateContextOptions) {
       const token = authHeader.substring(7);
       try {
         const payload = await opts.authService.verifyToken(token);
+        console.log('[Context Creation] JWT verified:', {
+          userId: payload.userId,
+          realmId,
+          userType: 'human',
+        });
         return {
           realmId,
           userId: payload.userId,
@@ -121,6 +134,12 @@ export function createContext(opts: CreateContextOptions) {
 
         opts.logger.info('Device authenticated successfully');
 
+        console.log('[Context Creation] Device authenticated:', {
+          userId: deviceId,
+          realmId,
+          userType: 'agent',
+        });
+
         return {
           realmId,
           userId: deviceId,
@@ -147,6 +166,12 @@ export function createContext(opts: CreateContextOptions) {
     // Fallback: Extract user info from legacy headers (for backward compatibility)
     const userId = req.headers['x-user-id'] as string | undefined;
     const userType = req.headers['x-user-type'] as 'human' | 'agent' | undefined;
+
+    console.log('[Context Creation] Using legacy headers:', {
+      userId,
+      realmId,
+      userType: userType || 'human',
+    });
 
     return {
       realmId,

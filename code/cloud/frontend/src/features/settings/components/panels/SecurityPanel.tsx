@@ -1,5 +1,6 @@
 import { SettingsCard } from '../common/SettingsCard';
-import { SettingsRow, SettingsButton } from '../common/SettingsControls';
+import { SettingsRow } from '../common/SettingsControls';
+import { Button } from '@/shared/components/ui/button';
 
 export function SecurityPanel() {
   return (
@@ -14,18 +15,18 @@ export function SecurityPanel() {
           label="Change Password"
           description="Update your account password"
         >
-          <SettingsButton onClick={() => {}}>
+          <Button onClick={() => {}} variant="settings-default">
             Change Password
-          </SettingsButton>
+          </Button>
         </SettingsRow>
 
         <SettingsRow
           label="Two-Factor Authentication"
           description="Add an extra layer of security to your account"
         >
-          <SettingsButton onClick={() => {}} variant="primary">
+          <Button onClick={() => {}} variant="primary">
             Enable 2FA
-          </SettingsButton>
+          </Button>
         </SettingsRow>
       </SettingsCard>
 
@@ -37,18 +38,18 @@ export function SecurityPanel() {
           label="Active Sessions"
           description="View and manage devices where you're logged in"
         >
-          <SettingsButton onClick={() => {}}>
+          <Button onClick={() => {}} variant="settings-default">
             View Sessions
-          </SettingsButton>
+          </Button>
         </SettingsRow>
 
         <SettingsRow
           label="Sign Out All Devices"
           description="Sign out from all devices except this one"
         >
-          <SettingsButton onClick={() => {}} variant="danger">
+          <Button onClick={() => {}} variant="danger">
             Sign Out All
-          </SettingsButton>
+          </Button>
         </SettingsRow>
       </SettingsCard>
 
@@ -60,18 +61,18 @@ export function SecurityPanel() {
           label="Download Your Data"
           description="Request a copy of your data"
         >
-          <SettingsButton onClick={() => {}}>
+          <Button onClick={() => {}} variant="settings-default">
             Request Data
-          </SettingsButton>
+          </Button>
         </SettingsRow>
 
         <SettingsRow
           label="Delete Account"
           description="Permanently delete your account and all data"
         >
-          <SettingsButton onClick={() => {}} variant="danger">
+          <Button onClick={() => {}} variant="danger">
             Delete Account
-          </SettingsButton>
+          </Button>
         </SettingsRow>
       </SettingsCard>
     </div>

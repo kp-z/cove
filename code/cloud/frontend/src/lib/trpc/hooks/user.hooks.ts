@@ -7,11 +7,11 @@ export function useUsers(filters?: { role?: string }) {
   });
 }
 
-export function useUser(userId: string) {
+export function useUser(userId: string, options?: { enabled?: boolean }) {
   return trpc.user.getById.useQuery(
     { userId },
     {
-      enabled: !!userId,
+      enabled: options?.enabled !== undefined ? options.enabled : !!userId,
     }
   );
 }

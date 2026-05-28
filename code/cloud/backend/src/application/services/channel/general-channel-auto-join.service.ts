@@ -139,7 +139,7 @@ export class GeneralChannelAutoJoinService {
 
     // 缓存失效或不存在，重新查询
     this.logger.debug('Cache miss, querying general channel', { realmId });
-    const channels = await this.channelRepository.findAll();
+    const channels = await this.channelRepository.findAll(realmId);
     const generalChannel = channels.find(ch => ch.name === DEFAULT_CHANNEL_NAME);
 
     if (generalChannel) {

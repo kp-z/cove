@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '@/core/stores/settingsStore'
+import { Button } from '@/shared/components/ui/button'
 import { SettingsCard } from '../common/SettingsCard'
 import { SettingsRow, SettingsSelect, SettingsToggle } from '../common/SettingsControls'
 
@@ -36,10 +37,12 @@ export function AppearancePanel() {
         >
           <div className="flex gap-2">
             {(['blue', 'purple', 'green', 'orange'] as const).map((color) => (
-              <button
+              <Button
                 key={color}
                 onClick={() => setAccentColor(color)}
-                className={`w-8 h-8 rounded-full hover:scale-110 transition-transform ${
+                variant="ghost"
+                size="icon-sm"
+                className={`w-8 h-8 rounded-full hover:scale-110 transition-transform p-0 ${
                   accentColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900' : ''
                 }`}
                 style={{

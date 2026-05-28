@@ -249,7 +249,9 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(channel);
       vi.mocked(mockMessageRepository.findByChannel).mockResolvedValue(messages);
 
-      const result = await service.getChannelMessages('channel-1', 20);
+      const result = await runWithContext(testContext, async () => {
+        return await service.getChannelMessages('channel-1', 20);
+      });
 
       expect(result).toEqual(messages);
       expect(mockMessageRepository.findByChannel).toHaveBeenCalledWith('channel-1', 20);
@@ -259,7 +261,9 @@ describe('ChannelMessagingService', () => {
       vi.mocked(mockChannelRepository.findById).mockResolvedValue(null);
 
       await expect(
-        service.getChannelMessages('nonexistent')
+        runWithContext(testContext, async () => {
+          return await service.getChannelMessages('nonexistent');
+        })
       ).rejects.toThrow(ChannelNotFoundError);
     });
   });

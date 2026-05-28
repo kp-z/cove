@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Bookmark, Check, Settings, Hash, Lock, MessageSquare } from 'lucide-react';
+import { Bookmark, Check, Settings } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useTranslation } from 'react-i18next';
+import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { ChannelEntity } from '../../api/client';
 
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -23,23 +24,7 @@ interface PinnedChannelItemProps {
   onTogglePin?: () => void;
   onMarkAsRead?: () => void;
   onOpenSettings?: () => void;
-  compact?: boolean; // 紧凑模式
-}
-
-function getChannelIcon(type: ChannelType, compact = false) {
-  const size = compact ? 10 : 16;
-  const className = compact ? 'w-2.5 h-2.5' : 'w-4 h-4';
-  switch (type) {
-    case 'public':
-      return <Hash className={className} size={size} />;
-    case 'private':
-      return <Lock className={className} size={size} />;
-    case 'dm':
-    case 'thread':
-      return <MessageSquare className={className} size={size} />;
-    default:
-      return <Hash className={className} size={size} />;
-  }
+  compact?: boolean;
 }
 
 function PinnedChannelItem({
@@ -54,30 +39,37 @@ function PinnedChannelItem({
   const { t } = useTranslation('channel');
 
   // Compact mode: smaller sizes
-  const buttonSize = compact ? 'w-7 h-7' : 'w-10 h-10';
+  const avatarSize = compact ? 'sm' : 'md';
   const textSize = compact ? 'text-[10px]' : 'text-xs';
-  const gridWidth = compact ? '48px' : '64px';
+
+  const avatarUrl = getAvatarUrl(channel.avatar);
 
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
-        <div className="flex flex-col items-center gap-1">
-          <motion.button
+        <div className="flex flex-col items-start gap-1">
+          <motion.div
             onClick={onSelect}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`
-              ${buttonSize} rounded-lg flex items-center justify-center
               cursor-pointer transition-all
               ${isActive
-                ? 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)]'
-                : 'bg-white/5 text-gray-500 ring-2 ring-transparent hover:ring-gray-600 hover:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]'
+                ? 'ring-2 ring-blue-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)]'
+                : 'ring-2 ring-transparent hover:ring-gray-600 hover:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]'
               }
             `}
+            style={{ borderRadius: '0.5rem' }}
           >
-            {getChannelIcon(channel.type as ChannelType, compact)}
-          </motion.button>
-          <span className={`${textSize} text-gray-400 w-full text-center truncate px-1`}>
+            <Avatar
+              src={avatarUrl}
+              alt={channel.name}
+              type="channel"
+              channelType={channel.type as ChannelType}
+              size={avatarSize}
+            />
+          </motion.div>
+          <span className={`${textSize} text-gray-400 w-full text-left truncate`}>
             {channel.name}
           </span>
         </div>

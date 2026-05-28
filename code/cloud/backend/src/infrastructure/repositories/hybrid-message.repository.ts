@@ -435,12 +435,14 @@ export class HybridMessageRepository
         },
       });
       if (cursorRecord) {
-        where.createdAt = { lt: cursorRecord.createdAt };
+        // 修改为 gt（大于）以支持 asc 排序
+        where.createdAt = { gt: cursorRecord.createdAt };
       }
     }
     const records = await this.prisma.message.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      // 修改为 asc 排序（最旧在前）
+      orderBy: { createdAt: 'asc' },
       take: limit + 1,
     });
 

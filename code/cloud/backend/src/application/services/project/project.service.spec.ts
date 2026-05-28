@@ -147,16 +147,20 @@ describe('ProjectService', () => {
       const mockProjects = [createTestProject(), createTestProject()];
       vi.mocked(mockProjectRepository.findAll).mockResolvedValue(mockProjects);
 
-      const result = await service.getAllProjects();
+      const result = await runWithContext(testContext, async () => {
+        return await service.getAllProjects();
+      });
 
       expect(result).toEqual(mockProjects);
-      expect(mockProjectRepository.findAll).toHaveBeenCalled();
+      expect(mockProjectRepository.findAll).toHaveBeenCalledWith(testContext.realmId);
     });
 
     it('should return empty array when no projects exist', async () => {
       vi.mocked(mockProjectRepository.findAll).mockResolvedValue([]);
 
-      const result = await service.getAllProjects();
+      const result = await runWithContext(testContext, async () => {
+        return await service.getAllProjects();
+      });
 
       expect(result).toEqual([]);
     });
@@ -167,10 +171,12 @@ describe('ProjectService', () => {
       const mockProjects = [createTestProject({ ownerId: 'user-123' })];
       vi.mocked(mockProjectRepository.findByOwner).mockResolvedValue(mockProjects);
 
-      const result = await service.getProjectsByOwner('user-123');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectsByOwner('user-123');
+      });
 
       expect(result).toEqual(mockProjects);
-      expect(mockProjectRepository.findByOwner).toHaveBeenCalledWith('user-123');
+      expect(mockProjectRepository.findByOwner).toHaveBeenCalledWith('user-123', testContext.realmId);
     });
   });
 
@@ -179,10 +185,12 @@ describe('ProjectService', () => {
       const mockProjects = [createTestProject({ status: 'active' })];
       vi.mocked(mockProjectRepository.findByStatus).mockResolvedValue(mockProjects);
 
-      const result = await service.getProjectsByStatus('active');
+      const result = await runWithContext(testContext, async () => {
+        return await service.getProjectsByStatus('active');
+      });
 
       expect(result).toEqual(mockProjects);
-      expect(mockProjectRepository.findByStatus).toHaveBeenCalledWith('active');
+      expect(mockProjectRepository.findByStatus).toHaveBeenCalledWith('active', testContext.realmId);
     });
   });
 

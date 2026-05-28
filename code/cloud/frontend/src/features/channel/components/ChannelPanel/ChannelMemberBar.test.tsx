@@ -10,11 +10,9 @@ import { useUser } from '@/lib/trpc/hooks/user.hooks';
 vi.mock('@/lib/trpc/hooks');
 vi.mock('@/lib/trpc/hooks/agent.hooks');
 vi.mock('@/lib/trpc/hooks/user.hooks');
-vi.mock('@/shared/utils/avatar', () => ({
-  getAvatarUrl: (avatar: any) => avatar?.url || 'https://example.com/default-user.png',
-}));
-vi.mock('@/features/agent/utils/avatar', () => ({
-  getAgentAvatarUrl: (url?: string) => url || 'https://example.com/default-agent.png',
+vi.mock('@/shared/components/display/Avatar', () => ({
+  getAvatarUrl: (avatar: any) => avatar?.url || 'https://example.com/default-avatar.png',
+  AvatarStack: ({ items }: any) => <div data-testid="avatar-stack">{items.length} members</div>,
 }));
 
 describe('ChannelMemberBar', () => {

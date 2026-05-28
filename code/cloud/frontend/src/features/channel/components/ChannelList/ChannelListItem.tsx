@@ -2,8 +2,7 @@ import { Hash, Lock, MessageSquare, Bookmark, Check, Settings, LogOut } from 'lu
 import { motion } from 'framer-motion';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useTranslation } from 'react-i18next';
-import { ChannelAvatar } from './ChannelAvatar';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { ChannelEntity } from '../../api/client';
 
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -17,22 +16,7 @@ interface ChannelListItemProps {
   onMarkAsRead?: (channel: ChannelEntity) => void;
   onOpenSettings?: (channel: ChannelEntity) => void;
   onLeaveChannel?: (channel: ChannelEntity) => void;
-  compact?: boolean; // 紧凑模式：缩小图标和字体
-}
-
-function getChannelIcon(type: ChannelType, compact = false) {
-  const size = compact ? 10 : 16;
-  switch (type) {
-    case 'public':
-      return <Hash className={`w-${size} h-${size}`} size={size} />;
-    case 'private':
-      return <Lock className={`w-${size} h-${size}`} size={size} />;
-    case 'dm':
-    case 'thread':
-      return <MessageSquare className={`w-${size} h-${size}`} size={size} />;
-    default:
-      return <Hash className={`w-${size} h-${size}`} size={size} />;
-  }
+  compact?: boolean;
 }
 
 function formatTime(dateStr: string) {
@@ -60,8 +44,8 @@ export function ChannelListItem({
   const avatarUrl = getAvatarUrl(channel.avatar);
 
   // Compact mode: smaller sizes (matching claude_manager reference)
-  const avatarSize = compact ? 'w-5 h-5' : 'w-10 h-10';
-  const padding = compact ? 'px-2 py-1.5' : 'px-4 py-3';
+  const avatarSize = compact ? 'sm' : 'md';
+  const padding = compact ? 'px-2 py-1.5' : 'py-3';
   const textSize = compact ? 'text-[11px]' : 'text-sm';
   const timeSize = compact ? 'text-[9px]' : 'text-[10px]';
   const descSize = compact ? 'text-[10px]' : 'text-xs';
@@ -71,34 +55,24 @@ export function ChannelListItem({
       <ContextMenu.Trigger asChild>
         <motion.button
           onClick={onClick}
-          whileHover={{ scale: 1.01, x: 4 }}
+          whileHover={{ x: 2 }}
           whileTap={{ scale: 0.99 }}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
-          className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} rounded-lg transition-all duration-200 ${
+          className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} transition-all duration-200 ${
             isActive
-              ? 'bg-blue-500/10 border border-blue-500/20 text-white'
-              : 'hover:bg-white/[0.03] text-gray-300 border border-transparent'
+              ? 'bg-blue-500/20 text-white'
+              : 'hover:bg-white/[0.08] text-gray-300'
           }`}
         >
-          {avatarUrl ? (
-            <div className={`${avatarSize} rounded-lg overflow-hidden shrink-0`}>
-              <img
-                src={avatarUrl}
-                alt={channel.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div
-              className={`${avatarSize} rounded-lg flex items-center justify-center shrink-0 ${
-                isActive ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'
-              }`}
-            >
-              {getChannelIcon(channel.type as ChannelType, compact)}
-            </div>
-          )}
+          <Avatar
+            src={avatarUrl}
+            alt={channel.name}
+            type="channel"
+            channelType={channel.type as ChannelType}
+            size={avatarSize}
+          />
           <div className="flex-1 text-left min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className={`${textSize} font-medium truncate`}>{channel.name}</span>

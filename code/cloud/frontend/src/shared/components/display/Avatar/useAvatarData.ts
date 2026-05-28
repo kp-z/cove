@@ -8,8 +8,7 @@
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { useChannel } from '@/lib/trpc/hooks/channel.hooks';
-import { getAvatarUrl } from '@/shared/utils/avatar';
-import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
+import { getAvatarUrl } from './utils.tsx';
 
 export interface AvatarData {
   avatarUrl?: string | null;
@@ -48,7 +47,7 @@ export function useAgentAvatarData(agentId: string): AvatarData {
   const agentAvatarUrl = agent?.persona?.avatar?.url || (agent as any)?.avatar_url || (agent as any)?.avatarUrl;
 
   return {
-    avatarUrl: agentAvatarUrl ? getAgentAvatarUrl(agentAvatarUrl) : null,
+    avatarUrl: agentAvatarUrl ? getAvatarUrl(agentAvatarUrl) : null,
     name: agent?.display_name || agent?.name || 'Unknown Agent',
   };
 }
@@ -67,6 +66,23 @@ export function useChannelAvatarData(channelId: string): AvatarData {
     } else if (typeof channel.avatar === 'object' && (channel.avatar as any).url) {
       avatarUrl = getAvatarUrl((channel.avatar as any).url);
     }
+  }
+
+  // Fallback for DM channels without avatar: use agent's avatar
+  if (!avatarUrl && channel?.type === 'dm' && channel?.members) {
+    const agentMember = channel.members.find((m: any) => m.type === 'agent');
+    if (agentMember?.avatar) {
+      if (typeof agentMember.avatar === 'string') {
+        avatarUrl = getAvatarUrl(agentMember.avatar);
+      } else if (typeof agentMember.avatar === 'object' && agentMember.avatar.url) {
+        avatarUrl = getAvatarUrl(agentMember.avatar.url);
+      }
+    }
+  }
+
+  // Final fallback: generate dicebear avatar based on channelId
+  if (!avatarUrl) {
+    avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${channelId}`;
   }
 
   return {
@@ -106,7 +122,7 @@ export function useEntityAvatarData(
   if (type === 'agent' && agent) {
     const agentAvatarUrl = agent.persona?.avatar?.url || (agent as any).avatar_url || (agent as any).avatarUrl;
     return {
-      avatarUrl: agentAvatarUrl ? getAgentAvatarUrl(agentAvatarUrl) : null,
+      avatarUrl: agentAvatarUrl ? getAvatarUrl(agentAvatarUrl) : null,
       name: agent.display_name || agent.name || 'Unknown Agent',
     };
   }

@@ -1,42 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { Message } from './types';
-import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
-import { AgentExecutionPanel } from './MessageBubble/AgentExecution';
+import { Message } from '../../domain/models/Message';
+import { MessageBubble } from './MessageBubbleNew';
+import { SystemMessage } from './SystemMessage';
+import { TypingIndicator } from './TypingIndicator';
+import { useMessageList, useSendMessage, useTypingState } from '../../hooks';
 
 interface MessageListProps {
-  messages: Message[];
-  isLoading?: boolean;
+  channelId: string;
   className?: string;
   targetMessageId?: string | null;
-}
-
-function formatTimestamp(date: Date, t: TFunction): string {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-
-  if (diff < 60000) {
-    return t('common:time.justNow');
-  }
-
-  if (diff < 3600000) {
-    const minutes = Math.floor(diff / 60000);
-    return t('common:time.minutesAgo', { count: minutes });
-  }
-
-  if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) {
-    return t('common:time.yesterday') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }) + ' ' +
-         date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 function shouldShowDateSeparator(currentMsg: Message, prevMsg?: Message): boolean {
@@ -51,7 +25,7 @@ function shouldShowDateSeparator(currentMsg: Message, prevMsg?: Message): boolea
 function shouldGroupMessage(currentMsg: Message, prevMsg?: Message): boolean {
   if (!prevMsg) return false;
 
-  if (currentMsg.sender !== prevMsg.sender || currentMsg.sender_name !== prevMsg.sender_name) {
+  if (currentMsg.senderType !== prevMsg.senderType || currentMsg.senderName !== prevMsg.senderName) {
     return false;
   }
 
@@ -87,103 +61,22 @@ function DateSeparator({ date }: { date: Date }) {
   );
 }
 
-function MessageBubble({ message, isGrouped, t }: { message: Message; isGrouped: boolean; t: TFunction }) {
-  const isUser = message.sender === 'user';
-  const isAgent = message.sender === 'agent';
-  const isSystem = message.sender === 'system';
-
-  // Determine entity type before calling hook (must be stable across renders)
-  const entityType = isAgent ? 'agent' : 'user';
-
-  // Fetch avatar data - hook must be called unconditionally
-  const avatarData = useEntityAvatarData(
-    entityType,
-    message.sender_id || ''
-  );
-
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1' : 'mt-3'}`}>
-      {/* Avatar for agent/system (left side) */}
-      {!isUser && !isGrouped && (
-        <Avatar
-          avatarUrl={avatarData.avatarUrl}
-          name={message.sender_name}
-          size="sm"
-          className="mr-2 mt-1"
-        />
-      )}
-
-      <div className={`relative group ${isUser ? 'max-w-[95%]' : 'max-w-[95%]'}`}>
-        {!isGrouped && !isUser && (
-          <div className="flex items-baseline gap-2 mb-1 px-1">
-            <span className={`text-xs font-medium ${
-              isAgent ? 'text-purple-400' : 'text-gray-400'
-            }`}>
-              {message.sender_name}
-            </span>
-            <span className="text-xs text-gray-500">
-              {formatTimestamp(message.timestamp, t)}
-            </span>
-          </div>
-        )}
-
-        <div
-          className={`rounded-2xl px-4 py-2.5 shadow-sm overflow-hidden break-words ${
-            isSystem
-              ? 'bg-black/50 border border-white/10 text-gray-400 text-sm italic'
-              : isUser
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
-                : 'bg-black/70 border border-purple-500/40 text-gray-100'
-          }`}
-        >
-          {message.is_streaming && (
-            <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
-          )}
-
-          <div className="prose prose-sm prose-invert max-w-none text-sm whitespace-pre-wrap break-words">
-            {message.content}
-          </div>
-
-          {/* Agent Execution Panel - only for agent messages */}
-          {isAgent && message.agentMetadata && (
-            <AgentExecutionPanel
-              metadata={message.agentMetadata}
-              isStreaming={message.is_streaming}
-            />
-          )}
-        </div>
-
-        {isUser && !isGrouped && (
-          <div className="text-xs text-gray-500 mt-1 px-1 text-right">
-            {formatTimestamp(message.timestamp, t)}
-          </div>
-        )}
-      </div>
-
-      {/* Avatar for user (right side) */}
-      {isUser && !isGrouped && (
-        <Avatar
-          avatarUrl={avatarData.avatarUrl}
-          name={message.sender_name}
-          size="sm"
-          className="ml-2 mt-1"
-        />
-      )}
-    </div>
-  );
-}
-
-export function MessageList({ messages, isLoading, className = '', targetMessageId }: MessageListProps) {
+export function MessageList({ channelId, className = '', targetMessageId }: MessageListProps) {
   const { t } = useTranslation('channel');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 使用新的 hooks
+  const { messages, isLoading } = useMessageList(channelId);
+  const { retry } = useSendMessage();
+  const { typingUsers } = useTypingState(channelId);
 
   // 自动滚动到底部
   useEffect(() => {
     if (messagesEndRef.current && !targetMessageId) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, targetMessageId]);
+  }, [messages.length, targetMessageId]);
 
   // 滚动到特定消息
   useEffect(() => {
@@ -191,7 +84,6 @@ export function MessageList({ messages, isLoading, className = '', targetMessage
       const messageElement = document.getElementById(`message-${targetMessageId}`);
       if (messageElement) {
         messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // 添加高亮效果
         messageElement.classList.add('highlight-message');
         setTimeout(() => messageElement.classList.remove('highlight-message'), 2000);
       }
@@ -225,14 +117,27 @@ export function MessageList({ messages, isLoading, className = '', targetMessage
         const isGrouped = shouldGroupMessage(message, prevMessage);
 
         return (
-          <React.Fragment key={message.message_id}>
+          <React.Fragment key={message.id}>
             {showDateSeparator && <DateSeparator date={message.timestamp} />}
-            <div id={`message-${message.message_id}`} className="transition-all duration-300">
-              <MessageBubble message={message} isGrouped={isGrouped} t={t} />
-            </div>
+
+            {message.senderType === 'system' ? (
+              <SystemMessage message={message} />
+            ) : (
+              <div id={`message-${message.messageId || message.id}`} className="transition-all duration-300">
+                <MessageBubble
+                  message={message}
+                  isGrouped={isGrouped}
+                  t={t}
+                  onRetry={() => retry(message)}
+                />
+              </div>
+            )}
           </React.Fragment>
         );
       })}
+
+      {/* 正在输入指示器 */}
+      {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
 
       <div ref={messagesEndRef} />
     </div>

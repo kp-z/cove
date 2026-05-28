@@ -25,6 +25,10 @@ export interface CreateChannelDTO {
   readonly createdBy: string;
   readonly memberIds?: readonly string[];
   readonly agentIds?: readonly string[]; // 用于 DM channel 创建
+  readonly avatar?: {
+    readonly url: string;
+    readonly type: 'uploaded' | 'dicebear' | 'default';
+  };
 }
 
 export interface UpdateChannelDTO {
@@ -96,6 +100,7 @@ export class ChannelCrudService {
       },
       name: dto.name,
       description: dto.description,
+      avatar: dto.avatar,
     });
 
     this.logger.info('[DEBUG] DM channel entity created', {
@@ -252,7 +257,7 @@ export class ChannelCrudService {
       throw new ChannelNotArchivedError(channelId);
     }
 
-    await this.channelRepository.delete(channelId);
+    await this.channelRepository.delete(channelId, getRealmContext().realmId);
 
     await this.publishEvent({
       eventId: this.generateEventId(),
@@ -267,7 +272,7 @@ export class ChannelCrudService {
   }
 
   private async getChannelById(channelId: string): Promise<ChannelEntity> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(channelId);
     }

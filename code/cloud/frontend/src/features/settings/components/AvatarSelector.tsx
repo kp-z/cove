@@ -152,13 +152,14 @@ export function AvatarSelector({ entityType, entityId, currentAvatar, onClose }:
                 const avatarUrl = `${import.meta.env.VITE_API_URL}/${presetPath}`;
 
                 return (
-                  <button
+                  <Button
                     key={`${presetPath}-${index}`}
                     type="button"
                     onClick={() => handleSelectPreset(presetPath)}
                     disabled={setPresetMutation.isPending}
+                    variant="ghost"
                     className={cn(
-                      'relative aspect-square rounded-lg overflow-hidden border-2 transition-all',
+                      'relative aspect-square rounded-lg overflow-hidden border-2 transition-all p-0 h-auto',
                       'hover:scale-105 hover:border-cyan-400/50',
                       isCurrent && 'border-cyan-400 ring-2 ring-cyan-400/20',
                       isSelected && 'border-cyan-400 ring-2 ring-cyan-400/20',
@@ -178,7 +179,7 @@ export function AvatarSelector({ entityType, entityId, currentAvatar, onClose }:
                         </div>
                       </div>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

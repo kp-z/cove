@@ -199,7 +199,7 @@ export class ChannelMemberService {
   }
 
   private async getChannelById(channelId: string): Promise<ChannelEntity> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(channelId);
     }

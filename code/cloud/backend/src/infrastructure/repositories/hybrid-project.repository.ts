@@ -9,7 +9,6 @@
 import { HybridRepository } from './hybrid-repository.base';
 import { ProjectEntity, ProjectStatus } from '../../domain/models/project/project.entity';
 import { IProjectRepository } from '../../application/interfaces/repositories/project.repository.interface';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface ProjectDbRecord {
   id: string;

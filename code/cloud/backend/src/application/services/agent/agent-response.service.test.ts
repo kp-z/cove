@@ -206,7 +206,7 @@ describe('AgentResponseService', () => {
         await service.handleIncomingMessage(message);
       });
 
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
+      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1', 'test-server-id');
       expect(mockAgentRepository.findById).toHaveBeenCalledWith('agent-1', 'test-server-id');
       expect(mockMessageRepository.save).toHaveBeenCalled();
       expect(mockEventBus.publish).toHaveBeenCalled();
@@ -223,7 +223,7 @@ describe('AgentResponseService', () => {
         await service.handleIncomingMessage(message);
       });
 
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
+      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1', 'test-server-id');
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
     });
 
@@ -243,7 +243,7 @@ describe('AgentResponseService', () => {
         await service.handleIncomingMessage(message);
       });
 
-      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1');
+      expect(mockChannelRepository.findById).toHaveBeenCalledWith('channel-1', 'test-server-id');
       expect(mockAgentRepository.findById).not.toHaveBeenCalled();
     });
 

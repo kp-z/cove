@@ -29,29 +29,45 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
     hasUserId: !!ctx.userId
   });
 
-  // Inject RealmContext into AsyncLocalStorage if realmId and userId are available
-  if (ctx.realmId && ctx.userId) {
-    // Verify that the user is a member of the realm
-    const isMember = await ctx.realmMemberVerification.isMember(ctx.userId, ctx.realmId);
-
-    if (!isMember) {
-      console.log('[RealmContext Middleware] Access denied - user is not a member of realm', {
-        userId: ctx.userId,
-        realmId: ctx.realmId
-      });
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'You are not a member of this realm',
-      });
-    }
-
-    const realmContext = RealmContext.create(ctx.realmId, ctx.userId);
-    return serverContextStore.run(realmContext, () => next());
+  // Check realmId is present
+  if (!ctx.realmId) {
+    console.log('[RealmContext Middleware] Missing realmId');
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Realm ID is required. Make sure x-realm-id header is set.',
+    });
   }
 
-  // If no realmId or userId, proceed without RealmContext
-  console.log('[RealmContext Middleware] Skipping - missing realmId or userId');
-  return next();
+  // Check userId is present
+  if (!ctx.userId) {
+    console.log('[RealmContext Middleware] Missing userId');
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User authentication is required.',
+    });
+  }
+
+  // Verify that the user is a member of the realm
+  const isMember = await ctx.realmMemberVerification.isMember(ctx.userId, ctx.realmId);
+
+  if (!isMember) {
+    console.log('[RealmContext Middleware] Access denied - user is not a member of realm', {
+      userId: ctx.userId,
+      realmId: ctx.realmId
+    });
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'You are not a member of this realm',
+    });
+  }
+
+  // Inject RealmContext into AsyncLocalStorage
+  console.log('[RealmContext Middleware] Injecting context', {
+    userId: ctx.userId,
+    realmId: ctx.realmId
+  });
+  const realmContext = RealmContext.create(ctx.realmId, ctx.userId);
+  return serverContextStore.run(realmContext, () => next());
 });
 
 // Logger middleware

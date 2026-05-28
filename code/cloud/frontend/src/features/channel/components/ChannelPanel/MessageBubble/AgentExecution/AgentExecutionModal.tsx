@@ -6,32 +6,34 @@ import { ToolsTab } from './ToolsTab';
 import { UsageTab } from './UsageTab';
 import { StatsTab } from './StatsTab';
 
+export type TabType = 'thinking' | 'tools' | 'usage' | 'stats';
+
 interface AgentExecutionModalProps {
   metadata: AgentMetadata;
   isStreaming?: boolean;
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: TabType;
 }
-
-type TabType = 'thinking' | 'tools' | 'usage' | 'stats';
 
 export const AgentExecutionModal = memo(function AgentExecutionModal({
   metadata,
   isStreaming = false,
   isOpen,
   onClose,
+  defaultTab: initialTab,
 }: AgentExecutionModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('thinking');
-
-  if (!isOpen) return null;
-
   const hasThinking = !!metadata.thinking;
   const hasTools = (metadata.toolLogs?.length || 0) > 0;
   const hasUsage = !!metadata.usage;
 
   // Auto-select first available tab
-  const defaultTab = hasThinking ? 'thinking' : hasTools ? 'tools' : hasUsage ? 'usage' : 'stats';
-  const currentTab = activeTab || defaultTab;
+  const autoSelectedTab = hasThinking ? 'thinking' : hasTools ? 'tools' : hasUsage ? 'usage' : 'stats';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab || autoSelectedTab);
+
+  if (!isOpen) return null;
+
+  const currentTab = activeTab;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

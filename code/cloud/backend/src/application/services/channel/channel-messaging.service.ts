@@ -22,7 +22,7 @@ export class ChannelMessagingService {
   async sendMessage(dto: ChannelSendMessageDTO): Promise<MessageEntity> {
       const context = getRealmContext();
     this.logger.info('Sending message to channel', { channelId: dto.channelId });
-    const channel = await this.channelRepository.findById(dto.channelId);
+    const channel = await this.channelRepository.findById(dto.channelId, context.realmId);
     if (!channel) throw new ChannelNotFoundError(dto.channelId);
     if (channel.status !== 'active') throw new ChannelNotActiveError(dto.channelId);
     if (!channel.memberIds.includes(dto.senderId)) {
@@ -70,7 +70,7 @@ export class ChannelMessagingService {
   }
 
   async getChannelMessages(channelId: string, limit?: number): Promise<MessageEntity[]> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) throw new ChannelNotFoundError(channelId);
     return this.messageRepository.findByChannel(channelId, limit);
   }

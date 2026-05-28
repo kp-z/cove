@@ -24,46 +24,63 @@ function ChannelPanelWrapper() {
 
   const isDocked = mode === 'docked';
 
-  const panelContent = (
-    <div className="flex-1 overflow-hidden">
-      <ChannelPanel channel_id={channelId} thread_id={threadId} message_id={messageId} />
-    </div>
-  );
+  const variants = {
+    docked: {
+      width: panelWidth,
+      opacity: 1,
+      x: 0,
+      transition: {
+        width: { type: 'spring', stiffness: 300, damping: 30 },
+        opacity: { duration: 0.2 }
+      }
+    },
+    floating: {
+      width: panelWidth,
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 400,
+        damping: 30
+      }
+    }
+  };
 
-  if (!isDocked) {
-    return (
-      <motion.div
-        initial={{ x: 40, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: 40, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        style={{ width: panelWidth }}
-        className="absolute right-4 top-2 bottom-2 z-40 flex flex-col bg-[#13151f] border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
-      >
-        {/* Drag handle */}
-        <div
-          onMouseDown={onDragStart}
-          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/30 rounded-l-2xl transition-colors z-10"
-        />
-        {panelContent}
-      </motion.div>
-    );
-  }
+  const initialVariant = {
+    docked: { width: 0, opacity: 0 },
+    floating: { x: 40, opacity: 0, scale: 0.95 }
+  };
+
+  const exitVariant = {
+    docked: { width: 0, opacity: 0, transition: { duration: 0.2 } },
+    floating: { x: 40, opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
+  };
 
   return (
     <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: panelWidth, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="relative border-l border-[#2a2d3e] overflow-hidden shrink-0 flex flex-col"
+      initial={initialVariant[mode]}
+      animate={mode}
+      exit={exitVariant[mode]}
+      variants={variants}
+      style={{ width: panelWidth }}
+      className={
+        isDocked
+          ? "relative border-l border-[#2a2d3e] overflow-hidden shrink-0 flex flex-col"
+          : "absolute right-4 top-2 bottom-2 z-40 flex flex-col bg-[#13151f] border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden"
+      }
     >
-      {/* Drag handle */}
       <div
         onMouseDown={onDragStart}
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/30 transition-colors z-10"
+        className={
+          isDocked
+            ? "absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/30 transition-colors z-10"
+            : "absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-500/30 rounded-l-2xl transition-colors z-10"
+        }
       />
-      {panelContent}
+      <div className="flex-1 overflow-hidden">
+        <ChannelPanel channel_id={channelId} thread_id={threadId} message_id={messageId} />
+      </div>
     </motion.div>
   );
 }
@@ -71,22 +88,11 @@ function ChannelPanelWrapper() {
 export function MainLayout() {
   const { isOpen, toggle } = useSidebar();
   const { isMobile } = useResponsive();
-  const { isOpen: channelOpen, mode } = useChannelPanelStore();
+  const { isOpen: channelOpen } = useChannelPanelStore();
   const location = useLocation();
 
   // 移动端在 channel 详情页时隐藏 MobileNav
   const shouldHideMobileNav = isMobile && location.pathname.startsWith('/channel/') && location.pathname !== '/channels';
-
-  // 计算 Outlet 的右边距（当 ChannelPanel 为 floating 模式时）
-  const { width: panelWidth } = useResizable({
-    defaultWidth: 500,
-    minWidth: 400,
-    maxWidth: 800,
-    storageKey: 'channel-panel-width',
-  });
-
-  const isFloating = mode !== 'docked';
-  const outletMarginRight = channelOpen && !isMobile && isFloating ? panelWidth + 32 : 0; // 32px = 4 (right) + 4 (gap) * 4
 
   return (
     <div className="flex h-screen bg-[#0f111a] text-[#e4e4e7]">
@@ -97,15 +103,12 @@ export function MainLayout() {
 
         <div className="flex-1 flex overflow-hidden relative">
           <Suspense fallback={<ContentLoader text="Loading..." />}>
-            <div
-              className="flex-1 overflow-hidden transition-all duration-300"
-              style={{ marginRight: `${outletMarginRight}px` }}
-            >
+            <div className="flex-1 overflow-hidden">
               <Outlet />
             </div>
           </Suspense>
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {channelOpen && !isMobile && <ChannelPanelWrapper />}
           </AnimatePresence>
         </div>

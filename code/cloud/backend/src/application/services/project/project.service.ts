@@ -110,21 +110,21 @@ export class ProjectService {
    * 获取所有 Projects
    */
   async getAllProjects(): Promise<ProjectEntity[]> {
-    return await this.projectRepository.findAll();
+    return await this.projectRepository.findAll(getRealmContext().realmId);
   }
 
   /**
    * 根据 Owner 获取 Projects
    */
   async getProjectsByOwner(ownerId: string): Promise<ProjectEntity[]> {
-    return await this.projectRepository.findByOwner(ownerId);
+    return await this.projectRepository.findByOwner(ownerId, getRealmContext().realmId);
   }
 
   /**
    * 根据状态获取 Projects
    */
   async getProjectsByStatus(status: ProjectStatus): Promise<ProjectEntity[]> {
-    return await this.projectRepository.findByStatus(status);
+    return await this.projectRepository.findByStatus(status, getRealmContext().realmId);
   }
 
   /**
@@ -313,7 +313,7 @@ export class ProjectService {
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId);
+      const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
       if (channel) {
         channels.push(channel);
       }

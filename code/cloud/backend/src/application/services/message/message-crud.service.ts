@@ -23,6 +23,7 @@ import {
   SendMessageDeniedError,
 } from './message.errors';
 import { getRealmContext } from '../../context/realm-context-store';
+import { UserService } from '../user/user.service';
 
 export interface SendMessageDTO {
   readonly channelId: string;
@@ -50,7 +51,8 @@ export class MessageCrudService {
     private readonly messageRepository: IMessageRepository,
     private readonly channelQueryService: IChannelQueryService,
     private readonly eventBus: IEventBus,
-    private readonly logger: ILogger
+    private readonly logger: ILogger,
+    private readonly userService: UserService
   ) {}
 
   async sendMessage(dto: SendMessageDTO): Promise<MessageEntity> {
@@ -63,6 +65,9 @@ export class MessageCrudService {
     }
 
     const channel = await this.channelQueryService.getChannelById(dto.channelId);
+
+    // 查询发送者信息以获取 displayName
+    const sender = await this.userService.getUserById(dto.senderId);
 
     let mentions = dto.mentions ?? [];
     if (mentions.length === 0 && dto.content.includes('@')) {
@@ -80,7 +85,7 @@ export class MessageCrudService {
       channelId: dto.channelId,
       channelName: channel.name,
       senderId: dto.senderId,
-      senderName: dto.senderId,
+      senderName: sender.displayName,
       senderType: dto.senderType,
       content: dto.content,
       contentType: 'text',

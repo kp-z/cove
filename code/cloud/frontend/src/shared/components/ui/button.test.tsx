@@ -44,6 +44,34 @@ describe('Button', () => {
     expect(button).toHaveClass('text-primary');
   });
 
+  it('should render with primary variant', () => {
+    render(<Button variant="primary">Primary Button</Button>);
+    const button = screen.getByRole('button', { name: 'Primary Button' });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveClass('bg-blue-600');
+  });
+
+  it('should render with danger variant', () => {
+    render(<Button variant="danger">Danger Button</Button>);
+    const button = screen.getByRole('button', { name: 'Danger Button' });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveClass('bg-red-600/80');
+  });
+
+  it('should render with settings-default variant', () => {
+    render(<Button variant="settings-default">Settings Default Button</Button>);
+    const button = screen.getByRole('button', { name: 'Settings Default Button' });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveClass('bg-white/10');
+  });
+
+  it('should render with settings-subtle variant', () => {
+    render(<Button variant="settings-subtle">Settings Subtle Button</Button>);
+    const button = screen.getByRole('button', { name: 'Settings Subtle Button' });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveClass('bg-white/5');
+  });
+
   it('should render with small size', () => {
     render(<Button size="sm">Small Button</Button>);
     const button = screen.getByRole('button', { name: 'Small Button' });

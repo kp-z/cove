@@ -66,7 +66,7 @@ export function CompactTimelineNode({
       )}
 
       {/* Timeline Node with Icon - 对齐内容上边缘 */}
-      <div className="relative z-10 flex-shrink-0 mt-2">
+      <div className="relative z-10 flex-shrink-0">
         <div
           className={`
             w-6 h-6 rounded-full border-2 flex items-center justify-center

@@ -111,34 +111,33 @@ export function AdapterCard({
           {/* Action Buttons */}
           <div className="flex shrink-0 flex-wrap justify-end gap-1.5 sm:gap-2">
             {canModify && isDefault && (
-              <button
+              <Button
                 type="button"
                 disabled
-                className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs text-gray-500 cursor-not-allowed sm:px-3"
+                variant="settings-subtle"
+                size="xs"
               >
                 取消
-              </button>
+              </Button>
             )}
             {canModify && !isDefault && (
-              <button
+              <Button
                 type="button"
                 onClick={onSetDefault}
-                className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-gray-200 hover:bg-white/15 sm:px-3"
+                variant="settings-default"
+                size="xs"
               >
                 激活
-              </button>
+              </Button>
             )}
             {canModify && (
               <>
-                <button
+                <Button
                   type="button"
                   onClick={handleTest}
                   disabled={isTesting}
-                  className={`inline-flex items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1.5 text-xs sm:px-3 ${
-                    isTesting
-                      ? 'cursor-not-allowed text-gray-500'
-                      : 'text-gray-300 hover:bg-white/10'
-                  }`}
+                  variant="settings-subtle"
+                  size="xs"
                 >
                   {isTesting ? (
                     <Loader2 size={12} className="shrink-0 animate-spin" />
@@ -146,21 +145,23 @@ export function AdapterCard({
                     <Zap size={12} className="shrink-0" />
                   )}
                   测试
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={onEdit}
-                  className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs hover:bg-white/15 sm:px-3"
+                  variant="settings-default"
+                  size="xs"
                 >
                   编辑
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={onDelete}
-                  className="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-500/30 sm:px-3"
+                  variant="danger"
+                  size="xs"
                 >
                   删除
-                </button>
+                </Button>
               </>
             )}
           </div>

@@ -140,15 +140,13 @@ export function AvatarEditor({
   // If not editable, just show the avatar
   if (!editable) {
     return (
-      <div className={cn(sizeClasses[size], className)}>
-        <div className="rounded-full border-2 border-white/10">
-          <Avatar
-            avatarUrl={currentAvatar || avatarData.avatarUrl}
-            name={name || avatarData.name}
-            size={size}
-          />
-        </div>
-      </div>
+      <Avatar
+        src={currentAvatar || avatarData.avatarUrl}
+        alt={name || avatarData.name}
+        type={type}
+        size={size}
+        className={className}
+      />
     );
   }
 
@@ -158,24 +156,28 @@ export function AvatarEditor({
         <button
           type="button"
           className={cn(
-            'relative group cursor-pointer transition-all',
-            sizeClasses[size],
+            'relative group cursor-pointer inline-block',
             className
           )}
         >
-          {/* Avatar Container */}
-          <div className="relative w-full h-full rounded-full border-2 border-white/10 group-hover:border-blue-400/50 transition-all overflow-hidden">
-            <Avatar
-              avatarUrl={currentAvatar || avatarData.avatarUrl}
-              name={name || avatarData.name}
-              size={size}
-            />
-            {/* Hover Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex flex-col items-center gap-1">
-                <Upload className="w-4 h-4 text-white" />
-                <span className="text-xs text-white font-medium">Edit</span>
-              </div>
+          {/* Avatar - 纯展示，保持独立 */}
+          <Avatar
+            src={currentAvatar || avatarData.avatarUrl}
+            alt={name || avatarData.name}
+            type={type}
+            size={size}
+          />
+
+          {/* 悬停遮罩层 - 绝对定位覆盖，动态匹配形状 */}
+          <div className={cn(
+            "absolute inset-0 flex items-center justify-center",
+            "bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity",
+            "ring-0 group-hover:ring-2 group-hover:ring-blue-400/50 transition-all",
+            type === 'channel' ? 'rounded-lg' : 'rounded-full'
+          )}>
+            <div className="flex flex-col items-center gap-1">
+              <Upload className="w-4 h-4 text-white" />
+              <span className="text-xs text-white font-medium">Edit</span>
             </div>
           </div>
         </button>

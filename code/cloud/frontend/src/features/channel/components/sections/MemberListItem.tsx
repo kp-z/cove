@@ -1,12 +1,10 @@
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Avatar } from '@/shared/components/display/Avatar';
+import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
 import { InfoCard } from '@/shared/components/display/InfoCard';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { getAvatarUrl } from '@/shared/utils/avatar';
-import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
 import type { ChannelMember } from '@/lib/trpc-types';
 
 interface MemberListItemProps {
@@ -32,7 +30,7 @@ export function MemberListItem({ member, onRemove }: MemberListItemProps) {
   // Get avatar URL based on member type
   const avatarUrl = member.member_type === 'human'
     ? (user?.avatar ? getAvatarUrl(user.avatar) : null)
-    : (agent?.persona?.avatar?.url ? getAgentAvatarUrl(agent.persona.avatar.url) : null);
+    : (agent?.persona?.avatar?.url ? getAvatarUrl(agent.persona.avatar.url) : null);
 
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-white/5 transition-colors">
@@ -45,8 +43,9 @@ export function MemberListItem({ member, onRemove }: MemberListItemProps) {
       >
         <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
           <Avatar
-            avatarUrl={avatarUrl}
-            name={displayName}
+            src={avatarUrl}
+            alt={displayName}
+            type={member.member_type === 'human' ? 'user' : 'agent'}
             size="sm"
           />
           <div className="flex items-center gap-2 flex-1 min-w-0">

@@ -14,6 +14,7 @@ import {
   IMessageRepository,
 } from '../../interfaces';
 import { ChannelNotFoundError } from './channel.errors';
+import { getRealmContext } from '../../context/realm-context-store';
 
 export class ChannelQueryService {
   constructor(
@@ -22,7 +23,7 @@ export class ChannelQueryService {
   ) {}
 
   async getChannelById(channelId: string): Promise<ChannelEntity> {
-    const channel = await this.channelRepository.findById(channelId);
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(channelId);
     }
@@ -30,36 +31,60 @@ export class ChannelQueryService {
   }
 
   async canSendMessage(channelId: string, senderId: string): Promise<{ allowed: boolean; reason?: string }> {
-    const channel = await this.channelRepository.findById(channelId);
+    console.log('[ChannelQueryService] canSendMessage called', {
+      channelId,
+      senderId,
+      realmId: getRealmContext().realmId,
+    });
+
+    const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
+      console.warn('[ChannelQueryService] Channel not found', { channelId });
       return { allowed: false, reason: 'Channel not found' };
     }
+
     const recentCount = await this.messageRepository.countRecentByChannelAndSender(channelId, senderId, 1);
-    return channel.canSendMessage(senderId, recentCount);
+    const result = channel.canSendMessage(senderId, recentCount);
+
+    console.log('[ChannelQueryService] Permission check result', {
+      channelId,
+      senderId,
+      allowed: result.allowed,
+      reason: result.reason,
+      channelStatus: channel.status,
+      isMember: channel.members.some(m => m.memberId === senderId),
+    });
+
+    return result;
   }
 
   async getChannelsByProject(projectId: string): Promise<ChannelEntity[]> {
-    return await this.channelRepository.findByProject(projectId);
+    return await this.channelRepository.findByProject(projectId, getRealmContext().realmId);
   }
 
   async getAllChannels(): Promise<ChannelEntity[]> {
-    return await this.channelRepository.findAll();
+    return await this.channelRepository.findAll(getRealmContext().realmId);
   }
 
   async getChannelsByType(type: ChannelType): Promise<ChannelEntity[]> {
-    return await this.channelRepository.findByType(type);
+    return await this.channelRepository.findByType(type, getRealmContext().realmId);
   }
 
   async getChannelsByStatus(status: ChannelStatus): Promise<ChannelEntity[]> {
-    const allChannels = await this.channelRepository.findAll();
+    const allChannels = await this.channelRepository.findAll(getRealmContext().realmId);
     return allChannels.filter(channel => channel.status === status);
   }
 
   async getChannelsByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]> {
-    return await this.channelRepository.findByMember(memberId, realmId);
+    const effectiveRealmId = realmId ?? getRealmContext().realmId;
+    return await this.channelRepository.findByMember(memberId, effectiveRealmId);
   }
 
   async getAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {
-    return await this.channelRepository.findAgentDMChannel(agentId, userId);
+    return await this.channelRepository.findAgentDMChannel(agentId, getRealmContext().realmId, userId);
+  }
+
+  async findByRealmAndName(realmId: string, name: string): Promise<ChannelEntity | null> {
+    return await this.channelRepository.findByRealmAndName(realmId, name);
   }
 }

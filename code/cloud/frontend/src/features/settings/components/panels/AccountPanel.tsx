@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Check } from 'lucide-react';
 import { SettingsCard } from '../common/SettingsCard';
@@ -9,7 +9,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { AvatarEditor } from '@/shared/components/display/Avatar';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 
 export function AccountPanel() {
   const { t } = useTranslation('settings');
@@ -18,13 +18,17 @@ export function AccountPanel() {
   const { language, setLanguage } = useSettingsStore();
 
   // 表单状态 - 使用 lazy initialization
-  const [displayName, setDisplayName] = useState(() => user?.displayName || '');
+  const [displayName, setDisplayName] = useState(() => {
+    if (!user) return '';
+    return user.displayName || (user as any).display_name || '';
+  });
   const [email, setEmail] = useState(() => user?.email || '');
 
   // 检测是否有修改
   const hasChanges = useMemo(() => {
+    const currentDisplayName = user?.displayName || (user as any)?.display_name || '';
     return (
-      displayName !== user?.displayName ||
+      displayName !== currentDisplayName ||
       email !== user?.email
     );
   }, [displayName, email, user]);
@@ -46,10 +50,18 @@ export function AccountPanel() {
   // 重置表单
   function handleReset() {
     if (user) {
-      setDisplayName(user.displayName);
+      setDisplayName(user.displayName || (user as any).display_name || '');
       setEmail(user.email);
     }
   }
+
+  // 当 user 数据加载完成后，同步到表单状态
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || (user as any).display_name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   if (isLoadingUser || !user) {
     return (
@@ -185,17 +197,18 @@ export function AccountPanel() {
           </Label>
           <div className="grid grid-cols-2 gap-3 max-w-md">
             {/* English */}
-            <button
+            <Button
               onClick={() => setLanguage('en')}
+              variant="ghost"
               className={`
-                relative p-4 rounded-xl border-2 transition-all
+                relative p-4 rounded-xl border-2 transition-all h-auto
                 ${language === 'en'
                   ? 'border-blue-500 bg-blue-500/10'
                   : 'border-white/10 bg-white/5 hover:border-white/20'
                 }
               `}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between w-full">
                 <div className="text-left">
                   <div className="text-white font-medium">English</div>
                   <div className="text-sm text-white/60">EN</div>
@@ -204,20 +217,21 @@ export function AccountPanel() {
                   <Check className="w-5 h-5 text-blue-400" />
                 )}
               </div>
-            </button>
+            </Button>
 
             {/* 中文 */}
-            <button
+            <Button
               onClick={() => setLanguage('zh')}
+              variant="ghost"
               className={`
-                relative p-4 rounded-xl border-2 transition-all
+                relative p-4 rounded-xl border-2 transition-all h-auto
                 ${language === 'zh'
                   ? 'border-blue-500 bg-blue-500/10'
                   : 'border-white/10 bg-white/5 hover:border-white/20'
                 }
               `}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between w-full">
                 <div className="text-left">
                   <div className="text-white font-medium">中文</div>
                   <div className="text-sm text-white/60">ZH</div>
@@ -226,7 +240,7 @@ export function AccountPanel() {
                   <Check className="w-5 h-5 text-blue-400" />
                 )}
               </div>
-            </button>
+            </Button>
           </div>
           <p className="text-sm text-white/60">
             {t('account.preferences.languageDescription')}

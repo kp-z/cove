@@ -1,5 +1,6 @@
 import { router, procedure } from '../trpc';
 import { createAgentRouter } from './agent.router';
+import { createAgentDMRouter } from './agent-dm.router';
 import { createAdapterRouter } from './adapter.router';
 import { createAuthRouter } from './auth.router';
 import { createAuditRouter } from './audit.router';
@@ -18,6 +19,7 @@ import { deviceRouter } from './device.router';
 import { createFileSystemRouter } from './filesystem.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
+import type { AgentDMService } from '../../../application/services/agent-dm/agent-dm.service';
 import type { AdapterService } from '../../../application/services/adapter/adapter.service';
 import { AdapterMetadataService } from '../../../application/services/adapter/adapter-metadata.service';
 import type { AuthService } from '../../../application/services/auth/auth.service';
@@ -41,6 +43,7 @@ import type { ILogger } from '../../../application/interfaces/logger.interface';
 export interface RouterDependencies {
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
+  agentDMService: AgentDMService;
   adapterService: AdapterService;
   authService: AuthService;
   auditService: AuditService;
@@ -87,6 +90,11 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
       agentService: deps.agentService,
       agentRuntimeService: deps.agentRuntimeService,
       adapterService: deps.adapterService,
+    }),
+
+    // Agent DM router
+    agentDM: createAgentDMRouter({
+      agentDMService: deps.agentDMService,
     }),
 
     // Adapter router

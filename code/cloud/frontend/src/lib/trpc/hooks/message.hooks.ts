@@ -6,12 +6,31 @@ export function useSendMessage() {
   const utils = trpc.useUtils();
 
   return trpc.message.send.useMutation({
+    onMutate: (variables) => {
+      console.log('[useSendMessage] Mutation started', {
+        channelId: variables.channelId,
+        senderId: variables.senderId,
+        contentLength: variables.content.length,
+      });
+    },
     onSuccess: (_data, variables) => {
+      console.log('[useSendMessage] Mutation succeeded', {
+        messageId: _data.message_id,
+        channelId: variables.channelId,
+      });
       utils.message.list.invalidate({ channelId: variables.channelId });
-      notify.toast.success('Message sent', 'Your message has been sent successfully');
+      // Toast 已移除：新架构通过 MessageStatus 组件显示状态
     },
     onError: (error) => {
-      notify.toast.error('Failed to send message', error.message || 'An unexpected error occurred');
+      console.error('[useSendMessage] Mutation failed', {
+        error: error.message,
+        code: error.data?.code,
+      });
+      // Toast 已移除：新架构通过 MessageStatus 组件显示错误
+      // 仅保留系统级错误（如权限错误）的 Toast
+      if (error.data?.code === 'FORBIDDEN' || error.data?.code === 'UNAUTHORIZED') {
+        notify.toast.error('Permission denied', error.message || 'You do not have permission to send messages');
+      }
     },
   });
 }

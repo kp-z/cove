@@ -4,8 +4,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { useAgents } from '@/lib/trpc/hooks/agent.hooks';
 import { useUsers } from '@/lib/trpc/hooks/user.hooks';
 import { useAddChannelMember } from '@/lib/trpc/hooks/channel.hooks';
-import { getAvatarUrl } from '@/shared/utils/avatar';
-import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { Agent, User } from '@/lib/trpc-types';
 
 interface AddMemberPopoverProps {
@@ -126,7 +125,7 @@ export function AddMemberPopover({ channelId, existingMemberIds, trigger }: AddM
                         key={agent.agent_id}
                         id={agent.agent_id}
                         name={agent.display_name || agent.name}
-                        avatarUrl={getAgentAvatarUrl(agent.persona?.avatar?.url)}
+                        avatarUrl={getAvatarUrl(agent.persona?.avatar?.url)}
                         type="agent"
                         onAdd={handleAddMember}
                         isAdding={addMember.isPending}

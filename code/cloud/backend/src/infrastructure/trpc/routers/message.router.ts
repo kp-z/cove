@@ -70,13 +70,26 @@ export const messageRouter = (messageService: MessageService) =>
     send: publicProcedure
       .input(sendMessageSchema)
       .mutation(async ({ input, ctx }) => {
+        console.log('[message.router] send endpoint called', {
+          channelId: input.channelId,
+          senderId: input.senderId,
+          realmId: ctx.realmId,
+          userId: ctx.userId,
+        });
         try {
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.sendMessage(input);
+            console.log('[message.router] Message sent successfully', {
+              messageId: message.messageId,
+            });
           return message.toJSON();
           });
         } catch (error: any) {
+          console.error('[message.router] Error sending message', {
+            error: error.message,
+            channelId: input.channelId,
+          });
           throw mapErrorToTRPC(error);
         }
       }),

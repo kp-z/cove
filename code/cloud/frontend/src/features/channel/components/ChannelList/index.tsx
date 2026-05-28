@@ -57,7 +57,7 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
   // Compact mode: tighter spacing (matching claude_manager reference)
   const containerClass = compact
     ? 'w-[300px] max-h-[420px] overflow-y-auto px-3 py-2 space-y-3'
-    : 'h-full flex flex-col gap-3 px-4 pt-4 pb-6';
+    : 'h-full flex flex-col gap-3 px-6 pt-4 pb-6';
 
   const sectionClass = compact ? 'space-y-2' : 'space-y-3';
 

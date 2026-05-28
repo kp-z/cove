@@ -7,7 +7,7 @@ import { useAuthStore } from '@/core/auth/authStore';
 import { useCurrentUser } from '@/core/auth/useCurrentUser';
 import { Capsule } from '@/shared/components/ui/Capsule';
 import { HoverGradient } from '@/shared/components/ui/HoverGradient';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',

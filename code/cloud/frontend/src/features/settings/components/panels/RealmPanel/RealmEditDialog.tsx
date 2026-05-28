@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
 import type { Realm } from '@/lib/trpc-types';
 import type { RealmUpdateData } from './types';
 
@@ -49,12 +50,13 @@ export function RealmEditDialog({ realm, isOpen, onClose, onSave, isLoading }: R
           <h2 className="text-xl font-semibold text-white">
             {realm ? 'Edit Realm' : 'Create Realm'}
           </h2>
-          <button
+          <Button
             onClick={onClose}
-            className="p-1 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
+            variant="ghost"
+            size="icon-sm"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Form */}
@@ -105,21 +107,23 @@ export function RealmEditDialog({ realm, isOpen, onClose, onSave, isLoading }: R
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white/80 bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
+              variant="outline"
+              className="flex-1"
               disabled={isLoading}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              className="flex-1"
               disabled={isLoading}
             >
               {isLoading ? 'Saving...' : realm ? 'Save Changes' : 'Create Realm'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

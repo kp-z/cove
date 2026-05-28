@@ -116,42 +116,6 @@ export function SettingsInput({
   )
 }
 
-// SettingsButton - 按钮控件
-interface SettingsButtonProps {
-  onClick: () => void
-  children: ReactNode
-  variant?: 'default' | 'primary' | 'danger'
-  disabled?: boolean
-}
-
-export function SettingsButton({
-  onClick,
-  children,
-  variant = 'default',
-  disabled,
-}: SettingsButtonProps) {
-  const variantStyles = {
-    default: 'bg-white/10 hover:bg-white/20 text-white',
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-    danger: 'bg-red-600/80 hover:bg-red-600 text-white',
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'px-4 py-2 rounded-lg transition-colors',
-        'focus:outline-none focus:ring-2 focus:ring-blue-500/50',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
-        variantStyles[variant]
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
 // ColorPicker - 颜色选择器（保留原有的）
 interface ColorPickerProps {
   value: string

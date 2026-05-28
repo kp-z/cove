@@ -36,7 +36,7 @@ export class AgentResponseService {
       realmId: context.realmId,
     });
 
-    const channel = await this.channelRepository.findById(message.channelId);
+    const channel = await this.channelRepository.findById(message.channelId, context.realmId);
     if (!channel) return;
 
     const agentIds = channel.agentPool;

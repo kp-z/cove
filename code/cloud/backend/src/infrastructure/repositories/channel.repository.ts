@@ -3,7 +3,6 @@ import { ChannelEntity } from '../../domain/models/channel/channel.entity';
 import { IChannelRepository } from '../../application/interfaces/repositories/channel.repository.interface';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import type { ChannelType } from '../../domain/models/channel/channel.types';
-import { getRealmContext } from '../../application/context/realm-context-store';
 
 interface ChannelDbRecord {
   id: string;
@@ -60,9 +59,9 @@ export class ChannelRepository implements IChannelRepository {
       parentChannelId: dbRecord.parentChannelId ?? undefined,
       description: dbRecord.description ?? undefined,
       icon: dbRecord.icon ?? undefined,
-      avatar: dbRecord.avatarUrl && dbRecord.avatarType ? {
+      avatar: dbRecord.avatarUrl ? {
         url: dbRecord.avatarUrl,
-        type: dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default',
+        type: (dbRecord.avatarType as 'uploaded' | 'dicebear' | 'default') || 'dicebear',
       } : undefined,
       members: membersData.map((m: any) => ({
         memberId: m.memberId,
@@ -144,13 +143,12 @@ export class ChannelRepository implements IChannelRepository {
     };
   }
 
-  async findById(channelId: string): Promise<ChannelEntity | null> {
+  async findById(channelId: string, realmId: string): Promise<ChannelEntity | null> {
     try {
-      const context = getRealmContext();
       const record = await this.prisma.channel.findFirst({
         where: {
           id: channelId,
-          realmId: context.realmId,
+          realmId,
         },
       });
 
@@ -165,13 +163,12 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findByProject(projectId: string): Promise<ChannelEntity[]> {
+  async findByProject(projectId: string, realmId: string): Promise<ChannelEntity[]> {
     try {
-      const context = getRealmContext();
       const records = await this.prisma.channel.findMany({
         where: {
           projectId,
-          realmId: context.realmId,
+          realmId,
         },
         orderBy: { name: 'asc' },
       });
@@ -183,13 +180,12 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findByType(type: ChannelType): Promise<ChannelEntity[]> {
+  async findByType(type: ChannelType, realmId: string): Promise<ChannelEntity[]> {
     try {
-      const context = getRealmContext();
       const records = await this.prisma.channel.findMany({
         where: {
           type,
-          realmId: context.realmId,
+          realmId,
         },
         orderBy: { name: 'asc' },
       });
@@ -201,15 +197,13 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findByMember(memberId: string, realmId?: string): Promise<ChannelEntity[]> {
+  async findByMember(memberId: string, realmId: string): Promise<ChannelEntity[]> {
     try {
       this.logger.info('[DEBUG] Finding channels by member', { memberId, realmId });
 
-      // Use provided realmId or get from context
-      const contextRealmId = realmId || getRealmContext().realmId;
       const records = await this.prisma.channel.findMany({
         where: {
-          realmId: contextRealmId,
+          realmId,
           membersData: {
             contains: `"${memberId}"`,
           },
@@ -234,13 +228,12 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findAgentDMChannel(agentId: string, userId?: string): Promise<ChannelEntity | null> {
+  async findAgentDMChannel(agentId: string, realmId: string, userId?: string): Promise<ChannelEntity | null> {
     try {
-      const context = getRealmContext();
       // 查找 type='dm' 且 agentPool 只包含该 agent 的 channel
       const records = await this.prisma.channel.findMany({
         where: {
-          realmId: context.realmId,
+          realmId,
           type: 'dm',
           agentPool: `["${agentId}"]`, // 精确匹配单个 agent 的 JSON 数组
         },
@@ -282,11 +275,28 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async findAll(): Promise<ChannelEntity[]> {
+  async findByRealmAndName(realmId: string, name: string): Promise<ChannelEntity | null> {
     try {
-      const context = getRealmContext();
+      const record = await this.prisma.channel.findUnique({
+        where: {
+          realmId_name: {
+            realmId,
+            name,
+          },
+        },
+      });
+
+      return record ? this.toDomain(record as unknown as ChannelDbRecord) : null;
+    } catch (error: any) {
+      this.logger.error(`Failed to find channel by realm ${realmId} and name ${name}`, error);
+      throw error;
+    }
+  }
+
+  async findAll(realmId: string): Promise<ChannelEntity[]> {
+    try {
       const records = await this.prisma.channel.findMany({
-        where: { realmId: context.realmId },
+        where: { realmId },
         orderBy: { name: 'asc' },
       });
 
@@ -342,26 +352,25 @@ export class ChannelRepository implements IChannelRepository {
     }
   }
 
-  async delete(channelId: string): Promise<void> {
+  async delete(channelId: string, realmId: string): Promise<void> {
     try {
       await this.prisma.channel.delete({
-        where: { id: channelId },
+        where: { id: channelId, realmId },
       });
 
-      this.logger.debug(`Deleted channel ${channelId}`, { channelId });
+      this.logger.debug(`Deleted channel ${channelId}`, { channelId, realmId });
     } catch (error: any) {
       this.logger.error(`Failed to delete channel ${channelId}`, error);
       throw error;
     }
   }
 
-  async exists(channelId: string): Promise<boolean> {
+  async exists(channelId: string, realmId: string): Promise<boolean> {
     try {
-      const context = getRealmContext();
       const count = await this.prisma.channel.count({
         where: {
           id: channelId,
-          realmId: context.realmId,
+          realmId,
         },
       });
 

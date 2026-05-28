@@ -243,12 +243,21 @@ function initializeDependencies() {
     channelMessagingService
   );
 
+  // User service (needed by MessageCrudService)
+  const userService = new UserService(
+    userRepository,
+    eventBus,
+    logger,
+    auditService
+  );
+
   // Message sub-services
   const messageCrudService = new MessageCrudService(
     messageRepository,
     channelService,
     eventBus,
-    logger
+    logger,
+    userService
   );
 
   const messageQueryService = new MessageQueryService(
@@ -352,13 +361,6 @@ function initializeDependencies() {
     agentRuntime,
     eventBus,
     logger
-  );
-
-  const userService = new UserService(
-    userRepository,
-    eventBus,
-    logger,
-    auditService
   );
 
   const projectService = new ProjectService(

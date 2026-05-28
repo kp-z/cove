@@ -143,7 +143,7 @@ export class ProjectCompositionService {
     }
 
     // 验证 Channel 存在
-    const channel = await this.channelRepository.findById(dto.channelId);
+    const channel = await this.channelRepository.findById(dto.channelId, getRealmContext().realmId);
     if (!channel) {
       throw new ChannelNotFoundError(dto.channelId);
     }
@@ -343,14 +343,15 @@ export class ProjectCompositionService {
    * 获取 Project 的所有 Channels
    */
   async getProjectChannels(projectId: string): Promise<ChannelEntity[]> {
-    const project = await this.projectRepository.findById(projectId, getRealmContext().realmId);
+    const context = getRealmContext();
+    const project = await this.projectRepository.findById(projectId, context.realmId);
     if (!project) {
       throw new ProjectNotFoundError(projectId);
     }
 
     const channels: ChannelEntity[] = [];
     for (const channelId of project.channelIds) {
-      const channel = await this.channelRepository.findById(channelId);
+      const channel = await this.channelRepository.findById(channelId, context.realmId);
       if (channel) {
         channels.push(channel);
       }

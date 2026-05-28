@@ -6,12 +6,11 @@ import { ChannelMemberBar } from './ChannelMemberBar';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
-import { useChannels, useMessages, useSendMessage, useMessageStreaming } from '@/lib/trpc/hooks';
+import { useChannels, useMessageStreaming } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
 import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Message } from './types';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -54,46 +53,6 @@ interface ChannelPanelProps {
   hideTabs?: boolean;
 }
 
-function messageEntityToMessage(entity: MessageEntity): Message {
-  return {
-    message_id: entity.message_id,
-    thread_id: entity.thread_id || '',
-    sender: entity.sender_type === 'human' ? 'user' : entity.sender_type === 'agent' ? 'agent' : 'system',
-    sender_id: entity.sender_id,
-    sender_name: entity.sender_name,
-    content: entity.content,
-    timestamp: new Date(entity.created_at),
-    is_streaming: false,
-    agentMetadata: entity.agent_execution_metadata ? {
-      thinking: entity.agent_execution_metadata.thinking,
-      toolLogs: entity.agent_execution_metadata.tool_logs?.map(log => ({
-        id: log.id,
-        timestamp: log.timestamp,
-        toolName: log.tool_name,
-        action: log.action,
-        params: log.params,
-        status: log.status,
-        duration: log.duration,
-        result: log.result,
-        meta: log.meta ? {
-          fileCount: log.meta.file_count,
-          linesChanged: log.meta.lines_changed,
-          exitCode: log.meta.exit_code,
-        } : undefined,
-      })),
-      usage: entity.agent_execution_metadata.usage ? {
-        inputTokens: entity.agent_execution_metadata.usage.input_tokens,
-        outputTokens: entity.agent_execution_metadata.usage.output_tokens,
-        totalTokens: entity.agent_execution_metadata.usage.total_tokens,
-        cache: entity.agent_execution_metadata.usage.cache,
-        cost: entity.agent_execution_metadata.usage.cost,
-        model: entity.agent_execution_metadata.usage.model,
-        latency: entity.agent_execution_metadata.usage.latency,
-      } : undefined,
-    } : undefined,
-  };
-}
-
 export function ChannelPanel({
   channel_id,
   thread_id: initialThreadId,
@@ -108,8 +67,6 @@ export function ChannelPanel({
 
   const { mode, setMode, closeChannel } = useChannelPanelStore();
   const { data: channelsData, isLoading: channelLoading } = useChannels();
-  const { data: messagesData, isLoading: messagesLoading } = useMessages(channel_id);
-  const sendMessage = useSendMessage();
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -197,43 +154,6 @@ export function ChannelPanel({
         metadata: { project_id: currentChannel.project_id },
       }
     : null;
-
-  // Backend returns { messages: [...], nextCursor: string }
-  const messageEntities = messagesData?.messages || [];
-  let messages: Message[] = messageEntities.map(messageEntityToMessage);
-
-  // 如果有流式更新，合并到对应的消息中
-  if (streamingMessageId && streamingState.isStreaming) {
-    messages = messages.map(msg => {
-      if (msg.message_id === streamingMessageId) {
-        return {
-          ...msg,
-          is_streaming: true,
-          agentMetadata: {
-            thinking: streamingState.thinking || msg.agentMetadata?.thinking,
-            toolLogs: streamingState.toolLogs.length > 0 ? streamingState.toolLogs : msg.agentMetadata?.toolLogs,
-            usage: streamingState.usage || msg.agentMetadata?.usage,
-          },
-        };
-      }
-      return msg;
-    });
-  }
-
-  const handleSendMessage = useCallback(async (content: string) => {
-    if (!userId) {
-      console.error('Cannot send message: user not authenticated');
-      return;
-    }
-
-    sendMessage.mutate({
-      channelId: channel_id,
-      senderId: userId,
-      senderType: 'human',
-      content,
-      threadId: activeThreadId || undefined,
-    });
-  }, [channel_id, activeThreadId, sendMessage, userId]);
 
   const handleStopGeneration = useCallback(() => {
     // TODO: stop agent generation
@@ -324,16 +244,10 @@ export function ChannelPanel({
       )}
       <ChannelMemberBar channelId={channel_id} />
       <MessageList
-        messages={messages}
-        isLoading={messagesLoading}
+        channelId={channel_id}
         targetMessageId={message_id}
       />
-      <Composer
-        threadId={activeThreadId || channel_id}
-        isGenerating={sendMessage.isPending}
-        onSend={handleSendMessage}
-        onStop={handleStopGeneration}
-      />
+      <Composer channelId={channel_id} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useRealmList } from '@/lib/trpc/hooks/realm.hooks';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 
 interface RealmSwitcherProps {
   open: boolean;

@@ -14,9 +14,9 @@ import { ContentLoader } from '@/shared/components/layout/ContentLoader';
 import { PageError } from '@/shared/components/layout/PageError';
 import { EmptyState } from '@/shared/components/layout/EmptyState';
 import { useAgents, useDeleteAgent } from '@/lib/trpc/hooks/agent.hooks';
-import { useCreateChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
+import { useAgentDM } from '@/features/agent/hooks/useAgentDM';
 import { AgentCard } from './AgentCard';
 import type { Agent } from '@/lib/trpc-types';
 
@@ -32,9 +32,9 @@ export default function AgentPage() {
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useAgents();
   const deleteAgent = useDeleteAgent();
-  const createChannel = useCreateChannel();
   const { userId } = useCurrentUser();
   const utils = trpc.useUtils();
+  const { openAgentDM } = useAgentDM();
 
   // Backend returns { agents: [...], total: number }
   // Wrap in useMemo to prevent dependency changes in other useMemo hooks
@@ -111,37 +111,7 @@ export default function AgentPage() {
   }
 
   function handleRun(agent: Agent) {
-    if (!userId) {
-      console.error('User not authenticated');
-      return;
-    }
-
-    console.log('[DEBUG] Creating/finding DM channel for agent:', agent.agent_id);
-
-    // Create a DM channel with the agent
-    createChannel.mutate(
-      {
-        name: `DM-${agent.name}`,
-        type: 'dm',
-        createdBy: userId,
-        memberIds: [userId, agent.agent_id], // Add both user and agent as members
-        agentIds: [agent.agent_id],
-      },
-      {
-        onSuccess: async (data) => {
-          console.log('[DEBUG] Channel response:', data);
-          console.log('[DEBUG] Channel ID:', data.channel_id);
-          console.log('[DEBUG] Channel members:', data.members);
-
-          // Wait for channel list to refresh before navigating
-          await utils.channel.list.invalidate();
-
-          console.log('[DEBUG] Navigating to channel:', data.channel_id);
-          // Navigate to the newly created channel (use singular 'channel')
-          navigate(`/channel/${data.channel_id}`);
-        },
-      }
-    );
+    openAgentDM(agent.agent_id);
   }
 
   if (isLoading) return <ContentLoader />;

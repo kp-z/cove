@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { GlassCard } from '@/shared/components/ui/cards/GlassCard';
-import { getAgentAvatarUrl, getAgentInitials } from '../utils/avatar';
+import { Button } from '@/shared/components/ui/button';
+import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { Agent } from '@/lib/trpc-types';
 
 type AgentStatus = 'active' | 'idle' | 'disabled' | 'error';
@@ -31,9 +32,7 @@ const categoryColors: Record<AgentCategory, string> = {
 
 export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProps) {
   const { t } = useTranslation('agent');
-  const [avatarError, setAvatarError] = useState(false);
-  const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
-  const initials = getAgentInitials(agent.name);
+  const avatarUrl = getAvatarUrl(agent.persona?.avatar?.url);
 
   const categoryLabels: Record<AgentCategory, string> = {
     engineering: t('category.engineering'),
@@ -59,18 +58,13 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
     <GlassCard className="flex flex-col h-full p-5">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
-        {!avatarUrl || avatarError ? (
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
-            {initials}
-          </div>
-        ) : (
-          <img
-            src={avatarUrl}
-            alt={agent.name}
-            className="w-11 h-11 rounded-full border-2 border-white/20 bg-white/5 shrink-0"
-            onError={() => setAvatarError(true)}
-          />
-        )}
+        <Avatar
+          src={avatarUrl}
+          alt={agent.name}
+          type="agent"
+          size="lg"
+          className="shrink-0"
+        />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -157,21 +151,23 @@ export function AgentCard({ agent, onRun, onConfigure, onDelete }: AgentCardProp
 
       {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-3 mt-auto">
-        <button
+        <Button
           onClick={() => onRun?.(agent)}
           disabled={agent.status === 'error'}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          variant="default"
+          size="sm"
         >
           <MessageSquare size={14} />
           {t('actions.message')}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => onConfigure?.(agent)}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-gray-500/20 border border-gray-500/30 text-gray-400 hover:bg-gray-500/30 transition-colors"
+          variant="outline"
+          size="sm"
         >
           <Settings2 size={14} />
           {t('actions.config')}
-        </button>
+        </Button>
       </div>
     </GlassCard>
   );

@@ -1,5 +1,6 @@
 import { Settings } from 'lucide-react';
-import { getAvatarUrl } from '@/shared/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
+import { Button } from '@/shared/components/ui/button';
 import type { Realm } from '@/lib/trpc-types';
 
 interface RealmCardProps {
@@ -60,13 +61,14 @@ export function RealmCard({ realm, userRole, onEdit }: RealmCardProps) {
 
         {/* Edit Button */}
         {onEdit && (
-          <button
+          <Button
             onClick={onEdit}
-            className="shrink-0 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
+            variant="ghost"
+            size="icon-sm"
             title="Edit Realm"
           >
             <Settings size={18} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

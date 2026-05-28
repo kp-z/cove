@@ -77,11 +77,9 @@ export class BuiltInAgentsInitializer {
     const agent = await this.prisma.agent.upsert({
       where: { id: config.id },
       update: {
-        displayName: config.displayName,
-        status: 'idle',
-        avatarUrl: `https://api.dicebear.com/9.x/bottts/svg?seed=${config.name}-agent`,
-        avatarType: 'dicebear',
-        // Don't update scope - keep it as built-in
+        // Don't update any fields - preserve all user customizations
+        // (displayName, avatarUrl, avatarType, status, etc.)
+        // Only ensure the agent exists in the database
       },
       create: {
         id: config.id,
@@ -109,27 +107,39 @@ export class BuiltInAgentsInitializer {
     await fs.mkdir(path.join(agentDir, 'workspace'), { recursive: true });
     await fs.mkdir(path.join(agentDir, 'assets'), { recursive: true });
 
-    // 3. Create persona.yaml
+    // 3. Create persona.yaml if it doesn't exist (don't overwrite user customizations)
     const personaPath = path.join(agentDir, 'persona.yaml');
-    await fs.writeFile(
-      personaPath,
-      yaml.dump(config.persona, { indent: 2 }),
-      'utf-8'
-    );
+    try {
+      await fs.access(personaPath);
+      this.logger.debug(`Persona config already exists, skipping: ${personaPath}`);
+    } catch {
+      // File doesn't exist, create default persona config
+      await fs.writeFile(
+        personaPath,
+        yaml.dump(config.persona, { indent: 2 }),
+        'utf-8'
+      );
+      this.logger.debug(`Created default persona config: ${personaPath}`);
+    }
 
-    // 4. Create agent.md with YAML frontmatter for AgentDiscoveryService
+    // 4. Create agent.md if it doesn't exist (don't overwrite user customizations)
     const agentMdPath = path.join(agentDir, 'agent.md');
-    const frontmatter = {
-      agent_id: config.id,
-      name: config.name,
-      display_name: config.displayName,
-      description: config.description,
-      status: 'active',
-      category: config.role,
-      capabilities: config.capabilities,
-      tags: config.tags,
-    };
-    const agentMdContent = `---
+    try {
+      await fs.access(agentMdPath);
+      this.logger.debug(`Agent metadata already exists, skipping: ${agentMdPath}`);
+    } catch {
+      // File doesn't exist, create default agent.md
+      const frontmatter = {
+        agent_id: config.id,
+        name: config.name,
+        display_name: config.displayName,
+        description: config.description,
+        status: 'active',
+        category: config.role,
+        capabilities: config.capabilities,
+        tags: config.tags,
+      };
+      const agentMdContent = `---
 ${yaml.dump(frontmatter, { indent: 2 }).trim()}
 ---
 
@@ -147,7 +157,9 @@ ${config.tags.join(', ')}
 ---
 *This is a built-in agent managed by the system.*
 `;
-    await fs.writeFile(agentMdPath, agentMdContent, 'utf-8');
+      await fs.writeFile(agentMdPath, agentMdContent, 'utf-8');
+      this.logger.debug(`Created default agent metadata: ${agentMdPath}`);
+    }
 
     // 5. Create runtime.yaml if it doesn't exist (don't overwrite user customizations)
     const runtimePath = path.join(agentDir, 'runtime.yaml');
