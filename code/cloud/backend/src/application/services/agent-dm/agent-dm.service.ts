@@ -47,6 +47,12 @@ export class AgentDMService {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
+    // Extract avatar directly from agent entity (not from persona)
+    const avatar = agent.avatar ? {
+      url: agent.avatar.url,
+      type: agent.avatar.type,
+    } : undefined;
+
     const channelName = agent.displayName || agent.name;
 
     // 2. Try to find existing channel by unique constraint (realmId, name)
@@ -70,10 +76,7 @@ export class AgentDMService {
         createdBy: userId,
         memberIds: [userId],
         agentIds: [agentId],
-        avatar: agent.persona?.avatar ? {
-          url: agent.persona.avatar.url,
-          type: agent.persona.avatar.type,
-        } : undefined,
+        avatar: avatar,
       });
 
       this.logger.info('[AgentDM] DM channel created successfully', { channelId: channel.channelId });
