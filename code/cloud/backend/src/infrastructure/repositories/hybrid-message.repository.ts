@@ -351,6 +351,8 @@ export class HybridMessageRepository
       where: {
         channelId,
         realmId: context.realmId,
+        threadId: null,              // 排除线程回复
+        status: { not: 'deleted' },  // 排除已删除消息
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -358,6 +360,23 @@ export class HybridMessageRepository
     });
 
     return await this.loadEntities(records as MessageDbRecord[]);
+  }
+
+  async findLastByChannel(channelId: string): Promise<MessageEntity | null> {
+    const context = getRealmContext();
+    const record = await this.prisma.message.findFirst({
+      where: {
+        channelId,
+        realmId: context.realmId,
+        threadId: null,
+        status: { not: 'deleted' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!record) return null;
+    const entities = await this.loadEntities([record as MessageDbRecord]);
+    return entities[0] || null;
   }
 
   async findBySender(senderId: string): Promise<MessageEntity[]> {
@@ -426,6 +445,8 @@ export class HybridMessageRepository
     const where: any = {
       channelId,
       realmId: context.realmId,
+      threadId: null,              // 排除线程回复
+      status: { not: 'deleted' },  // 排除已删除消息
     };
     if (cursor) {
       const cursorRecord = await this.prisma.message.findFirst({

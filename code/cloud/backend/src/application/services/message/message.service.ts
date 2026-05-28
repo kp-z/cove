@@ -38,6 +38,10 @@ export class MessageService {
     return this.queryService.getMessagesByChannel(channelId, limit, offset);
   }
 
+  async getLastMessageByChannel(channelId: string): Promise<MessageEntity | null> {
+    return this.queryService.getLastMessageByChannel(channelId);
+  }
+
   async getMessagesByChannelCursor(
     channelId: string,
     cursor: string | null,

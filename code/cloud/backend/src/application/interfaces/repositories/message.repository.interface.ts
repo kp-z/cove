@@ -9,6 +9,7 @@ import { MessageEntity, MessageStatus } from '../../../domain/models/message/mes
 export interface IMessageRepository {
   findById(messageId: string, realmId: string): Promise<MessageEntity | null>;
   findByChannel(channelId: string, limit?: number, offset?: number): Promise<MessageEntity[]>;
+  findLastByChannel(channelId: string): Promise<MessageEntity | null>;
   findByChannelCursor(channelId: string, cursor: string | null, limit: number): Promise<{ messages: MessageEntity[]; nextCursor: string | null }>;
   countRecentByChannelAndSender(channelId: string, senderId: string, sinceMinutes: number): Promise<number>;
   findBySender(senderId: string): Promise<MessageEntity[]>;

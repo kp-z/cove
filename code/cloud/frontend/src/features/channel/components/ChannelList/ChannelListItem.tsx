@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useTranslation } from 'react-i18next';
 import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
+import { useChannelState } from '../../hooks/useChannelState';
+import { TypingStateIndicator, LastMessagePreview, OnlineStatusDot, UnreadBadge } from './ChannelStateIndicators';
 import type { ChannelEntity } from '../../api/client';
 
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -43,9 +45,17 @@ export function ChannelListItem({
   const { t } = useTranslation('channel');
   const avatarUrl = getAvatarUrl(channel.avatar);
 
+  // Phase 1-4: 获取频道状态（所有功能已启用）
+  const channelState = useChannelState(channel, {
+    enableTyping: true,
+    enableLastMessage: true,
+    enableUnread: true,
+    enablePresence: true,
+  });
+
   // Compact mode: smaller sizes (matching claude_manager reference)
   const avatarSize = compact ? 'sm' : 'md';
-  const padding = compact ? 'px-2 py-1.5' : '-mx-6 px-6 py-3';
+  const padding = compact ? 'px-2 py-1.5' : '-mx-3 px-3 py-3';
   const textSize = compact ? 'text-[11px]' : 'text-sm';
   const timeSize = compact ? 'text-[9px]' : 'text-[10px]';
   const descSize = compact ? 'text-[10px]' : 'text-xs';
@@ -60,10 +70,10 @@ export function ChannelListItem({
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
-          className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} transition-all duration-200 ${
+          className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} rounded-lg transition-all duration-200 ${
             isActive
-              ? 'bg-blue-500/20 text-white'
-              : 'hover:bg-white/[0.08] text-gray-300'
+              ? 'bg-blue-500/20 border border-blue-500/20 text-white'
+              : 'hover:bg-white/[0.08] text-gray-300 border border-transparent'
           }`}
         >
           <Avatar
@@ -75,14 +85,42 @@ export function ChannelListItem({
           />
           <div className="flex-1 text-left min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className={`${textSize} font-medium truncate`}>{channel.name}</span>
-              <span className={`${timeSize} text-muted-foreground shrink-0`}>
-                {formatTime(channel.updated_at)}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`${textSize} font-medium truncate`}>{channel.name}</span>
+                {/* 在线状态点 */}
+                {channelState.onlineMembers.length > 0 && (
+                  <OnlineStatusDot
+                    members={channelState.onlineMembers}
+                    status="online"
+                  />
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`${timeSize} text-muted-foreground`}>
+                  {formatTime(channel.updated_at)}
+                </span>
+                {/* 未读徽章 */}
+                {channelState.unreadCount > 0 && (
+                  <UnreadBadge count={channelState.unreadCount} />
+                )}
+              </div>
             </div>
-            {channel.description && !compact && (
+
+            {/* 优先级：输入状态 > 消息预览 > 描述 */}
+            {channelState.typingUsers.length > 0 ? (
+              <TypingStateIndicator
+                users={channelState.typingUsers}
+                layout="list"
+                compact={compact}
+              />
+            ) : channelState.lastMessage ? (
+              <LastMessagePreview
+                message={channelState.lastMessage}
+                compact={compact}
+              />
+            ) : channel.description && !compact ? (
               <p className={`${descSize} text-muted-foreground truncate mt-0.5`}>{channel.description}</p>
-            )}
+            ) : null}
           </div>
         </motion.button>
       </ContextMenu.Trigger>

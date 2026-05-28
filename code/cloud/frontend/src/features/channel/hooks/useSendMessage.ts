@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { trpc } from '@/lib/trpc';
 import { useCurrentUser } from '@/core/auth';
 import { Message, type MessageError } from '../domain/models';
@@ -13,6 +14,7 @@ import { messageQueue } from '../domain/MessageQueue';
 export function useSendMessage() {
   const { userId, user } = useCurrentUser();
   const mutation = trpc.message.send.useMutation();
+  const queryClient = useQueryClient();
 
   const send = useCallback(
     async (channelId: string, content: string) => {
@@ -60,12 +62,17 @@ export function useSendMessage() {
         // 5. 成功：标记为 sent
         messageStateManager.updateMessageStatus(tempId, 'sent');
 
+        // 6. 触发 lastMessage 缓存失效，更新 channel list
+        queryClient.invalidateQueries({
+          queryKey: [['message', 'getLastByChannel'], { input: { channelId } }],
+        });
+
         // 通知队列（如果是从队列发送的）
         window.dispatchEvent(
           new CustomEvent('queue:message-sent', { detail: { id: tempId } })
         );
       } catch (error: any) {
-        // 6. 失败：标记为 failed
+        // 7. 失败：标记为 failed
         const messageError: MessageError = {
           code: error.data?.code || 'UNKNOWN_ERROR',
           message: error.message || '发送失败',
@@ -82,7 +89,7 @@ export function useSendMessage() {
         );
       }
     },
-    [userId, user?.display_name, user?.username, mutation]
+    [userId, user?.display_name, user?.username, mutation, queryClient]
   );
 
   const retry = useCallback(

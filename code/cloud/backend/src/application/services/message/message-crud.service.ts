@@ -85,7 +85,7 @@ export class MessageCrudService {
       channelId: dto.channelId,
       channelName: channel.name,
       senderId: dto.senderId,
-      senderName: sender.displayName,
+      senderName: sender.displayName || sender.username || sender.email || dto.senderId,
       senderType: dto.senderType,
       content: dto.content,
       contentType: 'text',

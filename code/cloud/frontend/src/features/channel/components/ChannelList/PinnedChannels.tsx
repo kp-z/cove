@@ -3,6 +3,8 @@ import { Bookmark, Check, Settings } from 'lucide-react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useTranslation } from 'react-i18next';
 import { Avatar, getAvatarUrl } from '@/shared/components/display/Avatar';
+import { useChannelState } from '../../hooks/useChannelState';
+import { TypingStateIndicator, OnlineStatusDot, UnreadBadge } from './ChannelStateIndicators';
 import type { ChannelEntity } from '../../api/client';
 
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -38,6 +40,14 @@ function PinnedChannelItem({
 }: PinnedChannelItemProps) {
   const { t } = useTranslation('channel');
 
+  // Phase 1-4: 获取频道状态（所有功能已启用）
+  const channelState = useChannelState(channel, {
+    enableTyping: true,
+    enableLastMessage: false, // 网格模式不显示消息预览
+    enableUnread: true,
+    enablePresence: true,
+  });
+
   // Compact mode: smaller sizes
   const avatarSize = compact ? 'sm' : 'md';
   const textSize = compact ? 'text-[10px]' : 'text-xs';
@@ -48,27 +58,58 @@ function PinnedChannelItem({
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
         <div className="flex flex-col items-start gap-1">
-          <motion.div
-            onClick={onSelect}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`
-              cursor-pointer transition-all
-              ${isActive
-                ? 'ring-2 ring-blue-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)]'
-                : 'ring-2 ring-transparent hover:ring-gray-600 hover:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]'
-              }
-            `}
-            style={{ borderRadius: '0.5rem' }}
-          >
-            <Avatar
-              src={avatarUrl}
-              alt={channel.name}
-              type="channel"
-              channelType={channel.type as ChannelType}
-              size={avatarSize}
-            />
-          </motion.div>
+          <div className="relative inline-block">
+            <motion.div
+              onClick={onSelect}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                cursor-pointer transition-all relative
+                ${isActive
+                  ? 'ring-2 ring-blue-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)]'
+                  : 'ring-2 ring-transparent hover:ring-gray-600 hover:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]'
+                }
+              `}
+              style={{ borderRadius: '0.5rem' }}
+            >
+              <Avatar
+                src={avatarUrl}
+                alt={channel.name}
+                type="channel"
+                channelType={channel.type as ChannelType}
+                size={avatarSize}
+              />
+
+              {/* 输入状态叠加层 */}
+              {channelState.typingUsers.length > 0 && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5 rounded-b">
+                  <TypingStateIndicator
+                    users={channelState.typingUsers}
+                    layout="grid"
+                    compact={compact}
+                  />
+                </div>
+              )}
+
+              {/* 在线状态点 - 在头像右下角，稍微超出边缘 */}
+              {channelState.onlineMembers.length > 0 && (
+                <div className="absolute -bottom-0.5 -right-0.5">
+                  <OnlineStatusDot
+                    members={channelState.onlineMembers}
+                    status="online"
+                  />
+                </div>
+              )}
+            </motion.div>
+
+            {/* 未读徽章 - 在 motion.div 外层 */}
+            {channelState.unreadCount > 0 && (
+              <UnreadBadge
+                count={channelState.unreadCount}
+                className="absolute -top-1 -right-1"
+              />
+            )}
+          </div>
           <span className={`${textSize} text-gray-400 w-full text-left truncate`}>
             {channel.name}
           </span>

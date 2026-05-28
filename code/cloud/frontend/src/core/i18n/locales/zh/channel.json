@@ -16,6 +16,7 @@
   },
   "list": {
     "recent": "最近",
+    "pinned": "置顶",
     "pinChannel": "置顶频道",
     "unpinChannel": "取消置顶",
     "markAsRead": "标记为已读",
@@ -24,6 +25,16 @@
     "pinSuccess": "已置顶频道",
     "unpinSuccess": "已取消置顶",
     "pinError": "置顶失败"
+  },
+  "state": {
+    "typing": {
+      "single": "{{user}} 正在输入",
+      "double": "{{user1}} 和 {{user2}} 正在输入",
+      "multiple": "{{count}} 人正在输入"
+    },
+    "online": {
+      "count": "{{count}} 人在线"
+    }
   },
   "edit": {
     "title": "频道",

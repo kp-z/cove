@@ -39,6 +39,11 @@ export class MessageQueryService {
     return messages.filter(message => !message.threadId);
   }
 
+  async getLastMessageByChannel(channelId: string): Promise<MessageEntity | null> {
+    await this.channelQueryService.getChannelById(channelId);
+    return await this.messageRepository.findLastByChannel(channelId);
+  }
+
   async getMessagesByChannelCursor(
     channelId: string,
     cursor: string | null,

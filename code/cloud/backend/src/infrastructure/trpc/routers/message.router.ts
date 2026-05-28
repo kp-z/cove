@@ -120,6 +120,21 @@ export const messageRouter = (messageService: MessageService) =>
         }
       }),
 
+    // 获取频道最后一条消息（用于频道列表预览）
+    getLastByChannel: publicProcedure
+      .input(z.object({ channelId: z.string() }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            const message = await messageService.getLastMessageByChannel(input.channelId);
+            return message ? message.toJSON() : null;
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
     // 获取单条消息
     getById: publicProcedure
       .input(z.object({ messageId: z.string() }))

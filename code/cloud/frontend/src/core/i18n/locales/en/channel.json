@@ -16,6 +16,7 @@
   },
   "list": {
     "recent": "Recent",
+    "pinned": "Pinned",
     "pinChannel": "Pin Channel",
     "unpinChannel": "Unpin Channel",
     "markAsRead": "Mark as Read",
@@ -24,6 +25,16 @@
     "pinSuccess": "Channel pinned",
     "unpinSuccess": "Channel unpinned",
     "pinError": "Failed to pin channel"
+  },
+  "state": {
+    "typing": {
+      "single": "{{user}} is typing",
+      "double": "{{user1}} and {{user2}} are typing",
+      "multiple": "{{count}} people are typing"
+    },
+    "online": {
+      "count": "{{count}} online"
+    }
   },
   "edit": {
     "title": "Channel",

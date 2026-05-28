@@ -67,8 +67,8 @@ export function Avatar({
   const sizeClass = sizeMap[size].container;
   const iconSize = sizeMap[size].icon;
 
-  // 形状：统一使用圆形
-  const shape = 'rounded-full';
+  // 形状：Channel 使用圆角方形，其他使用圆形
+  const shape = type === 'channel' ? 'rounded-lg' : 'rounded-full';
 
   // 降级：图片 → 类型图标
   const showIcon = !src || imageError;
