@@ -26,8 +26,7 @@ describe('DeviceProcessor', () => {
       loadAdapter: vi.fn(),
       unloadAdapter: vi.fn(),
       listAdapters: vi.fn(),
-      reloadAdapter: vi.fn(),
-      updateAdapterConfig: vi.fn()
+      isLoaded: vi.fn().mockReturnValue(true)
     }
 
     // Mock BackendGateway

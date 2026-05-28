@@ -6,6 +6,8 @@
 
 import type { BackendGateway } from '../../infrastructure/gateway/backend-gateway.interface'
 import type { DeviceHealth } from './device-lifecycle-manager.interface'
+import type { ConnectionManager } from './connection-manager'
+import type { IMessageQueue } from '../../infrastructure/storage/message-queue.interface'
 
 /**
  * 健康监控配置
@@ -26,10 +28,14 @@ export interface HealthMonitorConfig {
 export class HealthMonitor {
   private monitorTimer?: NodeJS.Timeout
   private lastHealth?: DeviceHealth
+  private errorCount = 0
+  private totalRequests = 0
 
   constructor(
     private readonly config: HealthMonitorConfig,
-    private readonly backendGateway: BackendGateway
+    private readonly backendGateway: BackendGateway,
+    private readonly connectionManager?: ConnectionManager,
+    private readonly messageQueue?: IMessageQueue
   ) {}
 
   /**
@@ -78,6 +84,21 @@ export class HealthMonitor {
   }
 
   /**
+   * 记录错误
+   */
+  recordError(): void {
+    this.errorCount++
+    this.totalRequests++
+  }
+
+  /**
+   * 记录成功请求
+   */
+  recordSuccess(): void {
+    this.totalRequests++
+  }
+
+  /**
    * 检查并上报健康状态
    */
   private async checkAndReport(): Promise<void> {
@@ -121,15 +142,33 @@ export class HealthMonitor {
     const memoryUsage = process.memoryUsage()
     const cpuUsage = process.cpuUsage()
 
+    // 获取连接状态
+    const activeConnections = this.connectionManager?.isConnected() ? 1 : 0
+
+    // 获取队列深度
+    let queueDepth = 0
+    if (this.messageQueue) {
+      try {
+        queueDepth = await this.messageQueue.size()
+      } catch (error) {
+        console.warn('Failed to get queue depth:', error)
+      }
+    }
+
+    // 计算错误率
+    const errorRate = this.totalRequests > 0
+      ? (this.errorCount / this.totalRequests) * 100
+      : 0
+
     return {
       deviceId: this.config.deviceId,
       status: 'healthy',  // 初始状态
       metrics: {
         cpuUsage: (cpuUsage.user + cpuUsage.system) / 1000000,  // 转换为秒
         memoryUsage: memoryUsage.heapUsed / memoryUsage.heapTotal * 100,  // 百分比
-        activeConnections: 0,  // TODO: 从 ConnectionManager 获取
-        queueDepth: 0,  // TODO: 从 MessageQueue 获取
-        errorRate: 0  // TODO: 从错误统计获取
+        activeConnections,
+        queueDepth,
+        errorRate
       },
       lastCheckAt: new Date()
     }
