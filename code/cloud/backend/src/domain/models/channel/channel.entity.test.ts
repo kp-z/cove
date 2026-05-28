@@ -226,7 +226,7 @@ describe('ChannelEntity', () => {
         agentId: 'agent-001',
         userId: 'user-001',
         createdBy: { id: 'user-001', type: 'human' },
-        name: 'DM with Agent',
+        name: 'Agent',
         description: 'Direct message channel',
       });
 
@@ -247,7 +247,7 @@ describe('ChannelEntity', () => {
       });
 
       expect(dmChannel.name).toBe('DM-agent-002');
-      expect(dmChannel.displayName).toBe('DM with Agent agent-002');
+      expect(dmChannel.displayName).toBe('Agent agent-002');
     });
 
     it('should create DM channel with correct member types', () => {

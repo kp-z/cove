@@ -316,7 +316,7 @@ describe('channelRouter', () => {
         const dmChannel = ChannelEntity.create({
           channelId: 'dm-1',
           name: 'DM-agent-1',
-          displayName: 'DM with Agent',
+          displayName: 'Agent',
           type: 'dm',
           status: 'active',
           members: [

@@ -188,6 +188,7 @@ export class ChannelEntity {
     createdBy: { id: string; type: 'human' | 'agent' };
     name?: string;
     description?: string;
+    avatar?: Avatar;
   }): ChannelEntity {
     const now = new Date();
 
@@ -195,8 +196,9 @@ export class ChannelEntity {
       realmId: params.realmId,
       channelId: params.channelId,
       name: params.name || `DM-${params.agentId}`,
-      displayName: params.name || `DM with Agent ${params.agentId}`,
+      displayName: params.name || `Agent ${params.agentId}`,
       description: params.description,
+      avatar: params.avatar,
       type: 'dm',
       status: 'active',
       members: [
