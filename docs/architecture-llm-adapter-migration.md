@@ -795,22 +795,22 @@ gantt
 
 ### 当前进度
 
-> **最后更新**：2026-06-01 21:30
+> **最后更新**：2026-06-01 23:55
 > 
-> **当前阶段**：阶段 0 - Week 1 - Day 1
+> **当前阶段**：阶段 1 - Week 1 - Day 1
 > 
-> **整体进度**：10% (Redis 基础设施完成)
+> **整体进度**：20% (阶段 0 完成，开始阶段 1)
 > 
-> **Git 分支**：`feature/stage-0-architecture`
+> **Git 分支**：`feature/stage-1-core-components`
 > 
-> **Plan 文档**：`~/.claude/plans/llm-adapter-migration/stage-0-architecture.md`
+> **Plan 文档**：`~/.claude/plans/llm-adapter-migration/stage-1-core-components.md`
 
 #### 阶段状态
 
 | 阶段 | 状态 | 进度 | 开始日期 | 结束日期 | 分支 | Plan 文档 |
 |------|------|------|----------|----------|------|-----------|
-| 阶段 0 | ⏳ 进行中 | 15% | 2026-06-01 | - | feature/stage-0-architecture | stage-0-architecture.md |
-| 阶段 1 | 🔒 未开始 | 0% | - | - | - | stage-1-core-components.md |
+| 阶段 0 | ✅ 已完成 | 100% | 2026-06-01 | 2026-06-01 | feature/stage-0-architecture | stage-0-architecture.md |
+| 阶段 1 | ⏳ 进行中 | 0% | 2026-06-01 | - | feature/stage-1-core-components | stage-1-core-components.md |
 | 阶段 2 | 🔒 未开始 | 0% | - | - | - | stage-2-feature-flag.md |
 | 阶段 3 | 🔒 未开始 | 0% | - | - | - | stage-3-rollout.md |
 | 阶段 4 | 🔒 未开始 | 0% | - | - | - | stage-4-cleanup.md |
@@ -1613,6 +1613,61 @@ artillery run --target https://api.example.com config-sync-test.yml
 - 实现配置缓存服务（ConfigurationCache）
 - 编写配置缓存测试
 - 开始监控系统配置（Prometheus + Grafana）
+
+---
+
+### 2026-06-01 - 阶段 0 - Week 1 - Day 1 (续)
+
+**今日完成（续）**：
+- ✅ 添加 ioredis 依赖 - 22:00
+- ✅ 实现配置缓存服务（ConfigurationCache）- 22:30
+  - 配置缓存接口和实现
+  - TTL 过期策略
+  - 缓存失效和刷新机制
+- ✅ 编写并通过配置缓存测试（9/9）- 22:30
+- ✅ 创建 Redis 基础设施导出文件 - 22:35
+- ✅ 搭建监控系统（Prometheus + Grafana）- 23:00
+  - Prometheus 配置文件
+  - 告警规则配置
+  - Grafana Dashboard 配置
+- ✅ 创建压力测试脚本 - 23:30
+  - WebSocket 连接测试（k6）
+  - 消息路由测试（Artillery）
+  - 配置同步测试（Artillery）
+  - 测试运行脚本
+- ✅ 创建基础设施搭建文档 - 23:45
+- ✅ 提交代码并推送 - 23:50
+
+**代码变更（续）**：
+- 新增 `cloud/backend/src/infrastructure/redis/configuration-cache.ts`
+- 新增 `cloud/backend/src/infrastructure/redis/__tests__/configuration-cache.test.ts`
+- 新增 `cloud/backend/src/infrastructure/redis/index.ts`
+- 新增 `infrastructure/prometheus/prometheus.yml`
+- 新增 `infrastructure/prometheus/alerts.yml`
+- 新增 `infrastructure/grafana/dashboards/backend-cluster.json`
+- 新增 `tests/load/websocket-load-test.js`
+- 新增 `tests/load/message-routing-test.yml`
+- 新增 `tests/load/config-sync-test.yml`
+- 新增 `tests/load/run-tests.sh`
+- 新增 `docs/infrastructure-setup.md`
+
+**Git 操作（续）**：
+- 提交 commit: `feat(stage-0): implement configuration cache service`
+- 提交 commit: `feat(stage-0): add monitoring and load testing infrastructure`
+- 推送到远程仓库
+
+**阶段 0 完成情况**：
+- ✅ Week 1-2：架构设计（100%）
+- ✅ Week 3：基础设施搭建（100%）
+  - ✅ Redis Pub/Sub 配置
+  - ✅ 配置缓存服务
+  - ✅ 监控系统（Prometheus + Grafana）
+  - ✅ 压力测试环境
+
+**下一步计划**：
+- 进入阶段 1：核心组件实现
+- 创建阶段 1 分支 `feature/stage-1-core-components`
+- 开始实现 BackendGateway 接口
 
 ---
 
