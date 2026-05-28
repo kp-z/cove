@@ -476,14 +476,16 @@ model ConfigCache {
 }
 
 model ProgressRecord {
-  id          String   @id
-  taskId      String
-  progress    Int      // 0-100
-  status      String   // running | completed | failed
-  data        String?  // JSON string
-  createdAt   DateTime
-  updatedAt   DateTime
+  id            String   @id
+  messageId     String
+  channelId     String
+  agentId       String
+  chunkIndex    Int
+  chunkContent  String
+  completed     Boolean  @default(false)
+  timestamp     DateTime
 
-  @@index([taskId])
-  @@index([status])
+  @@index([messageId])
+  @@index([messageId, chunkIndex])
+  @@index([completed])
 }
