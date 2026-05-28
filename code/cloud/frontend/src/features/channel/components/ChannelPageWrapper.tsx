@@ -6,15 +6,28 @@ import { PageShell } from '@/shared/components/layout/PageShell';
 import { PageContent } from '@/shared/components/layout/PageContent';
 import { useChannels } from '@/lib/trpc/hooks';
 import { useChannelNavigation } from '../hooks/useChannelNavigation';
+import { useChannelPanelStore } from '../stores/channelStore';
+import { useResizableRight } from '../hooks/useResizableRight';
 import { ChannelPanel } from './ChannelPanel';
+import { TimelineContainer } from './TimelineContainer';
+import type { TimelineNode } from './Timeline/NodeRegistry';
 import ChannelPage from './ChannelPage';
 
 export default function ChannelPageWrapper() {
   const { isMobile } = useResponsive();
   const { channelId } = useParams<{ channelId?: string }>();
   const navigate = useNavigate();
-  const { threadId } = useChannelNavigation();
+  const { threadId, selectThread } = useChannelNavigation();
+  const { openChannel } = useChannelPanelStore();
   const { data: channelsData } = useChannels();
+
+  // Resizable left column (ChannelPage)
+  const leftColumn = useResizableRight({
+    defaultWidth: 280,
+    minWidth: 200,
+    maxWidth: 400,
+    storageKey: 'channel-page-left-width',
+  });
 
   // 获取当前 channel 信息（移到条件外，确保 hooks 调用顺序一致）
   const channels = channelsData?.channels || [];
@@ -41,6 +54,21 @@ export default function ChannelPageWrapper() {
         return Hash;
     }
   }, [currentChannel]);
+
+  // 处理 Timeline 节点点击事件
+  const handleNodeClick = (node: TimelineNode) => {
+    if (node.type === 'message') {
+      if (channelId) {
+        openChannel(channelId);
+      }
+    } else if (node.type === 'thread') {
+      const threadIdFromNode = node.data.thread_id || node.data.parent_message_id;
+      selectThread(threadIdFromNode);
+      if (channelId) {
+        openChannel(channelId);
+      }
+    }
+  };
 
   // 移动端且有 channelId：显示全屏 ChannelPanel
   if (isMobile && channelId) {
@@ -104,5 +132,27 @@ export default function ChannelPageWrapper() {
   }
 
   // 其他情况：显示标准 ChannelPage
-  return <ChannelPage />;
+  return (
+    <div className="flex h-full overflow-hidden">
+      {/* Left: ChannelPage (resizable) */}
+      <div
+        className="flex-shrink-0 relative"
+        style={{ width: leftColumn.width }}
+      >
+        <ChannelPage />
+        {/* Drag handle */}
+        <div
+          onMouseDown={leftColumn.onDragStart}
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500/50 transition-colors z-10"
+        />
+      </div>
+
+      {/* Right: Timeline (independent area) */}
+      <TimelineContainer
+        channelId={channelId || null}
+        selectedNodeId={threadId}
+        onNodeClick={handleNodeClick}
+      />
+    </div>
+  );
 }
