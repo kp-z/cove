@@ -55,8 +55,14 @@ export class AgentDMService {
 
     const channelName = agent.displayName || agent.name;
 
-    // 2. Try to find existing channel by unique constraint (realmId, name)
-    const existingChannel = await this.channelQueryService.findByRealmAndName(realmId, channelName);
+    // 2. Try to find existing channel by agent ID (more reliable than name lookup)
+    let existingChannel = await this.channelQueryService.getAgentDMChannel(agentId, userId);
+
+    // Fallback: try name-based lookup for backward compatibility
+    if (!existingChannel) {
+      existingChannel = await this.channelQueryService.findByRealmAndName(realmId, channelName);
+    }
+
     if (existingChannel) {
       this.logger.info('[AgentDM] DM channel already exists', { channelId: existingChannel.channelId });
       return existingChannel;
