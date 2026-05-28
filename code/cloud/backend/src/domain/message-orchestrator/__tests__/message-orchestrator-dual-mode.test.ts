@@ -102,6 +102,7 @@ describe('MessageOrchestrator - Dual Mode', () => {
       expect(mockRouter.routeMessage).toHaveBeenCalledWith({
         messageId: 'msg-1',
         channelId: 'channel-1',
+        realmId: 'channel-1',
         content: 'Hello'
       })
 
