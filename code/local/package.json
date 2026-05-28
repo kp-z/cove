@@ -34,6 +34,8 @@
     "test:e2e": "vitest run tests/e2e",
     "test:e2e:watch": "vitest tests/e2e",
     "test:integration": "tsx src/test-adapter.ts",
+    "test:claude-cli": "tsx src/test-claude-cli-adapter.ts",
+    "test:device-client": "vitest run src/__tests__/device-client.integration.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

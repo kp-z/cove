@@ -8,6 +8,7 @@ import type { IAdapterManager, AdapterConfig } from './adapter-manager.interface
 import type { LlmAdapter } from './llm/llm-adapter.interface'
 import { AnthropicAdapter } from './llm/anthropic-adapter'
 import { OpenAIAdapter } from './llm/openai-adapter'
+import { ClaudeCodeCLIAdapter } from './llm/claude-code-cli-adapter'
 
 /**
  * Adapter 管理器实现
@@ -41,6 +42,14 @@ export class AdapterManager implements IAdapterManager {
         break
       case 'openai':
         adapter = new OpenAIAdapter(config.config as any)
+        break
+      case 'custom':
+        // 支持自定义 adapter，例如 Claude CLI
+        if (config.name === 'claude-cli' || config.name.includes('claude-cli')) {
+          adapter = new ClaudeCodeCLIAdapter(config.config as any)
+        } else {
+          throw new Error(`Unsupported custom adapter: ${config.name}`)
+        }
         break
       default:
         throw new Error(`Unsupported adapter type: ${config.type}`)
