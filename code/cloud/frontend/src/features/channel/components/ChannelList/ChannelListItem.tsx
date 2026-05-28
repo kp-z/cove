@@ -45,7 +45,7 @@ export function ChannelListItem({
 
   // Compact mode: smaller sizes (matching claude_manager reference)
   const avatarSize = compact ? 'sm' : 'md';
-  const padding = compact ? 'px-2 py-1.5' : 'py-3';
+  const padding = compact ? 'px-2 py-1.5' : '-mx-6 px-6 py-3';
   const textSize = compact ? 'text-[11px]' : 'text-sm';
   const timeSize = compact ? 'text-[9px]' : 'text-[10px]';
   const descSize = compact ? 'text-[10px]' : 'text-xs';
