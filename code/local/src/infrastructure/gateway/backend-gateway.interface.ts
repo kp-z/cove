@@ -55,6 +55,25 @@ export interface BackendGateway {
   }): Promise<void>;
 
   /**
+   * Fetch realm configuration from backend
+   */
+  fetchRealmConfiguration(realmId: string): Promise<RealmConfiguration>;
+
+  /**
+   * Get configuration version from backend
+   */
+  getConfigVersion(realmId: string): Promise<number>;
+
+  /**
+   * Report device health to backend
+   */
+  reportHealth(health: {
+    deviceId: string;
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    metrics?: Record<string, unknown>;
+  }): Promise<void>;
+
+  /**
    * Health check
    */
   healthCheck(): Promise<boolean>;

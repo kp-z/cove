@@ -5,7 +5,7 @@
  */
 
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import type { BackendGateway, ExecutionMode, FeatureFlag } from './backend-gateway.interface';
+import type { BackendGateway, ExecutionMode, FeatureFlag, RealmConfiguration } from './backend-gateway.interface';
 
 export class TrpcBackendGateway implements BackendGateway {
   private client: any; // TODO: Import proper AppRouter type from backend
@@ -61,6 +61,39 @@ export class TrpcBackendGateway implements BackendGateway {
     } catch (error) {
       console.error('Failed to send message to backend:', error);
       throw error;
+    }
+  }
+
+  async fetchRealmConfiguration(realmId: string): Promise<RealmConfiguration> {
+    try {
+      const result = await this.client.configuration.fetch.query({ realmId });
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch realm configuration:', error);
+      throw error;
+    }
+  }
+
+  async getConfigVersion(realmId: string): Promise<number> {
+    try {
+      const result = await this.client.configuration.getVersion.query({ realmId });
+      return result;
+    } catch (error) {
+      console.error('Failed to get config version:', error);
+      throw error;
+    }
+  }
+
+  async reportHealth(health: {
+    deviceId: string;
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    metrics?: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      await this.client.device.reportHealth.mutate(health);
+    } catch (error) {
+      console.error('Failed to report health:', error);
+      // Don't throw - health reporting is best-effort
     }
   }
 
