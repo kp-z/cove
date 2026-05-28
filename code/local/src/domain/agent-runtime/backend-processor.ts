@@ -1,38 +1,46 @@
 /**
  * Backend Processor
  *
- * Backend 模式处理器：通过 Backend 执行消息处理
+ * Backend 模式处理器：将消息转发到 Backend 处理
  */
 
 import type { IMessageProcessor, ProcessResult } from './message-processor.interface'
 import type { MessageTask } from './message-orchestrator.interface'
+import type { BackendGateway } from '../../infrastructure/gateway/backend-gateway.interface'
 
 /**
  * Backend 处理器配置
  */
 export interface BackendProcessorConfig {
   timeout?: number
+  pollInterval?: number
 }
 
 /**
  * Backend 模式处理器
  */
 export class BackendProcessor implements IMessageProcessor {
-  constructor(private readonly config: BackendProcessorConfig = {}) {}
+  private readonly timeout: number
+  private readonly pollInterval: number
+
+  constructor(
+    private readonly backendGateway: BackendGateway,
+    config: BackendProcessorConfig = {}
+  ) {
+    this.timeout = config.timeout ?? 60000 // 60 秒超时
+    this.pollInterval = config.pollInterval ?? 1000 // 1 秒轮询间隔
+  }
 
   /**
    * 处理消息任务
    */
   async process(task: MessageTask): Promise<ProcessResult> {
     try {
-      // TODO: 实现 Backend 模式处理逻辑
-      // 1. 调用 Backend API
-      // 2. 等待处理结果
-      // 3. 返回结果
+      // 1. 转发消息到 Backend
+      await this.sendToBackend(task)
 
-      // 模拟处理
-      await this.simulateProcessing(task)
-
+      // 2. Backend 模式下，消息已转发，直接返回成功
+      // Backend 会自行处理消息并保存响应
       return {
         success: true
       }
@@ -45,10 +53,16 @@ export class BackendProcessor implements IMessageProcessor {
   }
 
   /**
-   * 模拟处理（占位符）
+   * 发送消息到 Backend
    */
-  private async simulateProcessing(task: MessageTask): Promise<void> {
-    // 模拟异步处理
-    await new Promise(resolve => setTimeout(resolve, 100))
+  private async sendToBackend(task: MessageTask): Promise<void> {
+    await this.backendGateway.sendMessageToBackend({
+      channelId: task.channelId,
+      content: task.content,
+      metadata: {
+        messageId: task.messageId,
+        executionMode: 'backend'
+      }
+    })
   }
 }

@@ -106,4 +106,44 @@ export class TrpcBackendGateway implements BackendGateway {
       return false;
     }
   }
+
+  async getMessageHistory(channelId: string): Promise<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>> {
+    try {
+      const result = await this.client.message.getHistory.query({ channelId });
+      return result;
+    } catch (error) {
+      console.error('Failed to get message history:', error);
+      return [];
+    }
+  }
+
+  async saveAgentResponse(response: {
+    channelId: string;
+    messageId: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      await this.client.message.saveResponse.mutate(response);
+    } catch (error) {
+      console.error('Failed to save agent response:', error);
+      throw error;
+    }
+  }
+
+  async pushResponseChunk(chunk: {
+    channelId: string;
+    messageId: string;
+    chunk: string;
+  }): Promise<void> {
+    try {
+      await this.client.message.pushChunk.mutate(chunk);
+    } catch (error) {
+      console.error('Failed to push response chunk:', error);
+      // Don't throw - chunk pushing is best-effort
+    }
+  }
 }
