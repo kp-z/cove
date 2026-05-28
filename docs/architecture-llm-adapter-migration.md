@@ -1671,6 +1671,82 @@ artillery run --target https://api.example.com config-sync-test.yml
 
 ---
 
+### 2026-06-02 - 阶段 1 - Week 1 - Day 1
+
+**今日完成**：
+- ✅ 创建阶段 1 分支 `feature/stage-1-core-components` - 00:00
+- ✅ 实现 BackendGateway 接口（防腐层）- 00:30
+  - IBackendGateway 接口定义
+  - 配置管理、消息处理、设备管理、Adapter 管理
+  - 完整的类型定义（DTO 和 Domain）
+- ✅ 实现 tRPC BackendGateway - 01:00
+  - TrpcBackendGateway 实现
+  - DTO ↔ Domain 转换
+  - 错误处理和重试机制（指数退避）
+  - 网络超时控制
+- ✅ 编写并通过所有测试（25/25）- 01:30
+  - 接口测试：12/12 通过
+  - tRPC 实现测试：13/13 通过
+  - 错误处理、重试、超时测试
+- ✅ 创建导出文件 - 01:35
+- ✅ 提交代码并推送 - 01:40
+
+**今日进行中**：
+- 无
+
+**今日遇到的问题**：
+1. fetch mock 返回不完整的 Response 对象
+   - 原因：测试中 mock 的 Response 缺少必要字段
+   - 解决方案：为每次重试都提供完整的 mock Response
+   - 状态：已解决
+
+**测试结果**：
+- ✅ BackendGateway 接口测试：12/12 通过
+- ✅ tRPC 实现测试：13/13 通过
+- ✅ 测试覆盖：配置管理、消息处理、设备管理、Adapter 管理、错误处理、DTO 转换
+
+**关键决策**：
+- **防腐层模式**：通过 IBackendGateway 接口隔离 tRPC 实现细节
+- **重试机制**：指数退避，最多重试 3 次
+- **超时控制**：默认 30 秒超时，可配置
+- **DTO 转换**：在 Gateway 层完成 DTO ↔ Domain 转换，保持领域层纯净
+
+**配置变更**：
+- 无
+
+**API 变更**：
+- 新增 `IBackendGateway` 接口 - Backend 防腐层接口
+- 新增 `TrpcBackendGateway` 类 - tRPC 实现
+
+**代码变更**：
+- 新增 `cloud/backend/src/infrastructure/gateway/backend-gateway.interface.ts`
+- 新增 `cloud/backend/src/infrastructure/gateway/trpc-backend-gateway.ts`
+- 新增 `cloud/backend/src/infrastructure/gateway/__tests__/backend-gateway.test.ts`
+- 新增 `cloud/backend/src/infrastructure/gateway/__tests__/trpc-backend-gateway.test.ts`
+- 新增 `cloud/backend/src/infrastructure/gateway/index.ts`
+
+**Git 操作**：
+- 创建分支 `feature/stage-1-core-components` 并推送到远程
+- 提交 commit: `feat(stage-1): implement BackendGateway interface and tRPC implementation`
+- 推送到远程仓库
+
+**架构亮点**：
+- **防腐层模式**：IBackendGateway 接口隔离 Backend 实现细节（tRPC/REST/gRPC）
+- **依赖倒置**：领域层依赖接口，基础设施层提供实现
+- **单一职责**：Gateway 只负责通信和 DTO 转换，不包含业务逻辑
+- **易于测试**：Mock 实现用于单元测试，真实实现用于集成测试
+- **错误恢复**：自动重试 + 指数退避 + 超时控制
+
+**明日计划**：
+- 继续实现阶段 1 Week 1 的任务
+- 按照架构文档，下一步是实现配置缓存（Redis）
+- 但配置缓存已在阶段 0 完成，所以跳过
+- 下一步：实现消息队列（Redis Pub/Sub）
+- 但消息队列也已在阶段 0 完成
+- 因此，直接进入 Week 2：Local Device 实现
+
+---
+
 ### Week 1 总结 (2026-06-01 ~ 2026-06-07)
 
 > **待更新**：本周结束时填写

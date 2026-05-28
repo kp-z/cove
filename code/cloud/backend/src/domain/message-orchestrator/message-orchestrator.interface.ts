@@ -1,0 +1,86 @@
+/**
+ * Message Orchestrator Interface
+ *
+ * 消息编排器：负责消息的入队、处理、状态管理
+ *
+ * 职责：
+ * - 消息入队和出队
+ * - 消息状态管理（PENDING → PROCESSING → COMPLETED/FAILED）
+ * - 消息优先级调度
+ * - 错误处理和重试
+ */
+
+/**
+ * 消息状态
+ */
+export type MessageState = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DEAD_LETTER'
+
+/**
+ * 消息任务
+ */
+export interface MessageTask {
+  id: string
+  messageId: string
+  channelId: string
+  content: string
+  state: MessageState
+  attempts: number
+  maxAttempts: number
+  priority: number
+  createdAt: Date
+  updatedAt: Date
+  lastAttemptAt?: Date
+  completedAt?: Date
+  error?: string
+}
+
+/**
+ * 消息编排器接口
+ */
+export interface IMessageOrchestrator {
+  /**
+   * 将消息加入队列
+   * @param message 消息内容
+   * @returns 任务 ID
+   */
+  enqueue(message: EnqueueMessage): Promise<string>
+
+  /**
+   * 处理下一条待处理消息
+   * @returns 是否有消息被处理
+   */
+  processNext(): Promise<boolean>
+
+  /**
+   * 获取任务状态
+   * @param taskId 任务 ID
+   * @returns 任务信息
+   */
+  getTask(taskId: string): Promise<MessageTask | null>
+
+  /**
+   * 获取所有待处理任务
+   * @returns 待处理任务列表
+   */
+  getPendingTasks(): Promise<MessageTask[]>
+
+  /**
+   * 启动消息处理循环
+   */
+  start(): Promise<void>
+
+  /**
+   * 停止消息处理循环
+   */
+  stop(): Promise<void>
+}
+
+/**
+ * 入队消息
+ */
+export interface EnqueueMessage {
+  messageId: string
+  channelId: string
+  content: string
+  priority?: number
+}
