@@ -10,7 +10,7 @@
  * - 任务查询：根据状态、消息 ID 查询任务
  */
 
-import type { MessageState } from '../../domain/message-orchestrator/message-orchestrator.interface'
+import type { MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
 
 /**
  * 任务记录

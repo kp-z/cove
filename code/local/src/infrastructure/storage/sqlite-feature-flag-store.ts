@@ -29,6 +29,7 @@ export class SqliteFeatureFlagStore implements IFeatureFlagStore {
     return {
       realmId: record.realmId,
       flagName: record.flagName,
+      name: record.flagName, // Use flagName as name
       enabled: record.enabled,
       mode: record.mode as 'backend' | 'device',
       rolloutPercentage: record.rolloutPercentage,
@@ -82,6 +83,7 @@ export class SqliteFeatureFlagStore implements IFeatureFlagStore {
     return records.map(record => ({
       realmId: record.realmId,
       flagName: record.flagName,
+      name: record.flagName, // Use flagName as name
       enabled: record.enabled,
       mode: record.mode as 'backend' | 'device',
       rolloutPercentage: record.rolloutPercentage,

@@ -5,8 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import type { IMessageQueue } from '../../domain/message-orchestrator/message-orchestrator'
-import type { MessageTask } from '../../domain/message-orchestrator/message-orchestrator.interface'
+import type { IMessageQueue } from '../../domain/agent-runtime/message-orchestrator'
+import type { MessageTask } from '../../domain/agent-runtime/message-orchestrator.interface'
 
 /**
  * SQLite 消息队列

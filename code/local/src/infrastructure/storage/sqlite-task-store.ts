@@ -5,8 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import type { ITaskStore } from '../../domain/message-orchestrator/message-orchestrator'
-import type { MessageTask, MessageState } from '../../domain/message-orchestrator/message-orchestrator.interface'
+import type { ITaskStore } from '../../domain/agent-runtime/message-orchestrator'
+import type { MessageTask, MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
 
 /**
  * SQLite 任务存储

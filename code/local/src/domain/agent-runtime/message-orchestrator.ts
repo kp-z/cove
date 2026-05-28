@@ -10,7 +10,7 @@ import type {
   EnqueueMessage,
   MessageState
 } from './message-orchestrator.interface'
-import type { IExecutionModeRouter } from '../execution-mode/execution-mode-router.interface'
+import type { BackendGateway } from '../../infrastructure/gateway/backend-gateway.interface'
 import type { IMessageProcessor } from './message-processor.interface'
 
 /**
@@ -49,7 +49,7 @@ export class MessageOrchestrator implements IMessageOrchestrator {
   private pollTimer?: NodeJS.Timeout
 
   constructor(
-    private readonly executionModeRouter: IExecutionModeRouter,
+    private readonly backendGateway: BackendGateway,
     private readonly backendProcessor: IMessageProcessor,
     private readonly deviceProcessor: IMessageProcessor,
     private readonly messageQueue: IMessageQueue,
@@ -61,16 +61,8 @@ export class MessageOrchestrator implements IMessageOrchestrator {
    * 将消息加入队列
    */
   async enqueue(message: EnqueueMessage): Promise<string> {
-    // 1. 从 channelId 中提取 realmId (格式: realm-id:channel-id)
-    const realmId = this.extractRealmId(message.channelId)
-
-    // 2. 确定执行模式
-    const mode = await this.executionModeRouter.routeMessage({
-      messageId: message.messageId,
-      channelId: message.channelId,
-      realmId,
-      content: message.content
-    })
+    // 1. 确定执行模式（通过 BackendGateway）
+    const executionMode = await this.backendGateway.getExecutionMode(message.channelId)
 
     // 2. 创建任务
     const task: MessageTask = {
@@ -79,7 +71,7 @@ export class MessageOrchestrator implements IMessageOrchestrator {
       channelId: message.channelId,
       content: message.content,
       state: 'PENDING',
-      executionMode: mode,
+      executionMode: executionMode.mode === 'cloud' ? 'backend' : 'device',
       attempts: 0,
       maxAttempts: this.config.maxAttempts ?? 3,
       priority: message.priority ?? 0,
@@ -227,15 +219,5 @@ export class MessageOrchestrator implements IMessageOrchestrator {
    */
   private generateTaskId(): string {
     return `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-  }
-
-  /**
-   * 从 channelId 中提取 realmId
-   * @param channelId 格式: realm-id:channel-id
-   * @returns realmId
-   */
-  private extractRealmId(channelId: string): string {
-    const parts = channelId.split(':')
-    return parts[0] || 'default'
   }
 }
