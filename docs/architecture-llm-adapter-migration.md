@@ -811,7 +811,7 @@ gantt
 |------|------|------|----------|----------|------|-----------|
 | 阶段 0 | ✅ 已完成 | 100% | 2026-06-01 | 2026-06-01 | feature/stage-0-architecture | stage-0-architecture.md |
 | 阶段 1 | ✅ 已完成 | 100% | 2026-06-01 | 2026-05-28 | feature/stage-1-core-components | stage-1-core-components.md |
-| 阶段 2 | 🔒 未开始 | 0% | - | - | - | stage-2-feature-flag.md |
+| 阶段 2 | ⏳ 进行中 | 0% | 2026-05-28 | - | feature/stage-2-feature-flag | stage-2-feature-flag.md |
 | 阶段 3 | 🔒 未开始 | 0% | - | - | - | stage-3-rollout.md |
 | 阶段 4 | 🔒 未开始 | 0% | - | - | - | stage-4-cleanup.md |
 
