@@ -675,6 +675,17 @@ export class ChannelEntity {
     });
   }
 
+  updateAvatar(avatar: Avatar): ChannelEntity {
+    return ChannelEntity.create({
+      ...this.props,
+      avatar,
+      meta: {
+        ...this.props.meta,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   archive(): ChannelEntity {
     if (this.props.status === 'archived') {
       throw new Error('Channel is already archived');

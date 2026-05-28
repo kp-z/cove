@@ -59,6 +59,9 @@ import { AgentTaskService } from './application/services/agent/agent-task.servic
 import { AgentResponseService } from './application/services/agent/agent-response.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { AgentDiscoveryService } from './application/services/agent/agent-discovery.service';
+import { AgentDMService } from './application/services/agent-dm/agent-dm.service';
+import { AgentDMHandler } from './infrastructure/events/handlers/agent-dm.handler';
+import { AgentAvatarSyncHandler } from './infrastructure/events/handlers/agent-avatar-sync.handler';
 import { AdapterService } from './application/services/adapter/adapter.service';
 import {
   AdapterBootstrapService,
@@ -328,6 +331,14 @@ function initializeDependencies() {
     logger
   );
 
+  // AgentDM Service - 处理 Agent 与 DM Channel 的关联
+  const agentDMService = new AgentDMService(
+    agentQueryService,
+    channelCrudService,
+    channelQueryService,
+    logger
+  );
+
   const agentService = new AgentService(
     agentCrudService,
     agentQueryService,
@@ -446,6 +457,37 @@ function initializeDependencies() {
     }).catch(err => logger.error('Agent response trigger failed', err as Error));
   });
 
+  /**
+   * Agent DM Auto-Creation
+   *
+   * Subscribe to agent.created event to automatically create DM channel
+   * for the agent creator.
+   */
+  const agentDMHandler = new AgentDMHandler(agentDMService, logger);
+  eventBus.subscribe('agent.created', (event) => {
+    agentDMHandler.handle(event).catch(err =>
+      logger.error('Agent DM handler failed', err as Error)
+    );
+  });
+
+  /**
+   * Agent Avatar Sync
+   *
+   * Subscribe to agent.updated event to automatically sync avatar
+   * to all associated DM channels.
+   */
+  const agentAvatarSyncHandler = new AgentAvatarSyncHandler(
+    agentRepository,
+    channelQueryService,
+    channelRepository,
+    logger
+  );
+  eventBus.subscribe('agent.updated', (event) => {
+    agentAvatarSyncHandler.handle(event).catch(err =>
+      logger.error('Agent avatar sync handler failed', err as Error)
+    );
+  });
+
   // Initialize and start auto-join services
   const defaultChannelsAutoJoinService = new DefaultChannelsAutoJoinService(
     eventBus,
@@ -475,6 +517,7 @@ function initializeDependencies() {
     // Services for tRPC
     agentService,
     agentRuntimeService,
+    agentDMService,
     adapterService,
     authService,
     realmMemberVerification,
@@ -501,6 +544,7 @@ function createStandaloneServer(deps: {
   deviceConnectionManager: DeviceConnectionManager;
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
+  agentDMService: any;
   adapterService: AdapterService;
   authService: AuthService;
   realmMemberVerification: RealmMemberVerificationService;
@@ -523,6 +567,7 @@ function createStandaloneServer(deps: {
   const appRouter = createAppRouter({
     agentService: deps.agentService,
     agentRuntimeService: deps.agentRuntimeService,
+    agentDMService: deps.agentDMService,
     adapterService: deps.adapterService,
     authService: deps.authService,
     auditService: deps.auditService,

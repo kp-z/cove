@@ -118,6 +118,7 @@ export class AgentCrudService {
         agentId: agent.agentId,
         name: agent.name,
         createdBy: dto.createdBy,
+        realmId: context.realmId,
       },
       metadata: {
         realmId: context.realmId,
@@ -219,6 +220,7 @@ export class AgentCrudService {
       occurredAt: new Date(),
       payload: {
         agentId,
+        realmId: updatedAgent.realmId,
         changes: dto,
       },
     });

@@ -47,10 +47,10 @@ export class AgentDMService {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // Extract avatar directly from agent entity (not from persona)
-    const avatar = agent.avatar ? {
-      url: agent.avatar.url,
-      type: agent.avatar.type,
+    // Extract avatar from agent persona
+    const avatar = agent.persona?.avatar ? {
+      url: agent.persona.avatar.url,
+      type: agent.persona.avatar.type,
     } : undefined;
 
     const channelName = agent.displayName || agent.name;
