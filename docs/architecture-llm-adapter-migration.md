@@ -277,6 +277,108 @@ graph TB
 
 ---
 
+### Local Device 目录结构
+
+根据 DDD 架构设计，Local Device 的目录结构如下：
+
+```
+local/
+├── src/
+│   ├── api/                          # API 层
+│   │   └── device-api.ts             # Device API（启动/关闭/健康检查）
+│   │
+│   ├── domain/                       # 领域层（3 个限界上下文）
+│   │   ├── agent-runtime/            # 1️⃣ Agent 运行时上下文
+│   │   │   ├── message-orchestrator.ts
+│   │   │   ├── message-orchestrator.interface.ts
+│   │   │   ├── message-orchestrator.factory.ts
+│   │   │   ├── backend-processor.ts
+│   │   │   ├── device-processor.ts
+│   │   │   ├── message-processor.interface.ts
+│   │   │   └── __tests__/
+│   │   │
+│   │   ├── configuration/            # 2️⃣ 配置同步上下文
+│   │   │   ├── configuration-service.ts
+│   │   │   ├── configuration-service.interface.ts
+│   │   │   ├── configuration-validator.ts
+│   │   │   └── __tests__/
+│   │   │
+│   │   ├── device-lifecycle/         # 3️⃣ 设备生命周期上下文
+│   │   │   ├── device-lifecycle-manager.ts
+│   │   │   ├── device-lifecycle-manager.interface.ts
+│   │   │   ├── connection-manager.ts
+│   │   │   ├── health-monitor.ts
+│   │   │   ├── error-recovery-service.ts
+│   │   │   └── __tests__/
+│   │   │
+│   │   ├── execution-mode/           # 执行模式（通过 BackendGateway 访问）
+│   │   │   └── execution-mode-router.interface.ts
+│   │   │
+│   │   └── feature-flag/             # Feature Flag（通过 BackendGateway 访问）
+│   │       └── feature-flag.interface.ts
+│   │
+│   └── infrastructure/               # 基础设施层
+│       ├── gateway/                  # 防腐层
+│       │   ├── backend-gateway.interface.ts
+│       │   ├── trpc-backend-gateway.ts
+│       │   └── __tests__/
+│       │
+│       ├── storage/                  # 本地存储（SQLite）
+│       │   ├── sqlite-message-queue.ts
+│       │   ├── sqlite-task-store.ts
+│       │   ├── sqlite-progress-store.ts
+│       │   ├── sqlite-config-cache.ts
+│       │   ├── sqlite-feature-flag-store.ts
+│       │   ├── message-queue.interface.ts
+│       │   ├── task-store.interface.ts
+│       │   ├── progress-store.interface.ts
+│       │   ├── config-cache.interface.ts
+│       │   ├── feature-flag-store.interface.ts
+│       │   └── __tests__/
+│       │
+│       └── adapters/                 # Adapter 插件系统
+│           ├── adapter-manager.ts
+│           ├── adapter-manager.interface.ts
+│           ├── llm/
+│           │   ├── anthropic-adapter.ts
+│           │   ├── openai-adapter.ts
+│           │   └── llm-adapter.interface.ts
+│           └── __tests__/
+│
+├── prisma/
+│   └── schema.prisma
+│
+├── package.json
+├── tsconfig.json
+└── vitest.config.ts
+```
+
+**目录说明**：
+
+1. **api/** - API 层
+   - 提供 Device 的启动、关闭、健康检查等接口
+
+2. **domain/** - 领域层（3 个限界上下文）
+   - **agent-runtime/** - Agent 运行时上下文
+     - MessageOrchestrator：消息编排器
+     - BackendProcessor：Backend 模式处理器
+     - DeviceProcessor：Device 模式处理器
+   - **configuration/** - 配置同步上下文
+     - ConfigurationService：配置同步服务
+     - ConfigurationValidator：配置验证器
+   - **device-lifecycle/** - 设备生命周期上下文
+     - DeviceLifecycleManager：生命周期管理器
+     - ConnectionManager：连接管理器
+     - HealthMonitor：健康监控器
+     - ErrorRecoveryService：错误恢复服务
+
+3. **infrastructure/** - 基础设施层
+   - **gateway/** - 防腐层（BackendGateway）
+   - **storage/** - 本地存储（SQLite）
+   - **adapters/** - Adapter 插件系统
+
+---
+
 ### 防腐层设计
 
 ```typescript
