@@ -1,0 +1,112 @@
+# Message Routing Load Test
+#
+# 使用 Artillery 进行消息路由压力测试
+# 目标：验证 Backend 能否支持 10,000 msg/s 吞吐量
+
+config:
+  target: "http://localhost:3002"
+  phases:
+    # 阶段 1：预热（1 分钟）
+    - duration: 60
+      arrivalRate: 100
+      name: "Warm up"
+
+    # 阶段 2：逐步增加负载（5 分钟）
+    - duration: 300
+      arrivalRate: 100
+      rampTo: 1000
+      name: "Ramp up to 1000 msg/s"
+
+    # 阶段 3：高负载测试（10 分钟）
+    - duration: 600
+      arrivalRate: 10000
+      name: "Sustained 10,000 msg/s"
+
+    # 阶段 4：峰值测试（2 分钟）
+    - duration: 120
+      arrivalRate: 15000
+      name: "Peak load 15,000 msg/s"
+
+    # 阶段 5：降低负载（2 分钟）
+    - duration: 120
+      arrivalRate: 15000
+      rampTo: 0
+      name: "Ramp down"
+
+  # 性能目标
+  ensure:
+    p95: 10  # P95 延迟 < 10ms
+    p99: 50  # P99 延迟 < 50ms
+    maxErrorRate: 0.1  # 错误率 < 0.1%
+
+  # 插件
+  plugins:
+    metrics-by-endpoint:
+      stripQueryString: true
+
+scenarios:
+  # 场景 1：本地路由（Realm 在本分片）
+  - name: "Local routing"
+    weight: 70
+    flow:
+      - post:
+          url: "/api/messages/route"
+          json:
+            realmId: "realm-{{ $randomNumber(0, 999) }}"  # 路由到 Shard 0
+            message:
+              type: "user_message"
+              content: "Test message {{ $randomString() }}"
+              channelId: "channel-{{ $randomNumber(1, 100) }}"
+              timestamp: "{{ $timestamp }}"
+          capture:
+            - json: "$.messageId"
+              as: "messageId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: messageId
+
+  # 场景 2：跨分片路由（Realm 在其他分片）
+  - name: "Cross-shard routing"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/messages/route"
+          json:
+            realmId: "realm-{{ $randomNumber(1000, 2999) }}"  # 路由到 Shard 1 或 2
+            message:
+              type: "user_message"
+              content: "Test message {{ $randomString() }}"
+              channelId: "channel-{{ $randomNumber(1, 100) }}"
+              timestamp: "{{ $timestamp }}"
+          capture:
+            - json: "$.messageId"
+              as: "messageId"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: messageId
+
+  # 场景 3：批量消息路由
+  - name: "Batch routing"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/messages/route-batch"
+          json:
+            messages:
+              - realmId: "realm-{{ $randomNumber(0, 2999) }}"
+                message:
+                  type: "user_message"
+                  content: "Batch message 1"
+              - realmId: "realm-{{ $randomNumber(0, 2999) }}"
+                message:
+                  type: "user_message"
+                  content: "Batch message 2"
+              - realmId: "realm-{{ $randomNumber(0, 2999) }}"
+                message:
+                  type: "user_message"
+                  content: "Batch message 3"
+          expect:
+            - statusCode: 200
+            - contentType: json

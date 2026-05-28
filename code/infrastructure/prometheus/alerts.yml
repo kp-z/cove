@@ -1,0 +1,173 @@
+# Prometheus Alert Rules
+#
+# 根据架构文档定义的告警规则
+
+groups:
+  - name: backend_alerts
+    interval: 30s
+    rules:
+      # 高连接数告警
+      - alert: HighConnectionCount
+        expr: backend_active_connections > 9000
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Backend 连接数过高"
+          description: "Backend {{ $labels.instance }} 当前连接数 {{ $value }}，超过阈值 9000"
+
+      # 高队列深度告警
+      - alert: HighQueueDepth
+        expr: backend_queue_depth > 500
+        for: 2m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "消息队列深度过高"
+          description: "Backend {{ $labels.instance }} 队列深度 {{ $value }}，超过阈值 500"
+
+      # 高路由延迟告警
+      - alert: HighRoutingLatency
+        expr: histogram_quantile(0.95, backend_routing_latency_seconds) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "消息路由延迟过高"
+          description: "Backend {{ $labels.instance }} P95 路由延迟 {{ $value }}s，超过阈值 50ms"
+
+      # 高错误率告警
+      - alert: HighErrorRate
+        expr: rate(backend_errors_total[5m]) / rate(backend_requests_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "Backend 错误率过高"
+          description: "Backend {{ $labels.instance }} 错误率 {{ $value | humanizePercentage }}，超过阈值 1%"
+
+      # Backend 实例下线
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "Backend 实例下线"
+          description: "Backend {{ $labels.instance }} 已下线超过 1 分钟"
+
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis 连接失败
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis 实例下线"
+          description: "Redis {{ $labels.instance }} 已下线超过 1 分钟"
+
+      # Redis 内存使用率过高
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis {{ $labels.instance }} 内存使用率 {{ $value | humanizePercentage }}，超过 90%"
+
+      # Redis 连接数过高
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis 连接数过高"
+          description: "Redis {{ $labels.instance }} 连接数 {{ $value }}，超过阈值 1000"
+
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # 低缓存命中率告警
+      - alert: LowCacheHitRate
+        expr: backend_cache_hit_rate < 0.9
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "配置缓存命中率过低"
+          description: "Backend {{ $labels.instance }} 缓存命中率 {{ $value | humanizePercentage }}，低于阈值 90%"
+
+  - name: device_alerts
+    interval: 30s
+    rules:
+      # Device 在线率过低
+      - alert: LowDeviceOnlineRate
+        expr: backend_online_devices / (backend_online_devices + backend_offline_devices) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          component: device
+        annotations:
+          summary: "Device 在线率过低"
+          description: "Device 在线率 {{ $value | humanizePercentage }}，低于阈值 95%"
+
+      # Device 平均响应时间过高
+      - alert: HighDeviceResponseTime
+        expr: backend_device_avg_response_time_seconds > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: device
+        annotations:
+          summary: "Device 平均响应时间过高"
+          description: "Device 平均响应时间 {{ $value }}s，超过阈值 2s"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # CPU 使用率过高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "实例 {{ $labels.instance }} CPU 使用率 {{ $value | humanizePercentage }}，超过 80%"
+
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "内存使用率过高"
+          description: "实例 {{ $labels.instance }} 内存使用率 {{ $value | humanizePercentage }}，超过 90%"
+
+      # 磁盘使用率过高
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "磁盘使用率过高"
+          description: "实例 {{ $labels.instance }} 磁盘使用率 {{ $value | humanizePercentage }}，超过 85%"

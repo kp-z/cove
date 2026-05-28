@@ -1,0 +1,231 @@
+{
+  "dashboard": {
+    "title": "LLM Adapter Migration - Backend Cluster",
+    "tags": ["backend", "llm-adapter", "cluster"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Backend 连接数",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "backend_active_connections",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "连接数", "format": "short" },
+          { "show": false }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [9000], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "name": "高连接数告警"
+        }
+      },
+      {
+        "id": 2,
+        "title": "消息路由延迟 (P95)",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, backend_routing_latency_seconds)",
+            "legendFormat": "{{instance}} P95"
+          }
+        ],
+        "yaxes": [
+          { "label": "延迟 (ms)", "format": "ms" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "消息吞吐量",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(backend_messages_total[1m])",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "msg/s", "format": "short" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "错误率",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(backend_errors_total[5m]) / rate(backend_requests_total[5m])",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "错误率", "format": "percentunit" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "队列深度",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "backend_queue_depth",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "消息数", "format": "short" },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "配置缓存命中率",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "backend_cache_hit_rate",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "命中率", "format": "percentunit", "min": 0, "max": 1 },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Device 在线状态",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "backend_online_devices"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" }
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Device 离线数",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "backend_offline_devices"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" },
+                { "value": 10, "color": "yellow" },
+                { "value": 50, "color": "red" }
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "CPU 使用率",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "CPU %", "format": "percent", "min": 0, "max": 100 },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "内存使用率",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 32, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "内存 %", "format": "percent", "min": 0, "max": 100 },
+          { "show": false }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Redis 连接数",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 32, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Redis"
+          }
+        ],
+        "yaxes": [
+          { "label": "连接数", "format": "short" },
+          { "show": false }
+        ]
+      }
+    ]
+  }
+}
