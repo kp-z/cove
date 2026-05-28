@@ -24,10 +24,9 @@ import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 import { useUser } from '@/lib/trpc/hooks/user.hooks';
 import { useChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { useAuthStore } from '@/core/auth/authStore';
-import { getAvatarUrl } from '@/shared/utils/avatar';
-import { getAgentAvatarUrl } from '@/features/agent/utils/avatar';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import { AddMemberPopover } from './AddMemberPopover';
-import { AvatarStack, type AvatarStackItem } from '../ChannelList/ChannelAvatar';
+import { AvatarStack, type AvatarStackItem } from '@/shared/components/display/Avatar';
 import type { Agent, User } from '@/lib/trpc-types';
 
 // ── Tool → Icon 映射 ──
@@ -139,9 +138,22 @@ export interface ChannelMemberBarProps {
 }
 
 // ── Hook to fetch member details ──
-function useMemberDetails(memberId: string, memberType: 'agent' | 'human') {
-  const { data: agent } = useAgent(memberId, { enabled: memberType === 'agent' });
-  const { data: user } = useUser(memberId, { enabled: memberType === 'human' });
+function useMemberDetails(
+  memberId: string,
+  memberType: 'agent' | 'human',
+  options?: { enabled?: boolean }
+) {
+  const enabled = options?.enabled !== false;
+
+  const { data: agent } = useAgent(
+    memberId,
+    { enabled: enabled && memberType === 'agent' && !!memberId }
+  );
+
+  const { data: user } = useUser(
+    memberId,
+    { enabled: enabled && memberType === 'human' && !!memberId }
+  );
 
   return memberType === 'agent' ? agent : user;
 }
@@ -153,7 +165,7 @@ function MemberRow({ memberId, memberType }: { memberId: string; memberType: 'ag
   if (!memberData) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5">
-        <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 animate-pulse" />
+        <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 animate-pulse" />
         <span className="text-xs text-gray-500">Loading...</span>
       </div>
     );
@@ -163,12 +175,12 @@ function MemberRow({ memberId, memberType }: { memberId: string; memberType: 'ag
     const agent = memberData as Agent;
     const skills = agent.skills?.skillIds || [];
     const tools = agent.tools?.toolIds || [];
-    const avatarUrl = getAgentAvatarUrl(agent.persona?.avatar?.url);
+    const avatarUrl = getAvatarUrl(agent.persona?.avatar?.url);
 
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
         <div
-          className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
+          className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-white/10"
           title={agent.display_name || agent.name}
         >
           {avatarUrl ? (
@@ -203,7 +215,7 @@ function MemberRow({ memberId, memberType }: { memberId: string; memberType: 'ag
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 transition-colors group">
         <div
-          className="w-5 h-5 rounded overflow-hidden flex-shrink-0 border border-white/10"
+          className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 border border-white/10"
           title={displayName}
         >
           {avatarUrl ? (
@@ -457,29 +469,114 @@ function CollapsedMemberBar({
 function CollapsedAvatarsWithData({
   members,
   totalMembers,
-  max = 3
+  max = 10
 }: {
   members: Array<{ memberId: string; memberType: 'agent' | 'human' }>;
   totalMembers: number;
   max?: number;
 }) {
+  // Extract first 10 members (or undefined if not present)
+  const member0 = members[0];
+  const member1 = members[1];
+  const member2 = members[2];
+  const member3 = members[3];
+  const member4 = members[4];
+  const member5 = members[5];
+  const member6 = members[6];
+  const member7 = members[7];
+  const member8 = members[8];
+  const member9 = members[9];
+
+  // Always call hooks for exactly 10 members, use enabled flag to control fetching
+  const data0 = useMemberDetails(
+    member0?.memberId || '',
+    member0?.memberType || 'agent',
+    { enabled: !!member0 }
+  );
+
+  const data1 = useMemberDetails(
+    member1?.memberId || '',
+    member1?.memberType || 'agent',
+    { enabled: !!member1 }
+  );
+
+  const data2 = useMemberDetails(
+    member2?.memberId || '',
+    member2?.memberType || 'agent',
+    { enabled: !!member2 }
+  );
+
+  const data3 = useMemberDetails(
+    member3?.memberId || '',
+    member3?.memberType || 'agent',
+    { enabled: !!member3 }
+  );
+
+  const data4 = useMemberDetails(
+    member4?.memberId || '',
+    member4?.memberType || 'agent',
+    { enabled: !!member4 }
+  );
+
+  const data5 = useMemberDetails(
+    member5?.memberId || '',
+    member5?.memberType || 'agent',
+    { enabled: !!member5 }
+  );
+
+  const data6 = useMemberDetails(
+    member6?.memberId || '',
+    member6?.memberType || 'agent',
+    { enabled: !!member6 }
+  );
+
+  const data7 = useMemberDetails(
+    member7?.memberId || '',
+    member7?.memberType || 'agent',
+    { enabled: !!member7 }
+  );
+
+  const data8 = useMemberDetails(
+    member8?.memberId || '',
+    member8?.memberType || 'agent',
+    { enabled: !!member8 }
+  );
+
+  const data9 = useMemberDetails(
+    member9?.memberId || '',
+    member9?.memberType || 'agent',
+    { enabled: !!member9 }
+  );
+
+  // Build items array from fetched data
   const items: AvatarStackItem[] = [];
 
-  // 获取每个成员的详细信息
-  for (const member of members.slice(0, max)) {
-    const memberData = useMemberDetails(member.memberId, member.memberType);
-    if (!memberData) continue;
+  const memberDataPairs = [
+    { member: member0, data: data0 },
+    { member: member1, data: data1 },
+    { member: member2, data: data2 },
+    { member: member3, data: data3 },
+    { member: member4, data: data4 },
+    { member: member5, data: data5 },
+    { member: member6, data: data6 },
+    { member: member7, data: data7 },
+    { member: member8, data: data8 },
+    { member: member9, data: data9 },
+  ];
+
+  for (const { member, data } of memberDataPairs) {
+    if (!member || !data) continue;
 
     const isAgent = member.memberType === 'agent';
-    const agent = isAgent ? (memberData as Agent) : null;
-    const user = !isAgent ? (memberData as User) : null;
+    const agent = isAgent ? (data as Agent) : null;
+    const user = !isAgent ? (data as User) : null;
 
     const displayName = isAgent
       ? (agent!.display_name || agent!.name)
       : (user!.username || user!.email);
 
     const avatarUrl = isAgent
-      ? getAgentAvatarUrl(agent!.persona?.avatar?.url)
+      ? getAvatarUrl(agent!.persona?.avatar?.url)
       : getAvatarUrl(user!.avatar);
 
     items.push({
@@ -487,10 +584,10 @@ function CollapsedAvatarsWithData({
       name: displayName,
       avatarUrl,
       type: member.memberType,
-      isRunning: false, // TODO: 添加运行状态检测
+      isRunning: false,
     });
   }
 
   // 传递所有成员给 AvatarStack，让它自己处理 +N
-  return <AvatarStack items={items} size="sm" max={max} />;
+  return <AvatarStack items={items} size="xs" max={max} />;
 }
