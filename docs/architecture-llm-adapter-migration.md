@@ -795,15 +795,15 @@ gantt
 
 ### 当前进度
 
-> **最后更新**：2026-05-28 22:42
+> **最后更新**：2026-05-28 22:57
 > 
-> **当前阶段**：阶段 1 - Week 3 - Day 5
+> **当前阶段**：阶段 2 - Week 1 - Day 2
 > 
-> **整体进度**：100% (集成测试和性能测试已完成，阶段 1 全部完成)
+> **整体进度**：67% (Feature Flag 系统和执行模式路由器已完成)
 > 
-> **Git 分支**：`feature/stage-1-core-components`
+> **Git 分支**：`feature/stage-2-feature-flag`
 > 
-> **Plan 文档**：`~/.claude/plans/llm-adapter-migration/stage-1-core-components.md`
+> **Plan 文档**：`~/.claude/plans/llm-adapter-migration/stage-2-feature-flag.md`
 
 #### 阶段状态
 
@@ -811,7 +811,7 @@ gantt
 |------|------|------|----------|----------|------|-----------|
 | 阶段 0 | ✅ 已完成 | 100% | 2026-06-01 | 2026-06-01 | feature/stage-0-architecture | stage-0-architecture.md |
 | 阶段 1 | ✅ 已完成 | 100% | 2026-06-01 | 2026-05-28 | feature/stage-1-core-components | stage-1-core-components.md |
-| 阶段 2 | ⏳ 进行中 | 0% | 2026-05-28 | - | feature/stage-2-feature-flag | stage-2-feature-flag.md |
+| 阶段 2 | ⏳ 进行中 | 67% | 2026-05-28 | - | feature/stage-2-feature-flag | stage-2-feature-flag.md |
 | 阶段 3 | 🔒 未开始 | 0% | - | - | - | stage-3-rollout.md |
 | 阶段 4 | 🔒 未开始 | 0% | - | - | - | stage-4-cleanup.md |
 
@@ -2251,3 +2251,64 @@ artillery run --target https://api.example.com config-sync-test.yml
 **下一步计划**：
 - 提交代码并推送到远程仓库
 - 进入阶段 2：Feature Flag 和并行执行
+
+---
+
+### 2026-05-28 - 阶段 2 - Week 1 - Day 1-2
+
+**今日完成**：
+- ✅ 创建 Feature Flag 接口 - 22:50
+  - ExecutionMode 类型定义
+  - FeatureFlagConfig 接口
+  - IFeatureFlag 接口（8 个方法）
+- ✅ 创建 Feature Flag 存储接口 - 22:51
+  - IFeatureFlagStore 接口（5 个方法）
+  - SQLite 持久化层接口
+- ✅ 实现 Feature Flag 服务 - 22:54
+  - FeatureFlagService 类实现
+  - 21 个测试全部通过
+  - 支持启用/禁用、模式切换、灰度百分比设置
+- ✅ 实现执行模式路由器 - 22:57
+  - ExecutionModeRouter 类实现
+  - 18 个测试全部通过
+  - 一致性哈希灰度发布
+  - 支持 0-100% 灰度百分比
+
+**测试结果**：
+- ✅ Feature Flag 服务测试：21/21 通过
+- ✅ 执行模式路由器测试：18/18 通过
+- ✅ 总计：39 个新测试全部通过
+
+**关键决策**：
+- 使用 MD5 哈希实现一致性灰度发布
+- 默认 Feature Flag 名称：'llm-execution-mode'
+- 灰度百分比验证：0-100 范围
+- 未配置时默认使用 backend 模式
+
+**代码变更**：
+- 新增 `src/domain/feature-flag/feature-flag.interface.ts`
+- 新增 `src/domain/feature-flag/feature-flag.service.ts`
+- 新增 `src/domain/feature-flag/__tests__/feature-flag.service.test.ts`
+- 新增 `src/infrastructure/storage/feature-flag-store.interface.ts`
+- 新增 `src/domain/execution-mode/execution-mode-router.interface.ts`
+- 新增 `src/domain/execution-mode/execution-mode-router.ts`
+- 新增 `src/domain/execution-mode/__tests__/execution-mode-router.test.ts`
+
+**Git 操作**：
+- Commit 1: `f37cbaf` - feat(stage-2): create Feature Flag interfaces
+- Commit 2: `c1b1b1a` - feat(stage-2): implement Feature Flag service
+- Commit 3: `879199e` - feat(stage-2): implement Execution Mode Router
+- 推送到远程仓库：feature/stage-2-feature-flag
+
+**阶段 2 完成情况**：
+- ✅ Task 7: 创建 Feature Flag 接口（100%）
+- ✅ Task 8: 实现 Feature Flag 存储层（100%）
+- ✅ Task 9: 实现 Feature Flag 服务（100%）
+- ✅ Task 10: 创建执行模式路由器（100%）
+- ⏳ Task 11: 扩展 MessageOrchestrator 支持双模式（0%）
+- ⏳ Task 12: 编写端到端测试（0%）
+
+**下一步计划**：
+- 扩展 MessageOrchestrator 接口，添加 executionMode 字段
+- 实现双模式处理器（Backend Processor 和 Device Processor）
+- 编写端到端测试验证双模式执行
