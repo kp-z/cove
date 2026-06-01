@@ -9,7 +9,7 @@
     "dev": "nodemon --watch src --ext ts --exec 'npm run build:esbuild && node dist/bundle.js'",
     "dev:tsx": "tsx watch src/main.ts",
     "build": "tsc",
-    "build:esbuild": "esbuild src/main.ts --bundle --platform=node --format=esm --outfile=dist/bundle.js --packages=external",
+    "build:esbuild": "esbuild src/main.ts --bundle --platform=node --target=es2022 --format=esm --outfile=dist/bundle.js --packages=external",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

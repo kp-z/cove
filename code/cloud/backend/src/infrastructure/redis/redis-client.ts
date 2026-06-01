@@ -8,7 +8,7 @@
 
 import Redis from 'ioredis'
 import type { IRedisClient } from './redis-client.interface'
-import type { RedisConfig } from '../../../config/redis.config'
+import type { RedisConfig } from './redis.config'
 
 export class RedisClient implements IRedisClient {
   private client: Redis | null = null
@@ -205,7 +205,7 @@ export class RedisClient implements IRedisClient {
           }
           return Math.min(times * this.config.retry.delay, 3000)
         },
-      })
+      }) as unknown as Redis
     } else {
       // 单实例模式
       return new Redis({

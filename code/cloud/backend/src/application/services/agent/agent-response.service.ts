@@ -10,12 +10,12 @@ import {
   DomainEvent,
   IAgentConfigStore,
 } from '../../interfaces';
-import { createLlmAdapterFromConfig } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
-import type { ChatMessage } from '../../../infrastructure/adapters/llm/index';
-import { AgentResponseGenerationError } from './agent.errors';
 import { AdapterService } from '../adapter/adapter.service';
-import { LlmAdapterFactory } from '../../../infrastructure/adapters/llm/llm-adapter-factory';
 import { getRealmContext } from '../../context/realm-context-store';
+
+// 注意：LLM Adapter 已迁移到 Local Device
+// 此服务现在应该通过 MessageOrchestrator 路由到 Device 处理
+// TODO: 重构此服务以使用 MessageOrchestrator
 
 export class AgentResponseService {
   constructor(
@@ -24,8 +24,10 @@ export class AgentResponseService {
     private readonly channelRepository: IChannelRepository,
     private readonly eventBus: IEventBus,
     private readonly logger: ILogger,
-    private readonly configStore?: IAgentConfigStore,
-    private readonly adapterService?: AdapterService,
+    // @ts-expect-error - Kept for future use when LLM processing returns to backend
+    private readonly _configStore?: IAgentConfigStore,
+    // @ts-expect-error - Kept for future use when LLM processing returns to backend
+    private readonly _adapterService?: AdapterService,
   ) {}
 
   async handleIncomingMessage(message: MessageEntity): Promise<void> {
@@ -84,100 +86,17 @@ export class AgentResponseService {
   }
 
   async generateAgentResponse(
-    agent: AgentEntity,
-    message: MessageEntity,
-    channel: ChannelEntity
+    _agent: AgentEntity,
+    _message: MessageEntity,
+    _channel: ChannelEntity
   ): Promise<string> {
-    this.logger.info('Generating agent response', {
-      agentId: agent.agentId, messageId: message.messageId,
-    });
-
-    try {
-      // Priority 1: Use database runtimeConfig (for API-created agents)
-      if (agent.runtimeConfig?.adapter_id && this.adapterService) {
-        this.logger.info('Using database runtimeConfig with adapter', {
-          agentId: agent.agentId,
-          adapterId: agent.runtimeConfig.adapter_id
-        });
-
-        const systemPrompt = this.getSystemPromptFromAgent(agent);
-        const history = await this.buildConversationHistory(message, channel);
-
-        const factory = new LlmAdapterFactory(this.adapterService);
-        const adapter = await factory.createById(agent.runtimeConfig.adapter_id, agent.createdBy);
-
-        const response = await adapter.generateResponse({
-          systemPrompt,
-          messages: history,
-        });
-
-        return response;
-      }
-
-      // Priority 2: Use configStore (for file-based agents)
-      if (!this.configStore) {
-        this.logger.warn('No configStore available, using mock response', {
-          agentId: agent.agentId,
-          agentName: agent.name,
-        });
-        return `Mock response from ${agent.displayName}: I received your message "${message.content}"`;
-      }
-
-      const runtime = await this.configStore.getRuntime(agent.agentId);
-
-      // New adapter system: check if adapter_id is present
-      if (runtime.adapter_id && this.adapterService) {
-        this.logger.info('Using configStore adapter system', {
-          agentId: agent.agentId,
-          adapterId: runtime.adapter_id
-        });
-
-        const persona = await this.configStore.getPersona(agent.agentId);
-        const systemPrompt = this.buildSystemPrompt(persona);
-        const history = await this.buildConversationHistory(message, channel);
-
-        const factory = new LlmAdapterFactory(this.adapterService);
-        const adapter = await factory.createById(runtime.adapter_id, agent.createdBy);
-
-        const response = await adapter.generateResponse({
-          systemPrompt,
-          messages: history,
-        });
-
-        return response;
-      }
-
-      // Legacy system: fall back to inline configuration
-      this.logger.warn('Using legacy inline configuration (deprecated)', {
-        agentId: agent.agentId
-      });
-
-      if (!(runtime.api as any)?.api_key) {
-        this.logger.warn('Agent has no api_key configured, using mock', {
-          agentId: agent.agentId,
-          agentName: agent.name,
-        });
-        return `Mock response from ${agent.displayName}: I received your message "${message.content}"`;
-      }
-
-      const persona = await this.configStore.getPersona(agent.agentId);
-      const systemPrompt = this.buildSystemPrompt(persona);
-      const history = await this.buildConversationHistory(message, channel);
-
-      const adapter = await createLlmAdapterFromConfig(runtime, this.adapterService);
-      const response = await adapter.generateResponse({
-        systemPrompt,
-        messages: history,
-        maxTokens: runtime.model?.max_tokens,
-      });
-
-      return response;
-    } catch (error) {
-      this.logger.error('Failed to generate agent response', error as Error, {
-        agentId: agent.agentId, messageId: message.messageId,
-      });
-      throw new AgentResponseGenerationError(agent.agentId, message.messageId);
-    }
+    // LLM Adapter 已迁移到 Local Device
+    // 所有 LLM 调用现在都应该通过 MessageOrchestrator 路由到 Device 处理
+    throw new Error(
+      'generateAgentResponse is deprecated. ' +
+      'LLM processing has been migrated to Local Device. ' +
+      'Please use MessageOrchestrator to route messages to Device for processing.'
+    );
   }
 
   private async generateAndSendResponse(
@@ -248,7 +167,9 @@ export class AgentResponseService {
 
   /**
    * Get system prompt from agent's database runtimeConfig
+   * @deprecated - LLM processing moved to Local Device
    */
+  // @ts-ignore - Kept for future reference
   private getSystemPromptFromAgent(agent: AgentEntity): string {
     // Priority 1: Use overrides.systemPrompt from runtimeConfig
     const overridePrompt = agent.runtimeConfig?.overrides?.systemPrompt;
@@ -266,6 +187,10 @@ export class AgentResponseService {
     return `You are ${displayName}, an AI assistant. Be helpful and professional.`;
   }
 
+  /**
+   * @deprecated - LLM processing moved to Local Device
+   */
+  // @ts-ignore - Kept for future reference
   private buildSystemPrompt(persona: any): string {
     const name = persona.name || 'Assistant';
     const title = persona.title || 'AI Assistant';
@@ -277,14 +202,18 @@ export class AgentResponseService {
 Respond in ${lang}. Be ${verbosity}. Be helpful and professional.`;
   }
 
+  /**
+   * @deprecated - LLM processing moved to Local Device
+   */
+  // @ts-ignore - Kept for future reference
   private async buildConversationHistory(
     message: MessageEntity,
     _channel: ChannelEntity
-  ): Promise<ChatMessage[]> {
+  ): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> {
     const threadId = message.threadId || message.messageId;
     const threadMessages = await this.messageRepository.findByThread(threadId);
 
-    const history: ChatMessage[] = [];
+    const history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     for (const msg of threadMessages) {
       if (msg.status === 'deleted') continue;
       history.push({

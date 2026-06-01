@@ -8,7 +8,7 @@
  * - 消息状态管理（PENDING → PROCESSING → COMPLETED/FAILED）
  * - 消息优先级调度
  * - 错误处理和重试
- * - 双模式执行（Backend 模式 / Device 模式）
+ * - 所有消息通过 Device 模式执行
  */
 
 /**
@@ -17,20 +17,15 @@
 export type MessageState = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DEAD_LETTER'
 
 /**
- * 执行模式
- */
-export type ExecutionMode = 'backend' | 'device'
-
-/**
  * 消息任务
  */
 export interface MessageTask {
   id: string
   messageId: string
   channelId: string
+  realmId: string
   content: string
   state: MessageState
-  executionMode: ExecutionMode
   attempts: number
   maxAttempts: number
   priority: number
@@ -39,6 +34,7 @@ export interface MessageTask {
   lastAttemptAt?: Date
   completedAt?: Date
   error?: string
+  metadata?: Record<string, any>
 }
 
 /**

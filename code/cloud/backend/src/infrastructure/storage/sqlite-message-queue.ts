@@ -23,13 +23,14 @@ export class SqliteMessageQueue implements IMessageQueue {
         id: task.id,
         messageId: task.messageId,
         channelId: task.channelId,
+        realmId: task.realmId,
         content: task.content,
         state: task.state,
-        executionMode: task.executionMode,
         attempts: task.attempts,
         maxAttempts: task.maxAttempts,
         priority: task.priority,
         error: task.error,
+        metadata: task.metadata ? JSON.stringify(task.metadata) : null,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         lastAttemptAt: task.lastAttemptAt,
@@ -104,9 +105,9 @@ export class SqliteMessageQueue implements IMessageQueue {
       id: record.id,
       messageId: record.messageId,
       channelId: record.channelId,
+      realmId: record.realmId ?? '',
       content: record.content,
       state: record.state,
-      executionMode: record.executionMode,
       attempts: record.attempts,
       maxAttempts: record.maxAttempts,
       priority: record.priority,
@@ -114,7 +115,8 @@ export class SqliteMessageQueue implements IMessageQueue {
       updatedAt: record.updatedAt,
       lastAttemptAt: record.lastAttemptAt,
       completedAt: record.completedAt,
-      error: record.error ?? undefined
+      error: record.error ?? undefined,
+      metadata: record.metadata ? JSON.parse(record.metadata) : undefined
     }
   }
 }

@@ -125,7 +125,7 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     project: projectRouter(deps.projectService),
 
     // Realm router
-    realm: realmRouter(deps.realmService, deps.deviceService, deps.deviceAuthService),
+    realm: realmRouter(deps.realmService, deps.deviceService, deps.deviceAuthService, deps.userService),
 
     // Device router
     device: deviceRouter(deps.deviceService, deps.deviceAuthService),

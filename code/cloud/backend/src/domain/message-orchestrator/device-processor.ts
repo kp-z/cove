@@ -96,7 +96,7 @@ export class DeviceProcessor implements IMessageProcessor {
     }
 
     // 如果没有找到匹配的 Device，返回第一个在线的
-    return onlineDevices.length > 0 ? onlineDevices[0] : null
+    return onlineDevices.length > 0 ? (onlineDevices[0] ?? null) : null
   }
 
   /**
@@ -164,7 +164,7 @@ export class DeviceProcessor implements IMessageProcessor {
   /**
    * 检查数据库中是否有响应
    */
-  private async checkResponseInDatabase(messageId: string): Promise<boolean> {
+  private async checkResponseInDatabase(_messageId: string): Promise<boolean> {
     try {
       // 简单实现：检查是否有对应的响应消息
       // TODO: 实现更精确的响应检查逻辑
@@ -191,7 +191,7 @@ export class DeviceProcessor implements IMessageProcessor {
    * 清理资源
    */
   destroy(): void {
-    for (const [messageId, task] of this.pendingTasks.entries()) {
+    for (const [_messageId, task] of this.pendingTasks.entries()) {
       clearTimeout(task.timeoutId)
       task.reject(new Error('Device processor destroyed'))
     }

@@ -17,6 +17,7 @@ import { DeviceService } from '../../../application/services/device/device.servi
 import { DeviceAuthService } from '../../../application/services/device/device-auth.service';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
+import type { UserService } from '../../../application/services/user/user.service';
 
 // Zod Schemas
 const createRealmSchema = z.object({
@@ -39,7 +40,8 @@ const updateRealmSchema = z.object({
 export const realmRouter = (
   realmService: RealmService,
   deviceService?: DeviceService,
-  deviceAuthService?: DeviceAuthService
+  deviceAuthService?: DeviceAuthService,
+  userService?: UserService
 ) =>
   router({
     // 创建服务器
@@ -87,9 +89,56 @@ export const realmRouter = (
           return await runWithContext(context, async () => {
             const servers = await realmService.queryServers(input);
 
+            // Get user's default realm from preferences
+            let defaultRealmId: string | undefined;
+            if (ctx.userId && userService) {
+              try {
+                const user = await userService.getUserById(ctx.userId);
+                defaultRealmId = user?.preference?.last_accessed_realm_id;
+              } catch (error) {
+                // Ignore error, just don't set default
+              }
+            }
+
+            // Enrich realms with device status
+            const realmsWithStatus = await Promise.all(
+              servers.map(async (realm) => {
+                const realmJson = realm.toJSON();
+                let deviceStatus: 'online' | 'offline' | 'unknown' = 'unknown';
+
+                if (deviceService) {
+                  try {
+                    const device = await deviceService.getRealmDevice(realm.realm_id);
+                    if (device) {
+                      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                      const isOnline = device.last_seen_at && new Date(device.last_seen_at) > fiveMinutesAgo;
+                      deviceStatus = isOnline ? 'online' : 'offline';
+                    }
+                  } catch (error) {
+                    // Ignore error, keep as unknown
+                  }
+                }
+
+                return {
+                  ...realmJson,
+                  logo_url: realmJson.logo?.url, // 提取 logo URL
+                  deviceStatus,
+                  isDefault: realm.realm_id === defaultRealmId,
+                };
+              })
+            );
+
+            // Sort: default realm first, then by last accessed
+            realmsWithStatus.sort((a, b) => {
+              if (a.isDefault) return -1;
+              if (b.isDefault) return 1;
+              // Sort by created_at descending as fallback
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            });
+
             return {
-              realms: servers.map(s => s.toJSON()),
-              total: servers.length,
+              realms: realmsWithStatus,
+              total: realmsWithStatus.length,
             };
           });
         } catch (error: any) {

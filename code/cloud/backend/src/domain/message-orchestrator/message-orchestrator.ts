@@ -1,7 +1,7 @@
 /**
  * Message Orchestrator
  *
- * 消息编排器实现：支持双模式执行（Backend / Device）
+ * 消息编排器实现：所有消息通过 Device 模式处理
  */
 
 import type {
@@ -10,7 +10,6 @@ import type {
   EnqueueMessage,
   MessageState
 } from './message-orchestrator.interface'
-import type { IExecutionModeRouter } from '../execution-mode/execution-mode-router.interface'
 import type { IMessageProcessor } from './message-processor.interface'
 
 /**
@@ -49,8 +48,6 @@ export class MessageOrchestrator implements IMessageOrchestrator {
   private pollTimer?: NodeJS.Timeout
 
   constructor(
-    private readonly executionModeRouter: IExecutionModeRouter,
-    private readonly backendProcessor: IMessageProcessor,
     private readonly deviceProcessor: IMessageProcessor,
     private readonly messageQueue: IMessageQueue,
     private readonly taskStore: ITaskStore,
@@ -64,22 +61,14 @@ export class MessageOrchestrator implements IMessageOrchestrator {
     // 1. 从 channelId 中提取 realmId (格式: realm-id:channel-id)
     const realmId = this.extractRealmId(message.channelId)
 
-    // 2. 确定执行模式
-    const mode = await this.executionModeRouter.routeMessage({
-      messageId: message.messageId,
-      channelId: message.channelId,
-      realmId,
-      content: message.content
-    })
-
     // 2. 创建任务
     const task: MessageTask = {
       id: this.generateTaskId(),
       messageId: message.messageId,
       channelId: message.channelId,
+      realmId,
       content: message.content,
       state: 'PENDING',
-      executionMode: mode,
       attempts: 0,
       maxAttempts: this.config.maxAttempts ?? 3,
       priority: message.priority ?? 0,
@@ -111,13 +100,8 @@ export class MessageOrchestrator implements IMessageOrchestrator {
     await this.taskStore.upsert(task)
 
     try {
-      // 根据执行模式选择处理器
-      const processor = task.executionMode === 'backend'
-        ? this.backendProcessor
-        : this.deviceProcessor
-
-      // 处理消息
-      const result = await processor.process(task)
+      // 始终使用 Device 处理器（所有 LLM 调用都在 Local Device 执行）
+      const result = await this.deviceProcessor.process(task)
 
       if (result.success) {
         // 处理成功

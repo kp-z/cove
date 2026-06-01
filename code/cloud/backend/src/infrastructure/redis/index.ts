@@ -15,10 +15,10 @@ export { ConfigurationCache } from './configuration-cache'
 export type { ConfigurationCacheOptions, CacheStats } from './configuration-cache'
 
 // Config
-export type { RedisConfig, ShardingConfig } from '../../../config/redis.config'
+export type { RedisConfig, ShardingConfig } from './redis.config'
 export {
   defaultRedisConfig,
   defaultShardingConfig,
   getShardForRealm,
   getShardForRealmSimple,
-} from '../../../config/redis.config'
+} from './redis.config'

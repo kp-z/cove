@@ -30,8 +30,6 @@ export class SqliteFeatureFlagStore implements IFeatureFlagStore {
       realmId: record.realmId,
       flagName: record.flagName,
       enabled: record.enabled,
-      mode: record.mode as 'backend' | 'device',
-      rolloutPercentage: record.rolloutPercentage,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     }
@@ -47,16 +45,12 @@ export class SqliteFeatureFlagStore implements IFeatureFlagStore {
         realmId: config.realmId,
         flagName: config.flagName,
         enabled: config.enabled,
-        mode: config.mode,
-        rolloutPercentage: config.rolloutPercentage,
         createdAt: config.createdAt,
         updatedAt: config.updatedAt
       },
       update: {
         flagName: config.flagName,
         enabled: config.enabled,
-        mode: config.mode,
-        rolloutPercentage: config.rolloutPercentage,
         updatedAt: config.updatedAt
       }
     })
@@ -83,8 +77,6 @@ export class SqliteFeatureFlagStore implements IFeatureFlagStore {
       realmId: record.realmId,
       flagName: record.flagName,
       enabled: record.enabled,
-      mode: record.mode as 'backend' | 'device',
-      rolloutPercentage: record.rolloutPercentage,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     }))

@@ -7,8 +7,8 @@
  */
 
 import type { IRedisClient, RedisPubSubMessage } from './redis-client.interface'
-import type { ShardingConfig } from '../../../config/redis.config'
-import { getShardForRealmSimple } from '../../../config/redis.config'
+import type { ShardingConfig } from './redis.config'
+import { getShardForRealmSimple } from './redis.config'
 
 export interface IMessageRouter {
   /**

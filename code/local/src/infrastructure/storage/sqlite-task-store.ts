@@ -5,8 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import type { ITaskStore } from '../../domain/agent-runtime/message-orchestrator'
-import type { MessageTask, MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
+import type { ITaskStore, TaskRecord, UpsertTaskData } from './task-store.interface'
+import type { MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
 
 /**
  * SQLite 任务存储
@@ -15,102 +15,118 @@ export class SqliteTaskStore implements ITaskStore {
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * 插入或更新任务
+   * 创建或更新任务
    */
-  async upsert(task: MessageTask): Promise<void> {
-    await this.prisma.messageTask.upsert({
-      where: { id: task.id },
-      create: {
-        id: task.id,
-        messageId: task.messageId,
-        channelId: task.channelId,
-        content: task.content,
-        state: task.state,
-        executionMode: task.executionMode,
-        attempts: task.attempts,
-        maxAttempts: task.maxAttempts,
-        priority: task.priority,
-        error: task.error,
-        createdAt: task.createdAt,
-        updatedAt: task.updatedAt,
-        lastAttemptAt: task.lastAttemptAt,
-        completedAt: task.completedAt
-      },
-      update: {
-        state: task.state,
-        attempts: task.attempts,
-        error: task.error,
-        updatedAt: task.updatedAt,
-        lastAttemptAt: task.lastAttemptAt,
-        completedAt: task.completedAt
-      }
+  async upsert(task: UpsertTaskData): Promise<void> {
+    // 先查找是否存在
+    const existing = await this.prisma.messageTask.findFirst({
+      where: { messageId: task.messageId }
     })
+
+    if (existing) {
+      // 更新现有记录
+      await this.prisma.messageTask.update({
+        where: { id: existing.id },
+        data: {
+          state: task.state,
+          attempts: task.attempts,
+          error: task.error,
+          updatedAt: new Date(),
+          lastAttemptAt: task.lastAttemptAt,
+          completedAt: task.completedAt
+        }
+      })
+    } else {
+      // 创建新记录
+      await this.prisma.messageTask.create({
+        data: {
+          id: task.messageId, // 使用 messageId 作为 id
+          messageId: task.messageId,
+          channelId: task.channelId,
+          content: '', // 默认空内容
+          state: task.state,
+          executionMode: 'device', // 默认 device 模式
+          attempts: task.attempts ?? 0,
+          maxAttempts: task.maxAttempts ?? 3,
+          priority: 0, // 默认优先级
+          error: task.error,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastAttemptAt: task.lastAttemptAt,
+          completedAt: task.completedAt
+        }
+      })
+    }
   }
 
   /**
    * 获取任务
    */
-  async get(taskId: string): Promise<MessageTask | null> {
-    const record = await this.prisma.messageTask.findUnique({
-      where: { id: taskId }
+  async get(messageId: string): Promise<TaskRecord | null> {
+    const record = await this.prisma.messageTask.findFirst({
+      where: { messageId }
     })
 
     if (!record) {
       return null
     }
 
-    return this.toMessageTask(record)
+    return this.toTaskRecord(record)
   }
 
   /**
-   * 获取所有待处理任务
+   * 根据状态查找任务
    */
-  async getPending(): Promise<MessageTask[]> {
+  async findByState(state: MessageState): Promise<TaskRecord[]> {
     const records = await this.prisma.messageTask.findMany({
-      where: { state: 'PENDING' },
-      orderBy: [
-        { priority: 'desc' },
-        { createdAt: 'asc' }
-      ]
+      where: { state },
+      orderBy: { createdAt: 'asc' }
     })
 
-    return records.map(record => this.toMessageTask(record))
+    return records.map((record: any) => this.toTaskRecord(record))
   }
 
   /**
-   * 更新任务状态
+   * 删除任务
    */
-  async updateState(taskId: string, state: MessageState, error?: string): Promise<void> {
-    await this.prisma.messageTask.update({
-      where: { id: taskId },
-      data: {
-        state,
-        error,
-        updatedAt: new Date(),
-        ...(state === 'COMPLETED' && { completedAt: new Date() })
-      }
+  async delete(messageId: string): Promise<void> {
+    await this.prisma.messageTask.deleteMany({
+      where: { messageId }
     })
   }
 
   /**
-   * 转换数据库记录为 MessageTask
+   * 清空所有任务
    */
-  private toMessageTask(record: any): MessageTask {
+  async clear(): Promise<void> {
+    await this.prisma.messageTask.deleteMany()
+  }
+
+  /**
+   * 关闭连接
+   */
+  async close(): Promise<void> {
+    await this.prisma.$disconnect()
+  }
+
+  /**
+   * 转换数据库记录为 TaskRecord
+   */
+  private toTaskRecord(record: any): TaskRecord {
     return {
       id: record.id,
       messageId: record.messageId,
       channelId: record.channelId,
-      content: record.content,
+      agentId: undefined,
       state: record.state as MessageState,
-      executionMode: record.executionMode as 'backend' | 'device',
       attempts: record.attempts,
       maxAttempts: record.maxAttempts,
-      priority: record.priority,
+      result: undefined,
+      error: record.error ?? undefined,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
-      lastAttemptAt: record.lastAttemptAt,
-      completedAt: record.completedAt,
-      error: record.error ?? undefined
+      lastAttemptAt: record.lastAttemptAt ?? undefined,
+      completedAt: record.completedAt ?? undefined
     }
   }
 }

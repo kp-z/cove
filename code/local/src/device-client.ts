@@ -141,8 +141,8 @@ export class DeviceClient {
           connection: {
             url: this.config.server.url,
             heartbeatInterval: this.config.local.heartbeatInterval,
-            reconnectInterval: this.config.local.reconnectDelay,
-            maxReconnectAttempts: 10,
+            reconnectBaseDelay: this.config.local.reconnectDelay,
+            reconnectMaxAttempts: 10,
           },
           health: {
             reportInterval: 60000, // 1 minute

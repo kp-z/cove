@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MessageRouter } from '../message-router'
 import type { IRedisClient } from '../redis-client.interface'
-import type { ShardingConfig } from '../../../../config/redis.config'
+import type { ShardingConfig } from '../redis.config'
 
 describe('MessageRouter', () => {
   let mockRedisClient: IRedisClient

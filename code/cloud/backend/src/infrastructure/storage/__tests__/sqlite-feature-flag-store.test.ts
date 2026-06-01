@@ -48,12 +48,10 @@ describe('SqliteFeatureFlagStore', () => {
       await store.set(config)
 
       config.enabled = false
-      config.mode = 'device'
       await store.set(config)
 
       const retrieved = await store.get('realm-1')
       expect(retrieved!.enabled).toBe(false)
-      expect(retrieved!.mode).toBe('device')
     })
 
     it('should return null for non-existent config', async () => {

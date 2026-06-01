@@ -24,13 +24,14 @@ export class SqliteTaskStore implements ITaskStore {
         id: task.id,
         messageId: task.messageId,
         channelId: task.channelId,
+        realmId: task.realmId,
         content: task.content,
         state: task.state,
-        executionMode: task.executionMode,
         attempts: task.attempts,
         maxAttempts: task.maxAttempts,
         priority: task.priority,
         error: task.error,
+        metadata: task.metadata ? JSON.stringify(task.metadata) : null,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         lastAttemptAt: task.lastAttemptAt,
@@ -100,9 +101,9 @@ export class SqliteTaskStore implements ITaskStore {
       id: record.id,
       messageId: record.messageId,
       channelId: record.channelId,
+      realmId: record.realmId ?? '',
       content: record.content,
       state: record.state as MessageState,
-      executionMode: record.executionMode as 'backend' | 'device',
       attempts: record.attempts,
       maxAttempts: record.maxAttempts,
       priority: record.priority,
@@ -110,7 +111,8 @@ export class SqliteTaskStore implements ITaskStore {
       updatedAt: record.updatedAt,
       lastAttemptAt: record.lastAttemptAt,
       completedAt: record.completedAt,
-      error: record.error ?? undefined
+      error: record.error ?? undefined,
+      metadata: record.metadata ? JSON.parse(record.metadata) : undefined
     }
   }
 }

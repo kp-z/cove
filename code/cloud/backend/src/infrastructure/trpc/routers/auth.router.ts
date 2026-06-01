@@ -10,11 +10,11 @@ import { TRPCError } from '@trpc/server';
 
 // 注册请求 schema
 const registerSchema = z.object({
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/, {
+  username: z.string().min(2).max(20).regex(/^[a-zA-Z0-9_]+$/, {
     message: 'Username must contain only letters, numbers, and underscores',
   }),
   email: z.string().email('Valid email is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   displayName: z.string().min(1, 'Display name is required'),
 });
 
@@ -32,7 +32,7 @@ const verifyTokenSchema = z.object({
 // 修改密码 schema
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Old password is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
 });
 
 // 请求密码重置 schema
@@ -43,7 +43,7 @@ const requestPasswordResetSchema = z.object({
 // 重置密码 schema
 const resetPasswordSchema = z.object({
   resetToken: z.string().min(1, 'Reset token is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
 });
 
 export function createAuthRouter(authService: AuthService) {
@@ -99,6 +99,7 @@ export function createAuthRouter(authService: AuthService) {
             token: result.token,
             user: result.user.toJSON(),
             defaultRealmId: result.defaultRealmId,
+            context: result.context,
           };
         } catch (error: any) {
           if (error instanceof InvalidCredentialsError) {

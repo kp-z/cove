@@ -23,6 +23,9 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface UserPreference {
   readonly pinned_channels?: readonly string[];
+  readonly last_accessed_realm_id?: string;
+  readonly pinned_realm_ids?: readonly string[];
+  readonly realm_order?: readonly string[];
 }
 
 export interface UserEntityProps {
@@ -201,16 +204,16 @@ export class UserEntity {
   // --- Username validation ---
 
   static validateUsername(username: string): void {
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-      throw new Error('Username must be 3-20 characters and contain only letters, numbers, and underscores');
+    if (!/^[a-zA-Z0-9_]{2,20}$/.test(username)) {
+      throw new Error('Username must be 2-20 characters and contain only letters, numbers, and underscores');
     }
   }
 
   // --- Password management ---
 
   static validatePasswordComplexity(password: string): void {
-    if (!password || password.length < 8) {
-      throw new Error('Password must be at least 8 characters long');
+    if (!password || password.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
     }
     if (!/[A-Z]/.test(password)) {
       throw new Error('Password must contain at least one uppercase letter');

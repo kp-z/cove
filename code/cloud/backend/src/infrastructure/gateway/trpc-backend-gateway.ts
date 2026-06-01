@@ -227,13 +227,13 @@ export class TrpcBackendGateway implements IBackendGateway {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as { error?: { message?: string }, result?: { data?: T } }
 
       if (data.error) {
         throw new Error(data.error.message || 'tRPC error')
       }
 
-      return data.result.data as T
+      return data.result?.data as T
     } finally {
       clearTimeout(timeoutId)
     }

@@ -52,13 +52,17 @@ export class SqliteProgressStore implements IProgressStore {
     const completed = records.some(r => r.completed)
     const lastRecord = records[records.length - 1]
 
+    if (!lastRecord) {
+      throw new Error(`No progress records found for message ${messageId}`)
+    }
+
     return {
       messageId,
       totalChunks: records.length,
       completedChunks: completed ? records.length : records.length - 1,
       lastChunkIndex: lastRecord.chunkIndex,
       completed,
-      startedAt: records[0].timestamp,
+      startedAt: records[0]?.timestamp ?? new Date(),
       completedAt: completed ? lastRecord.timestamp : undefined
     }
   }

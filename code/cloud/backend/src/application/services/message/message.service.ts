@@ -13,11 +13,13 @@
 
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { MessageReaction } from '../../../domain/models/message/message.types';
-import { MessageCrudService, SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service';
+import { MessageCrudService } from './message-crud.service';
+import type { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO } from './message-crud.service';
 import { MessageQueryService } from './message-query.service';
-import { MessageReactionService, AddReactionDTO, RemoveReactionDTO } from './message-reaction.service';
+import { MessageReactionService } from './message-reaction.service';
+import type { AddReactionDTO, RemoveReactionDTO } from './message-reaction.service';
 
-export { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, AddReactionDTO, RemoveReactionDTO };
+export type { SendMessageDTO, UpdateMessageDTO, DeleteMessageDTO, AddReactionDTO, RemoveReactionDTO };
 
 export class MessageService {
   constructor(

@@ -70,8 +70,6 @@ describe('FeatureFlagService', () => {
       const config = await service.getConfig('realm-1')
       expect(config).toBeDefined()
       expect(config!.enabled).toBe(true)
-      expect(config!.mode).toBe('backend')
-      expect(config!.rolloutPercentage).toBe(0)
     })
 
     it('should update existing config when enabling', async () => {
@@ -110,77 +108,8 @@ describe('FeatureFlagService', () => {
     })
   })
 
-  describe('getMode/setMode', () => {
-    it('should return backend mode by default', async () => {
-      const mode = await service.getMode('realm-1')
-      expect(mode).toBe('backend')
-    })
-
-    it('should set execution mode', async () => {
-      await service.setMode('realm-1', 'device')
-
-      const mode = await service.getMode('realm-1')
-      expect(mode).toBe('device')
-    })
-
-    it('should create config when setting mode for the first time', async () => {
-      await service.setMode('realm-1', 'device')
-
-      const config = await service.getConfig('realm-1')
-      expect(config).toBeDefined()
-      expect(config!.mode).toBe('device')
-      expect(config!.enabled).toBe(true)
-    })
-
-    it('should update existing config when setting mode', async () => {
-      await service.setMode('realm-1', 'backend')
-      await service.setMode('realm-1', 'device')
-
-      const config = await service.getConfig('realm-1')
-      expect(config!.mode).toBe('device')
-    })
-  })
-
-  describe('setRolloutPercentage', () => {
-    it('should set rollout percentage', async () => {
-      await service.setRolloutPercentage('realm-1', 50)
-
-      const config = await service.getConfig('realm-1')
-      expect(config!.rolloutPercentage).toBe(50)
-    })
-
-    it('should throw error for invalid percentage (< 0)', async () => {
-      await expect(service.setRolloutPercentage('realm-1', -1))
-        .rejects.toThrow('Rollout percentage must be between 0 and 100')
-    })
-
-    it('should throw error for invalid percentage (> 100)', async () => {
-      await expect(service.setRolloutPercentage('realm-1', 101))
-        .rejects.toThrow('Rollout percentage must be between 0 and 100')
-    })
-
-    it('should accept 0 percentage', async () => {
-      await service.setRolloutPercentage('realm-1', 0)
-
-      const config = await service.getConfig('realm-1')
-      expect(config!.rolloutPercentage).toBe(0)
-    })
-
-    it('should accept 100 percentage', async () => {
-      await service.setRolloutPercentage('realm-1', 100)
-
-      const config = await service.getConfig('realm-1')
-      expect(config!.rolloutPercentage).toBe(100)
-    })
-
-    it('should create config when setting percentage for the first time', async () => {
-      await service.setRolloutPercentage('realm-1', 10)
-
-      const config = await service.getConfig('realm-1')
-      expect(config).toBeDefined()
-      expect(config!.rolloutPercentage).toBe(10)
-    })
-  })
+  // Removed: getMode/setMode tests - Backend Mode deleted
+  // Removed: setRolloutPercentage tests - Backend Mode deleted
 
   describe('getConfig', () => {
     it('should return null for non-existent config', async () => {
@@ -190,15 +119,11 @@ describe('FeatureFlagService', () => {
 
     it('should return config', async () => {
       await service.enable('realm-1')
-      await service.setMode('realm-1', 'device')
-      await service.setRolloutPercentage('realm-1', 50)
 
       const config = await service.getConfig('realm-1')
       expect(config).toBeDefined()
       expect(config!.realmId).toBe('realm-1')
       expect(config!.enabled).toBe(true)
-      expect(config!.mode).toBe('device')
-      expect(config!.rolloutPercentage).toBe(50)
     })
   })
 
@@ -207,45 +132,27 @@ describe('FeatureFlagService', () => {
       // 1. Enable feature flag
       await service.enable('realm-1')
       expect(await service.isEnabled('realm-1')).toBe(true)
-      expect(await service.getMode('realm-1')).toBe('backend')
 
-      // 2. Switch to device mode
-      await service.setMode('realm-1', 'device')
-      expect(await service.getMode('realm-1')).toBe('device')
-
-      // 3. Set rollout percentage
-      await service.setRolloutPercentage('realm-1', 10)
-      const config1 = await service.getConfig('realm-1')
-      expect(config1!.rolloutPercentage).toBe(10)
-
-      // 4. Increase rollout percentage
-      await service.setRolloutPercentage('realm-1', 50)
-      const config2 = await service.getConfig('realm-1')
-      expect(config2!.rolloutPercentage).toBe(50)
-
-      // 5. Disable feature flag
+      // 2. Disable feature flag
       await service.disable('realm-1')
       expect(await service.isEnabled('realm-1')).toBe(false)
 
-      // 6. Re-enable
+      // 3. Re-enable
       await service.enable('realm-1')
       expect(await service.isEnabled('realm-1')).toBe(true)
     })
 
     it('should handle multiple realms independently', async () => {
-      await service.setMode('realm-1', 'backend')
-      await service.setMode('realm-2', 'device')
-      await service.setRolloutPercentage('realm-1', 10)
-      await service.setRolloutPercentage('realm-2', 50)
+      await service.enable('realm-1')
+      await service.enable('realm-2')
 
-      expect(await service.getMode('realm-1')).toBe('backend')
-      expect(await service.getMode('realm-2')).toBe('device')
+      expect(await service.isEnabled('realm-1')).toBe(true)
+      expect(await service.isEnabled('realm-2')).toBe(true)
 
-      const config1 = await service.getConfig('realm-1')
-      const config2 = await service.getConfig('realm-2')
+      await service.disable('realm-1')
 
-      expect(config1!.rolloutPercentage).toBe(10)
-      expect(config2!.rolloutPercentage).toBe(50)
+      expect(await service.isEnabled('realm-1')).toBe(false)
+      expect(await service.isEnabled('realm-2')).toBe(true)
     })
   })
 })

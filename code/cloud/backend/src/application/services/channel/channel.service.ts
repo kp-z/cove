@@ -10,19 +10,21 @@
 import { ChannelEntity, ChannelType, ChannelStatus } from '../../../domain/models/channel/channel.entity';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { IChannelQueryService } from '../../interfaces';
-import { ChannelCrudService, CreateChannelDTO, UpdateChannelDTO } from './channel-crud.service';
+import { ChannelCrudService } from './channel-crud.service';
+import type { CreateChannelDTO, UpdateChannelDTO } from './channel-crud.service';
 import { ChannelQueryService } from './channel-query.service';
-import {
-  ChannelMemberService,
+import { ChannelMemberService } from './channel-member.service';
+import type {
   AddMemberDTO,
   RemoveMemberDTO,
   UpdateMemberRoleDTO,
   TransferOwnershipDTO
 } from './channel-member.service';
 import { ChannelLifecycleService } from './channel-lifecycle.service';
-import { ChannelMessagingService, ChannelSendMessageDTO } from './channel-messaging.service';
+import { ChannelMessagingService } from './channel-messaging.service';
+import type { ChannelSendMessageDTO } from './channel-messaging.service';
 
-export {
+export type {
   CreateChannelDTO,
   UpdateChannelDTO,
   AddMemberDTO,

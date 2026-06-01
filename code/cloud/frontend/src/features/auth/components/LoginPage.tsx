@@ -6,13 +6,16 @@ import { useTranslation } from 'react-i18next';
 import { TRPCClientError } from '@trpc/client';
 import { branding } from '@/core/config';
 import { useAuthStore } from '@/core/auth/authStore';
-import { useLogin, useRegister } from '@/lib/trpc/hooks/auth.hooks';
+import { useRegister } from '@/lib/trpc/hooks/auth.hooks';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Switch } from '@/shared/components/ui/switch';
 import { LoginBackground } from '@/shared/components/ui/animations';
 import { GlassCard, GlassCardVariants } from '@/shared/components/ui/cards/GlassCard';
+import { LoginFlowOrchestrator } from './LoginFlowOrchestrator';
+import { useRealmStore } from '@/core/stores/realmStore';
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
 
@@ -21,9 +24,14 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, rememberMe: storedRememberMe } = useAuthStore();
+  const { setRealms } = useRealmStore();
 
   // 视图模式：'login' 或 'register'
   const [mode, setMode] = useState<'login' | 'register'>('login');
+
+  // 登录流程状态
+  const [showOrchestrator, setShowOrchestrator] = useState(false);
+  const [userContext, setUserContext] = useState<any>(null);
 
   // 统一表单状态
   const [username, setUsername] = useState(() => {
@@ -41,13 +49,19 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
 
-  const loginMutation = useLogin();
+  const loginMutation = trpc.auth.login.useMutation();
   const registerMutation = useRegister();
+  const utils = trpc.useUtils();
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !showOrchestrator) {
     return <Navigate to={from} replace />;
+  }
+
+  // 如果需要显示流程协调器
+  if (showOrchestrator && userContext) {
+    return <LoginFlowOrchestrator context={userContext} />;
   }
 
   // 切换模式时清空错误和密码
@@ -75,8 +89,62 @@ export default function LoginPage() {
       loginMutation.mutate(
         { username, password },
         {
-          onSuccess: () => {
-            navigate(from, { replace: true });
+          onSuccess: async (data) => {
+            console.log('Login success data:', data);
+            console.log('Context:', data.context);
+
+            // 清除之前的 realm 缓存（登录是新会话的开始）
+            localStorage.removeItem('current_realm_id');
+            sessionStorage.removeItem('current_realm_id');
+
+            // 立即设置 showOrchestrator 为 true，防止自动重定向
+            setShowOrchestrator(true);
+
+            // 手动调用 authStore.login 来设置认证状态（不传 realmId）
+            const { login: authLogin } = useAuthStore.getState();
+            authLogin(data.user.user_id, data.token, rememberMe); // 不传 defaultRealmId
+
+            // 等待一小段时间确保 token 被设置到 storage
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 获取完整的 Realm 列表（包含 deviceStatus, isDefault, logoUrl）
+            try {
+              const realmListData = await utils.realm.list.fetch();
+              console.log('Realm list data:', realmListData);
+
+              if (realmListData && realmListData.realms && realmListData.realms.length > 0) {
+                console.log('Has realms, setting context');
+
+                // 规范化 realm 数据：snake_case → camelCase
+                const normalizedRealms = realmListData.realms.map((realm: any) => ({
+                  realmId: realm.realm_id,
+                  name: realm.name,
+                  displayName: realm.display_name,
+                  logoUrl: realm.logo_url, // 映射 logo_url → logoUrl
+                  status: realm.status,
+                  deviceStatus: realm.deviceStatus,
+                  isDefault: realm.isDefault,
+                  lastAccessedAt: realm.last_accessed_at,
+                }));
+
+                // 存储 Realm 信息
+                setRealms(normalizedRealms);
+                setUserContext({
+                  isFirstLogin: data.context?.isFirstLogin || false,
+                  realms: normalizedRealms,
+                  preferences: data.context?.preferences || {},
+                });
+              } else {
+                console.log('No realms, navigating to:', from);
+                setShowOrchestrator(false);
+                navigate(from, { replace: true });
+              }
+            } catch (error) {
+              console.error('Failed to fetch realm list:', error);
+              // 回退到旧流程
+              setShowOrchestrator(false);
+              navigate(from, { replace: true });
+            }
           },
           onError: (err) => {
             if (err instanceof TRPCClientError) {
@@ -200,7 +268,7 @@ export default function LoginPage() {
                           onChange={(e) => setUsername(e.target.value)}
                           className="pl-10"
                           autoComplete="username"
-                          minLength={3}
+                          minLength={2}
                           maxLength={20}
                           pattern={mode === 'register' ? '[a-zA-Z0-9_]+' : undefined}
                           required
@@ -266,7 +334,7 @@ export default function LoginPage() {
                           onChange={(e) => setPassword(e.target.value)}
                           className="pl-10 pr-10"
                           autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                          minLength={8}
+                          minLength={6}
                           required
                         />
                         <button
@@ -303,7 +371,7 @@ export default function LoginPage() {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             className="pl-10 pr-10"
                             autoComplete="new-password"
-                            minLength={8}
+                            minLength={6}
                             required
                           />
                           <button

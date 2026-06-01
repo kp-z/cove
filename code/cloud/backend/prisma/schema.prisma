@@ -432,13 +432,14 @@ model MessageTask {
   id              String   @id
   messageId       String
   channelId       String
+  realmId         String
   content         String
   state           String   // PENDING | PROCESSING | COMPLETED | FAILED | DEAD_LETTER
-  executionMode   String   // backend | device
   attempts        Int      @default(0)
   maxAttempts     Int      @default(3)
   priority        Int      @default(0)
   error           String?
+  metadata        String?  // JSON string
   createdAt       DateTime
   updatedAt       DateTime
   lastAttemptAt   DateTime?
@@ -447,6 +448,8 @@ model MessageTask {
   @@index([state])
   @@index([priority])
   @@index([messageId])
+  @@index([channelId])
+  @@index([realmId])
   @@index([state, priority])
   @@index([createdAt])
 }
@@ -455,13 +458,10 @@ model FeatureFlagConfig {
   realmId           String   @id
   flagName          String
   enabled           Boolean
-  mode              String   // backend | device
-  rolloutPercentage Int      @default(0)
   createdAt         DateTime
   updatedAt         DateTime
 
   @@index([enabled])
-  @@index([mode])
 }
 
 model ConfigCache {

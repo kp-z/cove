@@ -40,10 +40,7 @@ export class DeviceLifecycleManager implements IDeviceLifecycleManager {
     private readonly taskStore: ITaskStore
   ) {
     // 初始化子组件
-    this.connectionManager = new ConnectionManager(
-      config.connection,
-      backendGateway
-    )
+    this.connectionManager = new ConnectionManager(config.connection)
 
     this.healthMonitor = new HealthMonitor(
       {
