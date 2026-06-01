@@ -1,0 +1,62 @@
+# Prometheus Configuration for LLM Adapter Migration
+#
+# 监控 Backend 集群和 Device 的关键指标
+
+global:
+  scrape_interval: 15s      # 每 15 秒采集一次指标
+  evaluation_interval: 15s  # 每 15 秒评估一次告警规则
+  external_labels:
+    cluster: 'cove-backend'
+    environment: 'production'
+
+# 告警管理器配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# 告警规则文件
+rule_files:
+  - 'alerts.yml'
+
+# 采集目标配置
+scrape_configs:
+  # Backend 集群监控
+  - job_name: 'backend'
+    static_configs:
+      - targets:
+          - 'backend-0:3002'  # Backend Shard 0
+          - 'backend-1:3002'  # Backend Shard 1
+          - 'backend-2:3002'  # Backend Shard 2
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Redis 监控
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-exporter:9121'
+    scrape_interval: 15s
+
+  # PostgreSQL 监控
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+    scrape_interval: 30s
+
+  # Node Exporter（系统指标）
+  - job_name: 'node'
+    static_configs:
+      - targets:
+          - 'backend-0:9100'
+          - 'backend-1:9100'
+          - 'backend-2:9100'
+    scrape_interval: 15s
+
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'

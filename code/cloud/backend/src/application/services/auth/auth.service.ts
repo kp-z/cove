@@ -23,10 +23,29 @@ export interface JWTPayload {
   role: UserRole;
 }
 
+export interface RealmInfo {
+  realmId: string;
+  name: string;
+  displayName: string;
+  status: string;
+  deviceStatus: 'online' | 'offline' | 'unknown';
+  lastSeenAt?: Date;
+}
+
+export interface UserContext {
+  isFirstLogin: boolean;
+  realms: RealmInfo[];
+  preferences: {
+    lastAccessedRealmId?: string;
+    pinnedRealmIds?: string[];
+  };
+}
+
 export interface LoginResult {
   token: string;
   user: UserEntity;
   defaultRealmId?: string;
+  context?: UserContext;  // 新增：用户上下文
 }
 
 export class AuthService {
@@ -145,7 +164,72 @@ export class AuthService {
 
     this.logger.info('Login successful', { userId: loggedInUser.userId, username: loggedInUser.username, defaultRealmId });
 
-    return { token, user: loggedInUser, defaultRealmId };
+    // 获取用户上下文（用于前端流程决策）
+    const context = await this.getUserContext(loggedInUser.userId);
+
+    return { token, user: loggedInUser, defaultRealmId, context };
+  }
+
+  /**
+   * 获取用户上下文（用于登录后的流程决策）
+   */
+  private async getUserContext(userId: string): Promise<UserContext> {
+    try {
+      // 1. 获取用户信息
+      const user = await this.userRepository.findById(userId, 'default');
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // 2. 判断是否首次登录（lastLoginAt 为 null 表示首次登录）
+      const isFirstLogin = !user.lastLoginAt;
+
+      // 3. 获取用户偏好
+      const preferences = user.preference || {};
+
+      // 4. 获取用户的所有 Realm（简化版，不查询 Device 状态）
+      // 完整实现需要注入 RealmService 和 DeviceService
+      const realms: RealmInfo[] = [];
+
+      if (this.realmMemberRepository) {
+        // 获取用户加入的所有 Realm
+        const members = await this.realmMemberRepository.findByUser(userId, 'default');
+
+        for (const member of members) {
+          if (this.realmRepository) {
+            const foundRealms = await this.realmRepository.find({ id: member.realmId });
+            const realm = foundRealms[0];
+            if (realm && realm.status === 'active') {
+              realms.push({
+                realmId: realm.realm_id,
+                name: realm.name,
+                displayName: realm.display_name || realm.name,
+                status: realm.status,
+                deviceStatus: 'unknown', // 暂时设为 unknown，完整实现需要查询 Device 状态
+                lastSeenAt: undefined,
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        isFirstLogin,
+        realms,
+        preferences: {
+          lastAccessedRealmId: preferences.last_accessed_realm_id,
+          pinnedRealmIds: preferences.pinned_realm_ids as string[] | undefined,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to get user context', error as Error, { userId });
+      // 返回默认上下文，不阻塞登录流程
+      return {
+        isFirstLogin: false,
+        realms: [],
+        preferences: {},
+      };
+    }
   }
 
   /**

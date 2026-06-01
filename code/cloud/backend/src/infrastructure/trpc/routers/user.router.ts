@@ -38,6 +38,9 @@ const updateUserSchema = z.object({
   avatar: avatarSchema,
   preference: z.object({
     pinned_channels: z.array(z.string()).max(10, 'Cannot pin more than 10 channels').optional(),
+    last_accessed_realm_id: z.string().optional(),
+    pinned_realm_ids: z.array(z.string()).optional(),
+    realm_order: z.array(z.string()).optional(),
   }).optional(),
 });
 
@@ -195,6 +198,54 @@ export const userRouter = (userService: UserService) =>
           return await runWithContext(context, async () => {
             const user = await userService.unlockUser(input.userId);
             return user.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 更新用户偏好 - 用户只能更新自己的偏好
+    updatePreferences: protectedProcedure
+      .input(z.object({
+        lastAccessedRealmId: z.string().optional(),
+        pinnedRealmIds: z.array(z.string()).optional(),
+        realmOrder: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          if (!ctx.userId) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'User ID is required',
+            });
+          }
+
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId);
+          return await runWithContext(context, async () => {
+            // 获取当前用户
+            const user = await userService.getUserById(ctx.userId!);
+            if (!user) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'User not found',
+              });
+            }
+
+            // 合并偏好
+            const currentPrefs = user.preference || {};
+            const updatedPrefs = {
+              ...currentPrefs,
+              ...(input.lastAccessedRealmId !== undefined && { last_accessed_realm_id: input.lastAccessedRealmId }),
+              ...(input.pinnedRealmIds !== undefined && { pinned_realm_ids: input.pinnedRealmIds }),
+              ...(input.realmOrder !== undefined && { realm_order: input.realmOrder }),
+            };
+
+            // 更新用户
+            await userService.updateUser(ctx.userId!, {
+              preference: updatedPrefs,
+            });
+
+            return { success: true };
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);

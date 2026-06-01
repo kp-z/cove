@@ -21,7 +21,7 @@ import {
   openaiConfigSchema,
   claudeCodeCLIConfigSchema,
 } from '../../../domain/models/adapter/adapter-config.validation';
-import { getAvailableModels } from '../../adapters/llm/model-discovery';
+// import { getAvailableModels } from '../../adapters/llm/model-discovery'; // Removed - LLM moved to Device
 
 // Input schema for creating adapter config
 const createAdapterSchema = z.object({
@@ -169,51 +169,15 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
         }
       }),
 
+    // DEPRECATED: Model discovery moved to Local Device
     // Get available models for an adapter
     getAvailableModels: publicProcedure
       .input(z.object({ adapterId: z.string() }))
-      .query(async ({ input, ctx }) => {
-        try {
-          const actorId = ctx.userId || 'system';
-          const adapter = await deps.adapterService.getById(input.adapterId, actorId);
-
-          if (!adapter) {
-            throw new Error('Adapter not found');
-          }
-
-          // Only support model discovery for anthropic-api and openai-api
-          if (adapter.type !== 'anthropic-api' && adapter.type !== 'openai-api') {
-            throw new Error(`Model discovery not supported for adapter type: ${adapter.type}`);
-          }
-
-          // Extract configuration - type guard ensures we have the right config structure
-          const config = adapter.config as any;
-          const baseURL = config.base_url;
-          const customHeaders = config.custom_headers;
-
-          // Resolve API key for OpenAI
-          let apiKey: string | undefined;
-          if (adapter.type === 'openai-api') {
-            if (config.api_key) {
-              apiKey = config.api_key;
-            } else if (config.api_key_ref) {
-              apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
-            }
-          }
-
-          const result = await getAvailableModels(
-            adapter.type,
-            baseURL,
-            customHeaders,
-            apiKey
-          );
-
-          return result;
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
+      .query(async () => {
+        throw new Error('Model discovery has been moved to Local Device. This endpoint is deprecated.');
       }),
 
+    // DEPRECATED: Model discovery moved to Local Device
     // Discover models with temporary config (for creating new adapters)
     discoverModels: publicProcedure
       .input(
@@ -224,26 +188,8 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
           customHeaders: z.record(z.string()).optional(),
         })
       )
-      .query(async ({ input }) => {
-        try {
-          const { adapterType, baseURL, apiKey, customHeaders } = input;
-
-          // Only support model discovery for anthropic-api and openai-api
-          if (adapterType !== 'anthropic-api' && adapterType !== 'openai-api') {
-            throw new Error(`Model discovery not supported for adapter type: ${adapterType}`);
-          }
-
-          const result = await getAvailableModels(
-            adapterType,
-            baseURL,
-            customHeaders,
-            apiKey
-          );
-
-          return result;
-        } catch (error: any) {
-          throw mapErrorToTRPC(error);
-        }
+      .query(async () => {
+        throw new Error('Model discovery has been moved to Local Device. This endpoint is deprecated.');
       }),
 
     // Get all adapter type metadata
@@ -285,36 +231,8 @@ export function createAdapterRouter(deps: AdapterRouterDeps) {
           switch (adapterType) {
             case 'anthropic-api':
             case 'openai-api': {
-              const config = adapter.config as any;
-              const baseURL = config.base_url;
-              const customHeaders = config.custom_headers;
-
-              let apiKey: string | undefined;
-              // Resolve API key for both Anthropic and OpenAI
-              if (config.api_key) {
-                apiKey = config.api_key;
-              } else if (config.api_key_ref) {
-                apiKey = await deps.adapterService.resolveApiKey(config.api_key_ref);
-              }
-
-              const result = await getAvailableModels(
-                adapter.type,
-                baseURL,
-                customHeaders,
-                apiKey
-              );
-
-              const latency = Date.now() - startTime;
-
-              return {
-                success: true,
-                message: 'Connection successful',
-                details: {
-                  provider: result.provider,
-                  modelCount: result.models.length,
-                  latency,
-                },
-              };
+              // DEPRECATED: Model discovery moved to Local Device
+              throw new Error('Connection testing for LLM adapters has been moved to Local Device. This endpoint is deprecated.');
             }
 
             case 'claude-code-cli': {

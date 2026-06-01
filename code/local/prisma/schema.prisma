@@ -1,0 +1,77 @@
+// Cove Local Device - Prisma Schema
+// 本地设备存储：消息队列、任务状态、进度、配置缓存
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================
+// 消息编排存储层
+// ============================================
+
+model MessageTask {
+  id              String   @id
+  messageId       String
+  channelId       String
+  content         String
+  state           String   // PENDING | PROCESSING | COMPLETED | FAILED | DEAD_LETTER
+  executionMode   String   // backend | device
+  attempts        Int      @default(0)
+  maxAttempts     Int      @default(3)
+  priority        Int      @default(0)
+  error           String?
+  createdAt       DateTime
+  updatedAt       DateTime
+  lastAttemptAt   DateTime?
+  completedAt     DateTime?
+
+  @@index([state])
+  @@index([priority])
+  @@index([messageId])
+  @@index([state, priority])
+  @@index([createdAt])
+}
+
+model FeatureFlagConfig {
+  realmId           String   @id
+  flagName          String
+  enabled           Boolean
+  mode              String   // backend | device
+  rolloutPercentage Int      @default(0)
+  createdAt         DateTime
+  updatedAt         DateTime
+
+  @@index([enabled])
+  @@index([mode])
+}
+
+model ConfigCache {
+  realmId     String   @id
+  version     Int
+  config      String   // JSON string
+  checksum    String
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@index([version])
+}
+
+model ProgressRecord {
+  id            String   @id
+  messageId     String
+  channelId     String
+  agentId       String
+  chunkIndex    Int
+  chunkContent  String
+  completed     Boolean  @default(false)
+  timestamp     DateTime
+
+  @@index([messageId])
+  @@index([messageId, chunkIndex])
+  @@index([completed])
+}

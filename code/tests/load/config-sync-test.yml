@@ -1,0 +1,84 @@
+# Configuration Sync Load Test
+#
+# 使用 Artillery 进行配置同步压力测试
+# 目标：验证配置缓存命中率 > 95%，无请求风暴
+
+config:
+  target: "http://localhost:3002"
+  phases:
+    # 阶段 1：模拟 1000 个 Device 同时启动
+    - duration: 10
+      arrivalRate: 100
+      name: "1000 devices startup"
+
+    # 阶段 2：正常运行（配置缓存测试）
+    - duration: 300
+      arrivalRate: 10
+      name: "Normal operation"
+
+    # 阶段 3：配置变更推送测试
+    - duration: 60
+      arrivalRate: 50
+      name: "Config update push"
+
+  ensure:
+    p95: 200  # P95 延迟 < 200ms
+    maxErrorRate: 0.1  # 错误率 < 0.1%
+
+scenarios:
+  # 场景 1：Device 启动时拉取配置
+  - name: "Fetch configuration on startup"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/config/realm/{{ $randomNumber(0, 2999) }}"
+          headers:
+            Authorization: "Bearer test-token"
+          capture:
+            - json: "$.version"
+              as: "configVersion"
+            - json: "$.checksum"
+              as: "configChecksum"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: version
+            - hasProperty: checksum
+
+  # 场景 2：检查配置版本（缓存命中）
+  - name: "Check config version (cache hit)"
+    weight: 50
+    flow:
+      - get:
+          url: "/api/config/realm/{{ $randomNumber(0, 2999) }}/version"
+          headers:
+            Authorization: "Bearer test-token"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: version
+
+  # 场景 3：增量同步（版本链）
+  - name: "Incremental sync (version chain)"
+    weight: 8
+    flow:
+      - get:
+          url: "/api/config/realm/{{ $randomNumber(0, 2999) }}/changes?from={{ $randomNumber(1, 10) }}&to={{ $randomNumber(11, 20) }}"
+          headers:
+            Authorization: "Bearer test-token"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  # 场景 4：配置校验和检查
+  - name: "Config checksum verification"
+    weight: 2
+    flow:
+      - get:
+          url: "/api/config/realm/{{ $randomNumber(0, 2999) }}/checksum"
+          headers:
+            Authorization: "Bearer test-token"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: checksum

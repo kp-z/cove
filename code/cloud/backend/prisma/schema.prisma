@@ -423,3 +423,69 @@ model AuditLog {
   @@index([resourceId])
   @@index([createdAt])
 }
+
+// ============================================
+// 消息编排存储层
+// ============================================
+
+model MessageTask {
+  id              String   @id
+  messageId       String
+  channelId       String
+  realmId         String
+  content         String
+  state           String   // PENDING | PROCESSING | COMPLETED | FAILED | DEAD_LETTER
+  attempts        Int      @default(0)
+  maxAttempts     Int      @default(3)
+  priority        Int      @default(0)
+  error           String?
+  metadata        String?  // JSON string
+  createdAt       DateTime
+  updatedAt       DateTime
+  lastAttemptAt   DateTime?
+  completedAt     DateTime?
+
+  @@index([state])
+  @@index([priority])
+  @@index([messageId])
+  @@index([channelId])
+  @@index([realmId])
+  @@index([state, priority])
+  @@index([createdAt])
+}
+
+model FeatureFlagConfig {
+  realmId           String   @id
+  flagName          String
+  enabled           Boolean
+  createdAt         DateTime
+  updatedAt         DateTime
+
+  @@index([enabled])
+}
+
+model ConfigCache {
+  realmId     String   @id
+  version     Int
+  config      String   // JSON string
+  checksum    String
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@index([version])
+}
+
+model ProgressRecord {
+  id            String   @id
+  messageId     String
+  channelId     String
+  agentId       String
+  chunkIndex    Int
+  chunkContent  String
+  completed     Boolean  @default(false)
+  timestamp     DateTime
+
+  @@index([messageId])
+  @@index([messageId, chunkIndex])
+  @@index([completed])
+}

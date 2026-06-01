@@ -6,13 +6,15 @@ import { AgentEntity, AgentStatus, AgentRuntimeConfig, AgentPersona, AgentSkills
 import { TaskEntity } from '../../../domain/models/task/task.entity';
 import { MessageEntity } from '../../../domain/models/message/message.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
-import { AgentCrudService, CreateAgentDTO, UpdateAgentDTO } from './agent-crud.service';
+import { AgentCrudService } from './agent-crud.service';
+import type { CreateAgentDTO, UpdateAgentDTO } from './agent-crud.service';
 import { AgentQueryService } from './agent-query.service';
 import { AgentConfigService } from './agent-config.service';
-import { AgentTaskService, AgentAssignTaskDTO } from './agent-task.service';
+import { AgentTaskService } from './agent-task.service';
+import type { AgentAssignTaskDTO } from './agent-task.service';
 import { AgentResponseService } from './agent-response.service';
 
-export { CreateAgentDTO, UpdateAgentDTO, AgentAssignTaskDTO };
+export type { CreateAgentDTO, UpdateAgentDTO, AgentAssignTaskDTO };
 
 export class AgentService {
   constructor(

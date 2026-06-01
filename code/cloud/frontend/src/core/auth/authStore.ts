@@ -71,7 +71,15 @@ export const useAuthStore = create<AuthState>()(
         set({ userId: null, token: null, isAuthenticated: false, currentRealmId: null });
       },
 
-      setCurrentRealmId: (realmId) => {
+      setCurrentRealmId: (realmId: string | null) => {
+        if (realmId === null) {
+          // 清除缓存
+          localStorage.removeItem('current_realm_id');
+          sessionStorage.removeItem('current_realm_id');
+          set({ currentRealmId: null });
+          return;
+        }
+
         const rememberMe = useAuthStore.getState().rememberMe;
         if (rememberMe) {
           localStorage.setItem('current_realm_id', realmId);
