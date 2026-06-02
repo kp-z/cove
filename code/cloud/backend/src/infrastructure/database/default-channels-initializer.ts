@@ -5,7 +5,7 @@
  * 提供幂等的初始化逻辑，可安全地重复执行
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { ILogger } from '../../application/interfaces/logger.interface';
 
 export interface DefaultChannelsInitializerOptions {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { HybridAuditLogRepository } from './hybrid-audit-log.repository';
 import { AuditLogEntity } from '../../domain/models/audit/audit-log.entity';
 import { TestDatabaseHelper } from './test-database.helper';

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultDataInitializer } from './default-data-initializer';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { ILogger } from '../../application/interfaces';
 import * as fs from 'fs/promises';
 import * as path from 'path';

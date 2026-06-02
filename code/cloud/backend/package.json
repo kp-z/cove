@@ -6,8 +6,8 @@
   "private": true,
   "scripts": {
     "start": "npm run build:esbuild && node dist/bundle.js",
-    "dev": "nodemon --watch src --ext ts --exec 'npm run build:esbuild && node dist/bundle.js'",
-    "dev:tsx": "tsx watch src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "dev:esbuild": "nodemon --watch src --ext ts --exec 'npm run build:esbuild && node dist/bundle.js'",
     "build": "tsc",
     "build:esbuild": "esbuild src/main.ts --bundle --platform=node --target=es2022 --format=esm --outfile=dist/bundle.js --packages=external",
     "test": "vitest run",

@@ -6,7 +6,7 @@
  * - 文件系统存储实际内容（灵活扩展）
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 

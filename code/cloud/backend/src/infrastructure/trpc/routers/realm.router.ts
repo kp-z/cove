@@ -10,6 +10,7 @@
  */
 
 import { z } from 'zod';
+import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from '../trpc';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmService } from '../../../application/services/realm/realm.service';
@@ -18,6 +19,7 @@ import { DeviceAuthService } from '../../../application/services/device/device-a
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
 import type { UserService } from '../../../application/services/user/user.service';
+import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 
 // Zod Schemas
 const createRealmSchema = z.object({
@@ -41,9 +43,21 @@ export const realmRouter = (
   realmService: RealmService,
   deviceService?: DeviceService,
   deviceAuthService?: DeviceAuthService,
-  userService?: UserService
-) =>
-  router({
+  userService?: UserService,
+  eventBus?: IEventBus
+): ReturnType<typeof router> => {
+  // 辅助函数：检查是否为超级管理员
+  const isSuperAdmin = async (userId: string): Promise<boolean> => {
+    if (!userService) return false;
+    try {
+      const user = await userService.getUserById(userId);
+      return user?.username === 'kp'; // kp 是超级管理员
+    } catch {
+      return false;
+    }
+  };
+
+  return router({
     // 创建服务器
     create: publicProcedure
       .input(createRealmSchema)
@@ -335,7 +349,7 @@ export const realmRouter = (
         }
       }),
 
-    // 获取设备状态和启动命令
+    // 获取设备状态
     getDeviceStatus: publicProcedure
       .input(z.object({
         realmId: z.string(),
@@ -362,44 +376,169 @@ export const realmRouter = (
             const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
             const isOnline = device.last_seen_at && new Date(device.last_seen_at) > fiveMinutesAgo;
 
-            if (isOnline) {
-              // Device is online, return status without generating new key
-              return {
-                hasDevice: true,
-                isOnline: true,
-                device: {
-                  deviceId: device.device_id,
-                  name: device.display_name || device.name,
-                  status: device.status,
-                  lastSeenAt: device.last_seen_at,
-                },
-              };
-            }
-
-            // Device is offline, rotate API key and generate startup command
-            const apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
-            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
-            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
-
-            // Generate simple npx command
-            const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
-
             return {
               hasDevice: true,
-              isOnline: false,
+              isOnline,
               device: {
                 deviceId: device.device_id,
                 name: device.display_name || device.name,
                 status: device.status,
                 lastSeenAt: device.last_seen_at,
               },
-              startCommand,
-              apiKey,
-              warning: '⚠️ API Key will only be shown once. Please save it securely.',
             };
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
       }),
+
+    // 生成设备启动命令（仅 owner 或超级管理员可用）
+    generateDeviceStartCommand: publicProcedure
+      .input(z.object({
+        realmId: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(input.realmId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            // Check if device services are available
+            if (!deviceService || !deviceAuthService) {
+              throw new Error('Device management not available');
+            }
+
+            // Check if user is realm owner or super admin (kp)
+            const realm = await realmService.getRealmById(input.realmId);
+            const isOwner = realm.owner_id === ctx.userId;
+            const isSuperAdminUser = await isSuperAdmin(ctx.userId || '');
+
+            if (!isOwner && !isSuperAdminUser) {
+              throw new Error('Only realm owner or super admin can generate device start command');
+            }
+
+            // Get realm device
+            const device = await deviceService.getRealmDevice(input.realmId);
+
+            if (!device) {
+              throw new Error('Device not found');
+            }
+
+            // Generate or retrieve API key
+            let apiKey: string;
+            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
+            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
+
+            if (device.apiKeyHash) {
+              // Device already has an API key
+              // We cannot retrieve the original key (it's hashed), so we need to rotate it
+              apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
+              const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+
+              return {
+                hasExistingKey: true,
+                startCommand,
+                apiKey,
+                warning: '⚠️ A new API key has been generated. The old key has been revoked. Please save this key securely.',
+              };
+            } else {
+              // Generate new API key
+              apiKey = await deviceAuthService.generateApiKey(device.device_id, input.realmId);
+              const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+
+              return {
+                hasExistingKey: false,
+                startCommand,
+                apiKey,
+                warning: '⚠️ API Key will only be shown once. Please save it securely.',
+              };
+            }
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 轮换设备 API Key（仅 owner 或超级管理员可用）
+    rotateDeviceApiKey: publicProcedure
+      .input(z.object({
+        realmId: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(input.realmId, ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            // Check if device services are available
+            if (!deviceService || !deviceAuthService) {
+              throw new Error('Device management not available');
+            }
+
+            // Check if user is realm owner or super admin (kp)
+            const realm = await realmService.getRealmById(input.realmId);
+            const isOwner = realm.owner_id === ctx.userId;
+            const isSuperAdminUser = await isSuperAdmin(ctx.userId || '');
+
+            if (!isOwner && !isSuperAdminUser) {
+              throw new Error('Only realm owner or super admin can rotate device API key');
+            }
+
+            // Get realm device
+            const device = await deviceService.getRealmDevice(input.realmId);
+
+            if (!device) {
+              throw new Error('Device not found');
+            }
+
+            // Rotate API key
+            const apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
+            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
+            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
+            const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+
+            return {
+              startCommand,
+              apiKey,
+              warning: '⚠️ API Key will only be shown once. Please save it securely. The old API key has been revoked.',
+            };
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 订阅 Realm device 状态变化（WebSocket）
+    subscribeDeviceStatus: publicProcedure
+      .input(z.object({
+        realmId: z.string().optional(),
+      }).optional())
+      .subscription(({ input }) => {
+        return observable<{ realmId: string; deviceStatus: 'online' | 'offline' }>((emit) => {
+          if (!eventBus) {
+            return () => {};
+          }
+
+          // 订阅 device 心跳事件 (表示 online)
+          const unsubscribeHeartbeat = eventBus.subscribe('device.heartbeat', async (event) => {
+            const deviceId = event.payload.deviceId as string;
+
+            // 查找该 device 对应的 realm
+            if (deviceService) {
+              try {
+                const device = await deviceService.getDeviceById(deviceId);
+                if (device && (!input?.realmId || device.realm_id === input.realmId)) {
+                  emit.next({
+                    realmId: device.realm_id,
+                    deviceStatus: 'online',
+                  });
+                }
+              } catch (error) {
+                // Ignore error
+              }
+            }
+          });
+
+          return () => {
+            unsubscribeHeartbeat();
+          };
+        });
+      }),
   });
+};

@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { ILogger } from '../../application/interfaces/index';
 import { BuiltInAgentsInitializer } from './built-in-agents-initializer';
 import { DefaultDataInitializer } from './default-data-initializer';

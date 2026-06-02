@@ -53,14 +53,19 @@ export const useRealmStore = create<RealmState>((set, get) => ({
   setCurrentRealm: (realmId) => {
     set({ currentRealmId: realmId });
 
-    // 同步到后端（异步，不阻塞 UI）
-    trpc.user.updatePreferences
-      .mutate({
+    // 同步到后端（使用正确的 backend URL）
+    fetch('http://localhost:3002/trpc/user.updatePreferences', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         lastAccessedRealmId: realmId,
-      })
-      .catch((err) => {
-        console.error('Failed to update last accessed realm:', err);
-      });
+      }),
+      credentials: 'include', // 包含 cookies
+    }).catch((err) => {
+      console.error('Failed to update last accessed realm:', err);
+    });
   },
 
   updateDeviceStatus: (realmId, status) => {

@@ -4,7 +4,7 @@
  * 基于 Prisma 的配置缓存实现
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import crypto from 'crypto'
 import type { IConfigCache } from './config-cache.interface'
 import type { RealmConfiguration } from '../gateway/backend-gateway.interface'

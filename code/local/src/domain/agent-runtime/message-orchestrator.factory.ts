@@ -4,7 +4,7 @@
  * 创建 MessageOrchestrator 实例并集成存储层
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import { MessageOrchestrator } from './message-orchestrator'
 import { BackendProcessor } from './backend-processor'
 import { DeviceProcessor } from './device-processor'

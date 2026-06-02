@@ -6,7 +6,7 @@
  * - settings, limits, meta 使用 JSON 字段存储
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { RealmEntity, RealmStatus, RealmVisibility, RealmSettings, RealmLimits } from '../../domain/models/realm/realm.entity';
 import { IRealmRepository } from '../../application/interfaces/repositories/realm.repository.interface';
 import { ILogger } from '../../application/interfaces/logger.interface';

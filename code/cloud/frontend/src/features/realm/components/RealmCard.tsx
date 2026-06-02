@@ -18,11 +18,13 @@ export interface RealmInfo {
   realmId: string;
   name: string;
   displayName: string;
+  description?: string; // 添加简介字段
   logoUrl?: string;
   status: string;
   deviceStatus: StatusType;
   isDefault?: boolean;
   lastAccessedAt?: Date;
+  ownerId?: string;
 }
 
 interface RealmCardProps {
@@ -84,7 +86,7 @@ export function RealmCard({
           <div className="flex items-center gap-2">
             <h3
               className={cn(
-                'font-semibold truncate text-white', // 深色主题文字
+                'font-semibold truncate text-white',
                 variant === 'compact' ? 'text-sm' : 'text-base'
               )}
             >
@@ -96,10 +98,16 @@ export function RealmCard({
               </span>
             )}
           </div>
+          {realm.description && variant !== 'compact' && (
+            <p className="text-white/60 text-sm mt-1 line-clamp-2">
+              {realm.description}
+            </p>
+          )}
           <p
             className={cn(
-              'text-white/60 truncate', // 深色主题副标题
-              variant === 'compact' ? 'text-xs' : 'text-sm'
+              'text-white/40 truncate',
+              variant === 'compact' ? 'text-xs' : 'text-xs',
+              realm.description && 'mt-1'
             )}
           >
             {realm.name}

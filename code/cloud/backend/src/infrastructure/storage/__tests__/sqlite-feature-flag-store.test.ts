@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import { SqliteFeatureFlagStore } from '../sqlite-feature-flag-store'
 import type { FeatureFlagConfig } from '../../../domain/feature-flag/feature-flag.interface'
 

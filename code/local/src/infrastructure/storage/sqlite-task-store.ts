@@ -4,20 +4,19 @@
  * 基于 Prisma 的任务存储实现
  */
 
-import { PrismaClient } from '@prisma/client'
-import type { ITaskStore, TaskRecord, UpsertTaskData } from './task-store.interface'
-import type { MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
+import { PrismaClient } from '../../../generated/client'
+import type { MessageTask, MessageState } from '../../domain/agent-runtime/message-orchestrator.interface'
 
 /**
  * SQLite 任务存储
  */
-export class SqliteTaskStore implements ITaskStore {
+export class SqliteTaskStore {
   constructor(private prisma: PrismaClient) {}
 
   /**
    * 创建或更新任务
    */
-  async upsert(task: UpsertTaskData): Promise<void> {
+  async upsert(task: MessageTask): Promise<void> {
     // 先查找是否存在
     const existing = await this.prisma.messageTask.findFirst({
       where: { messageId: task.messageId }
@@ -31,29 +30,25 @@ export class SqliteTaskStore implements ITaskStore {
           state: task.state,
           attempts: task.attempts,
           error: task.error,
-          updatedAt: new Date(),
-          lastAttemptAt: task.lastAttemptAt,
-          completedAt: task.completedAt
+          updatedAt: new Date()
         }
       })
     } else {
       // 创建新记录
       await this.prisma.messageTask.create({
         data: {
-          id: task.messageId, // 使用 messageId 作为 id
+          id: task.messageId,
           messageId: task.messageId,
           channelId: task.channelId,
-          content: '', // 默认空内容
+          content: task.content,
           state: task.state,
-          executionMode: 'device', // 默认 device 模式
+          executionMode: task.executionMode,
           attempts: task.attempts ?? 0,
           maxAttempts: task.maxAttempts ?? 3,
-          priority: 0, // 默认优先级
+          priority: task.priority ?? 0,
           error: task.error,
           createdAt: new Date(),
-          updatedAt: new Date(),
-          lastAttemptAt: task.lastAttemptAt,
-          completedAt: task.completedAt
+          updatedAt: new Date()
         }
       })
     }
@@ -62,28 +57,28 @@ export class SqliteTaskStore implements ITaskStore {
   /**
    * 获取任务
    */
-  async get(messageId: string): Promise<TaskRecord | null> {
+  async get(taskId: string): Promise<MessageTask | null> {
     const record = await this.prisma.messageTask.findFirst({
-      where: { messageId }
+      where: { messageId: taskId }
     })
 
     if (!record) {
       return null
     }
 
-    return this.toTaskRecord(record)
+    return this.toMessageTask(record)
   }
 
   /**
    * 根据状态查找任务
    */
-  async findByState(state: MessageState): Promise<TaskRecord[]> {
+  async findByState(state: MessageState): Promise<MessageTask[]> {
     const records = await this.prisma.messageTask.findMany({
       where: { state },
       orderBy: { createdAt: 'asc' }
     })
 
-    return records.map((record: any) => this.toTaskRecord(record))
+    return records.map((record: any) => this.toMessageTask(record))
   }
 
   /**
@@ -103,6 +98,43 @@ export class SqliteTaskStore implements ITaskStore {
   }
 
   /**
+   * 获取待处理任务
+   */
+  async getPending(): Promise<MessageTask[]> {
+    const records = await this.prisma.messageTask.findMany({
+      where: {
+        state: { in: ['PENDING', 'PROCESSING'] }
+      },
+      orderBy: [
+        { priority: 'desc' },
+        { createdAt: 'asc' }
+      ]
+    })
+
+    return records.map((record: any) => this.toMessageTask(record))
+  }
+
+  /**
+   * 更新任务状态
+   */
+  async updateState(taskId: string, state: MessageState, error?: string): Promise<void> {
+    const existing = await this.prisma.messageTask.findFirst({
+      where: { messageId: taskId }
+    })
+
+    if (existing) {
+      await this.prisma.messageTask.update({
+        where: { id: existing.id },
+        data: {
+          state,
+          error,
+          updatedAt: new Date()
+        }
+      })
+    }
+  }
+
+  /**
    * 关闭连接
    */
   async close(): Promise<void> {
@@ -110,23 +142,22 @@ export class SqliteTaskStore implements ITaskStore {
   }
 
   /**
-   * 转换数据库记录为 TaskRecord
+   * 转换数据库记录为 MessageTask
    */
-  private toTaskRecord(record: any): TaskRecord {
+  private toMessageTask(record: any): MessageTask {
     return {
       id: record.id,
       messageId: record.messageId,
       channelId: record.channelId,
-      agentId: undefined,
+      content: record.content,
       state: record.state as MessageState,
+      executionMode: record.executionMode,
       attempts: record.attempts,
       maxAttempts: record.maxAttempts,
-      result: undefined,
+      priority: record.priority,
       error: record.error ?? undefined,
       createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-      lastAttemptAt: record.lastAttemptAt ?? undefined,
-      completedAt: record.completedAt ?? undefined
+      updatedAt: record.updatedAt
     }
   }
 }

@@ -4,7 +4,7 @@
  * 提供全局唯一的 Prisma Client 实例
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 
 let prisma: PrismaClient | null = null;
 

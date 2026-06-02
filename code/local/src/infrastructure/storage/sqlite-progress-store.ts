@@ -4,7 +4,7 @@
  * 基于 Prisma 的流式进度存储实现
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import type {
   IProgressStore,
   ProgressRecord,

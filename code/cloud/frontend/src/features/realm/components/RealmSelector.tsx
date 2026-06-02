@@ -7,7 +7,7 @@
  * - Realm 不可用时重新选择 (variant='modal')
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RealmCard, DeviceStartCommandPanel, CreateRealmForm } from './';
@@ -15,6 +15,7 @@ import type { RealmInfo } from './';
 import { useRealmStore } from '@/core/stores/realmStore';
 import { LoginHeroThree } from '@/shared/components/ui/animations/LoginHeroThree';
 import { GlassCard, GlassCardVariants } from '@/shared/components/ui/cards/GlassCard';
+import { trpc } from '@/lib/trpc';
 
 interface RealmSelectorProps {
   realms: RealmInfo[];
@@ -23,15 +24,36 @@ interface RealmSelectorProps {
 }
 
 export function RealmSelector({
-  realms,
+  realms: initialRealms,
   onSelect,
   variant = 'page',
 }: RealmSelectorProps) {
+  const [realms, setRealms] = useState<RealmInfo[]>(initialRealms);
   const [selectedRealmId, setSelectedRealmId] = useState<string>();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [expandedRealmId, setExpandedRealmId] = useState<string | null>(null);
   const { setCurrentRealm } = useRealmStore();
   const navigate = useNavigate();
+
+  // 初始化时更新 realms
+  useEffect(() => {
+    setRealms(initialRealms);
+  }, [initialRealms]);
+
+  // 订阅 device 状态变化（WebSocket）
+  trpc.realm.subscribeDeviceStatus.useSubscription(undefined, {
+    onData: (data) => {
+      // 收到 device 状态变化通知，立即更新本地状态
+      setRealms(prev => prev.map(r =>
+        r.realmId === data.realmId
+          ? { ...r, deviceStatus: data.deviceStatus }
+          : r
+      ));
+    },
+    onError: (error) => {
+      console.error('Device status subscription error:', error);
+    },
+  });
 
   const handleRealmClick = (realm: RealmInfo) => {
     if (realm.deviceStatus !== 'online') {
@@ -43,15 +65,24 @@ export function RealmSelector({
     // Device 在线，允许进入
     setCurrentRealm(realm.realmId);
     onSelect?.(realm.realmId);
-    navigate(`/realm/${realm.realmId}`);
+    navigate('/'); // 导航到首页 (Dashboard)
   };
 
   const handleDeviceOnline = (realm: RealmInfo) => {
-    // Device 上线后自动进入
+    // Device 上线后，更新本地状态
+    setRealms(prev => prev.map(r =>
+      r.realmId === realm.realmId
+        ? { ...r, deviceStatus: 'online' as const }
+        : r
+    ));
+
+    // 关闭启动命令面板
     setExpandedRealmId(null);
+
+    // 自动进入 realm
     setCurrentRealm(realm.realmId);
     onSelect?.(realm.realmId);
-    navigate(`/realm/${realm.realmId}`);
+    navigate('/'); // 导航到首页 (Dashboard)
   };
 
   const handleCreateSuccess = (newRealm: RealmInfo) => {
@@ -105,6 +136,7 @@ export function RealmSelector({
                       >
                         <DeviceStartCommandPanel
                           realmId={realm.realmId}
+                          realmOwnerId={realm.ownerId || ''}
                           onDeviceOnline={() => handleDeviceOnline(realm)}
                           onClose={() => setExpandedRealmId(null)}
                         />

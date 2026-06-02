@@ -4,7 +4,7 @@
  * 基于 Prisma 的任务存储实现
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import type { ITaskStore } from '../../domain/message-orchestrator/message-orchestrator'
 import type { MessageTask, MessageState } from '../../domain/message-orchestrator/message-orchestrator.interface'
 

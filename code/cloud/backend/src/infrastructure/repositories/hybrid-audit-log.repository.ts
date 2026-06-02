@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { AuditLogEntity } from '../../domain/models/audit/audit-log.entity';
 import { AuditLogRepository, AuditLogQueryParams } from '../../application/interfaces/repositories/audit-log.repository.interface';
 

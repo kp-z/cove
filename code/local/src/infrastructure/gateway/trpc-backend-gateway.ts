@@ -90,7 +90,11 @@ export class TrpcBackendGateway implements BackendGateway {
     metrics?: Record<string, unknown>;
   }): Promise<void> {
     try {
-      await this.client.device.reportHealth.mutate(health);
+      // 使用 deviceSubscription.heartbeat 替代 device.reportHealth
+      await this.client.deviceSubscription.heartbeat.mutate({
+        deviceId: health.deviceId,
+        status: health.metrics,
+      });
     } catch (error) {
       console.error('Failed to report health:', error);
       // Don't throw - health reporting is best-effort

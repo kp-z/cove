@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HybridDeviceRepository } from './hybrid-device.repository';
 import { DeviceEntity } from '../../domain/models/device/device.entity';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import { RealmContext } from '../../application/context/realm-context';

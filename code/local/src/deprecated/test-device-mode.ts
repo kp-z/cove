@@ -16,7 +16,7 @@ import { BackendProcessor } from './domain/agent-runtime/backend-processor';
 import { TrpcBackendGateway } from './infrastructure/gateway/trpc-backend-gateway';
 import { SqliteMessageQueue } from './infrastructure/storage/sqlite-message-queue';
 import { SqliteTaskStore } from './infrastructure/storage/sqlite-task-store';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
 
 async function testDeviceMode() {
   console.log('🚀 开始测试 Device 模式...\n');

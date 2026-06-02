@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { ChannelEntity } from '../../domain/models/channel/channel.entity';
 import { IChannelRepository } from '../../application/interfaces/repositories/channel.repository.interface';
 import { ILogger } from '../../application/interfaces/logger.interface';

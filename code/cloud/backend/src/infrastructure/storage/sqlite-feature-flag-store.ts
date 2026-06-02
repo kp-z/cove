@@ -4,7 +4,7 @@
  * 基于 Prisma 的 Feature Flag 存储实现
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import type { IFeatureFlagStore } from './feature-flag-store.interface'
 import type { FeatureFlagConfig } from '../../domain/feature-flag/feature-flag.interface'
 

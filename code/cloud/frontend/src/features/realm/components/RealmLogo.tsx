@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { branding } from '@/core/config';
 
 interface RealmLogoProps {
   logoUrl?: string;
@@ -20,53 +21,21 @@ const sizeClasses = {
   lg: 'w-16 h-16 text-lg',
 } as const;
 
-// 默认项目 logo
-const DEFAULT_LOGO = '/storage/assets/cove-logo.svg';
+// 默认项目 logo - 使用 branding 配置
+const DEFAULT_LOGO = branding.logo.svg;
 
 export function RealmLogo({ logoUrl, displayName, size = 'md', className }: RealmLogoProps) {
   const [imageError, setImageError] = useState(false);
-  const [defaultLogoError, setDefaultLogoError] = useState(false);
 
-  // 优先使用 realm 的 logo
-  if (logoUrl && !imageError) {
-    return (
-      <img
-        src={logoUrl}
-        alt={displayName || 'Realm'}
-        className={cn('rounded-lg object-cover flex-shrink-0', sizeClasses[size], className)}
-        onError={() => setImageError(true)}
-      />
-    );
-  }
-
-  // 回退到默认项目 logo
-  if (!defaultLogoError) {
-    return (
-      <img
-        src={DEFAULT_LOGO}
-        alt={displayName || 'Realm'}
-        className={cn('rounded-lg object-cover flex-shrink-0', sizeClasses[size], className)}
-        onError={() => setDefaultLogoError(true)}
-      />
-    );
-  }
-
-  // 最终回退：首字母头像
-  const firstLetter = displayName && displayName.length > 0
-    ? displayName.charAt(0).toUpperCase()
-    : '?';
+  // 优先使用 realm 的 logo，失败则使用默认 logo
+  const finalLogoUrl = (logoUrl && !imageError) ? logoUrl : DEFAULT_LOGO;
 
   return (
-    <div
-      className={cn(
-        'flex items-center justify-center rounded-lg',
-        'bg-gradient-to-br from-blue-500 to-purple-600',
-        'text-white font-bold flex-shrink-0',
-        sizeClasses[size],
-        className
-      )}
-    >
-      {firstLetter}
-    </div>
+    <img
+      src={finalLogoUrl}
+      alt={displayName || 'Realm'}
+      className={cn('rounded-lg object-cover flex-shrink-0', sizeClasses[size], className)}
+      onError={() => setImageError(true)}
+    />
   );
 }

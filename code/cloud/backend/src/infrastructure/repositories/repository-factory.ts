@@ -11,7 +11,7 @@
  * - 未来（云端）：多 Server，每个 realmId 对应独立的 Repository 实例
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';
 import { HybridProjectRepository } from './hybrid-project.repository';

@@ -131,6 +131,15 @@ export class HybridUserRepository
   }
 
   async findByRole(role: UserRole): Promise<UserEntity[]> {
+    console.log('[HybridUserRepository] findByRole called', {
+      role,
+      hasPrisma: !!this.prisma,
+      prismaType: typeof this.prisma
+    });
+
+    if (!this.prisma) {
+      throw new Error('Prisma client is not initialized in HybridUserRepository');
+    }
     const records = await this.prisma.user.findMany({ where: { role } });
     return this.loadEntities(records as unknown as UserDbRecord[]);
   }

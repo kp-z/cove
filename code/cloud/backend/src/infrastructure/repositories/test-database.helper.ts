@@ -4,7 +4,7 @@
  * 为集成测试提供独立的测试数据库环境
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';

@@ -137,6 +137,8 @@ function initializeDependencies() {
 
   // Database + Storage
   const prisma = getPrismaClient();
+  logger.info('Prisma client initialized', { hasPrisma: !!prisma });
+
   // Use global .cove directory in user's home directory
   const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
   const storageService = new StorageService(coveRoot);

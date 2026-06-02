@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Loader2, Mail, Eye, EyeOff } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function LoginPage() {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, rememberMe: storedRememberMe } = useAuthStore();
+  const { isAuthenticated, rememberMe: storedRememberMe, currentRealmId } = useAuthStore();
   const { setRealms } = useRealmStore();
 
   // 视图模式：'login' 或 'register'
@@ -32,6 +32,7 @@ export default function LoginPage() {
   // 登录流程状态
   const [showOrchestrator, setShowOrchestrator] = useState(false);
   const [userContext, setUserContext] = useState<any>(null);
+  const [isCheckingRealm, setIsCheckingRealm] = useState(false);
 
   // 统一表单状态
   const [username, setUsername] = useState(() => {
@@ -55,8 +56,63 @@ export default function LoginPage() {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
-  if (isAuthenticated && !showOrchestrator) {
+  // 刷新页面时检查是否需要显示 RealmSelector
+  useEffect(() => {
+    async function checkRealmSelection() {
+      // 只在已认证但未选择 realm 且未显示 orchestrator 时执行
+      if (isAuthenticated && !currentRealmId && !showOrchestrator && !isCheckingRealm) {
+        setIsCheckingRealm(true);
+        try {
+          // 获取 realm 列表
+          const realmListData = await utils.realm.list.fetch();
+
+          if (realmListData && realmListData.realms && realmListData.realms.length > 0) {
+            // 规范化 realm 数据
+            const normalizedRealms = realmListData.realms.map((realm: any) => ({
+              realmId: realm.realm_id,
+              name: realm.name,
+              displayName: realm.display_name,
+              description: realm.description,
+              logoUrl: realm.logo_url,
+              status: realm.status,
+              deviceStatus: realm.deviceStatus,
+              isDefault: realm.isDefault,
+              lastAccessedAt: realm.last_accessed_at,
+              ownerId: realm.owner_id,
+            }));
+
+            // 显示 RealmSelector
+            setRealms(normalizedRealms);
+            setUserContext({
+              isFirstLogin: false,
+              realms: normalizedRealms,
+              preferences: {},
+            });
+            setShowOrchestrator(true);
+          }
+        } catch (error) {
+          console.error('Failed to fetch realm list on refresh:', error);
+        } finally {
+          setIsCheckingRealm(false);
+        }
+      }
+    }
+
+    checkRealmSelection();
+  }, [isAuthenticated, currentRealmId, showOrchestrator, isCheckingRealm, utils, setRealms]);
+
+  // 只有在已认证且已选择 realm 时才重定向
+  if (isAuthenticated && currentRealmId && !showOrchestrator) {
     return <Navigate to={from} replace />;
+  }
+
+  // 加载中状态
+  if (isCheckingRealm) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#0f111a]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   // 如果需要显示流程协调器
@@ -120,11 +176,13 @@ export default function LoginPage() {
                   realmId: realm.realm_id,
                   name: realm.name,
                   displayName: realm.display_name,
-                  logoUrl: realm.logo_url, // 映射 logo_url → logoUrl
+                  description: realm.description,
+                  logoUrl: realm.logo_url,
                   status: realm.status,
                   deviceStatus: realm.deviceStatus,
                   isDefault: realm.isDefault,
                   lastAccessedAt: realm.last_accessed_at,
+                  ownerId: realm.owner_id,
                 }));
 
                 // 存储 Realm 信息

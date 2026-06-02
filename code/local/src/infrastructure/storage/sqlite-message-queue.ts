@@ -4,7 +4,7 @@
  * 基于 Prisma 的消息队列实现
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import type { IMessageQueue } from './message-queue.interface'
 import type { MessageTask } from '../../domain/agent-runtime/message-orchestrator.interface'
 

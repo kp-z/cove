@@ -4,7 +4,7 @@
  * 主控制器：编排所有组件的生命周期，管理 Device 的启动、运行和停止
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
 import type { Config } from './config';
 import type { ILogger } from './infrastructure/logger';
 import { ConsoleLogger } from './infrastructure/logger';
@@ -56,18 +56,32 @@ export class DeviceClient {
     try {
       // 1. Initialize Prisma Client
       this.logger.info('Initializing database');
+
+      // Use DATABASE_URL from env if set, otherwise use config path
+      const dbUrl = process.env.DATABASE_URL || `file:${this.config.local.dataDir}/device.db`;
+      this.logger.info('Database configuration', { dbUrl });
+
       this.prisma = new PrismaClient({
         datasources: {
           db: {
-            url: `file:${this.config.local.dataDir}/device.db`,
+            url: dbUrl,
           },
         },
       });
       await this.prisma.$connect();
+      this.logger.info('Database connected successfully');
 
       // 2. Create Backend Gateway
       this.logger.info('Creating backend gateway');
-      const backendGateway = new TrpcBackendGateway(this.config.server.url);
+
+      // Convert WebSocket URL to HTTP URL for tRPC client
+      const httpUrl = this.config.server.url.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/trpc$/, '');
+      this.logger.info('Backend gateway URLs', {
+        original: this.config.server.url,
+        http: httpUrl
+      });
+
+      const backendGateway = new TrpcBackendGateway(httpUrl);
 
       // 3. Create Storage Layer
       this.logger.info('Creating storage layer');

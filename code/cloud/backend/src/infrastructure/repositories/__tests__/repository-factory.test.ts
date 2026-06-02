@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { RepositoryFactory } from '../repository-factory';
 import { ILogger } from '../../../application/interfaces/logger.interface';
 

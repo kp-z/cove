@@ -5,7 +5,7 @@
  * These agents are marked with scope: "built-in" and persist across installations.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
@@ -27,6 +27,13 @@ export class BuiltInAgentsInitializer {
     this.prisma = options.prisma;
     this.logger = options.logger;
     this.storageRoot = options.storageRoot;
+
+    // Debug logging
+    this.logger.debug('BuiltInAgentsInitializer constructed', {
+      hasPrisma: !!this.prisma,
+      hasLogger: !!this.logger,
+      storageRoot: this.storageRoot
+    });
   }
 
   /**
@@ -36,6 +43,13 @@ export class BuiltInAgentsInitializer {
   async initialize(): Promise<void> {
     this.logger.info('Initializing built-in agents...', {
       count: BUILT_IN_AGENTS.length,
+    });
+
+    // Debug: check prisma
+    this.logger.debug('Before findFirst', {
+      hasPrisma: !!this.prisma,
+      hasRealm: !!(this.prisma as any).realm,
+      prismaType: typeof this.prisma
     });
 
     // Get nexus realm (the default realm)

@@ -5,7 +5,7 @@
  * 文件存储：消息内容、附件、提及、反应、编辑历史
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { HybridRepository } from './hybrid-repository.base';
 import { StorageService } from '../storage/storage.service';
 import { ILogger } from '../../application/interfaces/logger.interface';

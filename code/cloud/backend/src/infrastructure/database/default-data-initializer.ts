@@ -10,7 +10,7 @@
  * 所有操作都是幂等的，可以安全地多次运行
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../../generated/client';
 import { ILogger } from '../../application/interfaces';
 import { nanoid } from 'nanoid';
 import * as fs from 'fs/promises';
@@ -142,7 +142,7 @@ export class DefaultDataInitializer {
       update: {
         displayName: this.DEFAULT_REALM.displayName,
         description: this.DEFAULT_REALM.description,
-        logoUrl: '/storage/assets/cove-logo.svg',
+        logoUrl: '/cove-logo.svg',
         logoType: 'default',
         updatedAt: now,
       },
@@ -157,7 +157,7 @@ export class DefaultDataInitializer {
         settings: JSON.stringify(settings),
         limits: JSON.stringify(limits),
         meta: JSON.stringify(meta),
-        logoUrl: '/storage/assets/cove-logo.svg',
+        logoUrl: '/cove-logo.svg',
         logoType: 'default',
         createdAt: now,
         updatedAt: now,
@@ -331,16 +331,82 @@ export class DefaultDataInitializer {
       });
 
       if (existingChannel) {
-        // Update avatar fields for existing channels
-        await this.prisma.channel.update({
-          where: { id: channelConfig.id },
-          data: {
-            avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-            avatarType: 'dicebear',
-            updatedAt: now,
-          },
-        });
-        this.logger.debug('Channel already exists', { channelId: channelConfig.id });
+        // 获取应该存在的成员列表
+        const expectedMembers = await this.getChannelMembers(channelConfig.id);
+
+        // 解析现有的 membersData
+        const currentMembersData = JSON.parse(existingChannel.membersData || '[]');
+        const currentMemberIds = new Set(currentMembersData.map((m: any) => m.memberId));
+
+        // 找出缺失的成员
+        const missingMembers = expectedMembers.filter(m => !currentMemberIds.has(m.memberId));
+
+        if (missingMembers.length > 0) {
+          // 合并现有成员和新成员
+          const updatedMembersData = [
+            ...currentMembersData,
+            ...missingMembers.map(m => ({
+              memberId: m.memberId,
+              memberType: m.memberType,
+              role: m.role,
+              joinedAt: now.toISOString(),
+            })),
+          ];
+
+          // 更新 channel
+          await this.prisma.channel.update({
+            where: { id: channelConfig.id },
+            data: {
+              membersData: JSON.stringify(updatedMembersData),
+              memberCount: updatedMembersData.length,
+              avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
+              avatarType: 'dicebear',
+              updatedAt: now,
+            },
+          });
+
+          // 同步更新 Member 表（只为 user 类型的成员创建 Member 记录）
+          for (const member of missingMembers) {
+            if (member.memberType === 'user') {
+              await this.prisma.member.upsert({
+                where: {
+                  userId_channelId: {
+                    userId: member.memberId,
+                    channelId: channelConfig.id,
+                  },
+                },
+                create: {
+                  id: member.id,
+                  channelId: channelConfig.id,
+                  userId: member.memberId,
+                  role: member.role,
+                  status: 'active',
+                  joinedAt: now,
+                },
+                update: {
+                  status: 'active',
+                },
+              });
+            }
+            // Note: Agent members are stored in Channel.membersData only, not in Member table
+          }
+
+          this.logger.info('Added missing members to existing channel', {
+            channelId: channelConfig.id,
+            addedCount: missingMembers.length,
+          });
+        } else {
+          // 只更新 avatar 字段
+          await this.prisma.channel.update({
+            where: { id: channelConfig.id },
+            data: {
+              avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
+              avatarType: 'dicebear',
+              updatedAt: now,
+            },
+          });
+          this.logger.debug('Channel already exists with all members', { channelId: channelConfig.id });
+        }
         continue;
       }
 
@@ -359,8 +425,8 @@ export class DefaultDataInitializer {
           description: channelConfig.description,
           icon: channelConfig.icon,
           membersData: JSON.stringify(memberData.map(m => ({
-            memberId: m.userId,
-            memberType: 'user',
+            memberId: m.memberId,
+            memberType: m.memberType,
             role: m.role,
             joinedAt: now.toISOString(),
           }))),
@@ -388,13 +454,15 @@ export class DefaultDataInitializer {
           createdAt: now,
           updatedAt: now,
           members: {
-            create: memberData.map(m => ({
-              id: m.id,
-              userId: m.userId,
-              role: m.role,
-              status: 'active',
-              joinedAt: now,
-            })),
+            create: memberData
+              .filter(m => m.memberType === 'user')
+              .map(m => ({
+                id: m.id,
+                userId: m.memberId,
+                role: m.role,
+                status: 'active',
+                joinedAt: now,
+              })),
           },
         },
       });
@@ -405,26 +473,64 @@ export class DefaultDataInitializer {
 
   /**
    * 获取 Channel 成员数据
+   * 返回应该存在于 channel 中的成员列表（包括所有 users 和 agents）
    */
-  private async getChannelMembers(channelId: string): Promise<Array<{ id: string; userId: string; role: string }>> {
-    const members: Array<{ id: string; userId: string; role: string }> = [];
+  private async getChannelMembers(channelId: string): Promise<Array<{
+    id: string;
+    memberId: string;
+    memberType: 'user' | 'agent';
+    role: string;
+  }>> {
+    const members: Array<{
+      id: string;
+      memberId: string;
+      memberType: 'user' | 'agent';
+      role: string;
+    }> = [];
 
-    // 添加 admin（如果存在）
-    const adminUser = await this.prisma.user.findFirst({
-      where: { role: 'owner' },
+    // 添加所有 realm 的 users
+    const realmUsers = await this.prisma.realmMember.findMany({
+      where: {
+        realmId: this.DEFAULT_REALM.id,
+        status: 'active',
+      },
+      include: {
+        user: true,
+      },
     });
 
-    if (adminUser) {
+    for (const realmMember of realmUsers) {
       members.push({
-        id: `${channelId}-member-${adminUser.id}`,
-        userId: adminUser.id,
-        role: 'owner',
+        id: `${channelId}-member-${realmMember.userId}`,
+        memberId: realmMember.userId,
+        memberType: 'user',
+        role: realmMember.role === 'owner' ? 'owner' : 'member',
       });
     }
 
-    // Note: Agents are not added as Channel Members because they are not Users.
-    // Agents can interact with channels through their agent-specific permissions
-    // without being formal members.
+    // 添加所有 realm 的 agents
+    const realmAgents = await this.prisma.agent.findMany({
+      where: {
+        realmId: this.DEFAULT_REALM.id,
+        status: 'active',
+      },
+    });
+
+    for (const agent of realmAgents) {
+      members.push({
+        id: `${channelId}-member-${agent.id}`,
+        memberId: agent.id,
+        memberType: 'agent',
+        role: 'member',
+      });
+    }
+
+    this.logger.debug('Generated channel members', {
+      channelId,
+      userCount: realmUsers.length,
+      agentCount: realmAgents.length,
+      totalMembers: members.length,
+    });
 
     return members;
   }

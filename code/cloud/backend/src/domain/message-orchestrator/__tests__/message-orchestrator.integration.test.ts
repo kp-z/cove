@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../../../generated/client'
 import { createMessageOrchestrator } from '../message-orchestrator.factory'
 import { FeatureFlagService } from '../../feature-flag/feature-flag.service'
 import { SqliteFeatureFlagStore } from '../../../infrastructure/storage/sqlite-feature-flag-store'

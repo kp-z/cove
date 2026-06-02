@@ -17,6 +17,7 @@ import { createDeviceSubscriptionRouter } from './device-subscription.router';
 import { realmRouter } from './realm.router';
 import { deviceRouter } from './device.router';
 import { createFileSystemRouter } from './filesystem.router';
+import { createConfigurationRouter } from './configuration.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import type { AgentDMService } from '../../../application/services/agent-dm/agent-dm.service';
@@ -125,13 +126,16 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     project: projectRouter(deps.projectService),
 
     // Realm router
-    realm: realmRouter(deps.realmService, deps.deviceService, deps.deviceAuthService, deps.userService),
+    realm: realmRouter(deps.realmService, deps.deviceService, deps.deviceAuthService, deps.userService, deps.eventBus),
 
     // Device router
     device: deviceRouter(deps.deviceService, deps.deviceAuthService),
 
     // FileSystem router
     filesystem: createFileSystemRouter(deps.fileSystemService),
+
+    // Configuration router
+    configuration: createConfigurationRouter(deps.realmService),
 
     // Subscription router
     subscription: createSubscriptionRouter({
