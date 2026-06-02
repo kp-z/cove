@@ -353,14 +353,20 @@ export class DefaultDataInitializer {
             })),
           ];
 
+          // 提取所有 agent IDs 用于 agentPool
+          const agentIds = updatedMembersData
+            .filter((m: any) => m.memberType === 'agent')
+            .map((m: any) => m.memberId);
+
           // 更新 channel
           await this.prisma.channel.update({
             where: { id: channelConfig.id },
             data: {
               membersData: JSON.stringify(updatedMembersData),
               memberCount: updatedMembersData.length,
-              avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-              avatarType: 'dicebear',
+              agentPool: JSON.stringify(agentIds),
+              avatarUrl: null,
+              avatarType: 'default',
               updatedAt: now,
             },
           });
@@ -400,8 +406,8 @@ export class DefaultDataInitializer {
           await this.prisma.channel.update({
             where: { id: channelConfig.id },
             data: {
-              avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-              avatarType: 'dicebear',
+              avatarUrl: null,
+              avatarType: 'default',
               updatedAt: now,
             },
           });
@@ -412,6 +418,11 @@ export class DefaultDataInitializer {
 
       // 获取成员列表
       const memberData = await this.getChannelMembers(channelConfig.id);
+
+      // 提取 agent IDs 用于 agentPool
+      const agentIds = memberData
+        .filter(m => m.memberType === 'agent')
+        .map(m => m.memberId);
 
       // 创建 Channel
       await this.prisma.channel.create({
@@ -430,7 +441,7 @@ export class DefaultDataInitializer {
             role: m.role,
             joinedAt: now.toISOString(),
           }))),
-          agentPool: JSON.stringify([]),
+          agentPool: JSON.stringify(agentIds),
           taskPool: JSON.stringify([]),
           conversationPool: JSON.stringify([]),
           communicationRules: JSON.stringify({
@@ -447,8 +458,8 @@ export class DefaultDataInitializer {
           metaTags: JSON.stringify([]),
           createdById: 'system',
           createdByType: 'system',
-          avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${channelConfig.name}`,
-          avatarType: 'dicebear',
+          avatarUrl: null,
+          avatarType: 'default',
           memberCount: memberData.length,
           messageCount: 0,
           createdAt: now,

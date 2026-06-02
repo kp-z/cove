@@ -109,6 +109,10 @@ export const router = createBrowserRouter([
         element: <SettingsPage />,
       },
       {
+        path: 'settings/:category',
+        element: <SettingsPage />,
+      },
+      {
         path: 'test/bubble',
         element: <BubbleTestPage />,
       },

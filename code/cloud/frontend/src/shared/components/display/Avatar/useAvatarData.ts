@@ -58,7 +58,7 @@ export function useAgentAvatarData(agentId: string): AvatarData {
 export function useChannelAvatarData(channelId: string): AvatarData {
   const { data: channel } = useChannel(channelId);
 
-  // Handle both string and object avatar formats
+  // Use channel's avatar directly (channels always have avatar from backend)
   let avatarUrl: string | null = null;
   if (channel?.avatar) {
     if (typeof channel.avatar === 'string') {
@@ -66,23 +66,6 @@ export function useChannelAvatarData(channelId: string): AvatarData {
     } else if (typeof channel.avatar === 'object' && (channel.avatar as any).url) {
       avatarUrl = getAvatarUrl((channel.avatar as any).url);
     }
-  }
-
-  // Fallback for DM channels without avatar: use agent's avatar
-  if (!avatarUrl && channel?.type === 'dm' && channel?.members) {
-    const agentMember = channel.members.find((m: any) => m.type === 'agent');
-    if (agentMember?.avatar) {
-      if (typeof agentMember.avatar === 'string') {
-        avatarUrl = getAvatarUrl(agentMember.avatar);
-      } else if (typeof agentMember.avatar === 'object' && agentMember.avatar.url) {
-        avatarUrl = getAvatarUrl(agentMember.avatar.url);
-      }
-    }
-  }
-
-  // Final fallback: generate dicebear avatar based on channelId
-  if (!avatarUrl) {
-    avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${channelId}`;
   }
 
   return {

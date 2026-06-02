@@ -83,6 +83,7 @@ import { RealmService } from './application/services/realm/realm.service';
 import { RealmPermissionService } from './application/services/realm/realm-permission.service';
 import { DeviceService } from './application/services/device/device.service';
 import { DeviceAuthService } from './application/services/device/device-auth.service';
+import { createMessageOrchestrator } from './domain/message-orchestrator/message-orchestrator.factory';
 import { AuthService } from './application/services/auth/auth.service';
 import { AuditService } from './application/services/audit/audit.service';
 import { AvatarService } from './application/services/avatar/avatar.service';
@@ -445,20 +446,78 @@ function initializeDependencies() {
    * - message.created: Message entity created and persisted (human or agent)
    * - message.sent: Message delivery completed (used by agent responses)
    *
-   * Subscribe to message.created to trigger agent auto-response.
+   * Subscribe to message.created to trigger agent auto-response via Local Device.
    * Skip agent messages to prevent infinite loops.
    */
-  eventBus.subscribe('message.created', (event) => {
+  eventBus.subscribe('message.created', async (event) => {
     if (event.payload.senderType === 'agent') return;
-    // Event payload should include realmId for proper context
+
     const realmId = (event.payload as any).realmId;
-    if (!realmId) {
-      logger.warn('message.created event missing realmId', { messageId: event.payload.messageId });
+    const channelId = (event.payload as any).channelId;
+    const messageId = event.payload.messageId as string;
+
+    if (!realmId || !channelId) {
+      logger.warn('message.created event missing realmId or channelId', { messageId });
       return;
     }
-    messageRepository.findById(event.payload.messageId as string, realmId).then(message => {
-      if (message) agentService.handleIncomingMessage(message);
-    }).catch(err => logger.error('Agent response trigger failed', err as Error));
+
+    try {
+      // 1. Get the full message content from database
+      const message = await messageRepository.findById(messageId, realmId);
+      if (!message) {
+        logger.warn('Message not found in database', { messageId });
+        return;
+      }
+
+      // 2. Check if agent should respond
+      const channel = await channelRepository.findById(channelId, realmId);
+      if (!channel || channel.agentPool.length === 0) return;
+
+      // Check if this is a DM channel with an agent
+      const isDM = channel.type === 'dm';
+      if (!isDM) return; // Only auto-respond in DM channels for now
+
+      // 3. Get Agent information
+      const agentId = channel.agentPool[0];
+      const agent = await agentRepository.findById(agentId, realmId);
+      if (!agent) {
+        logger.warn('Agent not found', { agentId });
+        return;
+      }
+
+      const agentName = agent.displayName || agent.name || 'Agent';
+
+      // 4. 【立即发布接收确认事件】
+      await eventBus.publish({
+        eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        eventType: 'agent.response.accepted',
+        aggregateId: messageId,
+        aggregateType: 'Message',
+        occurredAt: new Date(),
+        payload: {
+          messageId,
+          channelId,
+          agentId,
+          agentName,
+          estimatedDuration: 10, // 预估 10 秒
+        },
+      });
+
+      logger.info('Agent response accepted', { messageId, agentId, agentName });
+
+      // 5. 异步入队处理（不阻塞）
+      messageOrchestrator.enqueue({
+        messageId,
+        channelId: `${realmId}:${channelId}`,
+        content: message.content,
+        priority: 0
+      }).catch(err => {
+        logger.error('Failed to enqueue message', err as Error, { messageId });
+      });
+
+    } catch (err) {
+      logger.error('Failed to handle message.created', err as Error, { messageId });
+    }
   });
 
   /**
@@ -514,10 +573,22 @@ function initializeDependencies() {
   // Initialize Device Connection Manager
   const deviceConnectionManager = new DeviceConnectionManager(logger);
 
+  // Initialize MessageOrchestrator for routing messages to Local Device
+  const messageOrchestrator = createMessageOrchestrator(
+    prisma,
+    deviceConnectionManager,
+    messageRepository,
+    {
+      maxAttempts: 3,
+      pollInterval: 1000
+    }
+  );
+
   return {
     logger,
     eventBus,
     deviceConnectionManager,
+    messageOrchestrator,
     // Services for tRPC
     agentService,
     agentRuntimeService,

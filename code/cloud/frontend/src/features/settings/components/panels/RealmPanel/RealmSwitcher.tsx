@@ -21,6 +21,7 @@ export function RealmSwitcher({ realms, currentRealmId, onSwitch }: RealmSwitche
     <div className="space-y-2">
       {realms.map((realm) => {
         const isCurrent = realm.realm_id === currentRealmId;
+        const logoUrl = realm.logo?.url || realm.logo_url;
 
         return (
           <button
@@ -34,9 +35,9 @@ export function RealmSwitcher({ realms, currentRealmId, onSwitch }: RealmSwitche
             }`}
           >
             {/* Logo */}
-            {realm.logo_url ? (
+            {logoUrl ? (
               <img
-                src={getAvatarUrl(realm.logo_url)}
+                src={getAvatarUrl(logoUrl)}
                 alt={realm.display_name}
                 className="w-10 h-10 rounded-lg object-cover shrink-0"
               />

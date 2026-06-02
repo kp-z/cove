@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useRealm, useRealmList, useUpdateRealm, useCreateRealm, useCurrentRealmRole, useRealmMembers } from '@/lib/trpc/hooks/realm.hooks';
@@ -32,6 +32,15 @@ export function RealmPanel() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const utils = trpc.useUtils();
+
+  // Auto-initialize currentRealmId if not set
+  useEffect(() => {
+    if (!currentRealmId && !realmsLoading && realmsData?.realms && realmsData.realms.length > 0) {
+      // Set the first realm as current if no realm is selected
+      const firstRealm = realmsData.realms[0];
+      setCurrentRealmId(firstRealm.realm_id);
+    }
+  }, [currentRealmId, realmsLoading, realmsData, setCurrentRealmId]);
 
   // Authentication check
   if (!isAuthenticated) {
@@ -150,7 +159,7 @@ export function RealmPanel() {
         )}
       </div>
 
-      {/* Current Realm Info */}
+      {/* Current Realm Info with Device Status */}
       {currentRealm && (
         <RealmInfoCard
           realm={currentRealm}
@@ -159,11 +168,6 @@ export function RealmPanel() {
           onSwitch={allRealms.length > 1 ? handleRealmSwitch : undefined}
           canEdit={canEdit}
         />
-      )}
-
-      {/* Device Status */}
-      {currentRealm && (
-        <RealmDeviceCard realmId={currentRealm.realm_id} />
       )}
 
       {/* Statistics */}

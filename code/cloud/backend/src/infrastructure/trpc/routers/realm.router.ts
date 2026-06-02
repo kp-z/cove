@@ -118,7 +118,7 @@ export const realmRouter = (
             const realmsWithStatus = await Promise.all(
               servers.map(async (realm) => {
                 const realmJson = realm.toJSON();
-                let deviceStatus: 'online' | 'offline' | 'unknown' = 'unknown';
+                let deviceStatus: 'online' | 'offline' | 'unknown' = 'offline'; // Default to offline instead of unknown
 
                 if (deviceService) {
                   try {
@@ -128,8 +128,10 @@ export const realmRouter = (
                       const isOnline = device.last_seen_at && new Date(device.last_seen_at) > fiveMinutesAgo;
                       deviceStatus = isOnline ? 'online' : 'offline';
                     }
+                    // If no device exists, deviceStatus stays as 'offline'
                   } catch (error) {
-                    // Ignore error, keep as unknown
+                    // On error, set to offline (not unknown) for better UX
+                    deviceStatus = 'offline';
                   }
                 }
 
@@ -415,11 +417,38 @@ export const realmRouter = (
               throw new Error('Only realm owner or super admin can generate device start command');
             }
 
-            // Get realm device
-            const device = await deviceService.getRealmDevice(input.realmId);
+            // Get or create realm device
+            let device = await deviceService.getRealmDevice(input.realmId);
 
             if (!device) {
-              throw new Error('Device not found');
+              // Check if device exists in database but failed to load (e.g., invalid configPath)
+              // In this case, we should fix the existing device instead of creating a new one
+              const existingDeviceRecord = await deviceService['deviceRepository']['prisma'].device.findFirst({
+                where: { realmId: input.realmId },
+              });
+
+              if (existingDeviceRecord) {
+                // Device exists but failed to load, likely due to invalid configPath
+                // Delete it and create a fresh one
+                await deviceService['deviceRepository']['prisma'].device.delete({
+                  where: { id: existingDeviceRecord.id },
+                });
+              }
+
+              // Now create a new device with placeholder specs
+              // The actual specs will be detected and updated when local device starts
+              const newDevice = await deviceService.createDevice({
+                realmId: input.realmId,
+                name: `${realm.name}-device`,
+                displayName: `${realm.display_name} Device`,
+                type: 'physical',
+                specs: {
+                  cpu_cores: 1,  // Placeholder, will be updated by local device
+                  memory_gb: 1,  // Placeholder, will be updated by local device
+                  storage_gb: 1, // Placeholder, will be updated by local device
+                },
+              });
+              device = newDevice;
             }
 
             // Generate or retrieve API key

@@ -50,6 +50,50 @@ describe('userRouter', () => {
     router = userRouter(mockUserService);
   });
 
+  describe('me', () => {
+    it('should get current user successfully', async () => {
+      const user = UserEntity.create({
+        userId: 'test-user-id',
+        username: 'testuser',
+        displayName: 'Test User',
+        email: 'test@example.com',
+        role: 'user',
+        createdAt: new Date(),
+      });
+
+      vi.mocked(mockUserService.getUserById).mockResolvedValue(user);
+
+      const caller = router.createCaller(mockContext);
+      const result = await caller.me();
+
+      expect(result).toHaveProperty('user_id', 'test-user-id');
+      expect(result).toHaveProperty('username', 'testuser');
+      expect(result).toHaveProperty('email', 'test@example.com');
+      expect(mockUserService.getUserById).toHaveBeenCalledWith('test-user-id');
+    });
+
+    it('should throw UNAUTHORIZED when user not authenticated', async () => {
+      const contextWithoutUser = {
+        ...mockContext,
+        userId: undefined,
+      };
+
+      const caller = router.createCaller(contextWithoutUser);
+
+      await expect(caller.me()).rejects.toThrow('User authentication is required');
+    });
+
+    it('should throw NOT_FOUND when user not found', async () => {
+      const error = new UserNotFoundError('test-user-id');
+      error.name = 'UserNotFoundError';
+      vi.mocked(mockUserService.getUserById).mockRejectedValue(error);
+
+      const caller = router.createCaller(mockContext);
+
+      await expect(caller.me()).rejects.toThrow('User not found');
+    });
+  });
+
   describe('create', () => {
     it('should create user successfully', async () => {
       const user = UserEntity.create({

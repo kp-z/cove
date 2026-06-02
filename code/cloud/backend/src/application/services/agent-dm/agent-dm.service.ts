@@ -47,14 +47,8 @@ export class AgentDMService {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // Extract avatar from agent persona, with fallback to dicebear
-    const avatar = agent.persona?.avatar ? {
-      url: agent.persona.avatar.url,
-      type: agent.persona.avatar.type,
-    } : {
-      url: `https://api.dicebear.com/7.x/bottts/svg?seed=${agentId}`,
-      type: 'dicebear' as const,
-    };
+    // Use agent's avatar directly (agent always has avatar from database)
+    const avatar = agent.persona?.avatar || undefined;
 
     const channelName = agent.displayName || agent.name;
 

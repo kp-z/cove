@@ -86,6 +86,9 @@ export class HybridDeviceRepository
   }
 
   toDatabase(entity: DeviceEntity): DeviceDbRecord {
+    // Generate the storage path for this entity
+    const storagePath = `storage/devices/${entity.device_id}.json`;
+
     return {
       id: entity.device_id,
       realmId: entity.realm_id,
@@ -94,7 +97,7 @@ export class HybridDeviceRepository
       type: entity.type,
       status: entity.status,
       platform: null, // Platform field removed from entity
-      configPath: '',
+      configPath: storagePath,
       lastSeenAt: entity.last_seen_at || null,
       createdAt: entity.created_at,
       updatedAt: entity.updated_at,
@@ -135,8 +138,20 @@ export class HybridDeviceRepository
       where: { id: deviceId, realmId },
     });
     if (!record) return null;
-    const content = await this.storage.loadJson(record.configPath);
-    return this.toDomain(record as unknown as DeviceDbRecord, content);
+
+    // Check if configPath is valid
+    if (!record.configPath || record.configPath.trim() === '') {
+      this.logger.warn('Device record has invalid configPath, returning null', { deviceId: record.id });
+      return null;
+    }
+
+    try {
+      const content = await this.storage.loadJson(record.configPath);
+      return this.toDomain(record as unknown as DeviceDbRecord, content);
+    } catch (error: any) {
+      this.logger.error('Failed to load device content', error, { deviceId, configPath: record.configPath });
+      return null;
+    }
   }
 
   async findByServer(realmId: string): Promise<DeviceEntity[]> {
@@ -282,8 +297,19 @@ export class HybridDeviceRepository
   protected async loadEntities(dbRecords: DeviceDbRecord[]): Promise<DeviceEntity[]> {
     const entities: DeviceEntity[] = [];
     for (const record of dbRecords) {
-      const content = await this.storage.loadJson(record.configPath);
-      entities.push(this.toDomain(record, content));
+      // Skip records with invalid configPath
+      if (!record.configPath || record.configPath.trim() === '') {
+        this.logger.warn('Device record has invalid configPath, skipping', { deviceId: record.id });
+        continue;
+      }
+      try {
+        const content = await this.storage.loadJson(record.configPath);
+        entities.push(this.toDomain(record, content));
+      } catch (error: any) {
+        this.logger.error('Failed to load device content', error, { deviceId: record.id, configPath: record.configPath });
+        // Skip this device if content cannot be loaded
+        continue;
+      }
     }
     return entities;
   }

@@ -2,6 +2,7 @@
  * User tRPC Router
  *
  * Procedures:
+ * - me: 获取当前登录用户信息
  * - create: 创建用户
  * - list: 获取用户列表（支持按 role 过滤）
  * - getById: 获取单个用户
@@ -46,6 +47,33 @@ const updateUserSchema = z.object({
 
 export const userRouter = (userService: UserService) =>
   router({
+    // 获取当前登录用户信息
+    me: protectedProcedure
+      .query(async ({ ctx }) => {
+        try {
+          if (!ctx.userId) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'User not authenticated',
+            });
+          }
+
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId);
+          return await runWithContext(context, async () => {
+            const user = await userService.getUserById(ctx.userId!);
+            if (!user) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'User not found',
+              });
+            }
+            return user.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
     // 创建用户 - 仅管理员和所有者
     create: protectedProcedure
       .use(requireRole(['admin', 'owner']))
