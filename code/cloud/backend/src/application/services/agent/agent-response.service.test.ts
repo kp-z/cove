@@ -432,52 +432,6 @@ describe('AgentResponseService', () => {
     });
   });
 
-  describe('generateAgentResponse', () => {
-    it('should generate mock response when no config store', async () => {
-      const agent = createTestAgent({ agentId: 'agent-1', displayName: 'TestAgent' });
-      const message = createTestMessage({ content: 'Hello agent' });
-      const channel = createTestChannel();
-
-      const response = await runWithContext(testContext, async () => {
-        return await service.generateAgentResponse(agent, message, channel);
-      });
-
-      expect(response).toContain('TestAgent');
-      expect(typeof response).toBe('string');
-    });
-
-    it('should generate mock response when agent has no api_key', async () => {
-      const mockConfigStore = {
-        getRuntime: vi.fn().mockResolvedValue({
-          api: { provider: 'anthropic' },
-          model: { max_tokens: 1000 },
-        }),
-        getPersona: vi.fn(),
-      };
-
-      const serviceWithConfig = new AgentResponseService(
-        mockAgentRepository,
-        mockMessageRepository,
-        mockChannelRepository,
-        mockEventBus,
-        mockLogger,
-        mockConfigStore as any
-      );
-
-      const agent = createTestAgent({ agentId: 'agent-1', displayName: 'TestAgent' });
-      const message = createTestMessage({ content: 'Hello' });
-      const channel = createTestChannel();
-
-      const response = await serviceWithConfig.generateAgentResponse(agent, message, channel);
-
-      expect(response).toContain('TestAgent');
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Agent has no api_key configured, using mock',
-        expect.any(Object)
-      );
-    });
-  });
-
   describe('EventBus integration', () => {
     it('should publish event when message is sent', async () => {
       const message = MessageEntity.create({

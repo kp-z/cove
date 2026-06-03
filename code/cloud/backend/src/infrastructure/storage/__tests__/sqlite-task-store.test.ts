@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { PrismaClient } from '../../../generated/client'
+import { PrismaClient } from '../../../../generated/client'
 import { SqliteTaskStore } from '../sqlite-task-store'
 import type { MessageTask } from '../../../domain/message-orchestrator/message-orchestrator.interface'
 

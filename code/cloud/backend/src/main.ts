@@ -479,6 +479,10 @@ function initializeDependencies() {
 
       // 3. Get Agent information
       const agentId = channel.agentPool[0];
+      if (!agentId) {
+        logger.warn('No agent in channel agentPool', { channelId });
+        return;
+      }
       const agent = await agentRepository.findById(agentId, realmId);
       if (!agent) {
         logger.warn('Agent not found', { agentId });
@@ -677,6 +681,9 @@ function createStandaloneServer(deps: {
 
   // Create HTTP server with custom request handler
   const httpServer = createServer(async (req, res) => {
+    // Extract origin from request (outside try block so it's available in catch)
+    const origin = req.headers.origin || 'http://localhost:5174';
+
     try {
       // Log all requests
       deps.logger.info(`${req.method} ${req.url}`);
@@ -684,9 +691,10 @@ function createStandaloneServer(deps: {
       // Handle CORS preflight requests
       if (req.method === 'OPTIONS') {
         res.writeHead(204, {
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-realm-id, x-trpc-source',
+          'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Max-Age': '86400',
         });
         res.end();
@@ -694,16 +702,18 @@ function createStandaloneServer(deps: {
       }
 
       // Set CORS headers for all responses
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-realm-id, x-trpc-source');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
 
       // Handle API documentation endpoint
       if (req.url?.startsWith('/docs') && req.method === 'GET') {
         if (process.env.NODE_ENV === 'production') {
           res.writeHead(404, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Credentials': 'true',
           });
           res.end(JSON.stringify({
             error: 'Not Found',
@@ -717,7 +727,8 @@ function createStandaloneServer(deps: {
 
         res.writeHead(200, {
           'Content-Type': 'text/html',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Credentials': 'true',
         });
         res.end(
           renderTrpcPanel(appRouter, {
@@ -731,7 +742,8 @@ function createStandaloneServer(deps: {
       if (req.url === '/health' && req.method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify({
           status: 'ok',
@@ -771,7 +783,8 @@ function createStandaloneServer(deps: {
           if (req.method === 'HEAD') {
             res.writeHead(200, {
               'Content-Type': contentType,
-              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Origin': origin,
+              'Access-Control-Allow-Credentials': 'true',
               'Cache-Control': 'public, max-age=31536000',
             });
             res.end();
@@ -783,7 +796,8 @@ function createStandaloneServer(deps: {
 
           res.writeHead(200, {
             'Content-Type': contentType,
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Credentials': 'true',
             'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
           });
           res.end(fileBuffer);
@@ -792,14 +806,16 @@ function createStandaloneServer(deps: {
           if (error.code === 'ENOENT') {
             res.writeHead(404, {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Origin': origin,
+              'Access-Control-Allow-Credentials': 'true',
             });
             res.end(JSON.stringify({ error: 'File not found' }));
           } else {
             deps.logger.error('Error serving static file', error);
             res.writeHead(500, {
               'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Origin': origin,
+              'Access-Control-Allow-Credentials': 'true',
             });
             res.end(JSON.stringify({ error: 'Internal server error' }));
           }
@@ -820,7 +836,8 @@ function createStandaloneServer(deps: {
       // 404 handler for unknown routes
       res.writeHead(404, {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
       });
       res.end(JSON.stringify({
         error: 'Not Found',
@@ -834,7 +851,8 @@ function createStandaloneServer(deps: {
       if (!res.headersSent) {
         res.writeHead(500, {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify({
           error: 'Internal Server Error',
@@ -956,17 +974,61 @@ async function startServer() {
       deps.logger.info(`  API Docs: http://localhost:${PORT}/docs`);
     });
 
-    process.on('SIGTERM', () => {
-      deps.logger.info('SIGTERM received, shutting down...');
-      wss.close();
-      httpServer.close(() => process.exit(0));
-    });
+    // Graceful shutdown handler
+    let isShuttingDown = false;
+    const gracefulShutdown = async (signal: string) => {
+      if (isShuttingDown) {
+        deps.logger.warn(`${signal} received again, forcing exit...`);
+        process.exit(1);
+      }
 
-    process.on('SIGINT', () => {
-      deps.logger.info('SIGINT received, shutting down...');
-      wss.close();
-      httpServer.close(() => process.exit(0));
-    });
+      isShuttingDown = true;
+      deps.logger.info(`${signal} received, starting graceful shutdown...`);
+
+      // Set a timeout to force exit if graceful shutdown takes too long
+      const forceExitTimeout = setTimeout(() => {
+        deps.logger.error('Graceful shutdown timed out, forcing exit...');
+        process.exit(1);
+      }, 10000); // 10 second timeout
+
+      try {
+        // 1. Stop accepting new connections
+        deps.logger.info('Closing HTTP server...');
+        await new Promise<void>((resolve) => {
+          httpServer.close(() => {
+            deps.logger.info('HTTP server closed');
+            resolve();
+          });
+        });
+
+        // 2. Close WebSocket connections
+        deps.logger.info('Closing WebSocket server...');
+        await new Promise<void>((resolve) => {
+          wss.close(() => {
+            deps.logger.info('WebSocket server closed');
+            resolve();
+          });
+        });
+
+        // 3. Disconnect Prisma
+        deps.logger.info('Disconnecting Prisma...');
+        await getPrismaClient().$disconnect();
+        deps.logger.info('Prisma disconnected');
+
+        // 4. Clear the force exit timeout
+        clearTimeout(forceExitTimeout);
+
+        deps.logger.info('Graceful shutdown completed');
+        process.exit(0);
+      } catch (error) {
+        deps.logger.error('Error during graceful shutdown', error as Error);
+        clearTimeout(forceExitTimeout);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
     console.error('Failed to start server:', error);

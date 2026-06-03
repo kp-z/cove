@@ -1,5 +1,6 @@
 export { RealmCard } from './RealmCard';
 export { RealmSwitcher } from './RealmSwitcher';
+export { RealmSelectorDropdown } from './RealmSelectorDropdown';
 export { RealmEditForm } from './RealmEditForm';
 export { RealmInfoCard } from './RealmInfoCard';
 export { RealmStatsCard } from './RealmStatsCard';

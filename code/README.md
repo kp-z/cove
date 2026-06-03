@@ -10,178 +10,169 @@
 
 ```
 code/
-├── backend/                    # 后端代码
-│   ├── shared/                 # 后端共享代码
-│   │   ├── types/              # 共享类型定义
-│   │   ├── utils/              # 工具函数
-│   │   ├── errors/             # 错误定义
-│   │   └── constants/          # 常量定义
-│   ├── 01-domain/              # 领域层
-│   │   ├── models/             # 领域模型（实体定义）
-│   │   │   ├── agent/          # Agent 实体
-│   │   │   ├── project/        # Project 实体
-│   │   │   ├── user/           # User 实体
-│   │   │   ├── channel/        # Channel 实体
-│   │   │   ├── message/        # Message 实体
-│   │   │   ├── task/           # Task 实体
-│   │   │   ├── okr/            # OKR 实体
-│   │   │   ├── workflow/       # Workflow 实体
-│   │   │   ├── execution/      # Execution 实体
-│   │   │   ├── device/         # Device 实体
-│   │   │   ├── server/         # Server 实体
-│   │   │   ├── member/         # Member 实体
-│   │   │   ├── conversation/   # Conversation 实体
-│   │   │   ├── attachment/     # Attachment 实体
-│   │   │   ├── reaction/       # Reaction 实体
-│   │   │   └── thread/         # Thread 实体
-│   │   ├── services/           # 领域服务（跨实体业务规则）
-│   │   │   ├── task_assignment/        # 任务分配策略
-│   │   │   ├── okr_progress/           # OKR 进度计算
-│   │   │   ├── workflow_validation/    # 工作流依赖验证
-│   │   │   ├── permission_evaluation/  # 权限评估
-│   │   │   └── message_mention/        # 消息 @mention 解析
-│   │   └── research/           # 领域层调研报告
-│   ├── 02-application/         # 应用层
-│   │   ├── runtime/            # 运行时组件（生命周期管理）
-│   │   │   ├── agent_daemon/   # Agent 守护进程
-│   │   │   ├── channel_runtime/# Channel 运行时
-│   │   │   ├── workflow_runtime/# Workflow 运行时
-│   │   │   └── execution_runtime/# Execution 运行时
-│   │   ├── services/           # 应用服务（业务流程编排）
-│   │   │   ├── project/        # Project 服务
-│   │   │   ├── agent/          # Agent 服务
-│   │   │   ├── channel/        # Channel 服务
-│   │   │   ├── message/        # Message 服务
-│   │   │   ├── task/           # Task 服务
-│   │   │   ├── okr/            # OKR 服务
-│   │   │   ├── workflow/       # Workflow 服务
-│   │   │   ├── execution/      # Execution 服务
-│   │   │   ├── user/           # User 服务
-│   │   │   └── server/         # Server 服务
-│   │   └── research/           # 应用层调研报告
-│   └── 03-infrastructure/      # 基础设施层
-│       ├── adapters/           # 框架适配器
-│       │   ├── openclaw/       # OpenClaw Gateway 适配
-│       │   ├── claude_code/    # Claude Code 本地执行适配
-│       │   └── generic/        # 通用适配器
-│       ├── api/                # REST API 端点实现
-│       │   ├── design/         # API 设计文档
-│       │   ├── code/           # API 实现代码
-│       │   ├── examples/       # API 使用示例
-│       │   └── tests/          # API 测试
-│       ├── auth/               # 认证授权
-│       │   ├── design/         # 认证设计文档
-│       │   ├── code/           # 认证实现代码
-│       │   ├── examples/       # 认证使用示例
-│       │   └── tests/          # 认证测试
-│       ├── cli/                # CLI 客户端
-│       │   ├── design/         # CLI 设计文档
-│       │   ├── commands/       # CLI 命令实现
-│       │   └── examples/       # CLI 使用示例
-│       ├── database/           # 数据持久化
-│       │   ├── design/         # 数据库设计文档
-│       │   ├── migrations/     # 数据库迁移脚本
-│       │   └── repositories/   # Repository 实现
-│       ├── websocket/          # WebSocket 实时通信
-│       │   ├── design/         # WebSocket 设计文档
-│       │   ├── code/           # WebSocket 实现代码
-│       │   ├── examples/       # WebSocket 使用示例
-│       │   └── tests/          # WebSocket 测试
-│       └── research/           # 基础设施层调研报告
-└── frontend/                   # 前端代码
-    └── 04-presentation/        # 表现层
-        ├── features/           # 功能域（按功能组织）
-        │   ├── chat/           # Chat 功能域
-        │   │   ├── components/ # Chat 组件
-        │   │   ├── hooks/      # Chat Hooks
-        │   │   ├── stores/     # Chat 状态管理
-        │   │   └── services/   # Chat API 服务
-        │   ├── task/           # Task 功能域
-        │   │   ├── components/
-        │   │   ├── hooks/
-        │   │   ├── stores/
-        │   │   └── services/
-        │   ├── agent/          # Agent 功能域
-        │   │   ├── components/
-        │   │   ├── hooks/
-        │   │   ├── stores/
-        │   │   └── services/
-        │   ├── okr/            # OKR 功能域
-        │   │   ├── components/
-        │   │   ├── hooks/
-        │   │   ├── stores/
-        │   │   └── services/
-        │   ├── workflow/       # Workflow 功能域
-        │   │   ├── components/
-        │   │   ├── hooks/
-        │   │   ├── stores/
-        │   │   └── services/
-        │   └── project/        # Project 功能域
-        │       ├── components/
-        │       ├── hooks/
-        │       ├── stores/
-        │       └── services/
-        ├── shared/             # 共享组件和工具
-        │   ├── components/     # 通用 UI 组件
-        │   ├── hooks/          # 通用 Hooks
-        │   └── utils/          # 工具函数
-        ├── core/               # 核心基础设施
-        │   ├── api/            # API 客户端
-        │   ├── auth/           # 认证模块
-        │   ├── router/         # 路由配置
-        │   └── config/         # 应用配置
-        └── research/           # 表现层调研报告
+├── cloud/                      # 云端代码
+│   ├── backend/                # 后端代码
+│   │   └── src/
+│   │       ├── domain/         # 领域层
+│   │       │   ├── models/     # 领域模型（实体定义）
+│   │       │   │   ├── agent/          # Agent 实体
+│   │       │   │   ├── project/        # Project 实体
+│   │       │   │   ├── user/           # User 实体
+│   │       │   │   ├── channel/        # Channel 实体
+│   │       │   │   ├── message/        # Message 实体
+│   │       │   │   ├── task/           # Task 实体
+│   │       │   │   ├── workflow/       # Workflow 实体
+│   │       │   │   ├── device/         # Device 实体
+│   │       │   │   ├── realm/          # Realm 实体
+│   │       │   │   ├── adapter/        # Adapter 实体
+│   │       │   │   └── thread/         # Thread 实体
+│   │       │   ├── services/   # 领域服务（跨实体业务规则）
+│   │       │   └── message-orchestrator/  # 消息编排
+│   │       ├── application/    # 应用层
+│   │       │   ├── services/   # 应用服务（业务流程编排）
+│   │       │   │   ├── agent/          # Agent 服务
+│   │       │   │   ├── channel/        # Channel 服务
+│   │       │   │   ├── message/        # Message 服务
+│   │       │   │   ├── task/           # Task 服务
+│   │       │   │   ├── workflow/       # Workflow 服务
+│   │       │   │   ├── realm/          # Realm 服务
+│   │       │   │   ├── user/           # User 服务
+│   │       │   │   ├── device/         # Device 服务
+│   │       │   │   └── adapter/        # Adapter 服务
+│   │       │   ├── interfaces/ # 接口定义
+│   │       │   └── context/    # 应用上下文
+│   │       ├── infrastructure/ # 基础设施层
+│   │       │   ├── repositories/  # 数据持久化
+│   │       │   ├── database/      # 数据库
+│   │       │   ├── trpc/          # tRPC API 路由
+│   │       │   ├── websocket/     # WebSocket 实时通信
+│   │       │   ├── events/        # 事件处理
+│   │       │   ├── persistence/   # 持久化
+│   │       │   └── storage/       # 存储服务
+│   │       └── common/         # 共享代码
+│   │           ├── errors/     # 错误定义
+│   │           └── types/      # 共享类型
+│   └── frontend/               # 前端代码
+│       └── src/
+│           ├── features/       # 功能域（按业务功能组织）
+│           │   ├── agent/      # Agent 功能域
+│           │   ├── auth/       # 认证功能域
+│           │   ├── channel/    # Channel 功能域
+│           │   ├── chat/       # Chat 功能域
+│           │   ├── dashboard/  # Dashboard 功能域
+│           │   ├── okr/        # OKR 功能域
+│           │   ├── project/    # Project 功能域
+│           │   ├── realm/      # Realm 功能域
+│           │   ├── task/       # Task 功能域
+│           │   ├── workflow/   # Workflow 功能域
+│           │   └── terminal/   # Terminal 功能域
+│           ├── core/           # 核心基础设施
+│           │   ├── auth/       # 认证模块
+│           │   ├── router/     # 路由配置
+│           │   ├── services/   # 核心服务
+│           │   └── stores/     # 全局状态
+│           ├── shared/         # 共享组件和工具
+│           │   ├── components/ # 通用 UI 组件
+│           │   ├── hooks/      # 通用 Hooks
+│           │   ├── types/      # 类型定义
+│           │   └── utils/      # 工具函数
+│           └── lib/            # 第三方库封装
+│               └── trpc/       # tRPC 客户端
+├── local/                      # 本地设备客户端
+│   └── src/
+│       ├── domain/             # 领域层
+│       │   ├── agent-runtime/      # Agent 运行时
+│       │   ├── configuration/      # 配置管理
+│       │   ├── device-lifecycle/   # 设备生命周期
+│       │   ├── execution-mode/     # 执行模式
+│       │   └── feature-flag/       # 特性开关
+│       ├── infrastructure/     # 基础设施层
+│       │   ├── adapters/       # 框架适配器
+│       │   │   └── adapter-manager.ts  # 适配器管理
+│       │   ├── gateway/        # 后端网关
+│       │   │   └── trpc-backend-gateway.ts  # tRPC 网关
+│       │   ├── logger/         # 日志服务
+│       │   └── storage/        # 本地存储
+│       └── deprecated/         # 待清理的旧代码
+└── monitor/                    # 监控配置
+    ├── grafana/                # Grafana 监控配置
+    └── prometheus/             # Prometheus 监控配置
 ```
 
 ## 架构分层说明
 
+### Backend (云端后端) - 3 层 DDD 架构
+
 | 层 | 目录 | 职责 |
 |----|------|------|
-| **Domain Layer** | `backend/01-domain/` | **核心业务逻辑**：实体定义、值对象、领域服务（跨实体业务规则、验证逻辑） |
-| **Application Layer** | `backend/02-application/` | **业务流程编排**：应用服务（用例实现、业务流程）、运行时组件（生命周期管理、调度） |
-| **Infrastructure Layer** | `backend/03-infrastructure/` | **技术实现**：API 端点、认证授权、CLI 客户端、数据库访问、WebSocket、框架适配器 |
-| **Presentation Layer** | `frontend/04-presentation/` | **用户界面**：功能域组件、共享组件、核心基础设施 |
+| **Domain Layer** | `cloud/backend/src/domain/` | **核心业务逻辑**：实体定义、值对象、领域服务（跨实体业务规则、验证逻辑） |
+| **Application Layer** | `cloud/backend/src/application/` | **业务流程编排**：应用服务（用例实现、业务流程）、接口定义 |
+| **Infrastructure Layer** | `cloud/backend/src/infrastructure/` | **技术实现**：tRPC API、数据库访问、WebSocket、事件处理、持久化 |
+| **Common** | `cloud/backend/src/common/` | **共享代码**：错误定义、通用类型 |
 
 **依赖方向**：
 ```
-frontend/04-presentation → backend/03-infrastructure → backend/02-application → backend/01-domain
+infrastructure → application → domain
+```
+
+### Frontend (云端前端) - 功能域 + 分层架构
+
+| 层 | 目录 | 职责 |
+|----|------|------|
+| **Features** | `cloud/frontend/src/features/` | **功能域**：按业务功能组织（agent、chat、task、workflow 等），每个功能域包含 components、hooks、stores |
+| **Core** | `cloud/frontend/src/core/` | **核心基础设施**：认证、路由、全局服务、全局状态 |
+| **Shared** | `cloud/frontend/src/shared/` | **共享资源**：通用组件、Hooks、工具函数、类型定义 |
+| **Lib** | `cloud/frontend/src/lib/` | **第三方库封装**：tRPC 客户端等 |
+
+### Local (本地设备客户端) - 2 层简化 DDD 架构
+
+| 层 | 目录 | 职责 |
+|----|------|------|
+| **Domain Layer** | `local/src/domain/` | **核心业务逻辑**：Agent 运行时、配置管理、设备生命周期、执行模式、特性开关 |
+| **Infrastructure Layer** | `local/src/infrastructure/` | **技术实现**：框架适配器、后端网关（tRPC）、日志、本地存储 |
+
+**依赖方向**：
+```
+infrastructure → domain
 ```
 
 **关键原则**：
-- **Domain Layer** 不依赖任何其他层，是纯业务逻辑
-- **Application Layer** 只依赖 Domain Layer，编排业务流程
-- **Infrastructure Layer** 实现技术细节，调用 Application Layer 的服务
-- **Presentation Layer** 通过 Infrastructure Layer 的 API 与后端交互
+- **Backend**: Domain Layer 不依赖任何其他层，是纯业务逻辑
+- **Backend**: Application Layer 只依赖 Domain Layer，编排业务流程
+- **Backend**: Infrastructure Layer 实现技术细节，调用 Application Layer 的服务
+- **Frontend**: Features 高内聚低耦合，通过 Core 和 Shared 通信
+- **Frontend**: Core 提供全局基础设施，Shared 提供可复用组件
+- **Local**: 简化的 2 层架构，专注于本地执行和云端通信
 
 ## 设计亮点
 
-### 1. Backend Shared 目录
-- `shared/types/` - 跨层共享的类型定义
-- `shared/utils/` - 通用工具函数
-- `shared/errors/` - 统一错误定义
-- `shared/constants/` - 全局常量
+### 1. Backend 三层 DDD 架构
+- **Domain Layer**: 纯业务逻辑，无外部依赖
+- **Application Layer**: 业务流程编排，依赖注入
+- **Infrastructure Layer**: 技术实现细节，tRPC + Prisma + WebSocket
+- **Common**: 跨层共享的类型、错误、常量
 
-### 2. Domain Services 细化
-- `task_assignment/` - 任务分配策略（跨 Task、Agent、User）
-- `okr_progress/` - OKR 进度计算（跨 OKR、Task、Workflow）
-- `workflow_validation/` - 工作流依赖验证
-- `permission_evaluation/` - 权限评估逻辑
-- `message_mention/` - @mention 解析和通知
-
-### 3. Infrastructure Adapters
-- `adapters/openclaw/` - OpenClaw Gateway 协议适配
-- `adapters/claude_code/` - Claude Code 本地执行适配
-- `adapters/generic/` - 通用框架适配器
-- **职责**: 处理框架特定的实现细节，Runtime 层保持框架无关
-
-### 4. Frontend 功能域组织
-- **高内聚**: 每个功能域包含完整的 components/hooks/stores/services
+### 2. Frontend 功能域组织
+- **高内聚**: 每个功能域包含完整的 components/hooks/stores
 - **低耦合**: 功能域之间通过 shared/ 和 core/ 通信
 - **易协作**: 不同团队可以并行开发不同功能域
+- **类型安全**: tRPC 端到端类型推断
+
+### 3. Local 设备客户端
+- **简化 DDD**: 2 层架构（domain + infrastructure）
+- **适配器模式**: 支持多种 AI 框架（Claude Code CLI、Anthropic API、OpenAI API）
+- **网关通信**: 通过 tRPC WebSocket 与云端通信
+- **本地优先**: 配置和执行状态本地存储（SQLite）
+
+### 4. 全栈类型安全
+- **tRPC**: 前后端共享类型定义，自动类型推断
+- **Prisma**: 数据库类型安全，自动生成 TypeScript 类型
+- **Zod**: 运行时数据验证
+- **TypeScript**: 严格模式，减少运行时错误
 
 ### 5. 测试策略
 
-**核心原则**: 测试文件与源码同级放置（方案 A）
+**核心原则**: 测试文件与源码同级放置
 
 #### 测试文件命名规范
 - **实体测试**: `*.entity.test.ts` - 放在实体文件旁边
@@ -194,46 +185,41 @@ frontend/04-presentation → backend/03-infrastructure → backend/02-applicatio
 
 **Backend 测试**:
 ```
-backend/01-domain/models/agent/
+cloud/backend/src/domain/models/agent/
 ├── agent.entity.ts
 └── agent.entity.test.ts          ← 测试与源码同级
 
-backend/01-domain/services/task_assignment/
-├── task-assignment.service.ts
-└── task-assignment.service.test.ts
-
-backend/02-application/services/project/
+cloud/backend/src/application/services/project/
 ├── project.service.ts
 └── project.service.test.ts
-
-backend/02-application/runtime/agent_daemon/
-├── agent-daemon.ts
-└── agent-daemon.test.ts
 ```
 
 **Frontend 测试**:
 ```
-frontend/04-presentation/features/chat/components/
+cloud/frontend/src/features/chat/components/
 ├── ChatMessageList.tsx
 └── ChatMessageList.test.tsx      ← 测试与源码同级
 
-frontend/04-presentation/features/chat/hooks/
+cloud/frontend/src/features/chat/hooks/
 ├── useChatMessages.ts
 └── useChatMessages.test.ts
+```
 
-frontend/04-presentation/features/task/stores/
-├── useTaskStore.ts
-└── useTaskStore.test.ts
+**Local 测试**:
+```
+local/src/domain/configuration/
+├── configuration-service.ts
+└── configuration-service.test.ts
 ```
 
 #### 测试覆盖率要求
 - **最低覆盖率**: 80%
 - **测试类型**: 单元测试、集成测试、E2E 测试
-- **测试框架**: Vitest (TypeScript/JavaScript)、Jest (备选)
+- **测试框架**: Vitest (主要)、Playwright (E2E)
 
 #### 优势
 - ✅ 测试与代码物理距离近，便于同步维护
-- ✅ 符合现代项目主流实践（Jest、Vitest、pytest）
+- ✅ 符合现代项目主流实践
 - ✅ 每层的测试职责清晰，边界明确
 - ✅ 导入路径更短，相对引用简单
 - ✅ 修改代码时能立即看到相关测试

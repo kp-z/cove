@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { PrismaClient } from '../../../generated/client'
+import { PrismaClient } from '../../../../generated/client'
 import { SqliteConfigCache } from '../sqlite-config-cache'
 import type { RealmConfiguration } from '../../gateway/backend-gateway.interface'
 

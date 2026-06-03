@@ -309,6 +309,63 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           };
         });
       }),
+
+    // 订阅 Agent 响应事件
+    onAgentResponse: procedure
+      .input(
+        z.object({
+          channelId: z.string(),
+          events: z
+            .array(
+              z.enum([
+                'agent.response.accepted',
+                'agent.response.thinking',
+                'agent.response.streaming',
+                'agent.response.completed',
+                'agent.response.failed',
+              ])
+            )
+            .optional(),
+        })
+      )
+      .subscription(({ input, ctx }) => {
+        ctx.logger.info('Subscription started', {
+          type: 'onAgentResponse',
+          channelId: input.channelId,
+          userId: ctx.userId,
+          events: input.events,
+        });
+
+        return observable((emit) => {
+          const eventTypes = input.events || [
+            'agent.response.accepted',
+            'agent.response.thinking',
+            'agent.response.streaming',
+            'agent.response.completed',
+            'agent.response.failed',
+          ];
+
+          const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
+            // 过滤：只发送匹配 channelId 的事件
+            if (event.payload.channelId === input.channelId) {
+              emit.next({
+                eventId: event.eventId,
+                eventType: event.eventType,
+                timestamp: event.occurredAt.toISOString(),
+                data: event.payload,
+              });
+            }
+          });
+
+          return () => {
+            ctx.logger.info('Subscription ended', {
+              type: 'onAgentResponse',
+              channelId: input.channelId,
+            });
+            unsubscribe();
+          };
+        });
+      }),
   });
 
   return subscriptionRouter;

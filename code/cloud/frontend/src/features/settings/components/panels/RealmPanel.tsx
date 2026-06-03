@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useRealm, useRealmList, useUpdateRealm, useCreateRealm, useCurrentRealmRole, useRealmMembers } from '@/lib/trpc/hooks/realm.hooks';
 import { trpc } from '@/lib/trpc';
@@ -141,22 +140,11 @@ export function RealmPanel() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Realm Settings</h2>
-          <p className="text-sm text-white/60">
-            Manage your workspace and switch between realms
-          </p>
-        </div>
-        {canEdit && (
-          <button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-500 text-white hover:bg-blue-600"
-          >
-            <Plus className="w-4 h-4" />
-            Create Realm
-          </button>
-        )}
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Realm Settings</h2>
+        <p className="text-sm text-white/60">
+          Manage your workspace and switch between realms
+        </p>
       </div>
 
       {/* Current Realm Info with Device Status */}
@@ -166,6 +154,7 @@ export function RealmPanel() {
           allRealms={allRealms}
           onEdit={canEdit ? () => setIsEditDialogOpen(true) : undefined}
           onSwitch={allRealms.length > 1 ? handleRealmSwitch : undefined}
+          onCreateClick={canEdit ? () => setIsCreateDialogOpen(true) : undefined}
           canEdit={canEdit}
         />
       )}

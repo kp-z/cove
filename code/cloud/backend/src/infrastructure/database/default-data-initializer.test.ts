@@ -28,6 +28,7 @@ describe('DefaultDataInitializer', () => {
       },
       realmMember: {
         findUnique: vi.fn(),
+        findMany: vi.fn(),
         create: vi.fn(),
       },
       user: {
@@ -35,6 +36,7 @@ describe('DefaultDataInitializer', () => {
       },
       agent: {
         findUnique: vi.fn(),
+        findMany: vi.fn(),
       },
       channel: {
         findUnique: vi.fn(),
@@ -101,6 +103,7 @@ describe('DefaultDataInitializer', () => {
       mockPrisma.message.findMany.mockResolvedValue([
         { id: 'msg-1', content: 'Welcome' }
       ]);
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
 
       // Act
       await initializer.initialize();
@@ -140,8 +143,10 @@ describe('DefaultDataInitializer', () => {
         id: 'agent-zhang',
         name: 'zhang',
       });
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue(null);
       mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
@@ -213,8 +218,10 @@ describe('DefaultDataInitializer', () => {
         id: 'agent-zhang',
         name: 'zhang',
       });
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue(null);
       mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
@@ -246,8 +253,10 @@ describe('DefaultDataInitializer', () => {
         id: 'agent-zhang',
         name: 'zhang',
       });
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue(null);
       mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
@@ -272,8 +281,10 @@ describe('DefaultDataInitializer', () => {
         id: 'agent-zhang',
         name: 'zhang',
       });
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue(null);
       mockPrisma.realmMember.findUnique.mockResolvedValue(null);
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([]);
 
       // Act
@@ -318,6 +329,7 @@ describe('DefaultDataInitializer', () => {
         realmId: 'realm-nexus',
       });
       mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue({
         id: 'channel-nexus-general',
         name: 'general',
@@ -326,6 +338,7 @@ describe('DefaultDataInitializer', () => {
         id: 'channel-nexus-general',
         name: 'general',
       });
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([
         { id: 'msg-1', content: 'Welcome' }
       ]);
@@ -380,6 +393,7 @@ describe('DefaultDataInitializer', () => {
         realmId: 'realm-nexus',
       });
       mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.agent.findMany.mockResolvedValue([]);
       mockPrisma.channel.findUnique.mockResolvedValue({
         id: 'channel-nexus-general',
         name: 'general',
@@ -388,6 +402,7 @@ describe('DefaultDataInitializer', () => {
         id: 'channel-nexus-general',
         name: 'general',
       });
+      mockPrisma.realmMember.findMany.mockResolvedValue([]);
       mockPrisma.message.findMany.mockResolvedValue([
         { id: 'msg-1', content: 'Welcome' }
       ]);

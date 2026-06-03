@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Settings, ChevronDown, Server, Copy, Check, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Settings, ChevronDown, Server, Copy, Check, AlertCircle, Wifi, WifiOff, Plus } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import { useDeviceStatus } from '@/lib/trpc/hooks/realm.hooks';
 import { notify } from '@/core/services/notificationService';
@@ -10,6 +12,7 @@ interface RealmInfoCardProps {
   allRealms: Realm[];
   onEdit?: () => void;
   onSwitch?: (realmId: string) => void;
+  onCreateClick?: () => void;
   canEdit: boolean;
 }
 
@@ -24,9 +27,11 @@ const VISIBILITY_BADGE: Record<string, string> = {
   private: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
 };
 
-export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, canEdit }: RealmInfoCardProps) {
+export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClick, canEdit }: RealmInfoCardProps) {
   const { data: deviceStatus, isLoading: deviceLoading } = useDeviceStatus(realm.realm_id);
   const [copied, setCopied] = useState(false);
+  const [realmDropdownOpen, setRealmDropdownOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleCopy = async (text: string) => {
     try {
@@ -37,6 +42,48 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, canEdit }: R
     } catch (err) {
       notify.toast.error('Failed to copy', 'Could not copy to clipboard');
     }
+  };
+
+  const handleImageError = (realmId: string) => {
+    setImageErrors(prev => ({ ...prev, [realmId]: true }));
+  };
+
+  const handleSwitchRealm = (realmId: string) => {
+    if (onSwitch) {
+      onSwitch(realmId);
+      setRealmDropdownOpen(false);
+    }
+  };
+
+  const handleCreateClick = () => {
+    if (onCreateClick) {
+      onCreateClick();
+      setRealmDropdownOpen(false);
+    }
+  };
+
+  const renderRealmLogo = (r: Realm, size: 'sm' | 'md' = 'sm') => {
+    const logoUrl = r.logo?.url || r.logo_url;
+    const displayName = r.display_name || 'R';
+    const hasError = imageErrors[r.realm_id];
+    const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+
+    if (logoUrl && !hasError) {
+      return (
+        <img
+          src={getAvatarUrl(logoUrl)}
+          alt={displayName}
+          className={`${sizeClass} rounded-lg object-cover flex-shrink-0`}
+          onError={() => handleImageError(r.realm_id)}
+        />
+      );
+    }
+
+    return (
+      <div className={`${sizeClass} rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-600`}>
+        {displayName.charAt(0).toUpperCase()}
+      </div>
+    );
   };
 
   const formatLastSeen = (lastSeenAt: string | null) => {
@@ -87,22 +134,80 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, canEdit }: R
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Realm Selector */}
+            {/* Realm Selector Dropdown */}
             {allRealms.length > 1 && onSwitch ? (
-              <div className="relative mb-2">
-                <select
-                  value={realm.realm_id}
-                  onChange={(e) => onSwitch(e.target.value)}
-                  className="w-full appearance-none bg-white/[0.05] border border-white/[0.08] rounded-lg px-3 py-2 pr-8 text-white text-lg font-semibold focus:outline-none focus:border-blue-500/50 cursor-pointer hover:bg-white/[0.08] transition-colors"
-                >
-                  {allRealms.map((r) => (
-                    <option key={r.realm_id} value={r.realm_id} className="bg-[#1a1a1a]">
-                      {r.display_name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60 pointer-events-none" />
-              </div>
+              <DropdownMenu.Root open={realmDropdownOpen} onOpenChange={setRealmDropdownOpen}>
+                <DropdownMenu.Trigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 mb-2 px-3 py-2 -ml-3 rounded-lg hover:bg-white/[0.05] transition-colors group"
+                  >
+                    <h3 className="text-lg font-semibold text-white truncate">
+                      {realm.display_name}
+                    </h3>
+                    <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white/80 transition-colors flex-shrink-0" />
+                  </button>
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    align="start"
+                    sideOffset={8}
+                    className="w-80 bg-[#111114] border border-white/[0.10] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1 z-50"
+                  >
+                    <ScrollArea className="max-h-96">
+                      <div className="py-1">
+                        {allRealms.map((r) => {
+                          const isSelected = r.realm_id === realm.realm_id;
+
+                          return (
+                            <DropdownMenu.Item
+                              key={r.realm_id}
+                              onClick={isSelected ? undefined : () => handleSwitchRealm(r.realm_id)}
+                              disabled={isSelected}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer outline-none transition-colors ${
+                                isSelected
+                                  ? 'bg-cyan-500/20 text-cyan-400 cursor-default'
+                                  : 'text-white hover:bg-white/[0.08] focus:bg-white/[0.08]'
+                              }`}
+                            >
+                              {renderRealmLogo(r, 'md')}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white truncate">
+                                  {r.display_name}
+                                </p>
+                                {r.description && (
+                                  <p className="text-xs text-white/50 line-clamp-2 mt-0.5">
+                                    {r.description}
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                              )}
+                            </DropdownMenu.Item>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    {canEdit && onCreateClick && (
+                      <>
+                        <DropdownMenu.Separator className="h-px bg-white/[0.08] my-1" />
+                        <DropdownMenu.Item
+                          onClick={handleCreateClick}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded-lg cursor-pointer outline-none transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                            <Plus className="w-5 h-5" />
+                          </div>
+                          <span className="font-medium">Create New Realm</span>
+                        </DropdownMenu.Item>
+                      </>
+                    )}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             ) : (
               <h3 className="text-lg font-semibold text-white truncate mb-2">
                 {realm.display_name}

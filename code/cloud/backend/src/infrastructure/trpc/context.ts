@@ -37,8 +37,9 @@ export function createContext(opts: CreateContextOptions) {
       'x-device-id': req.headers['x-device-id'],
     });
 
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Set CORS headers - use specific origin instead of wildcard when credentials are included
+    const origin = req.headers.origin || 'http://localhost:5174';
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-user-type, x-realm-id');
     res.setHeader('Access-Control-Allow-Credentials', 'true');

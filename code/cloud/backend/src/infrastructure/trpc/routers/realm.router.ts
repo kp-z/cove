@@ -423,16 +423,14 @@ export const realmRouter = (
             if (!device) {
               // Check if device exists in database but failed to load (e.g., invalid configPath)
               // In this case, we should fix the existing device instead of creating a new one
-              const existingDeviceRecord = await deviceService['deviceRepository']['prisma'].device.findFirst({
-                where: { realmId: input.realmId },
-              });
+              const existingDevices = await deviceService.getDevicesByServer(input.realmId);
 
-              if (existingDeviceRecord) {
+              if (existingDevices.length > 0) {
                 // Device exists but failed to load, likely due to invalid configPath
                 // Delete it and create a fresh one
-                await deviceService['deviceRepository']['prisma'].device.delete({
-                  where: { id: existingDeviceRecord.id },
-                });
+                for (const existingDevice of existingDevices) {
+                  await deviceService.deleteDevice(existingDevice.device_id);
+                }
               }
 
               // Now create a new device with placeholder specs

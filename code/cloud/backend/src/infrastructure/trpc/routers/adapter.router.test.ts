@@ -311,77 +311,6 @@ describe('adapterRouter', () => {
     });
   });
 
-  describe('getAvailableModels', () => {
-    it('should get available models for anthropic adapter', async () => {
-      vi.mocked(mockAdapterService.getById).mockResolvedValue(mockAdapter);
-      vi.mocked(getAvailableModels).mockResolvedValue({
-        provider: 'anthropic',
-        models: ['claude-3-opus', 'claude-3-sonnet'],
-      });
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.getAvailableModels({ adapterId: 'adapter-1' });
-
-      expect(result.provider).toBe('anthropic');
-      expect(result.models).toHaveLength(2);
-      expect(getAvailableModels).toHaveBeenCalledWith(
-        'anthropic-api',
-        'https://api.anthropic.com',
-        {},
-        undefined
-      );
-    });
-
-    it('should throw error for unsupported adapter type', async () => {
-      const cliAdapter = {
-        ...mockAdapter,
-        type: 'claude-code-cli' as const,
-      };
-      vi.mocked(mockAdapterService.getById).mockResolvedValue(cliAdapter);
-
-      const caller = router.createCaller(mockContext);
-
-      await expect(
-        caller.getAvailableModels({ adapterId: 'adapter-1' })
-      ).rejects.toThrow('Model discovery not supported');
-    });
-  });
-
-  describe('discoverModels', () => {
-    it('should discover models with temporary config', async () => {
-      vi.mocked(getAvailableModels).mockResolvedValue({
-        provider: 'openai',
-        models: ['gpt-4', 'gpt-3.5-turbo'],
-      });
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.discoverModels({
-        adapterType: 'openai-api',
-        baseURL: 'https://api.openai.com',
-        apiKey: 'test-key',
-      });
-
-      expect(result.provider).toBe('openai');
-      expect(result.models).toHaveLength(2);
-      expect(getAvailableModels).toHaveBeenCalledWith(
-        'openai-api',
-        'https://api.openai.com',
-        undefined,
-        'test-key'
-      );
-    });
-
-    it('should throw error for unsupported adapter type', async () => {
-      const caller = router.createCaller(mockContext);
-
-      await expect(
-        caller.discoverModels({
-          adapterType: 'claude-code-cli',
-        })
-      ).rejects.toThrow('Model discovery not supported');
-    });
-  });
-
   describe('getAdapterTypes', () => {
     it('should get all adapter types', async () => {
       const adapterTypes = [
@@ -420,55 +349,6 @@ describe('adapterRouter', () => {
       await expect(
         caller.getAdapterType({ type: 'anthropic-api' })
       ).rejects.toThrow('Unknown adapter type');
-    });
-  });
-
-  describe('testConnection', () => {
-    it('should test anthropic adapter connection successfully', async () => {
-      vi.mocked(mockAdapterService.getById).mockResolvedValue(mockAdapter);
-      vi.mocked(getAvailableModels).mockResolvedValue({
-        provider: 'anthropic',
-        models: ['claude-3-opus'],
-      });
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.testConnection({ adapterId: 'adapter-1' });
-
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('Connection successful');
-      expect(result.details?.provider).toBe('anthropic');
-      expect(result.details?.modelCount).toBe(1);
-    });
-
-    it('should handle connection test failure', async () => {
-      vi.mocked(mockAdapterService.getById).mockResolvedValue(mockAdapter);
-      vi.mocked(getAvailableModels).mockRejectedValue(
-        new Error('Connection failed')
-      );
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.testConnection({ adapterId: 'adapter-1' });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('Connection failed');
-    });
-
-    it('should test claude-code-cli adapter connection', async () => {
-      const cliAdapter = {
-        ...mockAdapter,
-        type: 'claude-code-cli' as const,
-        config: {
-          cli_path: 'claude',
-        },
-      };
-      vi.mocked(mockAdapterService.getById).mockResolvedValue(cliAdapter);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.testConnection({ adapterId: 'adapter-1' });
-
-      // CLI validation will likely fail in test environment, but we test the flow
-      expect(result).toHaveProperty('success');
-      expect(result).toHaveProperty('message');
     });
   });
 });

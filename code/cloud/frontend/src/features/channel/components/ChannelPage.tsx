@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Plus } from 'lucide-react';
 import { useChannelNavigation } from '../hooks/useChannelNavigation';
 import { useChannelPanelStore } from '../stores/channelStore';
 import { ChannelList } from './ChannelList';
@@ -44,8 +45,9 @@ export default function ChannelPage() {
           <ButtonGroup
             options={[
               {
-                label: 'New Channel',
+                label: '',
                 value: 'new',
+                icon: <Plus />,
                 onClick: () => navigate('/channels/new'),
               },
             ]}

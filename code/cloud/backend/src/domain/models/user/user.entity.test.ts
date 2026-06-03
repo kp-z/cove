@@ -31,7 +31,7 @@ describe('UserEntity', () => {
     it('should throw error for empty username', () => {
       expect(() => {
         UserEntity.create({ ...validProps, username: '' });
-      }).toThrow('Username must be 3-20 characters and contain only letters, numbers, and underscores');
+      }).toThrow('Username must be 2-20 characters and contain only letters, numbers, and underscores');
     });
 
     it('should throw error for invalid email', () => {
