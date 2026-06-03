@@ -134,18 +134,17 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Realm Selector Dropdown */}
-            {allRealms.length > 1 && onSwitch ? (
+            {/* Realm Selector Dropdown - Always show if onSwitch or onCreateClick is available */}
+            {(onSwitch || (canEdit && onCreateClick)) ? (
               <DropdownMenu.Root open={realmDropdownOpen} onOpenChange={setRealmDropdownOpen}>
                 <DropdownMenu.Trigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-2 mb-2 px-3 py-2 -ml-3 rounded-lg hover:bg-white/[0.05] transition-colors group"
+                    className="mb-2 -ml-3 px-3 py-2 rounded-lg hover:bg-white/[0.05] transition-colors text-left w-full cursor-pointer"
                   >
                     <h3 className="text-lg font-semibold text-white truncate">
                       {realm.display_name}
                     </h3>
-                    <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white/80 transition-colors flex-shrink-0" />
                   </button>
                 </DropdownMenu.Trigger>
 
@@ -155,55 +154,60 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
                     sideOffset={8}
                     className="w-80 bg-[#111114] border border-white/[0.10] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1 z-50"
                   >
-                    <ScrollArea className="max-h-96">
-                      <div className="py-1">
-                        {allRealms.map((r) => {
-                          const isSelected = r.realm_id === realm.realm_id;
+                    {allRealms.length > 1 && onSwitch && (
+                      <>
+                        <ScrollArea className="max-h-96">
+                          <div className="py-1">
+                            {allRealms.map((r) => {
+                              const isSelected = r.realm_id === realm.realm_id;
 
-                          return (
-                            <DropdownMenu.Item
-                              key={r.realm_id}
-                              onClick={isSelected ? undefined : () => handleSwitchRealm(r.realm_id)}
-                              disabled={isSelected}
-                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer outline-none transition-colors ${
-                                isSelected
-                                  ? 'bg-cyan-500/20 text-cyan-400 cursor-default'
-                                  : 'text-white hover:bg-white/[0.08] focus:bg-white/[0.08]'
-                              }`}
-                            >
-                              {renderRealmLogo(r, 'md')}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">
-                                  {r.display_name}
-                                </p>
-                                {r.description && (
-                                  <p className="text-xs text-white/50 line-clamp-2 mt-0.5">
-                                    {r.description}
-                                  </p>
-                                )}
-                              </div>
-                              {isSelected && (
-                                <Check className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                              )}
-                            </DropdownMenu.Item>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
+                              return (
+                                <DropdownMenu.Item
+                                  key={r.realm_id}
+                                  onClick={isSelected ? undefined : () => handleSwitchRealm(r.realm_id)}
+                                  disabled={isSelected}
+                                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer outline-none transition-colors ${
+                                    isSelected
+                                      ? 'bg-cyan-500/20 text-cyan-400 cursor-default'
+                                      : 'text-white hover:bg-white/[0.08] focus:bg-white/[0.08]'
+                                  }`}
+                                >
+                                  {renderRealmLogo(r, 'md')}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-white truncate">
+                                      {r.display_name}
+                                    </p>
+                                    {r.description && (
+                                      <p className="text-xs text-white/50 line-clamp-2 mt-0.5">
+                                        {r.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {isSelected && (
+                                    <Check className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                                  )}
+                                </DropdownMenu.Item>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+
+                        {canEdit && onCreateClick && (
+                          <DropdownMenu.Separator className="h-px bg-white/[0.08] my-1" />
+                        )}
+                      </>
+                    )}
 
                     {canEdit && onCreateClick && (
-                      <>
-                        <DropdownMenu.Separator className="h-px bg-white/[0.08] my-1" />
-                        <DropdownMenu.Item
-                          onClick={handleCreateClick}
-                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded-lg cursor-pointer outline-none transition-colors"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                            <Plus className="w-5 h-5" />
-                          </div>
-                          <span className="font-medium">Create New Realm</span>
-                        </DropdownMenu.Item>
-                      </>
+                      <DropdownMenu.Item
+                        onClick={handleCreateClick}
+                        className="flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded-lg cursor-pointer outline-none transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                          <Plus className="w-5 h-5" />
+                        </div>
+                        <span className="font-medium">Create New Realm</span>
+                      </DropdownMenu.Item>
                     )}
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
