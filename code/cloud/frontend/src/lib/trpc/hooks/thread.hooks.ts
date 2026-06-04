@@ -1,4 +1,5 @@
 import { trpc } from '@/lib/trpc';
+import { systemLog } from '@/features/channel/stores/systemEventStore';
 
 export function useThreadMessages(parentMessageId: string, options?: { limit?: number; cursor?: string }) {
   return trpc.thread.getMessages.useQuery(
@@ -27,6 +28,22 @@ export function useChannelThreads(channelId: string) {
     { channelId },
     {
       enabled: !!channelId,
+      onSuccess: (data) => {
+        systemLog.info(
+          channelId,
+          'query.threads.success',
+          `Fetched ${data.threads?.length || 0} threads`,
+          { threadCount: data.threads?.length || 0 }
+        );
+      },
+      onError: (error: any) => {
+        systemLog.error(
+          channelId,
+          'query.threads.error',
+          `Failed to fetch threads: ${error.message}`,
+          { error: error.message }
+        );
+      },
     }
   );
 }

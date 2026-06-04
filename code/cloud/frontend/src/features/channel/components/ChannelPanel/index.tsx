@@ -6,13 +6,15 @@ import { ChannelMemberBar } from './ChannelMemberBar';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import type { Message as MessageEntity } from '@/lib/trpc-types';
-import { useChannels, useMessageStreaming } from '@/lib/trpc/hooks';
+import { useChannels } from '@/lib/trpc/hooks';
 import { useChannelPanelStore } from '../../stores/channelStore';
 import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAgentStreaming } from '../../hooks/useAgentStreaming';
 import { systemLog } from '../../stores/systemEventStore';
+import { Message } from '../../domain/models/Message';
+import { messageStateManager } from '../../domain/MessageStateManager';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -65,28 +67,14 @@ export function ChannelPanel({
   const { t } = useTranslation('channel');
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreadId || null);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
   const { mode, setMode, closeChannel } = useChannelPanelStore();
   const { data: channelsData, isLoading: channelLoading } = useChannels();
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
 
-  // 订阅 Agent 流式更新
+  // 订阅 Agent 流式更新 (统一入口)
   useAgentStreaming(channel_id);
-
-  // 流式更新订阅
-  const streamingState = useMessageStreaming(streamingMessageId);
-
-  // 当流式完成时，清理状态
-  useEffect(() => {
-    if (streamingState.status === 'completed' && streamingMessageId) {
-      // 延迟清理，确保最终状态已保存
-      setTimeout(() => {
-        setStreamingMessageId(null);
-      }, 1000);
-    }
-  }, [streamingState.status, streamingMessageId]);
 
   // WebSocket 订阅：监听消息事件
   trpc.subscription.onMessage.useSubscription(
@@ -103,21 +91,21 @@ export function ChannelPanel({
           { eventType: event.eventType, messageId: event.data.message_id }
         );
 
-        // 如果是新消息创建，且是 agent 消息，开始监听流式更新
-        if (event.eventType === 'message.created' && event.data.sender_type === 'agent') {
-          setStreamingMessageId(event.data.message_id);
-          systemLog.info(
-            channel_id,
-            'message.streaming_start',
-            'Started streaming for agent message',
-            { messageId: event.data.message_id }
-          );
+        // 直接更新 MessageStateManager，不再 invalidateQueries
+        if (event.eventType === 'message.created') {
+          const message = Message.fromRemote(event.data);
+          messageStateManager.syncRemoteMessages(channel_id, [message]);
+
+          // 如果是 Agent 消息，流式更新已经由 useAgentStreaming 处理
+          // 不需要设置 streamingMessageId
         }
 
-        // 刷新消息列表
-        queryClient.invalidateQueries({
-          queryKey: [['message', 'list'], { input: { channelId: channel_id } }],
-        });
+        // 对于其他事件类型（updated/deleted），仍然刷新列表
+        if (event.eventType !== 'message.created') {
+          queryClient.invalidateQueries({
+            queryKey: [['message', 'list'], { input: { channelId: channel_id } }],
+          });
+        }
       },
       onError: (error) => {
         systemLog.error(

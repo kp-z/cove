@@ -1,6 +1,7 @@
 import { trpc } from '@/lib/trpc';
 import { notify } from '@/core/services/notificationService';
 import { useEffect, useState } from 'react';
+import { systemLog } from '@/features/channel/stores/systemEventStore';
 
 export function useSendMessage() {
   const utils = trpc.useUtils();
@@ -36,7 +37,7 @@ export function useSendMessage() {
 }
 
 export function useMessages(channelId: string, options?: { limit?: number; cursor?: string }) {
-  return trpc.message.list.useQuery(
+  const query = trpc.message.list.useQuery(
     {
       channelId,
       limit: options?.limit ?? 20,
@@ -45,8 +46,33 @@ export function useMessages(channelId: string, options?: { limit?: number; curso
     {
       queryKey: ['messages', channelId, options],
       enabled: !!channelId,
+      onSuccess: (data) => {
+        systemLog.info(
+          channelId,
+          'query.messages.success',
+          `Fetched ${data.messages?.length || 0} messages`,
+          { messageCount: data.messages?.length || 0, total: data.total }
+        );
+      },
+      onError: (error: any) => {
+        systemLog.error(
+          channelId,
+          'query.messages.error',
+          `Failed to fetch messages: ${error.message}`,
+          { error: error.message }
+        );
+      },
     }
   );
+
+  // 记录查询开始
+  useEffect(() => {
+    if (query.isFetching && !query.data) {
+      systemLog.info(channelId, 'query.messages.start', 'Fetching messages...', { channelId });
+    }
+  }, [query.isFetching, query.data, channelId]);
+
+  return query;
 }
 
 export function useMessage(messageId: string) {

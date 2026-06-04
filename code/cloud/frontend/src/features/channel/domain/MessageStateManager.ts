@@ -41,7 +41,9 @@ export class MessageStateManager {
           ? message.markAsQueued()
           : new Message({ ...message, status });
 
-    if (message.isLocal()) {
+    const isLocal = message.isLocal();
+
+    if (isLocal) {
       this.localMessages.set(id, updated);
     } else {
       this.remoteMessages.set(id, updated);
@@ -57,8 +59,13 @@ export class MessageStateManager {
       );
     } else if (status === 'queued') {
       systemLog.info(message.channelId, 'message.queued', `Message queued`, { messageId: id });
+    } else if (status === 'sending') {
+      systemLog.info(message.channelId, 'message.sending', `Message sending...`, { messageId: id });
     } else if (status === 'sent') {
       systemLog.info(message.channelId, 'message.sent', `Message sent successfully`, { messageId: id });
+
+      // 如果是本地消息且标记为 sent，保留它直到远程消息到达
+      // 不再使用定时器，而是在 syncRemoteMessages 时删除
     }
 
     this.notifySubscribers(message.channelId);
@@ -130,30 +137,52 @@ export class MessageStateManager {
   // 同步远程消息
   syncRemoteMessages(channelId: string, messages: Message[]): void {
     let syncedCount = 0;
+    const messagesToSync = messages.filter(msg => !this.remoteMessages.has(msg.id));
 
-    messages.forEach((msg) => {
+    messagesToSync.forEach((msg) => {
       this.remoteMessages.set(msg.id, msg);
 
-      // 如果有对应的本地消息，移除它
-      const localMsg = Array.from(this.localMessages.values()).find(
-        (m) =>
+      // 查找对应的本地消息 - 优先使用 tempId 匹配
+      const localMsg = Array.from(this.localMessages.values()).find((m) => {
+        // 方案1: 使用 tempId 匹配（如果后端返回了 tempId）
+        if (m.tempId && msg.tempId && m.tempId === msg.tempId) {
+          return true;
+        }
+
+        // 方案2: 使用 messageId 匹配（如果本地消息已经有 messageId）
+        if (m.messageId && m.messageId === msg.id) {
+          return true;
+        }
+
+        // 方案3: 备用匹配 - content + timestamp + channelId
+        // 只在 3 秒内且内容完全相同才认为是同一条消息
+        return (
           m.tempId &&
           m.content === msg.content &&
           m.channelId === channelId &&
-          Math.abs(m.timestamp.getTime() - msg.timestamp.getTime()) < 5000
-      );
+          Math.abs(m.timestamp.getTime() - msg.timestamp.getTime()) < 3000
+        );
+      });
 
       if (localMsg) {
+        // 找到了对应的本地消息，立即删除
         this.localMessages.delete(localMsg.id);
         syncedCount++;
+
+        systemLog.info(
+          channelId,
+          'message.synced',
+          `Synced message: ${localMsg.id} → ${msg.id}`,
+          { localId: localMsg.id, remoteId: msg.id, tempId: localMsg.tempId }
+        );
       }
     });
 
     systemLog.info(
       channelId,
       'message.synced',
-      `Synced ${messages.length} remote messages (${syncedCount} matched local)`,
-      { totalMessages: messages.length, syncedCount }
+      `Synced ${messagesToSync.length} remote messages (${syncedCount} matched local)`,
+      { totalMessages: messagesToSync.length, syncedCount }
     );
 
     this.notifySubscribers(channelId);
@@ -254,7 +283,4 @@ export class MessageStateManager {
 // 单例实例
 export const messageStateManager = new MessageStateManager();
 
-// 定时清理
-if (typeof window !== 'undefined') {
-  setInterval(() => messageStateManager.cleanupCompletedMessages(), 5000);
-}
+// 不再使用定时器清理，改为在 syncRemoteMessages 时清理

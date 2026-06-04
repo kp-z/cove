@@ -10,6 +10,7 @@ import { useCurrentUser } from '@/core/auth';
 import { Message, type MessageError } from '../domain/models';
 import { messageStateManager } from '../domain/MessageStateManager';
 import { messageQueue } from '../domain/MessageQueue';
+import { systemLog } from '../stores/systemEventStore';
 
 export function useSendMessage() {
   const { userId, user } = useCurrentUser();
@@ -73,6 +74,8 @@ export function useSendMessage() {
       // 3. 检查网络状态
       if (!navigator.onLine) {
         // 离线：标记为排队状态
+        console.log('[useSendMessage] Offline, queuing message');
+        systemLog.warn(channelId, 'message.queued', 'Message queued (offline)', { messageId: tempId });
         messageStateManager.updateMessageStatus(tempId, 'queued');
         messageQueue.enqueue({
           id: tempId,
@@ -122,6 +125,11 @@ export function useSendMessage() {
 
       // 4. 发送到服务器
       try {
+        console.log('[useSendMessage] Sending to server...');
+
+        // 标记为 sending 状态
+        messageStateManager.updateMessageStatus(tempId, 'sending');
+
         const result = await mutation.mutateAsync({
           channelId,
           senderId: userId || 'unknown',
@@ -129,8 +137,15 @@ export function useSendMessage() {
           content,
         });
 
-        // 5. 成功：标记为 sent
-        messageStateManager.updateMessageStatus(tempId, 'sent');
+        // 5. 成功：标记为 sent，并记录远程 messageId
+        console.log('[useSendMessage] Message sent successfully');
+        const sentMessage = new Message({
+          ...localMessage,
+          messageId: result.message_id,
+          status: 'sent',
+        });
+        messageStateManager.localMessages.set(tempId, sentMessage);
+        messageStateManager.notifySubscribers(channelId);
 
         // 6. 触发 lastMessage 缓存失效，更新 channel list
         queryClient.invalidateQueries({

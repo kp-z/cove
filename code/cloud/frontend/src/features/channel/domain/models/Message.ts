@@ -6,7 +6,14 @@
 import type { AgentExecutionMetadata } from '@/types/agent-execution';
 
 export type MessageSource = 'local' | 'remote';
-export type MessageStatus = 'pending' | 'sent' | 'failed' | 'deleted' | 'queued' | 'streaming';
+export type MessageStatus =
+  | 'pending'    // 等待发送
+  | 'sending'    // 正在发送中
+  | 'sent'       // 已发送成功
+  | 'failed'     // 发送失败
+  | 'queued'     // 进入队列（离线）
+  | 'deleted'    // 已删除
+  | 'streaming'; // 流式更新中
 export type SenderType = 'user' | 'agent' | 'system';
 
 export type StreamingPhase =

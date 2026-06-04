@@ -14,6 +14,8 @@ import {
   Minimize2,
   WifiOff,
   Clock,
+  Send,
+  Loader2,
 } from 'lucide-react';
 import { useSendMessage, useTypingState, useMessageQueue } from '../../hooks';
 
