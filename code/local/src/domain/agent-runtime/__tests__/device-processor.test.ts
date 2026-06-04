@@ -17,7 +17,14 @@ describe('DeviceProcessor', () => {
   beforeEach(() => {
     // Mock LLM Adapter
     mockAdapter = {
-      generateResponse: vi.fn().mockResolvedValue('AI response content')
+      generateResponse: vi.fn().mockResolvedValue('AI response content'),
+      getCapabilities: vi.fn().mockReturnValue({
+        supportsStreaming: true,
+        supportsBatchMetadata: false,
+        supportsThinking: true,
+        supportsToolUse: true,
+        supportsCostTracking: true
+      })
     }
 
     // Mock AdapterManager
@@ -302,7 +309,14 @@ describe('DeviceProcessor', () => {
 
     it('应该支持 Adapter 降级', async () => {
       const fallbackAdapter = {
-        generateResponse: vi.fn().mockResolvedValue('Fallback response')
+        generateResponse: vi.fn().mockResolvedValue('Fallback response'),
+        getCapabilities: vi.fn().mockReturnValue({
+          supportsStreaming: true,
+          supportsBatchMetadata: false,
+          supportsThinking: true,
+          supportsToolUse: true,
+          supportsCostTracking: true
+        })
       }
 
       // 主 Adapter 失败
