@@ -5,6 +5,7 @@
  */
 
 import { Message, type MessageStatus, type MessageError, type StreamingPhase, type StreamingData } from './models';
+import { systemLog } from '../stores/systemEventStore';
 
 export class MessageStateManager {
   private localMessages: Map<string, Message> = new Map();
@@ -16,11 +17,15 @@ export class MessageStateManager {
     if (!message.isLocal()) {
       throw new Error('Only local messages can be added');
     }
-    console.log('[MessageStateManager] Adding local message:', message.id, 'to channel:', message.channelId);
-    console.log('[MessageStateManager] Current local messages count:', this.localMessages.size);
+
+    systemLog.info(
+      message.channelId,
+      'message.created_local',
+      `Created local message: ${message.content.substring(0, 50)}...`,
+      { messageId: message.id, localMessagesCount: this.localMessages.size }
+    );
+
     this.localMessages.set(message.id, message);
-    console.log('[MessageStateManager] After adding, local messages count:', this.localMessages.size);
-    console.log('[MessageStateManager] Notifying subscribers for channel:', message.channelId);
     this.notifySubscribers(message.channelId);
   }
 
@@ -41,6 +46,21 @@ export class MessageStateManager {
     } else {
       this.remoteMessages.set(id, updated);
     }
+
+    // 记录状态变化
+    if (status === 'failed') {
+      systemLog.error(
+        message.channelId,
+        'message.failed',
+        `Message failed: ${error?.message || 'Unknown error'}`,
+        { messageId: id, error }
+      );
+    } else if (status === 'queued') {
+      systemLog.info(message.channelId, 'message.queued', `Message queued`, { messageId: id });
+    } else if (status === 'sent') {
+      systemLog.info(message.channelId, 'message.sent', `Message sent successfully`, { messageId: id });
+    }
+
     this.notifySubscribers(message.channelId);
   }
 
@@ -56,6 +76,24 @@ export class MessageStateManager {
     } else {
       this.remoteMessages.set(id, updated);
     }
+
+    // 记录流式阶段变化
+    if (phase === 'thinking' || phase === 'responding') {
+      systemLog.info(
+        message.channelId,
+        'message.streaming_phase',
+        `Streaming phase: ${phase}`,
+        { messageId: id, phase }
+      );
+    } else if (phase === 'completed') {
+      systemLog.info(
+        message.channelId,
+        'message.streaming_complete',
+        `Streaming completed`,
+        { messageId: id }
+      );
+    }
+
     this.notifySubscribers(message.channelId);
   }
 
@@ -91,6 +129,8 @@ export class MessageStateManager {
 
   // 同步远程消息
   syncRemoteMessages(channelId: string, messages: Message[]): void {
+    let syncedCount = 0;
+
     messages.forEach((msg) => {
       this.remoteMessages.set(msg.id, msg);
 
@@ -105,8 +145,16 @@ export class MessageStateManager {
 
       if (localMsg) {
         this.localMessages.delete(localMsg.id);
+        syncedCount++;
       }
     });
+
+    systemLog.info(
+      channelId,
+      'message.synced',
+      `Synced ${messages.length} remote messages (${syncedCount} matched local)`,
+      { totalMessages: messages.length, syncedCount }
+    );
 
     this.notifySubscribers(channelId);
   }
@@ -129,10 +177,17 @@ export class MessageStateManager {
 
     // 再添加本地消息（不与远程消息重复）
     local.forEach((msg) => {
+      // 如果本地消息还在 pending 状态，总是显示它
+      if (msg.status === 'pending' || msg.status === 'queued') {
+        messageMap.set(msg.id, msg);
+        return;
+      }
+
+      // 否则检查是否与远程消息重复
       const isDuplicate = remote.some(
         (r) =>
           r.content === msg.content &&
-          Math.abs(r.timestamp.getTime() - msg.timestamp.getTime()) < 1000
+          Math.abs(r.timestamp.getTime() - msg.timestamp.getTime()) < 5000
       );
       if (!isDuplicate) {
         messageMap.set(msg.id, msg);
@@ -163,16 +218,24 @@ export class MessageStateManager {
 
   private notifySubscribers(channelId: string): void {
     const callbacks = this.subscribers.get(channelId);
-    console.log('[MessageStateManager] notifySubscribers called for channel:', channelId);
-    console.log('[MessageStateManager] Subscribers count:', callbacks?.size || 0);
 
     if (!callbacks) {
-      console.warn('[MessageStateManager] No subscribers found for channel:', channelId);
+      systemLog.warn(
+        channelId,
+        'state.subscribers_notified',
+        'No subscribers found',
+        { channelId }
+      );
       return;
     }
 
     const messages = this.getMessages(channelId);
-    console.log('[MessageStateManager] Notifying', callbacks.size, 'subscribers with', messages.length, 'messages');
+    systemLog.info(
+      channelId,
+      'state.subscribers_notified',
+      `Notified ${callbacks.size} subscribers with ${messages.length} messages`,
+      { subscribersCount: callbacks.size, messagesCount: messages.length }
+    );
     callbacks.forEach((cb) => cb(messages));
   }
 

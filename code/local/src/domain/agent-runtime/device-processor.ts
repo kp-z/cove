@@ -389,16 +389,17 @@ export class DeviceProcessor implements IMessageProcessor {
     content: string,
     metadata: ExecutionMetadata
   ): Promise<void> {
-    // 传输最终元数据（包含重试失败的传输）
-    await this.transmissionStrategy.transmitFinalMetadata(task, metadata)
+    // 准备最终化（重试失败的传输）
+    const { hadTransmissionFailures } = await this.transmissionStrategy.prepareFinalization(task)
 
-    // 保存响应
+    // 保存响应（包含完整的 content 和 metadata）
     await this.backendGateway.saveAgentResponse({
       channelId: task.channelId,
       messageId: task.messageId,
       content,
       metadata: {
-        execution: metadata
+        execution: metadata,
+        hadTransmissionFailures
       }
     })
   }

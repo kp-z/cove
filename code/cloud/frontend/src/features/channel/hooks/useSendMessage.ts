@@ -39,8 +39,13 @@ export function useSendMessage() {
 
   const send = useCallback(
     async (channelId: string, content: string) => {
+      console.log('🚀🚀🚀 [useSendMessage] send() CALLED!!! 🚀🚀🚀', { channelId, content });
+      console.log('👉 This should appear IMMEDIATELY when you send a message!');
+
       // 1. 创建本地消息
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      console.log('📝 [useSendMessage] Creating local message with tempId:', tempId);
+
       const localMessage = new Message({
         id: tempId,
         tempId,

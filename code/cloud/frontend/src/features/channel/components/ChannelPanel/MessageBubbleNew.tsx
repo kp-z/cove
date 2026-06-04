@@ -17,6 +17,9 @@ import { getUserColor, getColorWithOpacity } from '@/shared/utils/userColor';
 import { useAuthStore } from '@/core/auth/authStore';
 import { StreamingContent } from './StreamingContent';
 import { ToolCallIndicator } from './ToolCallIndicator';
+import { AgentThinking } from './AgentThinking';
+import { ToolLogsDisplay } from './ToolLogsDisplay';
+import { TokenUsageDisplay } from './TokenUsageDisplay';
 
 interface MessageBubbleProps {
   message: Message;
@@ -218,6 +221,26 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
             <div className="mt-1">
               <MessageHoverActions message={message} config={hoverActionsConfig} />
             </div>
+
+            {/* Agent Execution Metadata - 新增的展示区域 */}
+            {isAgent && message.agentMetadata && !message.isStreaming() && (
+              <div className="mt-2 space-y-2 w-full">
+                {/* Thinking */}
+                {message.hasThinking() && message.agentMetadata.thinking && (
+                  <AgentThinking thinking={message.agentMetadata.thinking} />
+                )}
+
+                {/* Tool Logs */}
+                {message.hasToolLogs() && message.agentMetadata.tool_logs && (
+                  <ToolLogsDisplay logs={message.agentMetadata.tool_logs} />
+                )}
+
+                {/* Token Usage */}
+                {message.hasUsageStats() && message.agentMetadata.usage && (
+                  <TokenUsageDisplay usage={message.agentMetadata.usage} />
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

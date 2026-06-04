@@ -20,6 +20,7 @@ import { nodeRegistry, type TimelineNode, type NodeContext } from './NodeRegistr
 import { CompactFilterBar } from './CompactFilterBar';
 import { CompactTimelineNode } from './CompactTimelineNode';
 import { groupNodesByTime, getTimeGroupLabel, formatCompactTimestamp, type TimeGroup } from './utils/timeGrouping';
+import { getEventTypeLabel } from '../../types/system-event';
 
 export interface TimelineProps {
   channelId: string;
@@ -234,9 +235,28 @@ export function Timeline({
                     const isActive = selectedNodeId === node.id;
                     const isLast = index === groupNodes.length - 1;
 
-                    // 提取关键信息
-                    const sender = node.data?.sender?.display_name || node.title || 'Unknown';
-                    const metadata = node.data?.channel || node.data?.message_id || node.content || '';
+                    // 提取关键信息（根据节点类型）
+                    let sender: string;
+                    let metadata: string;
+                    let systemLevel: 'info' | 'warn' | 'error' | 'debug' | undefined;
+                    let systemDetails: { message: string; metadata?: Record<string, any>; stack?: string } | undefined;
+
+                    if (node.type === 'system') {
+                      // 系统事件节点
+                      const event = node.data as any;
+                      sender = getEventTypeLabel(event.type) || 'System';
+                      metadata = event.message?.substring(0, 50) || '';
+                      systemLevel = event.level;
+                      systemDetails = {
+                        message: event.message,
+                        metadata: event.metadata,
+                        stack: event.stack,
+                      };
+                    } else {
+                      // 消息和线程节点
+                      sender = node.data?.sender?.display_name || node.title || 'Unknown';
+                      metadata = node.data?.channel || node.data?.message_id || node.content || '';
+                    }
 
                     return (
                       <CompactTimelineNode
@@ -249,6 +269,8 @@ export function Timeline({
                         isActive={isActive}
                         isLast={isLast}
                         onClick={() => onNodeClick?.(node)}
+                        systemLevel={systemLevel}
+                        systemDetails={systemDetails}
                       />
                     );
                   })}

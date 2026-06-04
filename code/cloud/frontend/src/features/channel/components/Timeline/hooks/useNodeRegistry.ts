@@ -6,7 +6,7 @@
 
 import { useEffect } from 'react';
 import { nodeRegistry, type NodeRenderer } from '../NodeRegistry';
-import { MessageNodeRenderer, ThreadNodeRenderer } from '../nodes';
+import { MessageNodeRenderer, ThreadNodeRenderer, SystemNodeRenderer } from '../nodes';
 
 /**
  * 初始化默认节点渲染器
@@ -17,6 +17,7 @@ export function useNodeRegistry() {
     nodeRegistry.registerAll([
       MessageNodeRenderer,
       ThreadNodeRenderer,
+      SystemNodeRenderer,
     ]);
 
     // 清理函数（可选）

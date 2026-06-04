@@ -118,13 +118,23 @@ describe('Agent Execution Metadata - Integration Test', () => {
         updatedAt: new Date()
       }
 
-      await transmissionStrategy.transmitFinalMetadata(task, metadata)
+      // 准备最终化并保存
+      await transmissionStrategy.prepareFinalization(task)
+      await mockBackendGateway.saveAgentResponse({
+        channelId: task.channelId,
+        messageId: task.messageId,
+        content: 'Final response content',
+        metadata: {
+          execution: metadata
+        }
+      })
 
       // 6. 验证 Backend 调用
       expect(mockBackendGateway.saveAgentResponse).toHaveBeenCalledWith(
         expect.objectContaining({
           channelId: 'channel-1',
           messageId: 'msg-1',
+          content: expect.any(String),  // 应该有 content
           metadata: expect.objectContaining({
             execution: metadata
           })
@@ -304,7 +314,19 @@ describe('Agent Execution Metadata - Integration Test', () => {
 
       // 5. 构建并保存最终元数据
       const metadata = await collector.build()
-      await transmissionStrategy.transmitFinalMetadata(task, metadata)
+
+      // 准备最终化（模拟 DeviceProcessor.saveResponse）
+      await transmissionStrategy.prepareFinalization(task)
+
+      // 模拟实际保存（由 DeviceProcessor.saveResponse 完成）
+      await mockBackendGateway.saveAgentResponse({
+        channelId: task.channelId,
+        messageId: task.messageId,
+        content: 'Final response content',
+        metadata: {
+          execution: metadata
+        }
+      })
 
       // 6. 验证完整性
       expect(metadata.thinking).toBeDefined()

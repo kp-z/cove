@@ -12,6 +12,7 @@ import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAgentStreaming } from '../../hooks/useAgentStreaming';
+import { systemLog } from '../../stores/systemEventStore';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -95,11 +96,22 @@ export function ChannelPanel({
     },
     {
       onData: (event) => {
-        console.log('Received message event:', event);
+        systemLog.info(
+          channel_id,
+          'websocket.message_received',
+          `Received ${event.eventType} event`,
+          { eventType: event.eventType, messageId: event.data.message_id }
+        );
 
         // 如果是新消息创建，且是 agent 消息，开始监听流式更新
         if (event.eventType === 'message.created' && event.data.sender_type === 'agent') {
           setStreamingMessageId(event.data.message_id);
+          systemLog.info(
+            channel_id,
+            'message.streaming_start',
+            'Started streaming for agent message',
+            { messageId: event.data.message_id }
+          );
         }
 
         // 刷新消息列表
@@ -108,7 +120,12 @@ export function ChannelPanel({
         });
       },
       onError: (error) => {
-        console.error('Subscription error:', error);
+        systemLog.error(
+          channel_id,
+          'websocket.subscription_error',
+          `Message subscription error: ${error.message}`,
+          { error: error.message }
+        );
       },
     }
   );
@@ -121,7 +138,12 @@ export function ChannelPanel({
     },
     {
       onData: (event) => {
-        console.log('Received member event:', event);
+        systemLog.info(
+          channel_id,
+          'websocket.message_received',
+          `Member ${event.eventType}`,
+          { eventType: event.eventType }
+        );
 
         // 刷新成员列表
         queryClient.invalidateQueries({
@@ -129,7 +151,12 @@ export function ChannelPanel({
         });
       },
       onError: (error) => {
-        console.error('Member subscription error:', error);
+        systemLog.error(
+          channel_id,
+          'websocket.subscription_error',
+          `Member subscription error: ${error.message}`,
+          { error: error.message }
+        );
       },
     }
   );

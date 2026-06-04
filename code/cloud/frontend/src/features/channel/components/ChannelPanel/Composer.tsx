@@ -205,10 +205,21 @@ export function Composer({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Cmd/Ctrl + Enter: 发送消息
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       handleSend();
+      return;
     }
+
+    // 单独 Enter: 也发送消息（不换行）
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+      return;
+    }
+
+    // Shift + Enter: 换行（默认行为）
   };
 
   const handleAttachFile = () => {

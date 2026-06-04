@@ -3,6 +3,8 @@
  * 封装消息的业务逻辑和状态转换
  */
 
+import type { AgentExecutionMetadata } from '@/types/agent-execution';
+
 export type MessageSource = 'local' | 'remote';
 export type MessageStatus = 'pending' | 'sent' | 'failed' | 'deleted' | 'queued' | 'streaming';
 export type SenderType = 'user' | 'agent' | 'system';
@@ -43,7 +45,7 @@ export type MessageProps = {
   status: MessageStatus;
   error?: MessageError;
   retryCount: number;
-  agentMetadata?: any;
+  agentMetadata?: AgentExecutionMetadata; // 使用新的类型
   streamingPhase?: StreamingPhase;
   streamingData?: StreamingData;
   skipAnimation?: boolean; // 历史消息不播放动画
@@ -201,5 +203,18 @@ export class Message {
       retryCount: 0,
       agentMetadata: remote.agent_execution_metadata,
     });
+  }
+
+  // Agent Execution Metadata 辅助方法
+  hasThinking(): boolean {
+    return !!this.agentMetadata?.thinking;
+  }
+
+  hasToolLogs(): boolean {
+    return (this.agentMetadata?.tool_logs?.length ?? 0) > 0;
+  }
+
+  hasUsageStats(): boolean {
+    return !!this.agentMetadata?.usage;
   }
 }

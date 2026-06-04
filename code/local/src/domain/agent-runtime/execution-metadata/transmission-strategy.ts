@@ -112,32 +112,23 @@ export class ResilientTransmissionStrategy {
   }
 
   /**
-   * Transmit final metadata (with retry of failed transmissions)
+   * Prepare final metadata (with retry of failed transmissions)
+   * Returns whether there were any transmission failures
    */
-  async transmitFinalMetadata(
-    task: MessageTask,
-    metadata: ExecutionMetadata
-  ): Promise<void> {
+  async prepareFinalization(
+    task: MessageTask
+  ): Promise<{ hadTransmissionFailures: boolean }> {
     // Retry failed transmissions if enabled
     if (this.config.enableRetry) {
       await this.retryFailedTransmissions(task)
     }
 
-    // Always include complete metadata in final save
     const hadTransmissionFailures = this.failedTransmissions.has(task.messageId)
-
-    await this.backendGateway.saveAgentResponse({
-      channelId: task.channelId,
-      messageId: task.messageId,
-      content: '', // Content is sent separately
-      metadata: {
-        execution: metadata,
-        hadTransmissionFailures
-      }
-    })
 
     // Clean up
     this.failedTransmissions.delete(task.messageId)
+
+    return { hadTransmissionFailures }
   }
 
   /**
