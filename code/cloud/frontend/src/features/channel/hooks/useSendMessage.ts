@@ -88,41 +88,6 @@ export function useSendMessage() {
         return;
       }
 
-      // 3.5. 立即添加 Agent 占位符消息（optimistic update）
-      const agentTempId = `temp-agent-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const agentPlaceholder = new Message({
-        id: agentTempId,
-        tempId: agentTempId,
-        channelId,
-        senderId: 'agent-placeholder',
-        senderName: 'AI Assistant',
-        senderType: 'agent',
-        content: '',
-        timestamp: new Date(Date.now() + 1), // 稍晚一点，确保在用户消息之后
-        source: 'local',
-        status: 'streaming',
-        streamingPhase: 'thinking', // 显示"思考中..."状态
-        streamingData: {},
-        retryCount: 0,
-      });
-
-      console.log('[useSendMessage] Adding agent placeholder:', {
-        id: agentPlaceholder.id,
-        channelId: agentPlaceholder.channelId,
-        streamingPhase: agentPlaceholder.streamingPhase,
-      });
-      messageStateManager.addLocalMessage(agentPlaceholder);
-
-      // 设置超时清理（30秒后如果还在，说明 Agent 响应失败）
-      setTimeout(() => {
-        const messages = messageStateManager.getMessages(channelId);
-        const stillExists = messages.find(m => m.id === agentTempId);
-        if (stillExists && stillExists.status === 'streaming') {
-          console.log('[useSendMessage] Agent placeholder timeout, removing:', agentTempId);
-          messageStateManager.removeLocalMessage(agentTempId, channelId);
-        }
-      }, 30000);
-
       // 4. 发送到服务器
       try {
         console.log('[useSendMessage] Sending to server...');
