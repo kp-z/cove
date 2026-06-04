@@ -47,7 +47,24 @@ export function useMessageList(channelId: string) {
     },
     {
       enabled: !!channelId,
-      onData: () => {
+      onData: (event) => {
+        console.log('[useMessageList] Received WebSocket event:', event.eventType, event.data);
+
+        // 如果收到 Agent 消息创建事件，移除占位符
+        if (event.eventType === 'message.created' && event.data.sender_type === 'agent') {
+          console.log('[useMessageList] Agent message created, removing placeholder');
+          // 查找并移除第一个 Agent 占位符（FIFO）
+          const messages = messageStateManager.getMessages(channelId);
+          const placeholder = messages.find(
+            m => m.isLocal() && m.senderType === 'agent' && m.status === 'streaming'
+          );
+
+          if (placeholder) {
+            console.log('[useMessageList] Removing agent placeholder:', placeholder.id);
+            messageStateManager.removeLocalMessage(placeholder.id, channelId);
+          }
+        }
+
         queryClient.invalidateQueries({
           queryKey: [['message', 'list'], { input: { channelId } }],
         });
