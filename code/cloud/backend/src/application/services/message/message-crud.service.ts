@@ -7,7 +7,7 @@
  * - 删除消息
  */
 
-import { MessageEntity, SenderType, MessageMention } from '../../../domain/models/message/message.entity';
+import { MessageEntity, SenderType, MessageMention, AgentExecutionMetadata } from '../../../domain/models/message/message.entity';
 import { ChannelEntity } from '../../../domain/models/channel/channel.entity';
 import {
   IMessageRepository,
@@ -33,6 +33,7 @@ export interface SendMessageDTO {
   readonly threadId?: string;
   readonly attachments?: readonly string[];
   readonly mentions?: readonly MessageMention[];
+  readonly agentExecutionMetadata?: AgentExecutionMetadata;
 }
 
 export interface UpdateMessageDTO {
@@ -116,6 +117,7 @@ export class MessageCrudService {
       status: 'sent',
       isEdited: false,
       editHistory: [],
+      agentExecutionMetadata: dto.agentExecutionMetadata,
       createdAt: now,
       updatedAt: now,
       meta: {

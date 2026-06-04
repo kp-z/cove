@@ -304,7 +304,59 @@ export const messageRouter = (messageService: MessageService, channelService?: a
         content: z.string(),
         inReplyTo: z.string().optional(),
         messageId: z.string().optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.unknown()).optional(), // 保持向后兼容
+        // 新增：结构化的 execution metadata
+        execution: z.object({
+          thinking: z.object({
+            content: z.string(),
+            chunks: z.number(),
+            firstTokenMs: z.number().optional(),
+            totalMs: z.number().optional(),
+          }).optional(),
+          toolUse: z.object({
+            logs: z.array(z.object({
+              id: z.string(),
+              toolName: z.string(),
+              action: z.string(),
+              status: z.enum(['pending', 'running', 'success', 'error']),
+              startedAt: z.string(),
+              completedAt: z.string().optional(),
+              durationMs: z.number().optional(),
+              input: z.record(z.unknown()).optional(),
+              output: z.record(z.unknown()).optional(),
+              error: z.string().optional(),
+            })),
+            totalTools: z.number(),
+            successCount: z.number(),
+            errorCount: z.number(),
+          }).optional(),
+          streaming: z.object({
+            totalChunks: z.number(),
+            firstChunkMs: z.number().optional(),
+            totalMs: z.number().optional(),
+            chunkSizes: z.array(z.number()).optional(),
+          }).optional(),
+          performance: z.object({
+            totalDurationMs: z.number(),
+            thinkingMs: z.number().optional(),
+            toolUseMs: z.number().optional(),
+            streamingMs: z.number().optional(),
+            networkMs: z.number().optional(),
+          }).optional(),
+          usage: z.object({
+            inputTokens: z.number().optional(),
+            outputTokens: z.number().optional(),
+            totalTokens: z.number().optional(),
+            cacheReadTokens: z.number().optional(),
+            cacheCreationTokens: z.number().optional(),
+          }).optional(),
+          adapter: z.object({
+            name: z.string(),
+            version: z.string().optional(),
+            model: z.string().optional(),
+            temperature: z.number().optional(),
+          }).optional(),
+        }).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -364,11 +416,40 @@ export const messageRouter = (messageService: MessageService, channelService?: a
 
             console.log('[saveResponse] Final senderId:', senderId);
 
+            // 转换 execution 数据为 agentExecutionMetadata 格式
+            const agentExecutionMetadata = input.execution ? {
+              thinking: input.execution.thinking?.content,
+              tool_logs: input.execution.toolUse?.logs.map(log => ({
+                id: log.id,
+                timestamp: log.startedAt,
+                toolName: log.toolName,
+                action: log.action,
+                params: log.input,
+                status: log.status,
+                duration: log.durationMs,
+                result: {
+                  success: log.status === 'success' ? 'Success' : undefined,
+                  error: log.error,
+                  output: log.output ? JSON.stringify(log.output) : undefined,
+                },
+              })),
+              usage: input.execution.usage ? {
+                inputTokens: input.execution.usage.inputTokens,
+                outputTokens: input.execution.usage.outputTokens,
+                totalTokens: input.execution.usage.totalTokens,
+                cacheReadTokens: input.execution.usage.cacheReadTokens,
+                cacheCreationTokens: input.execution.usage.cacheCreationTokens,
+              } : undefined,
+              execution_mode: 'CLI' as const,
+              streaming_status: 'completed' as const,
+            } : undefined;
+
             const message = await messageService.sendMessage({
               senderId,
               senderType: 'agent',
               channelId, // Use the parsed channelId without realm prefix
               content: input.content,
+              agentExecutionMetadata,
               // Don't set threadId - agent responses should appear in main chat flow
               // threadId: input.inReplyTo || input.messageId,
             });

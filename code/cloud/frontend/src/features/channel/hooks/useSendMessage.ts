@@ -1,9 +1,9 @@
 /**
  * useSendMessage Hook
- * 处理消息发送、optimistic update、错误处理和重试
+ * 处理消息发送、optimistic update、错误处理、重试和离线排队
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { trpc } from '@/lib/trpc';
 import { useCurrentUser } from '@/core/auth';
@@ -15,6 +15,27 @@ export function useSendMessage() {
   const { userId, user } = useCurrentUser();
   const mutation = trpc.message.send.useMutation();
   const queryClient = useQueryClient();
+
+  // 监听网络状态变化
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[useSendMessage] Network back online, processing queue...');
+      // 网络恢复后，处理队列中的消息
+      // messageQueue 会自动处理，这里只是日志
+    };
+
+    const handleOffline = () => {
+      console.log('[useSendMessage] Network offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const send = useCallback(
     async (channelId: string, content: string) => {
@@ -35,10 +56,19 @@ export function useSendMessage() {
       });
 
       // 2. 立即添加到状态管理器（optimistic update）
+      console.log('[useSendMessage] Adding local message:', {
+        id: localMessage.id,
+        content: localMessage.content.substring(0, 50),
+        channelId: localMessage.channelId,
+        status: localMessage.status,
+      });
       messageStateManager.addLocalMessage(localMessage);
+      console.log('[useSendMessage] Local message added successfully');
 
       // 3. 检查网络状态
       if (!navigator.onLine) {
+        // 离线：标记为排队状态
+        messageStateManager.updateMessageStatus(tempId, 'queued');
         messageQueue.enqueue({
           id: tempId,
           channelId,

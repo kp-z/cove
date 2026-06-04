@@ -4,13 +4,29 @@
  */
 
 export type MessageSource = 'local' | 'remote';
-export type MessageStatus = 'pending' | 'sent' | 'failed' | 'deleted';
+export type MessageStatus = 'pending' | 'sent' | 'failed' | 'deleted' | 'queued' | 'streaming';
 export type SenderType = 'user' | 'agent' | 'system';
+
+export type StreamingPhase =
+  | 'accepted'   // Agent接收确认
+  | 'thinking'   // 思考中
+  | 'tool_use'   // 工具调用
+  | 'responding' // 正在回复
+  | 'completed'; // 完成
 
 export type MessageError = {
   code: string;
   message: string;
   retryable: boolean;
+};
+
+export type StreamingData = {
+  thinking?: string;
+  currentTool?: {
+    name: string;
+    params?: any;
+  };
+  partialContent?: string; // 流式输出的部分内容
 };
 
 export type MessageProps = {
@@ -28,6 +44,9 @@ export type MessageProps = {
   error?: MessageError;
   retryCount: number;
   agentMetadata?: any;
+  streamingPhase?: StreamingPhase;
+  streamingData?: StreamingData;
+  skipAnimation?: boolean; // 历史消息不播放动画
 };
 
 export class Message {
@@ -45,6 +64,9 @@ export class Message {
   readonly error?: MessageError;
   readonly retryCount: number;
   readonly agentMetadata?: any;
+  readonly streamingPhase?: StreamingPhase;
+  readonly streamingData?: StreamingData;
+  readonly skipAnimation?: boolean;
 
   constructor(props: MessageProps) {
     this.id = props.id;
@@ -61,6 +83,9 @@ export class Message {
     this.error = props.error;
     this.retryCount = props.retryCount;
     this.agentMetadata = props.agentMetadata;
+    this.streamingPhase = props.streamingPhase;
+    this.streamingData = props.streamingData;
+    this.skipAnimation = props.skipAnimation;
   }
 
   // 领域行为：状态判断
@@ -74,6 +99,14 @@ export class Message {
 
   isLocal(): boolean {
     return this.source === 'local';
+  }
+
+  isQueued(): boolean {
+    return this.status === 'queued';
+  }
+
+  isStreaming(): boolean {
+    return this.status === 'streaming' || !!this.streamingPhase;
   }
 
   canRetry(): boolean {
@@ -111,6 +144,44 @@ export class Message {
     return new Message({
       ...this,
       status: 'deleted',
+    });
+  }
+
+  markAsQueued(): Message {
+    return new Message({
+      ...this,
+      status: 'queued',
+    });
+  }
+
+  // 流式更新相关的状态转换
+  updateStreamingPhase(phase: StreamingPhase): Message {
+    return new Message({
+      ...this,
+      status: phase === 'completed' ? 'sent' : 'streaming',
+      streamingPhase: phase,
+    });
+  }
+
+  updateStreamingData(data: Partial<StreamingData>): Message {
+    return new Message({
+      ...this,
+      streamingData: {
+        ...this.streamingData,
+        ...data,
+      },
+    });
+  }
+
+  updatePartialContent(chunk: string): Message {
+    const currentContent = this.streamingData?.partialContent || '';
+    return new Message({
+      ...this,
+      content: currentContent + chunk,
+      streamingData: {
+        ...this.streamingData,
+        partialContent: currentContent + chunk,
+      },
     });
   }
 

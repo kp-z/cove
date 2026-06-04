@@ -11,6 +11,7 @@ import { useChannelPanelStore } from '../../stores/channelStore';
 import { useCurrentUser } from '@/core/auth';
 import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAgentStreaming } from '../../hooks/useAgentStreaming';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -69,6 +70,9 @@ export function ChannelPanel({
   const { data: channelsData, isLoading: channelLoading } = useChannels();
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
+
+  // 订阅 Agent 流式更新
+  useAgentStreaming(channel_id);
 
   // 流式更新订阅
   const streamingState = useMessageStreaming(streamingMessageId);

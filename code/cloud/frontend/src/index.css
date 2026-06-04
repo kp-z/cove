@@ -226,3 +226,33 @@ body {
 .animate-fade-out {
   animation: fade-out 2s ease-out forwards;
 }
+
+/* 思考中脉冲动画 */
+@keyframes pulse-thinking {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-thinking {
+  animation: pulse-thinking 2s ease-in-out infinite;
+}
+
+/* 打字光标闪烁 */
+@keyframes blink-cursor {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink-cursor {
+  animation: blink-cursor 1s step-end infinite;
+}

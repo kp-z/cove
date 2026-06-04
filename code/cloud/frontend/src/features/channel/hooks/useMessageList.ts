@@ -15,7 +15,14 @@ export function useMessageList(channelId: string) {
 
   // 订阅本地状态管理器
   useEffect(() => {
-    const unsubscribe = messageStateManager.subscribe(channelId, setMessages);
+    console.log('[useMessageList] Subscribing to channel:', channelId);
+    const unsubscribe = messageStateManager.subscribe(channelId, (newMessages) => {
+      console.log('[useMessageList] Received message update for channel:', channelId);
+      console.log('[useMessageList] New messages count:', newMessages.length);
+      console.log('[useMessageList] Messages:', newMessages.map(m => ({ id: m.id, content: m.content.substring(0, 30), status: m.status })));
+      setMessages(newMessages);
+    });
+    console.log('[useMessageList] Subscription established for channel:', channelId);
     return unsubscribe;
   }, [channelId]);
 

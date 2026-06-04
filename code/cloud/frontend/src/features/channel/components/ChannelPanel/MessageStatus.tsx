@@ -1,9 +1,9 @@
 /**
  * MessageStatus 组件
- * 显示消息状态（pending/sent/failed）
+ * 显示消息状态（pending/sent/failed/queued）
  */
 
-import { Loader2, AlertCircle, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Check, Clock } from 'lucide-react';
 import { Message } from '../../domain/models/Message';
 
 interface MessageStatusProps {
@@ -12,6 +12,17 @@ interface MessageStatusProps {
 }
 
 export function MessageStatus({ message, onRetry }: MessageStatusProps) {
+  // 排队状态（离线）
+  if (message.isQueued()) {
+    return (
+      <div className="flex items-center gap-1 text-xs text-orange-400 mt-1 px-1">
+        <Clock className="w-3 h-3" />
+        <span>排队中，等待网络恢复</span>
+      </div>
+    );
+  }
+
+  // 发送中
   if (message.isPending()) {
     return (
       <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 px-1">
@@ -21,6 +32,7 @@ export function MessageStatus({ message, onRetry }: MessageStatusProps) {
     );
   }
 
+  // 发送失败
   if (message.isFailed()) {
     return (
       <div className="flex items-center gap-2 text-xs text-red-400 mt-1 px-1">
@@ -38,6 +50,7 @@ export function MessageStatus({ message, onRetry }: MessageStatusProps) {
     );
   }
 
+  // 发送成功（短暂显示后淡出）
   if (message.status === 'sent' && message.isLocal()) {
     return (
       <div className="flex items-center gap-1 text-xs text-green-400 mt-1 px-1 animate-fade-out">

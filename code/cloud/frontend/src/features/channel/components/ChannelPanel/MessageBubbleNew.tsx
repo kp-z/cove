@@ -2,10 +2,12 @@
  * MessageBubble 组件 - Discord 风格
  * 其他用户/Agent 左对齐，当前用户右对齐
  * 用户名用不同颜色区分
+ * 支持流式更新显示
  */
 
 import React, { useState, useCallback } from 'react';
 import type { TFunction } from 'i18next';
+import { Brain, Loader2 } from 'lucide-react';
 import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
 import { AgentExecutionModal, type TabType } from './MessageBubble/AgentExecution/AgentExecutionModal';
 import { MessageStatus } from './MessageStatus';
@@ -13,6 +15,8 @@ import { Message } from '../../domain/models/Message';
 import { MessageHoverActions, getDefaultConfig } from './MessageBubble/HoverActions';
 import { getUserColor, getColorWithOpacity } from '@/shared/utils/userColor';
 import { useAuthStore } from '@/core/auth/authStore';
+import { StreamingContent } from './StreamingContent';
+import { ToolCallIndicator } from './ToolCallIndicator';
 
 interface MessageBubbleProps {
   message: Message;
@@ -142,16 +146,58 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
             {/* Message bubble with left tail */}
             <div className="relative">
               <div
-                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 bg-white/[0.05] border ${
+                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 ${
                   isPending ? 'opacity-70' : 'opacity-100'
-                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08]`}
-                style={{ borderColor: isFailed ? undefined : borderColor }}
+                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08] ${
+                  message.streamingPhase === 'thinking' ? 'bg-blue-500/10 border border-blue-500/20' :
+                  message.streamingPhase === 'tool_use' ? 'bg-purple-500/10 border border-purple-500/20' :
+                  'bg-white/[0.05] border'
+                }`}
+                style={{ borderColor: isFailed ? undefined : (message.streamingPhase ? undefined : borderColor) }}
               >
-                <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
-                  isFailed ? 'text-red-400' : ''
-                }`}>
-                  {message.content}
-                </div>
+                {/* 根据 streamingPhase 渲染不同内容 */}
+                {message.streamingPhase === 'thinking' && (
+                  <div className="flex items-center gap-2 text-sm text-blue-300">
+                    <Brain className="w-4 h-4 animate-pulse" />
+                    <span>思考中...</span>
+                    {message.streamingData?.thinking && (
+                      <span className="text-xs text-gray-400 ml-2">
+                        {message.streamingData.thinking.slice(0, 50)}...
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {message.streamingPhase === 'tool_use' && message.streamingData?.currentTool && (
+                  <ToolCallIndicator
+                    toolName={message.streamingData.currentTool.name}
+                    params={message.streamingData.currentTool.params}
+                  />
+                )}
+
+                {message.streamingPhase === 'responding' && (
+                  <div className="text-sm text-gray-100 leading-relaxed">
+                    <StreamingContent
+                      content={message.content}
+                      isStreaming={true}
+                      skipAnimation={message.skipAnimation}
+                    />
+                  </div>
+                )}
+
+                {(!message.streamingPhase || message.streamingPhase === 'completed' || message.streamingPhase === 'accepted') && (
+                  <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
+                    isFailed ? 'text-red-400' : ''
+                  }`}>
+                    {message.streamingPhase === 'accepted' && (
+                      <div className="flex items-center gap-1 text-xs text-green-400 mb-2">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>已接收</span>
+                      </div>
+                    )}
+                    {message.content}
+                  </div>
+                )}
               </div>
 
               {/* Rounded tail pointing left to avatar */}
@@ -199,10 +245,14 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
             {/* Message bubble with right tail */}
             <div className="relative">
               <div
-                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 bg-white/[0.05] border ${
+                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 ${
                   isPending ? 'opacity-70' : 'opacity-100'
-                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08]`}
-                style={{ borderColor: isFailed ? undefined : borderColor }}
+                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08] ${
+                  message.streamingPhase === 'thinking' ? 'bg-blue-500/10 border border-blue-500/20' :
+                  message.streamingPhase === 'tool_use' ? 'bg-purple-500/10 border border-purple-500/20' :
+                  'bg-white/[0.05] border'
+                }`}
+                style={{ borderColor: isFailed ? undefined : (message.streamingPhase ? undefined : borderColor) }}
               >
                 <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
                   isFailed ? 'text-red-400' : ''

@@ -1,10 +1,10 @@
 /**
  * MessageStateManager
  * 统一管理所有消息状态（local + remote）
- * 负责消息合并、去重、排序
+ * 负责消息合并、去重、排序、流式更新
  */
 
-import { Message, type MessageStatus, type MessageError } from './models';
+import { Message, type MessageStatus, type MessageError, type StreamingPhase, type StreamingData } from './models';
 
 export class MessageStateManager {
   private localMessages: Map<string, Message> = new Map();
@@ -16,21 +16,76 @@ export class MessageStateManager {
     if (!message.isLocal()) {
       throw new Error('Only local messages can be added');
     }
+    console.log('[MessageStateManager] Adding local message:', message.id, 'to channel:', message.channelId);
+    console.log('[MessageStateManager] Current local messages count:', this.localMessages.size);
     this.localMessages.set(message.id, message);
+    console.log('[MessageStateManager] After adding, local messages count:', this.localMessages.size);
+    console.log('[MessageStateManager] Notifying subscribers for channel:', message.channelId);
     this.notifySubscribers(message.channelId);
   }
 
   // 更新消息状态
   updateMessageStatus(id: string, status: MessageStatus, error?: MessageError): void {
-    const message = this.localMessages.get(id);
+    const message = this.localMessages.get(id) || this.remoteMessages.get(id);
     if (!message) return;
 
     const updated =
       status === 'failed'
         ? message.markAsFailed(error!)
-        : new Message({ ...message, status });
+        : status === 'queued'
+          ? message.markAsQueued()
+          : new Message({ ...message, status });
 
-    this.localMessages.set(id, updated);
+    if (message.isLocal()) {
+      this.localMessages.set(id, updated);
+    } else {
+      this.remoteMessages.set(id, updated);
+    }
+    this.notifySubscribers(message.channelId);
+  }
+
+  // 更新流式阶段
+  updateStreamingPhase(id: string, phase: StreamingPhase): void {
+    const message = this.remoteMessages.get(id) || this.localMessages.get(id);
+    if (!message) return;
+
+    const updated = message.updateStreamingPhase(phase);
+
+    if (message.isLocal()) {
+      this.localMessages.set(id, updated);
+    } else {
+      this.remoteMessages.set(id, updated);
+    }
+    this.notifySubscribers(message.channelId);
+  }
+
+  // 更新流式数据
+  updateStreamingData(id: string, data: Partial<StreamingData>): void {
+    const message = this.remoteMessages.get(id) || this.localMessages.get(id);
+    if (!message) return;
+
+    const updated = message.updateStreamingData(data);
+
+    if (message.isLocal()) {
+      this.localMessages.set(id, updated);
+    } else {
+      this.remoteMessages.set(id, updated);
+    }
+    this.notifySubscribers(message.channelId);
+  }
+
+  // 追加流式内容
+  appendStreamingContent(id: string, chunk: string): void {
+    const message = this.remoteMessages.get(id) || this.localMessages.get(id);
+    if (!message) return;
+
+    const updated = message.updatePartialContent(chunk);
+
+    if (message.isLocal()) {
+      this.localMessages.set(id, updated);
+    } else {
+      this.remoteMessages.set(id, updated);
+    }
     this.notifySubscribers(message.channelId);
   }
 
@@ -108,9 +163,16 @@ export class MessageStateManager {
 
   private notifySubscribers(channelId: string): void {
     const callbacks = this.subscribers.get(channelId);
-    if (!callbacks) return;
+    console.log('[MessageStateManager] notifySubscribers called for channel:', channelId);
+    console.log('[MessageStateManager] Subscribers count:', callbacks?.size || 0);
+
+    if (!callbacks) {
+      console.warn('[MessageStateManager] No subscribers found for channel:', channelId);
+      return;
+    }
 
     const messages = this.getMessages(channelId);
+    console.log('[MessageStateManager] Notifying', callbacks.size, 'subscribers with', messages.length, 'messages');
     callbacks.forEach((cb) => cb(messages));
   }
 
