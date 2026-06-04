@@ -93,7 +93,7 @@ export function useSendMessage() {
         timestamp: new Date(Date.now() + 1), // 稍晚一点，确保在用户消息之后
         source: 'local',
         status: 'streaming',
-        streamingPhase: 'accepted',
+        streamingPhase: 'thinking', // 显示"思考中..."状态
         streamingData: {},
         retryCount: 0,
       });
