@@ -46,7 +46,15 @@ export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDep
           // 注册设备连接
           deps.deviceConnectionManager.registerConnection(
             deviceId,
-            (_event: string, data: any) => emit.next(data),
+            (_event: string, data: any) => {
+              deps.logger.info('[DeviceSubscription] Emit called', {
+                deviceId,
+                event: _event,
+                dataType: data?.type,
+                hasData: !!data
+              });
+              emit.next(data);
+            },
             metadata
           );
 

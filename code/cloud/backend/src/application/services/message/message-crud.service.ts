@@ -66,8 +66,25 @@ export class MessageCrudService {
 
     const channel = await this.channelQueryService.getChannelById(dto.channelId);
 
-    // 查询发送者信息以获取 displayName
-    const sender = await this.userService.getUserById(dto.senderId);
+    // 根据 senderType 查询发送者信息以获取 displayName
+    let senderName = dto.senderId;
+    try {
+      if (dto.senderType === 'agent') {
+        // 对于 agent，直接从数据库查询（避免循环依赖）
+        const agent = await this.messageRepository.prisma.agent.findUnique({
+          where: { id: dto.senderId }
+        });
+        senderName = agent?.displayName || agent?.name || dto.senderId;
+      } else {
+        // 对于 human 或其他类型，从 user service 获取
+        const sender = await this.userService.getUserById(dto.senderId);
+        senderName = sender.displayName || sender.username || sender.email || dto.senderId;
+      }
+    } catch (err) {
+      // 如果查询失败，使用 senderId 作为 fallback
+      this.logger.warn('Failed to get sender info, using senderId as name', { senderId: dto.senderId, error: err });
+      senderName = dto.senderId;
+    }
 
     let mentions = dto.mentions ?? [];
     if (mentions.length === 0 && dto.content.includes('@')) {
@@ -85,7 +102,7 @@ export class MessageCrudService {
       channelId: dto.channelId,
       channelName: channel.name,
       senderId: dto.senderId,
-      senderName: sender.displayName || sender.username || sender.email || dto.senderId,
+      senderName: senderName,
       senderType: dto.senderType,
       content: dto.content,
       contentType: 'text',

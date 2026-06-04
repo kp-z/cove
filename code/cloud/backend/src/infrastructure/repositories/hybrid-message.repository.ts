@@ -352,7 +352,7 @@ export class HybridMessageRepository
         channelId,
         realmId: context.realmId,
         threadId: null,              // 排除线程回复
-        status: { not: 'deleted' },  // 排除已删除消息
+        NOT: { status: 'deleted' },  // 排除已删除消息
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -369,7 +369,7 @@ export class HybridMessageRepository
         channelId,
         realmId: context.realmId,
         threadId: null,
-        status: { not: 'deleted' },
+        NOT: { status: 'deleted' },
       },
       orderBy: { createdAt: 'desc' },
     });

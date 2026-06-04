@@ -81,7 +81,11 @@ export class DeviceClient {
         http: httpUrl
       });
 
-      const backendGateway = new TrpcBackendGateway(httpUrl);
+      const backendGateway = new TrpcBackendGateway(
+        httpUrl,
+        this.config.device.realmId,
+        this.config.device.id
+      );
 
       // 3. Create Storage Layer
       this.logger.info('Creating storage layer');
@@ -92,6 +96,20 @@ export class DeviceClient {
       // 4. Create Adapter Manager
       this.logger.info('Creating adapter manager');
       const adapterManager = new AdapterManager();
+
+      // Register Claude CLI adapter (always available if claude CLI is installed)
+      await adapterManager.loadAdapter({
+        name: 'claude-cli-adapter',
+        type: 'custom',
+        version: '1.0.0',
+        enabled: true,
+        config: {
+          cliPath: 'claude',
+          model: 'opus',
+          thinkingEnabled: true,
+        },
+      });
+      this.logger.info('Registered Claude CLI adapter');
 
       // Register LLM adapters
       if (this.config.anthropicApiKey) {
@@ -125,7 +143,7 @@ export class DeviceClient {
       // 5. Create Processors
       this.logger.info('Creating message processors');
       const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager, {
-        defaultAdapter: this.config.anthropicApiKey ? 'anthropic-adapter' : 'openai-adapter',
+        defaultAdapter: 'claude-cli-adapter', // 默认使用 Claude CLI
       });
       const backendProcessor = new BackendProcessor(backendGateway);
 
@@ -278,9 +296,10 @@ export class DeviceClient {
   }
 
   private async handleMessage(message: any): Promise<void> {
-    this.logger.debug('Received message from backend', {
+    this.logger.info('[DeviceClient] Received message from backend', {
       type: message.type,
       timestamp: message.timestamp,
+      hasPayload: !!message.payload
     });
 
     if (!this.messageOrchestrator) {
@@ -289,8 +308,24 @@ export class DeviceClient {
     }
 
     try {
-      // Enqueue message for processing
-      if (message.type === 'task' && message.data) {
+      // Handle message.process (from backend's DeviceProcessor)
+      if (message.type === 'message.process' && message.payload) {
+        this.logger.info('[DeviceClient] Processing message.process', {
+          messageId: message.payload.messageId,
+          channelId: message.payload.channelId
+        });
+
+        const taskId = await this.messageOrchestrator.enqueue({
+          messageId: message.payload.messageId,
+          channelId: message.payload.channelId,
+          content: message.payload.content,
+          priority: 0,
+        });
+
+        this.logger.info('Message enqueued for processing', { taskId, messageId: message.payload.messageId });
+      }
+      // Handle legacy 'task' message format
+      else if (message.type === 'task' && message.data) {
         const taskId = await this.messageOrchestrator.enqueue({
           messageId: message.data.messageId || crypto.randomUUID(),
           channelId: message.data.channelId,
@@ -305,6 +340,12 @@ export class DeviceClient {
         if (this.configService) {
           await this.configService.syncConfig(this.config.device.realmId);
         }
+      } else {
+        this.logger.warn('[DeviceClient] Unknown message type', {
+          type: message.type,
+          hasData: !!message.data,
+          hasPayload: !!message.payload
+        });
       }
     } catch (error) {
       this.logger.error('Failed to handle message', error as Error, {

@@ -1,6 +1,7 @@
 /**
- * MessageBubble 组件
- * 显示单条消息气泡
+ * MessageBubble 组件 - Discord 风格
+ * 其他用户/Agent 左对齐，当前用户右对齐
+ * 用户名用不同颜色区分
  */
 
 import React, { useState, useCallback } from 'react';
@@ -10,6 +11,8 @@ import { AgentExecutionModal, type TabType } from './MessageBubble/AgentExecutio
 import { MessageStatus } from './MessageStatus';
 import { Message } from '../../domain/models/Message';
 import { MessageHoverActions, getDefaultConfig } from './MessageBubble/HoverActions';
+import { getUserColor, getColorWithOpacity } from '@/shared/utils/userColor';
+import { useAuthStore } from '@/core/auth/authStore';
 
 interface MessageBubbleProps {
   message: Message;
@@ -53,13 +56,16 @@ function formatTimestamp(date: Date, t: TFunction): string {
 }
 
 export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleProps) {
-  const isUser = message.senderType === 'user';
+  const { userId: currentUserId } = useAuthStore();
+  const isCurrentUser = message.senderType === 'user' && message.senderId === currentUserId;
   const isAgent = message.senderType === 'agent';
   const isPending = message.isPending();
   const isFailed = message.isFailed();
 
   const entityType = isAgent ? 'agent' : 'user';
   const avatarData = useEntityAvatarData(entityType, message.senderId || '');
+  const userColor = getUserColor(message.senderId || message.senderName);
+  const borderColor = getColorWithOpacity(userColor, 0.15); // 15% opacity for subtle border
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultTab, setDefaultTab] = useState<TabType | undefined>(undefined);
@@ -75,17 +81,14 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
   }, []);
 
   const handleEdit = useCallback(() => {
-    // TODO: 实现编辑消息功能
     console.log('Edit message:', message.id);
   }, [message.id]);
 
   const handleDelete = useCallback(() => {
-    // TODO: 实现删除消息功能
     console.log('Delete message:', message.id);
   }, [message.id]);
 
   const handleReply = useCallback(() => {
-    // TODO: 实现回复消息功能
     console.log('Reply to message:', message.id);
   }, [message.id]);
 
@@ -99,63 +102,149 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
 
   return (
     <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${
-        isGrouped ? 'mt-1' : 'mt-3'
-      }`}
+      className={`group relative flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
+        isGrouped ? 'mt-0.5' : 'mt-4'
+      } px-4 py-1`}
     >
-      {/* Avatar for agent (left side) */}
-      {!isUser && !isGrouped && (
-        <Avatar
-          src={avatarData.avatarUrl}
-          alt={message.senderName}
-          type={entityType}
-          size="sm"
-          className="mr-2 mt-1"
-        />
+      {/* Left side - Avatar and content for non-current-user */}
+      {!isCurrentUser && (
+        <>
+          {/* Avatar placeholder - always reserve space */}
+          <div className="flex-shrink-0 w-10 mr-3">
+            {!isGrouped && (
+              <Avatar
+                src={avatarData.avatarUrl}
+                alt={message.senderName}
+                type={entityType}
+                size="sm"
+                className="w-10 h-10"
+              />
+            )}
+          </div>
+
+          {/* Message content */}
+          <div className="flex-1 min-w-0 max-w-[70%]">
+            {/* Header: Username and timestamp */}
+            {!isGrouped && (
+              <div className="flex items-baseline gap-2 mb-1 px-1">
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: userColor }}
+                >
+                  {message.senderName}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatTimestamp(message.timestamp, t)}
+                </span>
+              </div>
+            )}
+
+            {/* Message bubble with left tail */}
+            <div className="relative">
+              <div
+                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 bg-white/[0.05] border ${
+                  isPending ? 'opacity-70' : 'opacity-100'
+                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08]`}
+                style={{ borderColor: isFailed ? undefined : borderColor }}
+              >
+                <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
+                  isFailed ? 'text-red-400' : ''
+                }`}>
+                  {message.content}
+                </div>
+              </div>
+
+              {/* Rounded tail pointing left to avatar */}
+              {!isGrouped && (
+                <div className="absolute left-0 bottom-[10px] -translate-x-[14px] w-0 h-0">
+                  <div
+                    className="absolute w-[15px] h-[30px] rounded-tr-[20px]"
+                    style={{
+                      borderTop: `9px solid ${borderColor}`,
+                      transform: 'rotate(145deg)'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Hover actions */}
+            <div className="mt-1">
+              <MessageHoverActions message={message} config={hoverActionsConfig} />
+            </div>
+          </div>
+        </>
       )}
 
-      <div className={`relative group ${isUser ? 'max-w-[95%]' : 'max-w-[95%]'}`}>
-        {!isGrouped && (
-          <div className="flex items-baseline gap-2 mb-1 px-1">
-            <span className={`text-xs font-medium ${
-              isUser ? 'text-blue-400' : isAgent ? 'text-purple-400' : 'text-gray-400'
-            }`}>
-              {message.senderName}
-            </span>
-            <span className="text-xs text-gray-500">{formatTimestamp(message.timestamp, t)}</span>
+      {/* Right side - Current user messages */}
+      {isCurrentUser && (
+        <>
+          {/* Message content */}
+          <div className="flex-1 min-w-0 max-w-[70%] flex flex-col items-end">
+            {/* Header: Timestamp and username */}
+            {!isGrouped && (
+              <div className="flex items-baseline gap-2 mb-1 px-1">
+                <span className="text-xs text-gray-500">
+                  {formatTimestamp(message.timestamp, t)}
+                </span>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: userColor }}
+                >
+                  {message.senderName}
+                </span>
+              </div>
+            )}
+
+            {/* Message bubble with right tail */}
+            <div className="relative">
+              <div
+                className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 bg-white/[0.05] border ${
+                  isPending ? 'opacity-70' : 'opacity-100'
+                } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08]`}
+                style={{ borderColor: isFailed ? undefined : borderColor }}
+              >
+                <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
+                  isFailed ? 'text-red-400' : ''
+                }`}>
+                  {message.content}
+                </div>
+              </div>
+
+              {/* Rounded tail pointing right to avatar */}
+              {!isGrouped && (
+                <div className="absolute right-0 bottom-[10px] translate-x-[14px] w-0 h-0">
+                  <div
+                    className="absolute w-[15px] h-[30px] rounded-tr-[20px]"
+                    style={{
+                      borderTop: `9px solid ${borderColor}`,
+                      transform: 'rotate(45deg) scaleY(-1)'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Hover actions and status */}
+            <div className="flex items-center gap-2 mt-1">
+              <MessageStatus message={message} onRetry={onRetry} />
+              <MessageHoverActions message={message} config={hoverActionsConfig} />
+            </div>
           </div>
-        )}
 
-        <div
-          className={`rounded-2xl px-4 py-2.5 shadow-sm overflow-hidden break-words transition-all duration-200 ${
-            'bg-black/70 border border-white/10 text-gray-100'
-          } ${isPending ? 'opacity-70' : 'opacity-100'} ${
-            isFailed ? 'border-2 border-red-500/50 opacity-90' : ''
-          } ${!isPending && !isFailed && message.source === 'remote' ? 'animate-fade-in' : ''}`}
-        >
-          <div className="prose prose-sm prose-invert max-w-none text-sm whitespace-pre-wrap break-words">
-            {message.content}
+          {/* Avatar placeholder - always reserve space */}
+          <div className="flex-shrink-0 w-10 ml-3">
+            {!isGrouped && (
+              <Avatar
+                src={avatarData.avatarUrl}
+                alt={message.senderName}
+                type={entityType}
+                size="sm"
+                className="w-10 h-10"
+              />
+            )}
           </div>
-        </div>
-
-        {/* Hover Actions - aligned with avatar */}
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <MessageHoverActions message={message} config={hoverActionsConfig} />
-        </div>
-
-        {/* Status indicator for user messages */}
-        {isUser && <MessageStatus message={message} onRetry={onRetry} />}
-      </div>
-
-      {/* Avatar for user (right side) */}
-      {isUser && !isGrouped && (
-        <Avatar
-          src={avatarData.avatarUrl}
-          alt={message.senderName}
-          type={entityType}
-          size="sm"
-          className="ml-2 mt-1"
-        />
+        </>
       )}
 
       {/* Agent Execution Modal */}

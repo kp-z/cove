@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Settings, ChevronDown, Server, Copy, Check, AlertCircle, Wifi, WifiOff, Plus } from 'lucide-react';
+import { Settings, Server, Copy, Check, AlertCircle, Wifi, WifiOff, Plus } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
-import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import { useDeviceStatus } from '@/lib/trpc/hooks/realm.hooks';
 import { notify } from '@/core/services/notificationService';
+import { Logo } from '@/shared/components/layout/Sidebar/Logo';
+import { RealmLogo } from '@/features/realm/components/RealmLogo';
+import { getAvatarUrl } from '@/shared/components/display/Avatar';
 import type { Realm } from '@/lib/trpc-types';
 
 interface RealmInfoCardProps {
@@ -16,22 +18,10 @@ interface RealmInfoCardProps {
   canEdit: boolean;
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-green-500/20 text-green-300 border border-green-500/30',
-  suspended: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
-  archived: 'bg-gray-500/20 text-gray-400 border border-gray-500/30',
-};
-
-const VISIBILITY_BADGE: Record<string, string> = {
-  public: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-  private: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
-};
-
 export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClick, canEdit }: RealmInfoCardProps) {
   const { data: deviceStatus, isLoading: deviceLoading } = useDeviceStatus(realm.realm_id);
   const [copied, setCopied] = useState(false);
-  const [realmDropdownOpen, setRealmDropdownOpen] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleCopy = async (text: string) => {
     try {
@@ -42,48 +32,6 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
     } catch (err) {
       notify.toast.error('Failed to copy', 'Could not copy to clipboard');
     }
-  };
-
-  const handleImageError = (realmId: string) => {
-    setImageErrors(prev => ({ ...prev, [realmId]: true }));
-  };
-
-  const handleSwitchRealm = (realmId: string) => {
-    if (onSwitch) {
-      onSwitch(realmId);
-      setRealmDropdownOpen(false);
-    }
-  };
-
-  const handleCreateClick = () => {
-    if (onCreateClick) {
-      onCreateClick();
-      setRealmDropdownOpen(false);
-    }
-  };
-
-  const renderRealmLogo = (r: Realm, size: 'sm' | 'md' = 'sm') => {
-    const logoUrl = r.logo?.url || r.logo_url;
-    const displayName = r.display_name || 'R';
-    const hasError = imageErrors[r.realm_id];
-    const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
-
-    if (logoUrl && !hasError) {
-      return (
-        <img
-          src={getAvatarUrl(logoUrl)}
-          alt={displayName}
-          className={`${sizeClass} rounded-lg object-cover flex-shrink-0`}
-          onError={() => handleImageError(r.realm_id)}
-        />
-      );
-    }
-
-    return (
-      <div className={`${sizeClass} rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 bg-gradient-to-br from-purple-500 to-pink-600`}>
-        {displayName.charAt(0).toUpperCase()}
-      </div>
-    );
   };
 
   const formatLastSeen = (lastSeenAt: string | null) => {
@@ -101,51 +49,33 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
-  const logoUrl = realm.logo?.url || realm.logo_url;
+  const handleSwitchRealm = (realmId: string) => {
+    if (onSwitch) {
+      onSwitch(realmId);
+      setDropdownOpen(false);
+    }
+  };
+
+  const handleCreateClick = () => {
+    if (onCreateClick) {
+      onCreateClick();
+      setDropdownOpen(false);
+    }
+  };
 
   return (
     <div className="p-6 bg-white/[0.02] border border-white/[0.08] rounded-xl">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Realm Info Section - Left */}
         <div className="flex items-start gap-4">
-          {/* Logo */}
-          {logoUrl ? (
-            <img
-              src={getAvatarUrl(logoUrl)}
-              alt={realm.display_name}
-              className="w-16 h-16 rounded-xl object-cover shrink-0"
-              onError={(e) => {
-                // Hide broken image and show fallback
-                e.currentTarget.style.display = 'none';
-                const fallback = e.currentTarget.nextElementSibling;
-                if (fallback) {
-                  (fallback as HTMLElement).style.display = 'flex';
-                }
-              }}
-            />
-          ) : null}
-          {/* Fallback - always rendered but hidden if image exists */}
-          <div
-            className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-semibold text-2xl bg-gradient-to-br from-purple-500 to-pink-600 shrink-0"
-            style={{ display: logoUrl ? 'none' : 'flex' }}
-          >
-            {(realm.display_name || 'R').charAt(0).toUpperCase()}
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            {/* Realm Selector Dropdown - Always show if onSwitch or onCreateClick is available */}
-            {(onSwitch || (canEdit && onCreateClick)) ? (
-              <DropdownMenu.Root open={realmDropdownOpen} onOpenChange={setRealmDropdownOpen}>
+          {/* Use the same Logo component as Sidebar with dropdown */}
+          <div className="flex-1 min-w-0 [&_button]:w-auto [&_button]:justify-start [&_button]:h-auto [&_button]:py-2 [&_img]:w-12 [&_img]:h-12 [&_.text-sm]:text-xl [&_.text-\[8px\]]:text-xs">
+            {(onSwitch || onCreateClick) ? (
+              <DropdownMenu.Root open={dropdownOpen} onOpenChange={setDropdownOpen}>
                 <DropdownMenu.Trigger asChild>
-                  <button
-                    type="button"
-                    className="mb-2 -ml-3 px-3 py-2 rounded-lg hover:bg-white/[0.05] transition-colors text-left w-full cursor-pointer"
-                  >
-                    <h3 className="text-lg font-semibold text-white truncate">
-                      {realm.display_name}
-                    </h3>
-                  </button>
+                  <div className="max-w-full">
+                    <Logo collapsed={false} />
+                  </div>
                 </DropdownMenu.Trigger>
 
                 <DropdownMenu.Portal>
@@ -160,6 +90,7 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
                           <div className="py-1">
                             {allRealms.map((r) => {
                               const isSelected = r.realm_id === realm.realm_id;
+                              const logoUrl = getAvatarUrl(r.logo?.url || r.logo_url);
 
                               return (
                                 <DropdownMenu.Item
@@ -172,7 +103,12 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
                                       : 'text-white hover:bg-white/[0.08] focus:bg-white/[0.08]'
                                   }`}
                                 >
-                                  {renderRealmLogo(r, 'md')}
+                                  <RealmLogo
+                                    logoUrl={logoUrl}
+                                    displayName={r.display_name}
+                                    size="sm"
+                                    className="w-10 h-10"
+                                  />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-white truncate">
                                       {r.display_name}
@@ -213,33 +149,31 @@ export function RealmInfoCard({ realm, allRealms, onEdit, onSwitch, onCreateClic
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             ) : (
-              <h3 className="text-lg font-semibold text-white truncate mb-2">
-                {realm.display_name}
-              </h3>
+              <Logo collapsed={false} />
             )}
 
-            {/* Badges */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded ${STATUS_BADGE[realm.status] || STATUS_BADGE.active}`}>
-                {realm.status.toUpperCase()}
-              </span>
-              <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded ${VISIBILITY_BADGE[realm.visibility] || VISIBILITY_BADGE.private}`}>
-                {realm.visibility.toUpperCase()}
-              </span>
-            </div>
-
-            {realm.description && (
-              <p className="text-sm text-white/60 mb-2 line-clamp-2">
-                {realm.description}
-              </p>
-            )}
-            <div className="flex items-center gap-3 text-xs text-white/50">
-              <span className="font-mono text-white/60">{realm.realm_id}</span>
+            {/* Additional Realm Information */}
+            <div className="mt-4">
+              {/* Realm ID and Status Badges - single line */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/40">ID:</span>
+                  <code className="text-xs font-mono text-white/60 bg-white/[0.05] px-2 py-0.5 rounded">
+                    {realm.realm_id}
+                  </code>
+                </div>
+                <span className="text-[10px] font-medium px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                  {realm.status.toUpperCase()}
+                </span>
+                <span className="text-[10px] font-medium px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  {realm.visibility.toUpperCase()}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Edit Button */}
-          {canEdit && onEdit && (
+          {onEdit && (
             <button
               onClick={onEdit}
               className="shrink-0 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"

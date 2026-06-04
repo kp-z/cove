@@ -18,8 +18,9 @@ export class SqliteMessageQueue implements IMessageQueue {
    * 入队
    */
   async enqueue(task: MessageTask): Promise<string> {
-    await this.prisma.messageTask.create({
-      data: {
+    await this.prisma.messageTask.upsert({
+      where: { id: task.id },
+      create: {
         id: task.id,
         messageId: task.messageId,
         channelId: task.channelId,
@@ -35,6 +36,13 @@ export class SqliteMessageQueue implements IMessageQueue {
         updatedAt: task.updatedAt,
         lastAttemptAt: task.lastAttemptAt,
         completedAt: task.completedAt
+      },
+      update: {
+        state: task.state,
+        attempts: task.attempts,
+        error: task.error,
+        updatedAt: task.updatedAt,
+        lastAttemptAt: task.lastAttemptAt,
       }
     })
 

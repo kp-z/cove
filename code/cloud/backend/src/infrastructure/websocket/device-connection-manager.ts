@@ -133,6 +133,11 @@ export class DeviceConnectionManager extends EventEmitter {
     }
 
     try {
+      this.logger.info(`[DeviceConnectionManager] Calling emit for device: ${deviceId}`, {
+        type: message.type,
+        hasEmit: !!connection.emit,
+        messagePayload: message.payload
+      });
       connection.emit('message', message);
       this.logger.debug(`Message sent to device: ${deviceId}`, { type: message.type });
       return true;

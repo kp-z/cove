@@ -94,6 +94,8 @@ import { FileLockManager } from './application/services/lock/file-lock-manager.s
 import { AuditLogger } from './application/services/audit/audit-logger.service';
 import { FileSystemAuditLogStore } from './application/services/audit/file-system-audit-log-store';
 import { RealmMemberVerificationService } from './application/services/realm/realm-member-verification.service';
+import { RealmContext } from './application/context/realm-context';
+import { runWithContext } from './application/context/realm-context-store';
 
 // Interfaces
 import { ILogger, LogContext, LogLevel } from './application/interfaces/index';
@@ -577,6 +579,85 @@ function initializeDependencies() {
   // Initialize Device Connection Manager
   const deviceConnectionManager = new DeviceConnectionManager(logger);
 
+  // Listen to device connection events and publish to EventBus
+  deviceConnectionManager.on('device.connected', ({ deviceId }) => {
+    logger.info('Device connected event', { deviceId });
+    eventBus.publish({
+      eventId: crypto.randomUUID(),
+      eventType: 'device.connected',
+      aggregateId: deviceId,
+      aggregateType: 'device',
+      occurredAt: new Date(),
+      payload: { deviceId },
+    });
+  });
+
+  deviceConnectionManager.on('device.disconnected', ({ deviceId }) => {
+    logger.info('Device disconnected event', { deviceId });
+    eventBus.publish({
+      eventId: crypto.randomUUID(),
+      eventType: 'device.disconnected',
+      aggregateId: deviceId,
+      aggregateType: 'device',
+      occurredAt: new Date(),
+      payload: { deviceId },
+    });
+  });
+
+  // Subscribe to device disconnection events and update database
+  eventBus.subscribe('device.disconnected', async (event) => {
+    const { deviceId } = event.payload;
+    try {
+      // Get device with realmId to set proper context
+      const deviceRecord = await prisma.device.findUnique({
+        where: { id: deviceId }
+      });
+
+      if (!deviceRecord) {
+        logger.warn('Device not found in database', { deviceId });
+        return;
+      }
+
+      const context = RealmContext.create(deviceRecord.realmId, 'system');
+      await runWithContext(context, async () => {
+        const device = await deviceService.getDeviceById(deviceId);
+        if (device) {
+          await deviceService.updateDevice(deviceId, { status: 'offline' });
+          logger.info('Device status updated to offline', { deviceId });
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to update device status on disconnect', error as Error, { deviceId });
+    }
+  });
+
+  // Subscribe to device connection events and update database
+  eventBus.subscribe('device.connected', async (event) => {
+    const { deviceId } = event.payload;
+    try {
+      // Get device with realmId to set proper context
+      const deviceRecord = await prisma.device.findUnique({
+        where: { id: deviceId }
+      });
+
+      if (!deviceRecord) {
+        logger.warn('Device not found in database', { deviceId });
+        return;
+      }
+
+      const context = RealmContext.create(deviceRecord.realmId, 'system');
+      await runWithContext(context, async () => {
+        const device = await deviceService.getDeviceById(deviceId);
+        if (device) {
+          await deviceService.updateDevice(deviceId, { status: 'online' });
+          logger.info('Device status updated to online', { deviceId });
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to update device status on connect', error as Error, { deviceId });
+    }
+  });
+
   // Initialize MessageOrchestrator for routing messages to Local Device
   const messageOrchestrator = createMessageOrchestrator(
     prisma,
@@ -588,11 +669,15 @@ function initializeDependencies() {
     }
   );
 
+  // Note: messageOrchestrator.start() will be called in startServer()
+
   return {
     logger,
     eventBus,
     deviceConnectionManager,
     messageOrchestrator,
+    defaultChannelsAutoJoinService,
+    realmMemberChannelAutoJoinService,
     // Services for tRPC
     agentService,
     agentRuntimeService,
@@ -621,6 +706,9 @@ function createStandaloneServer(deps: {
   logger: ILogger;
   eventBus: InMemoryEventBus;
   deviceConnectionManager: DeviceConnectionManager;
+  messageOrchestrator: any;
+  defaultChannelsAutoJoinService: any;
+  realmMemberChannelAutoJoinService: any;
   agentService: AgentService;
   agentRuntimeService: AgentRuntimeService;
   agentDMService: any;
@@ -754,7 +842,7 @@ function createStandaloneServer(deps: {
       }
 
       // Handle static file requests for storage
-      if (req.url?.startsWith('/storage') && (req.method === 'GET' || req.method === 'HEAD')) {
+      if ((req.url?.startsWith('/storage') || req.url?.startsWith('/public')) && (req.method === 'GET' || req.method === 'HEAD')) {
         const fs = await import('fs/promises');
         const path = await import('path');
         const os = await import('os');
@@ -762,8 +850,13 @@ function createStandaloneServer(deps: {
         try {
           // Remove query string if present
           const urlPath = req.url?.split('?')[0] || '/';
-          // Construct file path: /storage/... -> ~/.cove/storage/...
-          const filePath = path.join(os.homedir(), '.cove', urlPath);
+
+          // Construct file path:
+          // - /storage/... -> ~/.cove/storage/...
+          // - /public/... -> <backend>/public/...
+          const filePath = urlPath.startsWith('/public')
+            ? path.join(process.cwd(), urlPath)
+            : path.join(os.homedir(), '.cove', urlPath);
 
           // Check if file exists
           await fs.access(filePath);
@@ -963,6 +1056,11 @@ async function startServer() {
 
     deps.logger.info('tRPC WebSocket handler configured');
 
+    // Start MessageOrchestrator to process queued messages
+    deps.logger.info('Starting MessageOrchestrator...');
+    await deps.messageOrchestrator.start();
+    deps.logger.info('MessageOrchestrator started successfully');
+
     httpServer.listen(PORT, () => {
       deps.logger.info(`Cove Backend Server started on http://localhost:${PORT}`);
       deps.logger.info(`WebSocket: ws://localhost:${PORT}`);
@@ -978,8 +1076,8 @@ async function startServer() {
     let isShuttingDown = false;
     const gracefulShutdown = async (signal: string) => {
       if (isShuttingDown) {
-        deps.logger.warn(`${signal} received again, forcing exit...`);
-        process.exit(1);
+        deps.logger.debug(`${signal} received again, already shutting down...`);
+        return; // Ignore duplicate signals
       }
 
       isShuttingDown = true;
@@ -989,10 +1087,23 @@ async function startServer() {
       const forceExitTimeout = setTimeout(() => {
         deps.logger.error('Graceful shutdown timed out, forcing exit...');
         process.exit(1);
-      }, 10000); // 10 second timeout
+      }, 5000); // 5 second timeout
 
       try {
-        // 1. Stop accepting new connections
+        // 1. Stop background services first
+        deps.logger.info('Stopping background services...');
+
+        await Promise.all([
+          deps.messageOrchestrator.stop().catch((err: Error) =>
+            deps.logger.error('Failed to stop messageOrchestrator', err)
+          ),
+          deps.defaultChannelsAutoJoinService.stop(),
+          deps.realmMemberChannelAutoJoinService.stop(),
+        ]);
+
+        deps.logger.info('Background services stopped');
+
+        // 2. Stop accepting new connections
         deps.logger.info('Closing HTTP server...');
         await new Promise<void>((resolve) => {
           httpServer.close(() => {
@@ -1001,7 +1112,7 @@ async function startServer() {
           });
         });
 
-        // 2. Close WebSocket connections
+        // 3. Close WebSocket connections
         deps.logger.info('Closing WebSocket server...');
         await new Promise<void>((resolve) => {
           wss.close(() => {
@@ -1010,16 +1121,21 @@ async function startServer() {
           });
         });
 
-        // 3. Disconnect Prisma
+        // 4. Disconnect Prisma (best effort - don't block shutdown)
         deps.logger.info('Disconnecting Prisma...');
-        await getPrismaClient().$disconnect();
-        deps.logger.info('Prisma disconnected');
 
-        // 4. Clear the force exit timeout
+        // Fire and forget - don't block on Prisma disconnect
+        getPrismaClient().$disconnect()
+          .then(() => deps.logger.info('Prisma disconnected'))
+          .catch((err: Error) => deps.logger.warn('Prisma disconnect error', err));
+
+        // 5. Clear the force exit timeout
         clearTimeout(forceExitTimeout);
 
         deps.logger.info('Graceful shutdown completed');
-        process.exit(0);
+
+        // Force immediate exit - bypass event loop drain
+        setImmediate(() => process.exit(0));
       } catch (error) {
         deps.logger.error('Error during graceful shutdown', error as Error);
         clearTimeout(forceExitTimeout);

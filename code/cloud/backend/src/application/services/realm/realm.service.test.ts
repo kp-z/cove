@@ -677,7 +677,8 @@ describe('RealmService', () => {
       expect(result.device).toBeDefined();
       expect(result.device?.deviceId).toBe('device-123');
       expect(result.device?.apiKey).toBe('api-key-123');
-      expect(result.device?.startCommand).toContain('npx @cove/local-device');
+      expect(result.device?.startCommand).toContain('npm --prefix');
+      expect(result.device?.startCommand).toContain('run dev --');
       expect(result.device?.warning).toContain('only be shown once');
     });
 

@@ -18,6 +18,7 @@ import { realmRouter } from './realm.router';
 import { deviceRouter } from './device.router';
 import { createFileSystemRouter } from './filesystem.router';
 import { createConfigurationRouter } from './configuration.router';
+import { createExecutionModeRouter } from './execution-mode.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
 import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import type { AgentDMService } from '../../../application/services/agent-dm/agent-dm.service';
@@ -108,7 +109,7 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     channel: channelRouter(deps.channelService),
 
     // Message router
-    message: messageRouter(deps.messageService),
+    message: messageRouter(deps.messageService, deps.channelService),
 
     // Task router
     task: taskRouter(deps.taskService),
@@ -136,6 +137,9 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
 
     // Configuration router
     configuration: createConfigurationRouter(deps.realmService),
+
+    // Execution Mode router
+    executionMode: createExecutionModeRouter(),
 
     // Subscription router
     subscription: createSubscriptionRouter({

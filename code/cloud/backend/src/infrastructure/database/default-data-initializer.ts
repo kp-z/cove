@@ -142,7 +142,7 @@ export class DefaultDataInitializer {
       update: {
         displayName: this.DEFAULT_REALM.displayName,
         description: this.DEFAULT_REALM.description,
-        logoUrl: '/cove-logo.svg',
+        logoUrl: '/public/cove-logo.svg',
         logoType: 'default',
         updatedAt: now,
       },
@@ -157,7 +157,7 @@ export class DefaultDataInitializer {
         settings: JSON.stringify(settings),
         limits: JSON.stringify(limits),
         meta: JSON.stringify(meta),
-        logoUrl: '/cove-logo.svg',
+        logoUrl: '/public/cove-logo.svg',
         logoType: 'default',
         createdAt: now,
         updatedAt: now,

@@ -174,6 +174,10 @@ export class TrpcWebSocketClient {
       },
       {
         onData: (message: DeviceMessage) => {
+          this.config.logger.info('[TRPCWebSocketClient] onData called', {
+            type: message.type,
+            hasPayload: !!message.payload
+          });
           this.handleMessage(message);
         },
         onError: (error: Error) => {
@@ -189,9 +193,10 @@ export class TrpcWebSocketClient {
   }
 
   private handleMessage(message: DeviceMessage): void {
-    this.config.logger.debug('Received message from backend', {
+    this.config.logger.info('[handleMessage] Processing message', {
       type: message.type,
       timestamp: message.timestamp,
+      hasPayload: !!message.payload
     });
 
     if (message.type === 'connected') {
@@ -203,6 +208,9 @@ export class TrpcWebSocketClient {
     }
 
     // Forward message to handler
+    this.config.logger.info('[handleMessage] Forwarding to onMessage handler', {
+      type: message.type
+    });
     this.config.onMessage(message);
   }
 

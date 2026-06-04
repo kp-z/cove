@@ -94,8 +94,7 @@ export function useDeviceStatus(realmId: string, options?: { enabled?: boolean }
       enabled: options?.enabled !== undefined
         ? options.enabled && isAuthenticated && !!userId && !!realmId
         : isAuthenticated && !!userId && !!realmId,
-      refetchInterval: 30000,
-      staleTime: 30 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes cache
     }
   );
 }

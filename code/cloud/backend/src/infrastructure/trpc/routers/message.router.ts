@@ -64,7 +64,7 @@ const replyToThreadSchema = z.object({
   mentions: z.array(mentionSchema).readonly().optional(),
 });
 
-export const messageRouter = (messageService: MessageService) =>
+export const messageRouter = (messageService: MessageService, channelService?: any) =>
   router({
     // 发送消息
     send: publicProcedure
@@ -255,6 +255,124 @@ export const messageRouter = (messageService: MessageService) =>
           });
 
           return message.toJSON();
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Get message history for a channel
+    getHistory: publicProcedure
+      .input(z.object({
+        channelId: z.string(),
+        limit: z.number().optional().default(50),
+      }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            // Extract channel ID (remove realm prefix if present)
+            const channelId = input.channelId.includes(':')
+              ? input.channelId.split(':')[1]
+              : input.channelId;
+
+            const messages = await messageService.getMessagesByChannel(channelId, input.limit, 0);
+            return messages.map(m => m.toJSON());
+          });
+        } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Push a chunk of agent response (for streaming)
+    pushChunk: publicProcedure
+      .input(z.object({
+        messageId: z.string(),
+        chunk: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        // For now, just acknowledge the chunk
+        // In the future, this could support real-time streaming
+        return { success: true };
+      }),
+
+    // Save agent response
+    saveResponse: publicProcedure
+      .input(z.object({
+        channelId: z.string(),
+        senderId: z.string().optional(),
+        content: z.string(),
+        inReplyTo: z.string().optional(),
+        messageId: z.string().optional(),
+        metadata: z.record(z.unknown()).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
+          return await runWithContext(context, async () => {
+            // Extract channel ID (remove realm prefix if present)
+            const channelId = input.channelId.includes(':')
+              ? input.channelId.split(':')[1]
+              : input.channelId;
+
+            console.log('[saveResponse] Input channelId:', input.channelId);
+            console.log('[saveResponse] Parsed channelId:', channelId);
+            console.log('[saveResponse] Input senderId:', input.senderId);
+            console.log('[saveResponse] channelService available:', !!channelService);
+
+            // Get senderId from channel's agentPool if not provided or if it's 'system'
+            let senderId = input.senderId;
+            if ((!senderId || senderId === 'system') && channelService) {
+              try {
+                console.log('[saveResponse] Fetching channel...');
+                const channel = await channelService.getChannelById(channelId);
+                console.log('[saveResponse] Channel agentPool:', channel.agentPool);
+
+                // agentPool might be already parsed as array or a JSON string
+                let agentPool: string[] = [];
+                if (Array.isArray(channel.agentPool)) {
+                  agentPool = channel.agentPool;
+                  console.log('[saveResponse] agentPool is already an array:', agentPool);
+                } else if (typeof channel.agentPool === 'string') {
+                  try {
+                    agentPool = JSON.parse(channel.agentPool);
+                    console.log('[saveResponse] Parsed agentPool from string:', agentPool);
+                  } catch (parseErr) {
+                    console.error('[saveResponse] Failed to parse agentPool:', parseErr);
+                  }
+                }
+
+                if (agentPool.length > 0) {
+                  senderId = agentPool[0];
+                  console.log('[saveResponse] Using agent from pool:', senderId);
+                }
+
+                // If still no senderId, use channelId as fallback
+                if (!senderId || senderId === 'system') {
+                  senderId = channelId;
+                  console.log('[saveResponse] Using channelId as senderId:', senderId);
+                }
+              } catch (err) {
+                console.error('[saveResponse] Failed to get channel:', err);
+                senderId = channelId;
+              }
+            }
+            if (!senderId) {
+              senderId = channelId;
+              console.log('[saveResponse] Ultimate fallback to channelId:', senderId);
+            }
+
+            console.log('[saveResponse] Final senderId:', senderId);
+
+            const message = await messageService.sendMessage({
+              senderId,
+              senderType: 'agent',
+              channelId, // Use the parsed channelId without realm prefix
+              content: input.content,
+              // Don't set threadId - agent responses should appear in main chat flow
+              // threadId: input.inReplyTo || input.messageId,
+            });
+            return message.toJSON();
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);

@@ -14,6 +14,7 @@ export type Thread = RouterOutputs['thread']['getMetadata'];
 export type User = RouterOutputs['user']['getById'];
 export type Workflow = RouterOutputs['workflow']['getById'];
 export type Project = RouterOutputs['project']['getById'];
+export type Realm = RouterOutputs['realm']['getById'];
 
 // Input type aliases
 export type CreateAgentInput = RouterInputs['agent']['create'];

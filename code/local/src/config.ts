@@ -83,7 +83,7 @@ export async function loadConfig(): Promise<Config> {
     };
   }
 
-  // Priority 2: Config file (--config flag, CONFIG_PATH env, or default paths)
+  // Priority 2: Load config file and merge with CLI args
   const configPath = cliArgs.config || process.env.CONFIG_PATH || join(process.cwd(), 'config.json');
 
   console.log(`📋 Loading configuration from: ${configPath}`);
@@ -91,7 +91,27 @@ export async function loadConfig(): Promise<Config> {
   try {
     const content = await readFile(configPath, 'utf-8');
     const data = JSON.parse(content);
-    return ConfigSchema.parse(data);
+    const baseConfig = ConfigSchema.parse(data);
+
+    // Merge CLI args into config file (CLI args override)
+    if (cliArgs.server || cliArgs.deviceId || cliArgs.apiKey || cliArgs.realmId) {
+      console.log('📋 Overriding config file with CLI arguments');
+      return {
+        server: {
+          url: cliArgs.server || baseConfig.server.url,
+          token: baseConfig.server.token,
+        },
+        device: {
+          id: cliArgs.deviceId || baseConfig.device.id,
+          name: baseConfig.device.name,
+          apiKey: cliArgs.apiKey || baseConfig.device.apiKey,
+          realmId: cliArgs.realmId || baseConfig.device.realmId,
+        },
+        local: baseConfig.local,
+      };
+    }
+
+    return baseConfig;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       // Try fallback to ~/.cove/config.json

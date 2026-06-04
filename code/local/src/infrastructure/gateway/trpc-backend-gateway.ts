@@ -10,11 +10,25 @@ import type { BackendGateway, ExecutionMode, FeatureFlag, RealmConfiguration } f
 export class TrpcBackendGateway implements BackendGateway {
   private client: any; // TODO: Import proper AppRouter type from backend
 
-  constructor(private backendUrl: string) {
+  constructor(
+    private backendUrl: string,
+    private realmId?: string,
+    private deviceId?: string
+  ) {
     this.client = createTRPCProxyClient({
       links: [
         httpBatchLink({
           url: `${backendUrl}/trpc`,
+          headers: () => {
+            const headers: Record<string, string> = {};
+            if (this.realmId) {
+              headers['x-realm-id'] = this.realmId;
+            }
+            if (this.deviceId) {
+              headers['x-user-id'] = this.deviceId;
+            }
+            return headers;
+          },
         }),
       ],
     });
@@ -131,7 +145,24 @@ export class TrpcBackendGateway implements BackendGateway {
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     try {
-      await this.client.message.saveResponse.mutate(response);
+      // Extract channel ID without realm prefix
+      const channelId = response.channelId.includes(':')
+        ? response.channelId.split(':')[1]
+        : response.channelId;
+
+      // Get channel info to find agent ID
+      let senderId = 'system'; // fallback
+      try {
+        const channelInfo = await this.client.channel.getById.query({ channelId });
+        senderId = channelInfo.agentId || channelInfo.id || 'system';
+      } catch (err) {
+        console.warn('Could not get channel info, using fallback senderId');
+      }
+
+      await this.client.message.saveResponse.mutate({
+        ...response,
+        senderId,
+      });
     } catch (error) {
       console.error('Failed to save agent response:', error);
       throw error;

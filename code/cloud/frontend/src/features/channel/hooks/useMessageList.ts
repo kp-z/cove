@@ -21,7 +21,7 @@ export function useMessageList(channelId: string) {
 
   // 订阅远程消息（React Query）
   const { data: remoteMessages, isLoading } = trpc.message.list.useQuery(
-    { channelId },
+    { channelId, limit: 100 }, // 增加 limit 到 100，确保加载足够多的消息
     { enabled: !!channelId }
   );
 

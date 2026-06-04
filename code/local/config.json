@@ -4,9 +4,9 @@
     "token": ""
   },
   "device": {
-    "id": "device-test-001",
-    "name": "Test Device",
-    "apiKey": "test-api-key",
+    "id": "device-1780413132011-75pobrw",
+    "name": "Local Device",
+    "apiKey": "wn_960546f5e81d56c1276a93637e9f1bab2b78dde0ab3ad3e192812ebeea424350",
     "realmId": "realm-nexus"
   },
   "local": {

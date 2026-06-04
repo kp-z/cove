@@ -15,6 +15,8 @@ import { Switch } from '@/shared/components/ui/switch';
 import { LoginBackground } from '@/shared/components/ui/animations';
 import { GlassCard, GlassCardVariants } from '@/shared/components/ui/cards/GlassCard';
 import { LoginFlowOrchestrator } from './LoginFlowOrchestrator';
+import { BackendStatusIndicator } from './BackendStatusIndicator';
+import { useBackendHealth } from '@/core/hooks/useBackendHealth';
 import { useRealmStore } from '@/core/stores/realmStore';
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
@@ -25,6 +27,7 @@ export default function LoginPage() {
   const location = useLocation();
   const { isAuthenticated, rememberMe: storedRememberMe, currentRealmId } = useAuthStore();
   const { setRealms } = useRealmStore();
+  const backendStatus = useBackendHealth();
 
   // 视图模式：'login' 或 'register'
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -264,6 +267,25 @@ export default function LoginPage() {
 
   const isLoading = loginMutation.isPending || registerMutation.isPending;
 
+  // 根据后端状态生成副标题
+  const getSubtitle = () => {
+    if (mode === 'register') {
+      return t('auth.createAccount');
+    }
+
+    // 登录模式下根据后端状态显示不同提示
+    switch (backendStatus) {
+      case 'online':
+        return t('welcome.subtitle'); // "Sign in to continue"
+      case 'offline':
+        return 'Backend is offline, please start the server';
+      case 'checking':
+        return 'Checking backend status...';
+      default:
+        return t('welcome.subtitle');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-950">
       <LoginBackground />
@@ -284,11 +306,14 @@ export default function LoginPage() {
                   alt={branding.logo.alt}
                   className="w-12 h-12 md:w-16 md:h-16 flex-shrink-0"
                 />
-                <div>
+                <div className="flex-1">
                   <h1 className="text-xl md:text-2xl font-bold mb-1">{branding.app.slogan}</h1>
-                  <p className="text-muted-foreground text-xs md:text-sm">
-                    {mode === 'login' ? t('welcome.subtitle') : t('auth.createAccount')}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-muted-foreground text-xs md:text-sm">
+                      {getSubtitle()}
+                    </p>
+                    <BackendStatusIndicator />
+                  </div>
                 </div>
               </div>
 

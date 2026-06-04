@@ -20,6 +20,7 @@ import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
 import type { UserService } from '../../../application/services/user/user.service';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
+import { buildDeviceStartCommand } from '../../device/device-start-command';
 
 // Zod Schemas
 const createRealmSchema = z.object({
@@ -170,7 +171,11 @@ export const realmRouter = (
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const server = await realmService.getRealmById(input.realmId);
-            return server.toJSON();
+            const realmJson = server.toJSON();
+            return {
+              ...realmJson,
+              logo_url: realmJson.logo?.url, // 提取 logo URL，与 list 接口保持一致
+            };
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -451,14 +456,16 @@ export const realmRouter = (
 
             // Generate or retrieve API key
             let apiKey: string;
-            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
-            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
 
             if (device.apiKeyHash) {
               // Device already has an API key
               // We cannot retrieve the original key (it's hashed), so we need to rotate it
               apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
-              const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+              const startCommand = buildDeviceStartCommand({
+                deviceId: device.device_id,
+                apiKey,
+                realmId: input.realmId,
+              });
 
               return {
                 hasExistingKey: true,
@@ -469,7 +476,11 @@ export const realmRouter = (
             } else {
               // Generate new API key
               apiKey = await deviceAuthService.generateApiKey(device.device_id, input.realmId);
-              const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+              const startCommand = buildDeviceStartCommand({
+                deviceId: device.device_id,
+                apiKey,
+                realmId: input.realmId,
+              });
 
               return {
                 hasExistingKey: false,
@@ -516,9 +527,11 @@ export const realmRouter = (
 
             // Rotate API key
             const apiKey = await deviceAuthService.rotateApiKey(device.device_id, input.realmId);
-            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
-            const wsUrl = serverUrl.replace(/^http/, 'ws') + '/trpc';
-            const startCommand = `npx @cove/local-device --server ${wsUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+            const startCommand = buildDeviceStartCommand({
+              deviceId: device.device_id,
+              apiKey,
+              realmId: input.realmId,
+            });
 
             return {
               startCommand,

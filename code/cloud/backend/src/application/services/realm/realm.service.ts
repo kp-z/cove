@@ -44,6 +44,7 @@ import { DeviceService } from '../device/device.service';
 import { DeviceAuthService } from '../device/device-auth.service';
 import { DeviceEntity } from '../../../domain/models/device/device.entity';
 import { DefaultChannelsInitializer } from '../../../infrastructure/database/default-channels-initializer';
+import { buildDeviceStartCommand } from '../../../infrastructure/device/device-start-command';
 
 export interface CreateRealmDTO {
   readonly name: string;
@@ -142,7 +143,7 @@ export class RealmService {
       settings: defaultSettings,
       limits: defaultLimits,
       logo: {
-        url: '/storage/assets/cove-logo.svg',
+        url: '/public/cove-logo.svg',
         type: 'default',
       },
       created_at: new Date(),
@@ -301,8 +302,11 @@ export class RealmService {
         realm.realm_id
       );
 
-      const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
-      const startCommand = `npx @cove/local-device --server ${serverUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${realm.realm_id}`;
+      const startCommand = buildDeviceStartCommand({
+        deviceId: device.device_id,
+        apiKey,
+        realmId: realm.realm_id,
+      });
 
       return {
         realm,

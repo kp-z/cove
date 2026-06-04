@@ -10,6 +10,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import { useChannelPanelStore } from '@/features/channel/stores/channelStore';
 import { ChannelPanel } from '@/features/channel/components/ChannelPanel';
 import { useResizable } from '@/features/channel/hooks/useResizable';
+import { RealmConnectionMonitor } from '@/core/services/RealmConnectionMonitor';
 
 function ChannelPanelWrapper() {
   const { channel_id: channelId, thread_id: threadId, message_id: messageId, mode } = useChannelPanelStore();
@@ -96,6 +97,9 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen bg-[#0f111a] text-[#e4e4e7]">
+      {/* Realm Connection Monitor */}
+      <RealmConnectionMonitor />
+
       {!isMobile && <Sidebar collapsed={!isOpen} onToggle={toggle} />}
 
       <main className="flex-1 flex flex-col overflow-hidden">

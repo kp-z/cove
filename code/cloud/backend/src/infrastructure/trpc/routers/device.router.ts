@@ -16,6 +16,7 @@ import { DeviceService } from '../../../application/services/device/device.servi
 import { DeviceAuthService } from '../../../application/services/device/device-auth.service';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
+import { buildDeviceStartCommand } from '../../device/device-start-command';
 
 // Zod Schemas
 const deviceSpecsSchema = z.object({
@@ -178,8 +179,11 @@ export const deviceRouter = (deviceService: DeviceService, deviceAuthService: De
             const apiKey = await deviceAuthService.generateApiKey(device.device_id, input.realmId);
 
             // 生成启动命令
-            const serverUrl = process.env.SERVER_URL || 'http://localhost:3002';
-            const command = `npx @cove/local-device --server ${serverUrl} --device-id ${device.device_id} --api-key ${apiKey} --realm-id ${input.realmId}`;
+            const command = buildDeviceStartCommand({
+              deviceId: device.device_id,
+              apiKey,
+              realmId: input.realmId,
+            });
 
             return {
               deviceId: device.device_id,

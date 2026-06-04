@@ -164,11 +164,33 @@ export class DeviceProcessor implements IMessageProcessor {
   /**
    * 检查数据库中是否有响应
    */
-  private async checkResponseInDatabase(_messageId: string): Promise<boolean> {
+  private async checkResponseInDatabase(messageId: string): Promise<boolean> {
     try {
-      // 简单实现：检查是否有对应的响应消息
-      // TODO: 实现更精确的响应检查逻辑
-      return false // 占位符
+      // 检查是否有 Agent 回复该用户消息
+      // 使用 getPrismaClient 获取 Prisma 实例
+      const { getPrismaClient } = await import('../../infrastructure/database/prisma-client');
+      const prisma = getPrismaClient();
+
+      // 1. 获取用户消息
+      const userMessage = await prisma.message.findUnique({
+        where: { id: messageId }
+      });
+
+      if (!userMessage) {
+        return false;
+      }
+
+      // 2. 查找该消息之后的 Agent 回复（同一 channel，senderType = 'agent'）
+      const agentResponse = await prisma.message.findFirst({
+        where: {
+          channelId: userMessage.channelId,
+          senderType: 'agent',
+          createdAt: { gte: userMessage.createdAt }
+        },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      return !!agentResponse;
     } catch (error) {
       console.warn('Failed to check response in database:', error)
       return false
