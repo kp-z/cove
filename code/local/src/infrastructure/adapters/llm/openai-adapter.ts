@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { LlmAdapter, GenerateParams } from './llm-adapter.interface';
+import { LlmAdapter, GenerateParams, AdapterCapabilities } from './llm-adapter.interface';
 
 export class OpenAIAdapter implements LlmAdapter {
   private readonly client: OpenAI;
@@ -10,6 +10,16 @@ export class OpenAIAdapter implements LlmAdapter {
     this.client = new OpenAI({ apiKey, baseURL });
     this.model = model || 'gpt-4o';
     this.defaultMaxTokens = maxTokens || 4096;
+  }
+
+  getCapabilities(): AdapterCapabilities {
+    return {
+      supportsStreaming: true,
+      supportsBatchMetadata: false,
+      supportsThinking: false,
+      supportsToolUse: true,
+      supportsCostTracking: false
+    };
   }
 
   async generateResponse(params: GenerateParams): Promise<string> {
@@ -80,13 +90,13 @@ export class OpenAIAdapter implements LlmAdapter {
     // Report usage
     if (inputTokens > 0 || outputTokens > 0) {
       await streaming?.onUsage?.({
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: inputTokens + outputTokens,
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
+        totalTokens: inputTokens + outputTokens,
         model: this.model,
         latency: {
-          total_ms: totalMs,
-          tokens_per_second: outputTokens / (totalMs / 1000),
+          totalMs: totalMs,
+          tokensPerSecond: outputTokens / (totalMs / 1000),
         },
       });
     }

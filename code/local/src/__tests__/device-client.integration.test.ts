@@ -146,8 +146,8 @@ describe('Device Client Integration Tests', () => {
           },
           onUsage: (usage) => {
             usageReported = true;
-            expect(usage.input_tokens).toBeGreaterThan(0);
-            expect(usage.output_tokens).toBeGreaterThan(0);
+            expect(usage.inputTokens).toBeGreaterThan(0);
+            expect(usage.outputTokens).toBeGreaterThan(0);
             expect(usage.model).toBe('claude-code-cli');
           },
         },

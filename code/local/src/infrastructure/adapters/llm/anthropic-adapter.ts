@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LlmAdapter, GenerateParams } from './llm-adapter.interface';
+import { LlmAdapter, GenerateParams, AdapterCapabilities } from './llm-adapter.interface';
 
 export class AnthropicAdapter implements LlmAdapter {
   private readonly client: Anthropic;
@@ -34,6 +34,16 @@ export class AnthropicAdapter implements LlmAdapter {
     this.model = model || 'claude-3-5-sonnet-20241022';
     this.defaultMaxTokens = maxTokens || 4096;
     console.log('[AnthropicAdapter] Initialized with model:', this.model);
+  }
+
+  getCapabilities(): AdapterCapabilities {
+    return {
+      supportsStreaming: true,
+      supportsBatchMetadata: false,
+      supportsThinking: true,
+      supportsToolUse: true,
+      supportsCostTracking: true
+    };
   }
 
   async generateResponse(params: GenerateParams): Promise<string> {
@@ -97,20 +107,20 @@ export class AnthropicAdapter implements LlmAdapter {
 
         const usage = message.usage as any; // Type assertion for cache fields
         await streaming?.onUsage?.({
-          input_tokens: usage.input_tokens,
-          output_tokens: usage.output_tokens,
-          total_tokens: usage.input_tokens + usage.output_tokens,
+          inputTokens: usage.input_tokens,
+          outputTokens: usage.output_tokens,
+          totalTokens: usage.input_tokens + usage.output_tokens,
           cache: usage.cache_creation_input_tokens || usage.cache_read_input_tokens ? {
-            creation_tokens: usage.cache_creation_input_tokens || 0,
-            read_tokens: usage.cache_read_input_tokens || 0,
-            hit_rate: usage.cache_read_input_tokens
+            creationTokens: usage.cache_creation_input_tokens || 0,
+            readTokens: usage.cache_read_input_tokens || 0,
+            hitRate: usage.cache_read_input_tokens
               ? usage.cache_read_input_tokens / (usage.input_tokens || 1)
               : 0,
           } : undefined,
           model: this.model,
           latency: {
-            total_ms: totalMs,
-            tokens_per_second: usage.output_tokens / (totalMs / 1000),
+            totalMs: totalMs,
+            tokensPerSecond: usage.output_tokens / (totalMs / 1000),
           },
         });
       }

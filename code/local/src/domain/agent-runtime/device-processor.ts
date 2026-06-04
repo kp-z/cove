@@ -10,6 +10,7 @@ import type { BackendGateway } from '../../infrastructure/gateway/backend-gatewa
 import type { IAdapterManager } from '../../infrastructure/adapters/adapter-manager.interface'
 import type { PostProcessorConfig } from './post-processors'
 import type { DeduplicationConfig } from './deduplication'
+import type { LlmAdapter } from '../../infrastructure/adapters/llm/llm-adapter.interface'
 import {
   PostProcessorManager,
   ValidationPostProcessor,
@@ -17,6 +18,11 @@ import {
   MetadataExtractionPostProcessor
 } from './post-processors'
 import { DeduplicationManager } from './deduplication'
+import {
+  MetadataCollectorFactory,
+  ResilientTransmissionStrategy,
+  type ExecutionMetadata
+} from './execution-metadata'
 
 /**
  * Device 处理器配置
@@ -30,6 +36,10 @@ export interface DeviceProcessorConfig {
   defaultSystemPrompt?: string
   postProcessing?: PostProcessorConfig
   deduplication?: DeduplicationConfig
+  enableMetadataPooling?: boolean
+  metadataPoolSize?: number
+  enableTransmissionRetry?: boolean
+  maxTransmissionRetries?: number
 }
 
 /**
@@ -42,9 +52,10 @@ export class DeviceProcessor implements IMessageProcessor {
   private readonly maxHistoryMessages: number
   private readonly maxContextTokens: number | undefined
   private readonly defaultSystemPrompt: string
-  private readonly failedChunks: Map<string, string[]> = new Map()
   private readonly postProcessorManager: PostProcessorManager | undefined
   private readonly deduplicationManager: DeduplicationManager | undefined
+  private readonly collectorFactory: MetadataCollectorFactory
+  private readonly transmissionStrategy: ResilientTransmissionStrategy
 
   constructor(
     private readonly backendGateway: BackendGateway,
@@ -78,6 +89,21 @@ export class DeviceProcessor implements IMessageProcessor {
     if (config.deduplication) {
       this.deduplicationManager = new DeduplicationManager(config.deduplication)
     }
+
+    // 初始化 Metadata Collector Factory
+    this.collectorFactory = new MetadataCollectorFactory({
+      enablePooling: config.enableMetadataPooling ?? false,
+      maxPoolSize: config.metadataPoolSize ?? 10
+    })
+
+    // 初始化 Transmission Strategy
+    this.transmissionStrategy = new ResilientTransmissionStrategy(
+      this.backendGateway,
+      {
+        enableRetry: config.enableTransmissionRetry ?? true,
+        maxRetries: config.maxTransmissionRetries ?? 3
+      }
+    )
   }
 
   /**
@@ -107,12 +133,22 @@ export class DeviceProcessor implements IMessageProcessor {
           metrics.fromCache = true
           metrics.totalTime = Date.now() - startTime
 
+          // 构建简单的元数据（缓存响应）
+          const cachedMetadata: ExecutionMetadata = {
+            thinking: undefined,
+            toolUses: [],
+            usage: undefined,
+            statusHistory: [
+              { status: 'completed', timestamp: 0 }
+            ],
+            executionMode: 'batch',
+            adapter: 'cache',
+            timestamp: new Date().toISOString(),
+            processingTime: metrics.totalTime
+          }
+
           // 保存缓存的响应
-          await this.saveResponse(task, cached.content, {
-            ...metrics,
-            ...cached.metadata,
-            cached: true
-          })
+          await this.saveResponse(task, cached.content, cachedMetadata)
 
           return { success: true }
         }
@@ -138,16 +174,17 @@ export class DeviceProcessor implements IMessageProcessor {
         try {
           metrics.adapterUsed = adapterName
 
-          // 3. 调用 LLM API 生成响应
+          // 3. 调用 LLM API 生成响应（返回 response + metadata）
           const llmStart = Date.now()
-          let response = await this.generateResponse(task, history, adapter)
+          const { response: rawResponse, metadata: executionMetadata } = await this.generateResponse(task, history, adapter)
           metrics.llmCallTime = Date.now() - llmStart
 
           // 4. 后处理响应
+          let response = rawResponse
           if (this.postProcessorManager) {
             const postProcessStart = Date.now()
             const postProcessResult = await this.postProcessorManager.process(
-              response,
+              rawResponse,
               {
                 channelId: task.channelId,
                 messageId: task.messageId,
@@ -173,9 +210,9 @@ export class DeviceProcessor implements IMessageProcessor {
             }
           }
 
-          // 5. 保存响应到 Backend
+          // 5. 保存响应到 Backend（使用 ExecutionMetadata）
           const saveStart = Date.now()
-          await this.saveResponse(task, response, metrics)
+          await this.saveResponse(task, response, executionMetadata)
           metrics.responseSaveTime = Date.now() - saveStart
 
           metrics.totalTime = Date.now() - startTime
@@ -190,11 +227,6 @@ export class DeviceProcessor implements IMessageProcessor {
               idempotencyKey
             )
           }
-
-          // 7. 上报性能指标
-          await this.reportMetrics(task, metrics).catch(err => {
-            console.warn('Failed to report metrics:', err)
-          })
 
           return { success: true }
         } catch (error) {
@@ -211,7 +243,6 @@ export class DeviceProcessor implements IMessageProcessor {
 
       // 所有 Adapters 都失败
       metrics.totalTime = Date.now() - startTime
-      await this.reportMetrics(task, metrics).catch(() => {})
 
       return {
         success: false,
@@ -219,7 +250,6 @@ export class DeviceProcessor implements IMessageProcessor {
       }
     } catch (error) {
       metrics.totalTime = Date.now() - startTime
-      await this.reportMetrics(task, metrics).catch(() => {})
 
       return {
         success: false,
@@ -244,17 +274,15 @@ export class DeviceProcessor implements IMessageProcessor {
   }
 
   /**
-   * 生成响应
+   * 生成响应（支持批量和流式双模式）
    */
   private async generateResponse(
     task: MessageTask,
     history: Array<{ role: 'user' | 'assistant'; content: string }>,
-    adapter: any
-  ): Promise<string> {
-    // 截断历史消息以适应上下文窗口
+    adapter: LlmAdapter
+  ): Promise<{ response: string; metadata: ExecutionMetadata }> {
+    const capabilities = adapter.getCapabilities()
     const truncatedHistory = this.truncateHistory(history)
-
-    // 添加当前消息到历史
     const messages = [
       ...truncatedHistory,
       {
@@ -262,100 +290,115 @@ export class DeviceProcessor implements IMessageProcessor {
         content: task.content
       }
     ]
-
-    // 获取系统提示
     const systemPrompt = this.getSystemPrompt(task)
 
-    // 调用 LLM API（支持流式和所有回调）
-    const response = await Promise.race([
-      adapter.generateResponse({
+    // 批量模式：Adapter 直接返回完整元数据（Claude CLI）
+    if (capabilities.supportsBatchMetadata && adapter.generateBatchResponse) {
+      console.log('[DeviceProcessor] Using batch mode for', this.defaultAdapter)
+
+      const batch = await adapter.generateBatchResponse({
         systemPrompt,
         messages,
-        streaming: {
-          onThinking: async (chunk: string) => {
-            await this.pushChunk(task, chunk).catch(err => {
-              console.warn('Failed to push thinking chunk:', err)
-            })
-          },
-          onToolUse: async (toolLog: any) => {
-            await this.pushToolUse(task, toolLog).catch(err => {
-              console.warn('Failed to push tool use:', err)
-            })
-          },
-          onUsage: async (usage: any) => {
-            await this.recordUsage(task, usage).catch(err => {
-              console.warn('Failed to record usage:', err)
-            })
-          },
-          onStatusChange: async (status: string) => {
-            await this.updateStatus(task, status).catch(err => {
-              console.warn('Failed to update status:', err)
-            })
-          }
-        }
-      }),
-      this.createTimeout()
-    ])
-
-    if (typeof response !== 'string') {
-      throw new Error('Request timeout')
-    }
-
-    return response
-  }
-
-  /**
-   * 推送响应 chunk
-   */
-  private async pushChunk(task: MessageTask, chunk: string): Promise<void> {
-    try {
-      await this.backendGateway.pushResponseChunk({
-        channelId: task.channelId,
-        messageId: task.messageId,
-        chunk
+        maxTokens: undefined
       })
-    } catch (error) {
-      // 记录失败的 chunks，稍后重试
-      const chunks = this.failedChunks.get(task.messageId) ?? []
-      chunks.push(chunk)
-      this.failedChunks.set(task.messageId, chunks)
-      console.warn('Failed to push chunk, will retry later:', error)
+
+      // 可选：推送 usage 到 Backend（实时显示）
+      if (batch.metadata.usage) {
+        await this.transmissionStrategy.transmitUsage(
+          task,
+          batch.metadata.usage
+        ).catch(() => {})
+      }
+
+      return { response: batch.content, metadata: batch.metadata }
+    }
+
+    // 流式模式：使用 Collector 收集元数据（Anthropic/OpenAI）
+    console.log('[DeviceProcessor] Using streaming mode for', this.defaultAdapter)
+
+    const collector = this.collectorFactory.create(
+      this.defaultAdapter,
+      'streaming'
+    )
+
+    try {
+      const response = await Promise.race([
+        adapter.generateResponse({
+          systemPrompt,
+          messages,
+          streaming: this.createStreamingCallbacks(task, collector)
+        }),
+        this.createTimeout()
+      ])
+
+      if (typeof response !== 'string') {
+        throw new Error('Request timeout')
+      }
+
+      const metadata = await collector.build()
+      return { response, metadata }
+    } finally {
+      this.collectorFactory.release(collector)
     }
   }
 
   /**
-   * 保存响应
+   * 创建流式回调（封装 Collector + Transmission）
+   */
+  private createStreamingCallbacks(task: MessageTask, collector: any) {
+    return {
+      onThinking: async (chunk: string) => {
+        // 收集元数据
+        collector.recordThinking(chunk)
+
+        // 传输到 Backend（错误隔离）
+        await this.transmissionStrategy.transmitThinking(task, chunk)
+      },
+
+      onToolUse: async (toolLog: any) => {
+        // 收集元数据
+        collector.recordToolUse(toolLog)
+
+        // 传输到 Backend
+        await this.transmissionStrategy.transmitToolUse(task, toolLog)
+      },
+
+      onUsage: async (usage: any) => {
+        // 收集元数据
+        collector.recordUsage(usage)
+
+        // 传输到 Backend
+        await this.transmissionStrategy.transmitUsage(task, usage)
+      },
+
+      onStatusChange: async (status: string) => {
+        // 收集元数据
+        collector.recordStatus(status as any)
+
+        // 传输到 Backend
+        await this.transmissionStrategy.transmitStatus(task, status)
+      }
+    }
+  }
+
+  /**
+   * 保存响应（使用强类型 ExecutionMetadata）
    */
   private async saveResponse(
     task: MessageTask,
     content: string,
-    metrics: any
+    metadata: ExecutionMetadata
   ): Promise<void> {
-    // 重试失败的 chunks
-    const failedChunks = this.failedChunks.get(task.messageId)
-    if (failedChunks && failedChunks.length > 0) {
-      console.log(`Retrying ${failedChunks.length} failed chunks`)
-      for (const chunk of failedChunks) {
-        await this.pushChunk(task, chunk).catch(() => {
-          // 最终失败也不影响主流程
-        })
-      }
-      this.failedChunks.delete(task.messageId)
-    }
+    // 传输最终元数据（包含重试失败的传输）
+    await this.transmissionStrategy.transmitFinalMetadata(task, metadata)
 
-    // 保存响应，包含元数据
+    // 保存响应
     await this.backendGateway.saveAgentResponse({
       channelId: task.channelId,
       messageId: task.messageId,
       content,
       metadata: {
-        executionMode: 'device',
-        adapter: metrics.adapterUsed,
-        timestamp: new Date().toISOString(),
-        processingTime: metrics.totalTime,
-        historyFetchTime: metrics.historyFetchTime,
-        llmCallTime: metrics.llmCallTime,
-        responseSaveTime: metrics.responseSaveTime
+        execution: metadata
       }
     })
   }
@@ -383,8 +426,8 @@ export class DeviceProcessor implements IMessageProcessor {
    * 截断历史消息以适应上下文窗口
    */
   private truncateHistory(
-    history: Array<{ role: string; content: string }>
-  ): Array<{ role: string; content: string }> {
+    history: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Array<{ role: 'user' | 'assistant'; content: string }> {
     if (history.length <= this.maxHistoryMessages) {
       return history
     }
@@ -395,82 +438,5 @@ export class DeviceProcessor implements IMessageProcessor {
       `Truncated history from ${history.length} to ${truncated.length} messages`
     )
     return truncated
-  }
-
-  /**
-   * 推送工具使用日志
-   */
-  private async pushToolUse(task: MessageTask, toolLog: any): Promise<void> {
-    try {
-      // 通过 pushResponseChunk 发送工具使用日志
-      // 使用特殊格式标记为工具日志
-      await this.backendGateway.pushResponseChunk({
-        channelId: task.channelId,
-        messageId: task.messageId,
-        chunk: JSON.stringify({
-          type: 'tool_use',
-          data: toolLog
-        })
-      })
-    } catch (error) {
-      console.warn('Failed to push tool use:', error)
-    }
-  }
-
-  /**
-   * 记录使用量统计
-   */
-  private async recordUsage(task: MessageTask, usage: any): Promise<void> {
-    try {
-      // 通过 pushResponseChunk 发送使用量统计
-      await this.backendGateway.pushResponseChunk({
-        channelId: task.channelId,
-        messageId: task.messageId,
-        chunk: JSON.stringify({
-          type: 'usage',
-          data: usage
-        })
-      })
-    } catch (error) {
-      console.warn('Failed to record usage:', error)
-    }
-  }
-
-  /**
-   * 更新处理状态
-   */
-  private async updateStatus(task: MessageTask, status: string): Promise<void> {
-    try {
-      // 通过 pushResponseChunk 发送状态更新
-      await this.backendGateway.pushResponseChunk({
-        channelId: task.channelId,
-        messageId: task.messageId,
-        chunk: JSON.stringify({
-          type: 'status',
-          data: { status }
-        })
-      })
-    } catch (error) {
-      console.warn('Failed to update status:', error)
-    }
-  }
-
-  /**
-   * 上报性能指标
-   */
-  private async reportMetrics(task: MessageTask, metrics: any): Promise<void> {
-    try {
-      // 通过 pushResponseChunk 发送性能指标
-      await this.backendGateway.pushResponseChunk({
-        channelId: task.channelId,
-        messageId: task.messageId,
-        chunk: JSON.stringify({
-          type: 'metrics',
-          data: metrics
-        })
-      })
-    } catch (error) {
-      console.warn('Failed to report metrics:', error)
-    }
   }
 }

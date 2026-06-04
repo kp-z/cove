@@ -1,6 +1,34 @@
+import type { ExecutionMetadata, UsageMetadata, ToolUseMetadata } from '../../../domain/agent-runtime/execution-metadata'
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+/**
+ * Adapter capabilities declaration
+ */
+export interface AdapterCapabilities {
+  /** Supports streaming mode (incremental updates) */
+  supportsStreaming: boolean
+  /** Supports batch mode (returns complete metadata in one shot) */
+  supportsBatchMetadata: boolean
+  /** Supports thinking/reasoning output */
+  supportsThinking: boolean
+  /** Supports tool use/function calling */
+  supportsToolUse: boolean
+  /** Supports cost tracking */
+  supportsCostTracking: boolean
+}
+
+/**
+ * Batch response (for adapters that return complete metadata)
+ */
+export interface BatchResponse {
+  /** Generated content */
+  content: string
+  /** Complete execution metadata */
+  metadata: ExecutionMetadata
 }
 
 /**
@@ -18,51 +46,13 @@ export interface StreamingCallbacks {
    * 工具调用回调
    * @param toolLog - 工具调用记录
    */
-  onToolUse?: (toolLog: {
-    id: string;
-    tool_name: string;
-    action: string;
-    params?: Record<string, unknown>;
-    status: 'pending' | 'running' | 'success' | 'error';
-    duration?: number;
-    result?: {
-      success?: string;
-      error?: string;
-      output?: string;
-    };
-    meta?: {
-      file_count?: number;
-      lines_changed?: number;
-      exit_code?: number;
-    };
-  }) => Promise<void> | void;
+  onToolUse?: (toolLog: ToolUseMetadata) => Promise<void> | void;
 
   /**
    * Token 使用统计更新回调
    * @param usage - Token 使用统计
    */
-  onUsage?: (usage: {
-    input_tokens: number;
-    output_tokens: number;
-    total_tokens: number;
-    cache?: {
-      creation_tokens: number;
-      read_tokens: number;
-      hit_rate?: number;
-    };
-    cost?: {
-      input_cost: number;
-      output_cost: number;
-      cache_cost: number;
-      total_cost: number;
-    };
-    model?: string;
-    latency?: {
-      first_token_ms?: number;
-      total_ms?: number;
-      tokens_per_second?: number;
-    };
-  }) => Promise<void> | void;
+  onUsage?: (usage: UsageMetadata) => Promise<void> | void;
 
   /**
    * 流式状态变更回调
@@ -84,5 +74,19 @@ export interface GenerateParams {
 }
 
 export interface LlmAdapter {
-  generateResponse(params: GenerateParams): Promise<string>;
+  /**
+   * Get adapter capabilities
+   */
+  getCapabilities(): AdapterCapabilities
+
+  /**
+   * Generate response (streaming mode with callbacks)
+   */
+  generateResponse(params: GenerateParams): Promise<string>
+
+  /**
+   * Generate response with batch metadata (for adapters that return complete data)
+   * Optional - only implemented by adapters that support batch mode (e.g., Claude CLI)
+   */
+  generateBatchResponse?(params: Omit<GenerateParams, 'streaming'>): Promise<BatchResponse>
 }

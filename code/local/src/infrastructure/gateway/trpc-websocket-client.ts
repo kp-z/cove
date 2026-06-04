@@ -176,7 +176,7 @@ export class TrpcWebSocketClient {
         onData: (message: DeviceMessage) => {
           this.config.logger.info('[TRPCWebSocketClient] onData called', {
             type: message.type,
-            hasPayload: !!message.payload
+            hasPayload: !!message.data
           });
           this.handleMessage(message);
         },
@@ -196,7 +196,7 @@ export class TrpcWebSocketClient {
     this.config.logger.info('[handleMessage] Processing message', {
       type: message.type,
       timestamp: message.timestamp,
-      hasPayload: !!message.payload
+      hasPayload: !!message.data
     });
 
     if (message.type === 'connected') {
