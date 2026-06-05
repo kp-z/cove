@@ -102,15 +102,9 @@ export function useSendMessage() {
           content,
         });
 
-        // 5. 成功：标记为 sent，并记录远程 messageId
+        // 5. 成功：标记为 sent
         console.log('[useSendMessage] Message sent successfully');
-        const sentMessage = new Message({
-          ...localMessage,
-          messageId: result.message_id,
-          status: 'sent',
-        });
-        messageStateManager.localMessages.set(tempId, sentMessage);
-        messageStateManager.notifySubscribers(channelId);
+        messageStateManager.updateMessageStatus(tempId, 'sent');
 
         // 6. 触发 lastMessage 缓存失效，更新 channel list
         queryClient.invalidateQueries({
