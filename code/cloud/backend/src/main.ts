@@ -475,10 +475,6 @@ function initializeDependencies() {
       const channel = await channelRepository.findById(channelId, realmId);
       if (!channel || channel.agentPool.length === 0) return;
 
-      // Check if this is a DM channel with an agent
-      const isDM = channel.type === 'dm';
-      if (!isDM) return; // Only auto-respond in DM channels for now
-
       // 3. Get Agent information
       const agentId = channel.agentPool[0];
       if (!agentId) {
