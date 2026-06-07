@@ -56,12 +56,12 @@ import { AgentCrudService } from './application/services/agent/agent-crud.servic
 import { AgentQueryService } from './application/services/agent/agent-query.service';
 import { AgentConfigService } from './application/services/agent/agent-config.service';
 import { AgentTaskService } from './application/services/agent/agent-task.service';
-import { AgentResponseService } from './application/services/agent/agent-response.service';
 import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { AgentDiscoveryService } from './application/services/agent/agent-discovery.service';
 import { AgentDMService } from './application/services/agent-dm/agent-dm.service';
 import { AgentDMHandler } from './infrastructure/events/handlers/agent-dm.handler';
 import { AgentAvatarSyncHandler } from './infrastructure/events/handlers/agent-avatar-sync.handler';
+import { MessageAgentResponseHandler } from './infrastructure/events/handlers/message-agent-response.handler';
 import { AdapterService } from './application/services/adapter/adapter.service';
 import {
   AdapterBootstrapService,
@@ -310,15 +310,8 @@ function initializeDependencies() {
     messageRepository
   );
 
-  const agentResponseService = new AgentResponseService(
-    agentRepository,
-    messageRepository,
-    channelRepository,
-    eventBus,
-    logger,
-    agentRepository, // configStore (IAgentConfigStore)
-    adapterService   // adapterService (AdapterService) - CRITICAL for adapter support
-  );
+  // AgentResponseService removed - replaced by MessageAgentResponseHandler
+  // LLM processing now handled by Local Device via MessageOrchestrator
 
   // Agent sub-services
   const agentCrudService = new AgentCrudService(
@@ -357,8 +350,7 @@ function initializeDependencies() {
     agentCrudService,
     agentQueryService,
     agentConfigService,
-    agentTaskService,
-    agentResponseService
+    agentTaskService
   );
 
   const agentRuntimeService = new AgentRuntimeService(
@@ -443,6 +435,20 @@ function initializeDependencies() {
     logger
   );
 
+  // Initialize Device Connection Manager (needed by messageOrchestrator)
+  const deviceConnectionManager = new DeviceConnectionManager(logger);
+
+  // Initialize MessageOrchestrator for routing messages to Local Device
+  const messageOrchestrator = createMessageOrchestrator(
+    prisma,
+    deviceConnectionManager,
+    messageRepository,
+    {
+      maxAttempts: 3,
+      pollInterval: 1000
+    }
+  );
+
   /**
    * Event Lifecycle:
    * - message.created: Message entity created and persisted (human or agent)
@@ -451,75 +457,19 @@ function initializeDependencies() {
    * Subscribe to message.created to trigger agent auto-response via Local Device.
    * Skip agent messages to prevent infinite loops.
    */
-  eventBus.subscribe('message.created', async (event) => {
-    if (event.payload.senderType === 'agent') return;
+  const messageAgentResponseHandler = new MessageAgentResponseHandler(
+    agentRepository,
+    channelRepository,
+    messageRepository,
+    messageOrchestrator,
+    eventBus,
+    logger
+  );
 
-    const realmId = (event.payload as any).realmId;
-    const channelId = (event.payload as any).channelId;
-    const messageId = event.payload.messageId as string;
-
-    if (!realmId || !channelId) {
-      logger.warn('message.created event missing realmId or channelId', { messageId });
-      return;
-    }
-
-    try {
-      // 1. Get the full message content from database
-      const message = await messageRepository.findById(messageId, realmId);
-      if (!message) {
-        logger.warn('Message not found in database', { messageId });
-        return;
-      }
-
-      // 2. Check if agent should respond
-      const channel = await channelRepository.findById(channelId, realmId);
-      if (!channel || channel.agentPool.length === 0) return;
-
-      // 3. Get Agent information
-      const agentId = channel.agentPool[0];
-      if (!agentId) {
-        logger.warn('No agent in channel agentPool', { channelId });
-        return;
-      }
-      const agent = await agentRepository.findById(agentId, realmId);
-      if (!agent) {
-        logger.warn('Agent not found', { agentId });
-        return;
-      }
-
-      const agentName = agent.displayName || agent.name || 'Agent';
-
-      // 4. 【立即发布接收确认事件】
-      await eventBus.publish({
-        eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        eventType: 'agent.response.accepted',
-        aggregateId: messageId,
-        aggregateType: 'Message',
-        occurredAt: new Date(),
-        payload: {
-          messageId,
-          channelId,
-          agentId,
-          agentName,
-          estimatedDuration: 10, // 预估 10 秒
-        },
-      });
-
-      logger.info('Agent response accepted', { messageId, agentId, agentName });
-
-      // 5. 异步入队处理（不阻塞）
-      messageOrchestrator.enqueue({
-        messageId,
-        channelId: `${realmId}:${channelId}`,
-        content: message.content,
-        priority: 0
-      }).catch(err => {
-        logger.error('Failed to enqueue message', err as Error, { messageId });
-      });
-
-    } catch (err) {
-      logger.error('Failed to handle message.created', err as Error, { messageId });
-    }
+  eventBus.subscribe('message.created', (event) => {
+    messageAgentResponseHandler.handle(event).catch(err =>
+      logger.error('Message agent response handler failed', err as Error)
+    );
   });
 
   /**
@@ -571,9 +521,6 @@ function initializeDependencies() {
   logger.info('Auto-join services started successfully');
 
   logger.info('Dependencies initialized successfully');
-
-  // Initialize Device Connection Manager
-  const deviceConnectionManager = new DeviceConnectionManager(logger);
 
   // Listen to device connection events and publish to EventBus
   deviceConnectionManager.on('device.connected', ({ deviceId }) => {
@@ -653,17 +600,6 @@ function initializeDependencies() {
       logger.error('Failed to update device status on connect', error as Error, { deviceId });
     }
   });
-
-  // Initialize MessageOrchestrator for routing messages to Local Device
-  const messageOrchestrator = createMessageOrchestrator(
-    prisma,
-    deviceConnectionManager,
-    messageRepository,
-    {
-      maxAttempts: 3,
-      pollInterval: 1000
-    }
-  );
 
   // Note: messageOrchestrator.start() will be called in startServer()
 
