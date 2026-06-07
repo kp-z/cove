@@ -69,11 +69,6 @@ export function createContext(opts: CreateContextOptions) {
       const token = authHeader.substring(7);
       try {
         const payload = await opts.authService.verifyToken(token);
-        console.log('[Context Creation] JWT verified:', {
-          userId: payload.userId,
-          realmId,
-          userType: 'human',
-        });
         return {
           realmId,
           userId: payload.userId,
