@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import type { AgentService } from '../../../application/services/agent/agent.service';
-import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
@@ -65,7 +64,6 @@ const updateAgentSchema = z.object({
 
 interface AgentRouterDeps {
   agentService: AgentService;
-  agentRuntimeService: AgentRuntimeService;
   adapterService?: any; // AdapterService for adapter operations
 }
 
@@ -165,50 +163,8 @@ export function createAgentRouter(deps: AgentRouterDeps) {
         }
       }),
 
-    // Start agent
-    start: protectedProcedure
-      .input(z.object({ agentId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
-          return await runWithContext(context, async () => {
-            await deps.agentRuntimeService.startAgent(input.agentId);
-            return { message: 'Agent start initiated' };
-          });
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Stop agent
-    stop: protectedProcedure
-      .input(z.object({ agentId: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
-          return await runWithContext(context, async () => {
-            await deps.agentRuntimeService.stopAgent(input.agentId);
-            return { message: 'Agent stop initiated' };
-          });
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
-
-    // Get agent status
-    getStatus: protectedProcedure
-      .input(z.object({ agentId: z.string() }))
-      .query(async ({ input, ctx }) => {
-        try {
-          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
-          return await runWithContext(context, async () => {
-            const status = await deps.agentRuntimeService.getStatus(input.agentId);
-            return status;
-          });
-        } catch (error) {
-          throw mapErrorToTRPC(error);
-        }
-      }),
+    // 说明：Agent 的 start/stop/getStatus 已移除。
+    // Agent 运行时（真实执行）位于 Local Device，云端不再维护内存态运行状态。
 
     // Delete agent
     delete: protectedProcedure

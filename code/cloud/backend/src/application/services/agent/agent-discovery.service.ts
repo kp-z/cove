@@ -4,7 +4,13 @@ import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
 
-interface AgentMetadata {
+/**
+ * Agent 元数据（来自 agent.md frontmatter）
+ *
+ * 说明：扫描与解析职责已下沉到 Local Device，
+ * Backend 仅通过 tRPC 接收 Local 推送的元数据并 upsert 入库（详见 AgentSyncRouter）。
+ */
+export interface AgentMetadata {
   agent_id: string;
   name: string;
   display_name: string;
@@ -61,27 +67,56 @@ export class AgentDiscoveryService {
     const agentDirName = path.basename(agentDir);
     console.log(`[AgentDiscoveryService] Syncing agent: ${agentDirName}`);
 
-    try {
-      const metadata = await this.readAgentMetadata(agentDir);
-      if (!metadata) {
-        console.warn(`[AgentDiscoveryService] No valid metadata found for agent: ${agentDirName}`);
-        return;
-      }
+    const metadata = await this.readAgentMetadata(agentDir);
+    if (!metadata) {
+      console.warn(`[AgentDiscoveryService] No valid metadata found for agent: ${agentDirName}`);
+      return;
+    }
 
+    await this.syncAgentMetadata(metadata);
+  }
+
+  /**
+   * 根据元数据 upsert 单个 Agent（供 Local 推送同步调用）
+   *
+   * 冲突策略：以 Local 文件（即调用方传入的 metadata）为准。
+   * - DB 已存在：更新可变字段
+   * - DB 不存在：在默认 Realm 下创建
+   */
+  async syncAgentMetadata(metadata: AgentMetadata): Promise<void> {
+    if (!metadata.agent_id || !metadata.name) {
+      console.warn('[AgentDiscoveryService] Skip sync: missing agent_id or name');
+      return;
+    }
+
+    try {
       const existingAgent = await this.prisma.agent.findUnique({
         where: { id: metadata.agent_id },
       });
 
       if (existingAgent) {
-        console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} exists in database, updating (filesystem wins)...`);
+        console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} exists, updating (Local wins)...`);
         await this.updateAgent(metadata);
       } else {
         console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} not in database, creating...`);
         await this.createAgent(metadata);
       }
     } catch (error) {
-      console.error(`[AgentDiscoveryService] Failed to sync agent ${agentDirName}`, error);
+      console.error(`[AgentDiscoveryService] Failed to sync agent ${metadata.agent_id}`, error);
     }
+  }
+
+  /**
+   * 批量 upsert（供 tRPC sync 端点调用）
+   * @returns 成功同步的数量
+   */
+  async syncAgentMetadataBatch(list: AgentMetadata[]): Promise<{ synced: number }> {
+    let synced = 0;
+    for (const metadata of list) {
+      await this.syncAgentMetadata(metadata);
+      synced += 1;
+    }
+    return { synced };
   }
 
   private async readAgentMetadata(agentDir: string): Promise<AgentMetadata | null> {

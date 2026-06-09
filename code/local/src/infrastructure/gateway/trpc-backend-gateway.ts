@@ -5,7 +5,7 @@
  */
 
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import type { BackendGateway, ExecutionMode, FeatureFlag, RealmConfiguration } from './backend-gateway.interface';
+import type { BackendGateway, ExecutionMode, FeatureFlag, RealmConfiguration, AgentMetadataDto } from './backend-gateway.interface';
 
 export class TrpcBackendGateway implements BackendGateway {
   private client: any; // TODO: Import proper AppRouter type from backend
@@ -62,19 +62,6 @@ export class TrpcBackendGateway implements BackendGateway {
     } catch (error) {
       console.error('Failed to get feature flags:', error);
       return [];
-    }
-  }
-
-  async sendMessageToBackend(message: {
-    channelId: string;
-    content: string;
-    metadata?: Record<string, unknown>;
-  }): Promise<void> {
-    try {
-      await this.client.message.send.mutate(message);
-    } catch (error) {
-      console.error('Failed to send message to backend:', error);
-      throw error;
     }
   }
 
@@ -172,6 +159,7 @@ export class TrpcBackendGateway implements BackendGateway {
   async pushResponseChunk(chunk: {
     channelId: string;
     messageId: string;
+    agentId: string;
     chunk: string;
   }): Promise<void> {
     try {
@@ -179,6 +167,20 @@ export class TrpcBackendGateway implements BackendGateway {
     } catch (error) {
       console.error('Failed to push response chunk:', error);
       // Don't throw - chunk pushing is best-effort
+    }
+  }
+
+  async syncAgentMetadata(payload: {
+    deviceId?: string;
+    realmId?: string;
+    agents: AgentMetadataDto[];
+  }): Promise<{ synced: number; received: number }> {
+    try {
+      return await this.client.agentSync.sync.mutate(payload);
+    } catch (error) {
+      console.error('Failed to sync agent metadata:', error);
+      // 同步失败不应阻断设备启动，返回 0 同步数兜底
+      return { synced: 0, received: payload.agents.length };
     }
   }
 }

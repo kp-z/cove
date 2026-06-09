@@ -6,7 +6,6 @@
 
 import { PrismaClient } from '../../../generated/client'
 import { MessageOrchestrator } from './message-orchestrator'
-import { BackendProcessor } from './backend-processor'
 import { DeviceProcessor } from './device-processor'
 import { SqliteMessageQueue } from '../../infrastructure/storage/sqlite-message-queue'
 import { SqliteTaskStore } from '../../infrastructure/storage/sqlite-task-store'
@@ -16,6 +15,8 @@ import type { MessageOrchestratorConfig } from './message-orchestrator'
 
 /**
  * 创建 MessageOrchestrator 实例
+ *
+ * 仅创建本地 DeviceProcessor（单一 Device 执行模式）。
  */
 export function createMessageOrchestrator(
   prisma: PrismaClient,
@@ -27,14 +28,11 @@ export function createMessageOrchestrator(
   const messageQueue = new SqliteMessageQueue(prisma)
   const taskStore = new SqliteTaskStore(prisma)
 
-  // 创建处理器（注入依赖）
-  const backendProcessor = new BackendProcessor(backendGateway)
+  // 创建本地处理器（注入依赖）
   const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager)
 
   // 创建 MessageOrchestrator
   return new MessageOrchestrator(
-    backendGateway,
-    backendProcessor,
     deviceProcessor,
     messageQueue,
     taskStore,

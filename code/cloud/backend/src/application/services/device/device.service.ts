@@ -27,6 +27,8 @@ import {
   DomainEvent,
 } from '../../interfaces';
 import { getRealmContext } from '../../context/realm-context-store';
+import { RealmContext } from '../../context/realm-context';
+import { runWithContext } from '../../context/realm-context-store';
 
 export interface CreateDeviceDTO {
   readonly name: string;
@@ -72,6 +74,11 @@ export interface UpdateDeviceLocationDTO {
 }
 
 export class DeviceService {
+  private offlineCheckInterval: NodeJS.Timeout | null = null;
+  private deviceStatusCache: Map<string, 'online' | 'offline'> = new Map();
+  private readonly HEARTBEAT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly CHECK_INTERVAL_MS = 30 * 1000; // 30 seconds
+
   constructor(
     private readonly deviceRepository: IDeviceRepository,
     private readonly eventBus: IEventBus,
@@ -332,7 +339,28 @@ export class DeviceService {
 
     await this.deviceRepository.update(device, device.realm_id);
 
-    // No event for heartbeat updates (too frequent)
+    // Check if device status changed from offline to online
+    const previousStatus = this.deviceStatusCache.get(deviceId);
+    const currentStatus = 'online';
+
+    if (previousStatus !== currentStatus) {
+      this.deviceStatusCache.set(deviceId, currentStatus);
+
+      // Publish device.heartbeat event for online detection
+      await this.publishEvent({
+        eventId: this.generateEventId(),
+        eventType: 'device.heartbeat',
+        aggregateId: deviceId,
+        aggregateType: 'Device',
+        occurredAt: new Date(),
+        payload: {
+          deviceId,
+          realmId: device.realm_id,
+          status: 'online',
+        },
+      });
+    }
+
     return device;
   }
 
@@ -354,6 +382,101 @@ export class DeviceService {
     });
 
     this.logger.info('Device deleted successfully', { deviceId });
+  }
+
+  /**
+   * Start offline detection background task
+   * Checks all devices periodically and emits device.offline event when heartbeat timeout
+   */
+  startOfflineDetection(): void {
+    if (this.offlineCheckInterval) {
+      this.logger.warn('Offline detection already started');
+      return;
+    }
+
+    this.logger.info('Starting device offline detection', {
+      checkInterval: `${this.CHECK_INTERVAL_MS}ms`,
+      heartbeatTimeout: `${this.HEARTBEAT_TIMEOUT_MS}ms`,
+    });
+
+    this.offlineCheckInterval = setInterval(() => {
+      this.checkDevicesOffline().catch((error) => {
+        this.logger.error('Error checking devices offline', error as Error);
+      });
+    }, this.CHECK_INTERVAL_MS);
+  }
+
+  /**
+   * Stop offline detection background task
+   */
+  stopOfflineDetection(): void {
+    if (this.offlineCheckInterval) {
+      clearInterval(this.offlineCheckInterval);
+      this.offlineCheckInterval = null;
+      this.logger.info('Stopped device offline detection');
+    }
+  }
+
+  /**
+   * Check all devices for offline status and emit events
+   */
+  private async checkDevicesOffline(): Promise<void> {
+    try {
+      // 在定时任务中，需要为每个 realm 创建上下文
+      // 这里我们使用 default-server 作为 realmId，因为这是后台任务
+      const context = RealmContext.create('default-server', 'system');
+
+      await runWithContext(context, async () => {
+        const allDevices = await this.deviceRepository.findAll();
+        const now = Date.now();
+
+        for (const device of allDevices) {
+          const deviceId = device.device_id;
+          const lastSeenAt = device.last_seen_at ? new Date(device.last_seen_at).getTime() : 0;
+          const timeSinceLastSeen = now - lastSeenAt;
+
+          // Determine current status based on last_seen_at
+          const currentStatus = timeSinceLastSeen > this.HEARTBEAT_TIMEOUT_MS ? 'offline' : 'online';
+          const previousStatus = this.deviceStatusCache.get(deviceId);
+
+          // Only emit event if status changed from online to offline
+          if (previousStatus === 'online' && currentStatus === 'offline') {
+            this.logger.info('Device went offline', {
+              deviceId,
+              realmId: device.realm_id,
+              lastSeenAt: device.last_seen_at,
+              timeSinceLastSeen: `${Math.round(timeSinceLastSeen / 1000)}s`,
+            });
+
+            this.deviceStatusCache.set(deviceId, 'offline');
+
+            // Emit device.offline event
+            await this.publishEvent({
+              eventId: this.generateEventId(),
+              eventType: 'device.offline',
+              aggregateId: deviceId,
+              aggregateType: 'Device',
+              occurredAt: new Date(),
+              payload: {
+                deviceId,
+                realmId: device.realm_id,
+                status: 'offline',
+                lastSeenAt: device.last_seen_at,
+              },
+            });
+          } else if (!previousStatus && currentStatus === 'offline') {
+            // Initialize cache for devices that are already offline
+            this.deviceStatusCache.set(deviceId, 'offline');
+          } else if (!previousStatus && currentStatus === 'online') {
+            // Initialize cache for devices that are online
+            this.deviceStatusCache.set(deviceId, 'online');
+          }
+        }
+      });
+    } catch (error) {
+      this.logger.error('Failed to check devices offline', error as Error);
+      throw error;
+    }
   }
 
   // --- Helper methods ---

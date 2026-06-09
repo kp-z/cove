@@ -4,9 +4,13 @@
  * 主控制器：编排所有组件的生命周期，管理 Device 的启动、运行和停止
  */
 
+import * as os from 'os';
+import * as path from 'path';
 import { PrismaClient } from '../generated/client';
 import type { Config } from './config';
 import type { ILogger } from './infrastructure/logger';
+import { AgentScanner } from './domain/agent-sync/agent-scanner';
+import type { BackendGateway } from './infrastructure/gateway/backend-gateway.interface';
 import { ConsoleLogger } from './infrastructure/logger';
 import { TrpcBackendGateway } from './infrastructure/gateway/trpc-backend-gateway';
 import { TrpcWebSocketClient } from './infrastructure/gateway/trpc-websocket-client';
@@ -15,7 +19,6 @@ import { SqliteTaskStore } from './infrastructure/storage/sqlite-task-store';
 import { SqliteConfigCache } from './infrastructure/storage/sqlite-config-cache';
 import { MessageOrchestrator } from './domain/agent-runtime/message-orchestrator';
 import { DeviceProcessor } from './domain/agent-runtime/device-processor';
-import { BackendProcessor } from './domain/agent-runtime/backend-processor';
 import { ConfigurationService } from './domain/configuration/configuration-service';
 import { DeviceLifecycleManager } from './domain/device-lifecycle/device-lifecycle-manager';
 import { AdapterManager } from './infrastructure/adapters/adapter-manager';
@@ -140,18 +143,15 @@ export class DeviceClient {
         this.logger.info('Registered OpenAI adapter');
       }
 
-      // 5. Create Processors
-      this.logger.info('Creating message processors');
+      // 5. Create Processor（仅本地 Device 处理器）
+      this.logger.info('Creating message processor');
       const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager, {
         defaultAdapter: 'claude-cli-adapter', // 默认使用 Claude CLI
       });
-      const backendProcessor = new BackendProcessor(backendGateway);
 
-      // 6. Create Message Orchestrator
+      // 6. Create Message Orchestrator（单一 Device 执行模式）
       this.logger.info('Creating message orchestrator');
       this.messageOrchestrator = new MessageOrchestrator(
-        backendGateway,
-        backendProcessor,
         deviceProcessor,
         messageQueue,
         taskStore,
@@ -200,6 +200,10 @@ export class DeviceClient {
         });
       }
 
+      // 10.5 扫描本地 Agent 目录并将元数据同步到 Backend
+      //  - 文件位于 Local，扫描/解析由 Local 负责；Backend 仅被动接收 upsert
+      await this.syncLocalAgents(backendGateway);
+
       // 11. Start Lifecycle Manager
       this.logger.info('Starting lifecycle manager');
       await this.lifecycleManager.start();
@@ -216,6 +220,40 @@ export class DeviceClient {
       this.logger.error('Failed to start Device Client', error as Error);
       await this.cleanup();
       throw error;
+    }
+  }
+
+  /**
+   * 扫描本地 Agent 目录并将元数据同步到 Backend
+   *
+   * 目录解析与 Backend 保持一致：优先 COVE_ROOT，否则 ~/.cove。
+   * 同步失败仅告警，不阻断设备启动（best-effort）。
+   */
+  private async syncLocalAgents(backendGateway: BackendGateway): Promise<void> {
+    try {
+      const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
+      const agentsDir = path.join(coveRoot, 'storage', 'agents');
+
+      const scanner = new AgentScanner(agentsDir, this.logger);
+      const agents = await scanner.scan();
+
+      if (agents.length === 0) {
+        this.logger.info('No local agents to sync');
+        return;
+      }
+
+      const result = await backendGateway.syncAgentMetadata({
+        deviceId: this.config.device.id,
+        realmId: this.config.device.realmId,
+        agents,
+      });
+
+      this.logger.info('Agent metadata synced to backend', {
+        synced: result.synced,
+        received: result.received,
+      });
+    } catch (error) {
+      this.logger.warn('Agent metadata sync failed, continuing');
     }
   }
 

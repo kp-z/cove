@@ -5,7 +5,6 @@
  */
 
 export * from './agent/agent.service';
-export * from './agent/agent-response.service';
 export * from './agent/agent.errors';
 export * from './project/project.service';
 export * from './project/project-composition.service';

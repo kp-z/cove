@@ -8,6 +8,7 @@ import { router } from '@/core/router';
 import { trpc, trpcClient } from '@/lib/trpc';
 import { PageLoader } from '@/shared/components/layout/PageLoader';
 import { useLoadingStore } from '@/shared/stores';
+import { useGlobalDeviceMonitor } from '@/core/hooks/useGlobalDeviceMonitor';
 import i18n from '@/core/i18n';
 
 const queryClient = new QueryClient({
@@ -19,6 +20,15 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * AppMonitors - 全局监控组件
+ * 必须在 trpc.Provider 内部才能使用 tRPC hooks
+ */
+function AppMonitors() {
+  useGlobalDeviceMonitor();
+  return null;
+}
+
 function App() {
   const { isLoading, message, progress, showProgress } = useLoadingStore();
 
@@ -26,6 +36,9 @@ function App() {
     <I18nextProvider i18n={i18n}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
+          {/* Global Monitors */}
+          <AppMonitors />
+
           {/* Toast Notifications */}
           <Toaster
         position="top-right"

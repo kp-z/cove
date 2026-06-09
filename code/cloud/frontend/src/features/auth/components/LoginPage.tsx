@@ -21,6 +21,30 @@ import { useRealmStore } from '@/core/stores/realmStore';
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
 
+// 复制 useLoginFlow 中的 determineDestination 逻辑
+function determineDestination(context: any): { path: string; realmId?: string } {
+  if (!context) {
+    return { path: '/' };
+  }
+
+  // 首次登录 -> 欢迎向导
+  if (context.isFirstLogin) {
+    return { path: '/welcome' };
+  }
+
+  // 有上次访问的 Realm 且 device online -> 直接进入
+  const lastRealmId = context.preferences?.lastAccessedRealmId;
+  if (lastRealmId) {
+    const realm = context.realms.find((r: any) => r.realmId === lastRealmId);
+    if (realm && realm.status === 'active' && realm.deviceStatus === 'online') {
+      return { path: '/', realmId: lastRealmId };
+    }
+  }
+
+  // 其他情况 -> Realm 选择器
+  return { path: '/select-realm' };
+}
+
 export default function LoginPage() {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -190,11 +214,35 @@ export default function LoginPage() {
 
                 // 存储 Realm 信息
                 setRealms(normalizedRealms);
-                setUserContext({
+
+                // 构建 user context
+                const userContext = {
                   isFirstLogin: data.context?.isFirstLogin || false,
                   realms: normalizedRealms,
                   preferences: data.context?.preferences || {},
-                });
+                };
+
+                // 决定导航目标
+                const destination = determineDestination(userContext);
+
+                if (destination.realmId) {
+                  // 自动进入 realm：设置 currentRealmId 并导航
+                  console.log('Auto-entering realm:', destination.realmId);
+                  const { setCurrentRealmId } = useAuthStore.getState();
+                  setCurrentRealmId(destination.realmId);
+                  setShowOrchestrator(false);
+                  navigate(destination.path, { replace: true });
+                } else if (destination.path === '/select-realm') {
+                  // 显示 realm 选择器
+                  console.log('Showing realm selector');
+                  setUserContext(userContext);
+                  // showOrchestrator 已经在前面设置为 true
+                } else {
+                  // 其他路径（welcome 等）
+                  console.log('Navigating to:', destination.path);
+                  setUserContext(userContext);
+                  // showOrchestrator 已经在前面设置为 true
+                }
               } else {
                 console.log('No realms, navigating to:', from);
                 setShowOrchestrator(false);

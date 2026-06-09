@@ -16,7 +16,6 @@ export function useSendMessage() {
   const { userId, user } = useCurrentUser();
   const mutation = trpc.message.send.useMutation();
   const queryClient = useQueryClient();
-
   // 监听网络状态变化
   useEffect(() => {
     const handleOnline = () => {

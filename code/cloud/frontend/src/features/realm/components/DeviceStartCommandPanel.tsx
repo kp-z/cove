@@ -30,7 +30,7 @@ export function DeviceStartCommandPanel({
   const { data: deviceStatus, refetch: refetchStatus } = trpc.realm.getDeviceStatus.useQuery(
     { realmId },
     {
-      refetchInterval: 3000, // 每 3 秒检查一次
+      refetchInterval: 10000, // 降低到 10 秒（主要依赖 WebSocket 推送）
       onSuccess: (data) => {
         if (data.isOnline) {
           onDeviceOnline();

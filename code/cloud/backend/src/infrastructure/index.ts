@@ -7,7 +7,6 @@
  * - 实现 Application Layer 定义的接口
  * - 提供数据持久化（Repositories）
  * - 提供事件总线（EventBus）
- * - 提供 Agent Runtime（MockAgentRuntime）
  */
 
 // Repositories
@@ -24,6 +23,3 @@ export {
 
 // Event Bus
 export { InMemoryEventBus } from './events';
-
-// Agent Runtime
-export { MockAgentRuntime } from './agent-runtime';

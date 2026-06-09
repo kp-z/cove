@@ -16,7 +16,6 @@ config();
 // Infrastructure Layer
 import {
   InMemoryEventBus,
-  MockAgentRuntime,
 } from './infrastructure/index';
 
 import { HybridAgentRepository } from './infrastructure/repositories/hybrid-agent.repository';
@@ -56,7 +55,6 @@ import { AgentCrudService } from './application/services/agent/agent-crud.servic
 import { AgentQueryService } from './application/services/agent/agent-query.service';
 import { AgentConfigService } from './application/services/agent/agent-config.service';
 import { AgentTaskService } from './application/services/agent/agent-task.service';
-import { AgentRuntimeService } from './application/services/agent/agent-runtime.service';
 import { AgentDiscoveryService } from './application/services/agent/agent-discovery.service';
 import { AgentDMService } from './application/services/agent-dm/agent-dm.service';
 import { AgentDMHandler } from './infrastructure/events/handlers/agent-dm.handler';
@@ -165,9 +163,6 @@ function initializeDependencies() {
 
   // Audit Service
   const auditService = new AuditService(auditLogRepository);
-
-  // Agent Runtime
-  const agentRuntime = new MockAgentRuntime();
 
   // Adapter Configuration Store and Service
   const coveDir = path.join(coveRoot);
@@ -353,12 +348,8 @@ function initializeDependencies() {
     agentTaskService
   );
 
-  const agentRuntimeService = new AgentRuntimeService(
-    agentRepository,
-    agentRuntime,
-    eventBus,
-    logger
-  );
+  // Agent 元数据同步服务（接收 Local Device 推送的 upsert）
+  const agentDiscoveryService = new AgentDiscoveryService(prisma);
 
   const projectService = new ProjectService(
     projectRepository,
@@ -612,7 +603,7 @@ function initializeDependencies() {
     realmMemberChannelAutoJoinService,
     // Services for tRPC
     agentService,
-    agentRuntimeService,
+    agentDiscoveryService,
     agentDMService,
     adapterService,
     authService,
@@ -642,7 +633,7 @@ function createStandaloneServer(deps: {
   defaultChannelsAutoJoinService: any;
   realmMemberChannelAutoJoinService: any;
   agentService: AgentService;
-  agentRuntimeService: AgentRuntimeService;
+  agentDiscoveryService: AgentDiscoveryService;
   agentDMService: any;
   adapterService: AdapterService;
   authService: AuthService;
@@ -665,7 +656,7 @@ function createStandaloneServer(deps: {
   // Create app router
   const appRouter = createAppRouter({
     agentService: deps.agentService,
-    agentRuntimeService: deps.agentRuntimeService,
+    agentDiscoveryService: deps.agentDiscoveryService,
     agentDMService: deps.agentDMService,
     adapterService: deps.adapterService,
     authService: deps.authService,
@@ -929,11 +920,8 @@ async function startServer() {
     });
     await presetAvatarsInitializer.initialize();
 
-    // Discover and sync agents from filesystem
-    logger.info('Starting agent discovery and sync...');
-    const agentDiscoveryService = new AgentDiscoveryService(prisma);
-    await agentDiscoveryService.discoverAndSyncAgents();
-    logger.info('Agent discovery and sync completed');
+    // 说明：Agent 目录扫描与元数据同步已下沉到 Local Device。
+    // Backend 不再于启动时扫描文件系统，改为通过 tRPC agentSync.sync 被动接收 Local 推送。
 
     const deps = initializeDependencies();
 
@@ -993,6 +981,11 @@ async function startServer() {
     await deps.messageOrchestrator.start();
     deps.logger.info('MessageOrchestrator started successfully');
 
+    // Start DeviceService offline detection
+    deps.logger.info('Starting DeviceService offline detection...');
+    deps.deviceService.startOfflineDetection();
+    deps.logger.info('DeviceService offline detection started successfully');
+
     httpServer.listen(PORT, () => {
       deps.logger.info(`Cove Backend Server started on http://localhost:${PORT}`);
       deps.logger.info(`WebSocket: ws://localhost:${PORT}`);
@@ -1032,6 +1025,9 @@ async function startServer() {
           deps.defaultChannelsAutoJoinService.stop(),
           deps.realmMemberChannelAutoJoinService.stop(),
         ]);
+
+        // Stop DeviceService offline detection
+        deps.deviceService.stopOfflineDetection();
 
         deps.logger.info('Background services stopped');
 

@@ -86,4 +86,5 @@ export interface EnqueueMessage {
   channelId: string
   content: string
   priority?: number
+  metadata?: Record<string, any>
 }

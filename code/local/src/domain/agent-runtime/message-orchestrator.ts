@@ -1,7 +1,7 @@
 /**
  * Message Orchestrator
  *
- * 消息编排器实现：支持双模式执行（Backend / Device）
+ * 消息编排器实现：单模式执行（Device），所有 LLM 调用在本地完成。
  */
 
 import type {
@@ -10,7 +10,6 @@ import type {
   EnqueueMessage,
   MessageState
 } from './message-orchestrator.interface'
-import type { BackendGateway } from '../../infrastructure/gateway/backend-gateway.interface'
 import type { IMessageProcessor } from './message-processor.interface'
 
 /**
@@ -49,8 +48,6 @@ export class MessageOrchestrator implements IMessageOrchestrator {
   private pollTimer?: NodeJS.Timeout
 
   constructor(
-    private readonly backendGateway: BackendGateway,
-    private readonly backendProcessor: IMessageProcessor,
     private readonly deviceProcessor: IMessageProcessor,
     private readonly messageQueue: IMessageQueue,
     private readonly taskStore: ITaskStore,
@@ -59,19 +56,18 @@ export class MessageOrchestrator implements IMessageOrchestrator {
 
   /**
    * 将消息加入队列
+   *
+   * 始终以 Device 模式执行（本地 LLM），不再向云端转发。
    */
   async enqueue(message: EnqueueMessage): Promise<string> {
-    // 1. 确定执行模式（通过 BackendGateway）
-    const executionMode = await this.backendGateway.getExecutionMode(message.channelId)
-
-    // 2. 创建任务
+    // 1. 创建任务（单一 Device 执行模式）
     const task: MessageTask = {
       id: this.generateTaskId(),
       messageId: message.messageId,
       channelId: message.channelId,
       content: message.content,
       state: 'PENDING',
-      executionMode: executionMode.mode === 'cloud' ? 'backend' : 'device',
+      executionMode: 'device',
       attempts: 0,
       maxAttempts: this.config.maxAttempts ?? 3,
       priority: message.priority ?? 0,
@@ -79,7 +75,7 @@ export class MessageOrchestrator implements IMessageOrchestrator {
       updatedAt: new Date()
     }
 
-    // 3. 入队
+    // 2. 入队
     const taskId = await this.messageQueue.enqueue(task)
     await this.taskStore.upsert(task)
 
@@ -103,13 +99,8 @@ export class MessageOrchestrator implements IMessageOrchestrator {
     await this.taskStore.upsert(task)
 
     try {
-      // 根据执行模式选择处理器
-      const processor = task.executionMode === 'backend'
-        ? this.backendProcessor
-        : this.deviceProcessor
-
-      // 处理消息
-      const result = await processor.process(task)
+      // 始终使用 Device 处理器在本地执行
+      const result = await this.deviceProcessor.process(task)
 
       if (result.success) {
         // 处理成功

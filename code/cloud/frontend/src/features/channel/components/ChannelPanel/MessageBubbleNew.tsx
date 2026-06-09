@@ -18,6 +18,7 @@ import { useAuthStore } from '@/core/auth/authStore';
 import { StreamingContent } from './StreamingContent';
 import { ToolCallIndicator } from './ToolCallIndicator';
 import { AgentThinking } from './AgentThinking';
+import { StreamingStatusIndicator } from './StreamingStatusIndicator';
 import { ToolLogsDisplay } from './ToolLogsDisplay';
 import { TokenUsageDisplay } from './TokenUsageDisplay';
 
@@ -152,54 +153,94 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                 className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 ${
                   isPending ? 'opacity-70' : 'opacity-100'
                 } ${isFailed ? 'border-2 border-red-500/50' : ''} hover:bg-white/[0.08] ${
+                  message.streamingPhase === 'pending' ? 'bg-gray-500/10 border border-gray-500/20' :
                   message.streamingPhase === 'thinking' ? 'bg-blue-500/10 border border-blue-500/20' :
                   message.streamingPhase === 'tool_use' ? 'bg-purple-500/10 border border-purple-500/20' :
                   'bg-white/[0.05] border'
                 }`}
                 style={{ borderColor: isFailed ? undefined : (message.streamingPhase ? undefined : borderColor) }}
               >
-                {/* 根据 streamingPhase 渲染不同内容 */}
-                {message.streamingPhase === 'thinking' && (
-                  <div className="flex items-center gap-2 text-sm text-blue-300">
-                    <Brain className="w-4 h-4 animate-pulse" />
-                    <span>思考中...</span>
-                    {message.streamingData?.thinking && (
-                      <span className="text-xs text-gray-400 ml-2">
-                        {message.streamingData.thinking.slice(0, 50)}...
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {message.streamingPhase === 'tool_use' && message.streamingData?.currentTool && (
-                  <ToolCallIndicator
-                    toolName={message.streamingData.currentTool.name}
-                    params={message.streamingData.currentTool.params}
+                {/* 统一的状态指示器 */}
+                {(message.streamingPhase === 'pending' ||
+                  message.streamingPhase === 'accepted' ||
+                  message.streamingPhase === 'thinking' ||
+                  message.streamingPhase === 'tool_use' ||
+                  message.streamingPhase === 'responding') && (
+                  <StreamingStatusIndicator
+                    phase={message.streamingPhase}
+                    currentTool={message.streamingData?.currentTool}
                   />
                 )}
 
-                {message.streamingPhase === 'responding' && (
-                  <div className="text-sm text-gray-100 leading-relaxed">
-                    <StreamingContent
-                      content={message.content}
-                      isStreaming={true}
-                      skipAnimation={message.skipAnimation}
-                    />
-                  </div>
+                {/* thinking 阶段：显示思考内容（默认展开）*/}
+                {message.streamingPhase === 'thinking' && message.streamingData?.thinking && (
+                  <AgentThinking
+                    thinking={message.streamingData.thinking}
+                    isStreaming={true}
+                    defaultExpanded={true}
+                  />
                 )}
 
-                {(!message.streamingPhase || message.streamingPhase === 'completed' || message.streamingPhase === 'accepted') && (
-                  <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
-                    isFailed ? 'text-red-400' : ''
-                  }`}>
-                    {message.streamingPhase === 'accepted' && (
-                      <div className="flex items-center gap-1 text-xs text-green-400 mb-2">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>已接收</span>
-                      </div>
+                {/* tool_use 阶段：显示工具 + 思考内容（自动收起）*/}
+                {message.streamingPhase === 'tool_use' && (
+                  <>
+                    {message.streamingData?.currentTool && (
+                      <ToolCallIndicator
+                        toolName={message.streamingData.currentTool.name}
+                        params={message.streamingData.currentTool.params}
+                      />
                     )}
-                    {message.content}
-                  </div>
+                    {message.streamingData?.thinking && (
+                      <AgentThinking
+                        thinking={message.streamingData.thinking}
+                        isStreaming={false}
+                        defaultExpanded={false}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* responding 阶段：流式显示回复 + 思考内容（自动收起）*/}
+                {message.streamingPhase === 'responding' && (
+                  <>
+                    <div className="text-sm text-gray-100 leading-relaxed">
+                      <StreamingContent
+                        content={message.streamingData?.partialContent || message.content}
+                        isStreaming={true}
+                        skipAnimation={message.skipAnimation}
+                      />
+                    </div>
+                    {message.streamingData?.thinking && (
+                      <AgentThinking
+                        thinking={message.streamingData.thinking}
+                        isStreaming={false}
+                        defaultExpanded={false}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* completed 或无 phase：显示完整内容 + 思考内容可查 */}
+                {(!message.streamingPhase || message.streamingPhase === 'completed') && (
+                  <>
+                    <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
+                      isFailed ? 'text-red-400' : ''
+                    }`}>
+                      {message.content}
+                    </div>
+                    {(message.streamingData?.thinking || message.agentMetadata?.thinking) && (
+                      <AgentThinking
+                        thinking={message.streamingData?.thinking || message.agentMetadata?.thinking || ''}
+                        isStreaming={false}
+                        defaultExpanded={false}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* pending 或 accepted 阶段：只显示状态，无内容 */}
+                {(message.streamingPhase === 'pending' || message.streamingPhase === 'accepted') && (
+                  <div className="h-4"></div>
                 )}
               </div>
 

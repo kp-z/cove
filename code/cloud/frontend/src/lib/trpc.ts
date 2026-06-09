@@ -44,8 +44,20 @@ const authErrorLink: TRPCLink<AppRouter> = () => {
 let wsClient: ReturnType<typeof createWSClient> | null = null;
 
 function getOrCreateWSClient() {
-  // 检查用户是否已认证
-  const { isAuthenticated } = useAuthStore.getState();
+  // 延迟访问 useAuthStore，避免循环依赖
+  let isAuthenticated = false;
+  try {
+    isAuthenticated = useAuthStore.getState().isAuthenticated;
+  } catch (error) {
+    // useAuthStore 还未初始化，返回 dummy client
+    console.log('[WebSocket] AuthStore not ready, skipping connection');
+    return createWSClient({
+      url: () => {
+        throw new Error('WebSocket not available - auth store not ready');
+      },
+      lazy: true,
+    });
+  }
 
   if (!isAuthenticated) {
     // 未认证时返回一个不会真正连接的 dummy client
@@ -70,20 +82,24 @@ function getOrCreateWSClient() {
       },
       onClose: () => {
         // 当 WebSocket 连接关闭时，检查是否是因为后端断开
-        const { currentRealmId, isAuthenticated } = useAuthStore.getState();
+        try {
+          const { currentRealmId, isAuthenticated } = useAuthStore.getState();
 
-        // 如果用户已认证且已选择 realm，说明后端断开了
-        if (isAuthenticated && currentRealmId) {
-          console.log('[WebSocket] Connection closed, clearing realm selection');
+          // 如果用户已认证且已选择 realm，说明后端断开了
+          if (isAuthenticated && currentRealmId) {
+            console.log('[WebSocket] Connection closed, clearing realm selection');
 
-          // 清除当前 realm
-          useAuthStore.getState().setCurrentRealmId(null);
+            // 清除当前 realm
+            useAuthStore.getState().setCurrentRealmId(null);
 
-          // 显示通知
-          setTimeout(() => {
-            const event = new CustomEvent('realm:disconnected');
-            window.dispatchEvent(event);
-          }, 100);
+            // 显示通知
+            setTimeout(() => {
+              const event = new CustomEvent('realm:disconnected');
+              window.dispatchEvent(event);
+            }, 100);
+          }
+        } catch (error) {
+          console.error('[WebSocket] Error handling close:', error);
         }
       },
     });

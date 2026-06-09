@@ -47,7 +47,7 @@ describe('DeviceProcessor', () => {
       getExecutionMode: vi.fn(),
       isFeatureFlagEnabled: vi.fn(),
       getFeatureFlags: vi.fn(),
-      sendMessageToBackend: vi.fn(),
+      syncAgentMetadata: vi.fn(),
       fetchRealmConfiguration: vi.fn(),
       getConfigVersion: vi.fn(),
       reportHealth: vi.fn(),

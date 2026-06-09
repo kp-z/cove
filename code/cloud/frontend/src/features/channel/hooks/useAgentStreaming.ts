@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { messageStateManager } from '../domain/MessageStateManager';
+import { Message } from '../domain/models/Message';
 
 export function useAgentStreaming(channelId: string) {
   // 订阅 Agent 响应事件
@@ -29,18 +30,63 @@ export function useAgentStreaming(channelId: string) {
 
         switch (eventType) {
           case 'agent.response.accepted':
-            // Agent 接收确认
-            if (data.messageId) {
-              messageStateManager.updateStreamingPhase(data.messageId, 'accepted');
+            // Agent 接收确认 - 创建占位消息
+            if (data.messageId && data.agentId && data.agentName) {
+              // 创建 agent 占位消息
+              const agentPlaceholderId = `agent-${data.agentId}-${data.messageId}`;
+
+              const agentPlaceholder = new Message({
+                id: agentPlaceholderId,
+                channelId: data.channelId,
+                senderId: data.agentId,
+                senderName: data.agentName,  // 使用后端提供的真实名称
+                senderType: 'agent',
+                content: '',
+                timestamp: new Date(),
+                source: 'local',
+                status: 'streaming',
+                streamingPhase: 'accepted',
+                retryCount: 0,
+              });
+
+              messageStateManager.addLocalMessage(agentPlaceholder);
+              console.log('[useAgentStreaming] Agent placeholder created:', {
+                id: agentPlaceholderId,
+                agentId: data.agentId,
+                agentName: data.agentName,
+                channelId: data.channelId,
+              });
+
+              // 设置超时清理（30 秒）
+              setTimeout(() => {
+                const messages = messageStateManager.getMessages(data.channelId);
+                const message = messages.find(m => m.id === agentPlaceholderId);
+
+                // 如果 30 秒后消息仍处于 accepted/thinking/pending 状态，标记为失败
+                if (message && (message.streamingPhase === 'accepted' ||
+                                message.streamingPhase === 'thinking' ||
+                                message.streamingPhase === 'pending')) {
+                  console.warn('[useAgentStreaming] Agent response timeout:', {
+                    id: agentPlaceholderId,
+                    phase: message.streamingPhase,
+                  });
+                  messageStateManager.updateMessageStatus(agentPlaceholderId, 'failed', {
+                    code: 'TIMEOUT',
+                    message: 'Agent 响应超时',
+                    retryable: false,
+                  });
+                }
+              }, 30000);
             }
             break;
 
           case 'agent.response.thinking':
             // 思考中
-            if (data.messageId) {
-              messageStateManager.updateStreamingPhase(data.messageId, 'thinking');
+            if (data.messageId && data.agentId) {
+              const agentPlaceholderId = `agent-${data.agentId}-${data.messageId}`;
+              messageStateManager.updateStreamingPhase(agentPlaceholderId, 'thinking');
               if (data.thinking) {
-                messageStateManager.updateStreamingData(data.messageId, {
+                messageStateManager.updateStreamingData(agentPlaceholderId, {
                   thinking: data.thinking,
                 });
               }
@@ -49,23 +95,26 @@ export function useAgentStreaming(channelId: string) {
 
           case 'agent.response.streaming':
             // 流式内容
-            if (data.messageId && data.chunk) {
-              messageStateManager.updateStreamingPhase(data.messageId, 'responding');
-              messageStateManager.appendStreamingContent(data.messageId, data.chunk);
+            if (data.messageId && data.agentId && data.chunk) {
+              const agentPlaceholderId = `agent-${data.agentId}-${data.messageId}`;
+              messageStateManager.updateStreamingPhase(agentPlaceholderId, 'responding');
+              messageStateManager.appendStreamingContent(agentPlaceholderId, data.chunk);
             }
             break;
 
           case 'agent.response.completed':
             // 完成
-            if (data.messageId) {
-              messageStateManager.updateStreamingPhase(data.messageId, 'completed');
+            if (data.messageId && data.agentId) {
+              const agentPlaceholderId = `agent-${data.agentId}-${data.messageId}`;
+              messageStateManager.updateStreamingPhase(agentPlaceholderId, 'completed');
             }
             break;
 
           case 'agent.response.failed':
             // 失败
-            if (data.messageId) {
-              messageStateManager.updateMessageStatus(data.messageId, 'failed', {
+            if (data.messageId && data.agentId) {
+              const agentPlaceholderId = `agent-${data.agentId}-${data.messageId}`;
+              messageStateManager.updateMessageStatus(agentPlaceholderId, 'failed', {
                 code: 'AGENT_ERROR',
                 message: data.error || 'Agent 响应失败',
                 retryable: false,

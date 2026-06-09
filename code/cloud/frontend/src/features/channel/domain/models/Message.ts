@@ -17,11 +17,13 @@ export type MessageStatus =
 export type SenderType = 'user' | 'agent' | 'system';
 
 export type StreamingPhase =
+  | 'pending'    // 等待Agent接收（占位状态）
   | 'accepted'   // Agent接收确认
   | 'thinking'   // 思考中
   | 'tool_use'   // 工具调用
   | 'responding' // 正在回复
-  | 'completed'; // 完成
+  | 'completed'  // 完成
+  | 'failed';    // 失败
 
 export type MessageError = {
   code: string;

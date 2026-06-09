@@ -76,11 +76,11 @@ function determineDestination(context?: UserContext): string {
     return '/welcome';
   }
 
-  // 有上次访问的 Realm 且可用 -> 直接进入
+  // 有上次访问的 Realm 且 device online -> 直接进入
   const lastRealmId = context.preferences?.lastAccessedRealmId;
   if (lastRealmId) {
     const realm = context.realms.find((r) => r.realmId === lastRealmId);
-    if (realm && realm.status === 'active') {
+    if (realm && realm.status === 'active' && realm.deviceStatus === 'online') {
       return `/realm/${lastRealmId}`;
     }
   }

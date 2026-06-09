@@ -19,6 +19,7 @@ import { MessageService } from '../../../application/services/message/message.se
 import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
+import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -64,7 +65,7 @@ const replyToThreadSchema = z.object({
   mentions: z.array(mentionSchema).readonly().optional(),
 });
 
-export const messageRouter = (messageService: MessageService, channelService?: any) =>
+export const messageRouter = (messageService: MessageService, channelService?: any, eventBus?: IEventBus) =>
   router({
     // 发送消息
     send: publicProcedure
@@ -287,12 +288,32 @@ export const messageRouter = (messageService: MessageService, channelService?: a
     // Push a chunk of agent response (for streaming)
     pushChunk: publicProcedure
       .input(z.object({
+        channelId: z.string(),
         messageId: z.string(),
+        agentId: z.string(),
         chunk: z.string(),
       }))
       .mutation(async ({ input }) => {
-        // For now, just acknowledge the chunk
-        // In the future, this could support real-time streaming
+        // 发布流式内容事件
+        if (eventBus) {
+          try {
+            await eventBus.publish({
+              eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              eventType: 'agent.response.streaming',
+              aggregateId: input.messageId,
+              aggregateType: 'Message',
+              occurredAt: new Date(),
+              payload: {
+                messageId: input.messageId,
+                channelId: input.channelId,
+                agentId: input.agentId,
+                chunk: input.chunk,
+              },
+            });
+          } catch (error) {
+            console.error('[pushChunk] Failed to publish streaming event:', error);
+          }
+        }
         return { success: true };
       }),
 

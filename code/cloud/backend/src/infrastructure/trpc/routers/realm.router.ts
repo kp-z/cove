@@ -575,8 +575,22 @@ export const realmRouter = (
             }
           });
 
+          // 订阅 device offline 事件
+          const unsubscribeOffline = eventBus.subscribe('device.offline', async (event) => {
+            const realmId = event.payload.realmId as string;
+
+            // 如果指定了 realmId，只推送匹配的 realm
+            if (!input?.realmId || realmId === input.realmId) {
+              emit.next({
+                realmId,
+                deviceStatus: 'offline',
+              });
+            }
+          });
+
           return () => {
             unsubscribeHeartbeat();
+            unsubscribeOffline();
           };
         });
       }),

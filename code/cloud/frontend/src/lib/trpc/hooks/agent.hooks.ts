@@ -89,30 +89,5 @@ export function useDeleteAgent() {
   });
 }
 
-export function useStartAgent() {
-  const utils = trpc.useUtils();
-
-  return trpc.agent.start.useMutation({
-    onSuccess: (_result, variables) => {
-      utils.agent.getById.invalidate({ agentId: variables.agentId });
-      notify.toast.success('Agent started', 'The agent has been started successfully');
-    },
-    onError: (error) => {
-      notify.toast.error('Failed to start agent', error.message || 'An unexpected error occurred');
-    },
-  });
-}
-
-export function useStopAgent() {
-  const utils = trpc.useUtils();
-
-  return trpc.agent.stop.useMutation({
-    onSuccess: (_result, variables) => {
-      utils.agent.getById.invalidate({ agentId: variables.agentId });
-      notify.toast.success('Agent stopped', 'The agent has been stopped successfully');
-    },
-    onError: (error) => {
-      notify.toast.error('Failed to stop agent', error.message || 'An unexpected error occurred');
-    },
-  });
-}
+// 说明：useStartAgent / useStopAgent 已移除。
+// Agent 运行时位于 Local Device，云端不再提供 agent.start / agent.stop 端点。

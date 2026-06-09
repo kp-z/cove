@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { trpcClient } from '@/lib/trpc';
 
 export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 
@@ -87,6 +88,14 @@ export const useAuthStore = create<AuthState>()(
           sessionStorage.setItem('current_realm_id', realmId);
         }
         set({ currentRealmId: realmId });
+
+        // 异步更新后端用户偏好（静默失败，不影响主流程）
+        trpcClient.user.updatePreferences.mutate({
+          lastAccessedRealmId: realmId,
+        }).catch((error) => {
+          console.warn('Failed to update user preference (lastAccessedRealmId):', error);
+          // 静默失败，不影响用户体验
+        });
       },
     }),
     {

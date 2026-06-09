@@ -46,15 +46,6 @@ export interface BackendGateway {
   getFeatureFlags(): Promise<FeatureFlag[]>;
 
   /**
-   * Send message to backend for cloud execution
-   */
-  sendMessageToBackend(message: {
-    channelId: string;
-    content: string;
-    metadata?: Record<string, unknown>;
-  }): Promise<void>;
-
-  /**
    * Fetch realm configuration from backend
    */
   fetchRealmConfiguration(realmId: string): Promise<RealmConfiguration>;
@@ -102,6 +93,33 @@ export interface BackendGateway {
   pushResponseChunk(chunk: {
     channelId: string;
     messageId: string;
+    agentId: string;
     chunk: string;
   }): Promise<void>;
+
+  /**
+   * Sync local agent metadata to backend (upsert)
+   *
+   * Local 扫描本地 agent.md 后，将解析出的元数据批量推送给 Backend 入库。
+   */
+  syncAgentMetadata(payload: {
+    deviceId?: string;
+    realmId?: string;
+    agents: AgentMetadataDto[];
+  }): Promise<{ synced: number; received: number }>;
+}
+
+/**
+ * Agent 元数据传输对象（与 Backend agentSync.sync 契约一致）
+ */
+export interface AgentMetadataDto {
+  agent_id: string;
+  name: string;
+  display_name: string;
+  status?: string;
+  category?: string;
+  capabilities?: string[];
+  tags?: string[];
+  created_by?: string;
+  created_at?: string;
 }

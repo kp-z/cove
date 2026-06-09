@@ -73,7 +73,8 @@ export class MessageOrchestrator implements IMessageOrchestrator {
       maxAttempts: this.config.maxAttempts ?? 3,
       priority: message.priority ?? 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      metadata: message.metadata  // 传递 metadata
     }
 
     // 3. 入队

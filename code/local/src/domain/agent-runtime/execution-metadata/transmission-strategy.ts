@@ -54,6 +54,7 @@ export class ResilientTransmissionStrategy {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
         messageId: task.messageId,
+        agentId: task.metadata?.agentId || 'unknown',
         chunk
       })
     } catch (error) {
@@ -71,6 +72,7 @@ export class ResilientTransmissionStrategy {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
         messageId: task.messageId,
+        agentId: task.metadata?.agentId || 'unknown',
         chunk: JSON.stringify({ type: 'tool_use', data: toolLog })
       })
     } catch (error) {
@@ -87,6 +89,7 @@ export class ResilientTransmissionStrategy {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
         messageId: task.messageId,
+        agentId: task.metadata?.agentId || 'unknown',
         chunk: JSON.stringify({ type: 'usage', data: usage })
       })
     } catch (error) {
@@ -103,6 +106,7 @@ export class ResilientTransmissionStrategy {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
         messageId: task.messageId,
+        agentId: task.metadata?.agentId || 'unknown',
         chunk: JSON.stringify({ type: 'status', data: { status } })
       })
     } catch (error) {

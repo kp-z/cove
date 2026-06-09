@@ -1,5 +1,6 @@
 import { router, procedure } from '../trpc';
 import { createAgentRouter } from './agent.router';
+import { createAgentSyncRouter } from './agent-sync.router';
 import { createAgentDMRouter } from './agent-dm.router';
 import { createAdapterRouter } from './adapter.router';
 import { createAuthRouter } from './auth.router';
@@ -20,7 +21,7 @@ import { createFileSystemRouter } from './filesystem.router';
 import { createConfigurationRouter } from './configuration.router';
 import { createExecutionModeRouter } from './execution-mode.router';
 import type { AgentService } from '../../../application/services/agent/agent.service';
-import type { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
+import type { AgentDiscoveryService } from '../../../application/services/agent/agent-discovery.service';
 import type { AgentDMService } from '../../../application/services/agent-dm/agent-dm.service';
 import type { AdapterService } from '../../../application/services/adapter/adapter.service';
 import { AdapterMetadataService } from '../../../application/services/adapter/adapter-metadata.service';
@@ -44,7 +45,7 @@ import type { ILogger } from '../../../application/interfaces/logger.interface';
 
 export interface RouterDependencies {
   agentService: AgentService;
-  agentRuntimeService: AgentRuntimeService;
+  agentDiscoveryService: AgentDiscoveryService;
   agentDMService: AgentDMService;
   adapterService: AdapterService;
   authService: AuthService;
@@ -90,9 +91,11 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     // Agent router
     agent: createAgentRouter({
       agentService: deps.agentService,
-      agentRuntimeService: deps.agentRuntimeService,
       adapterService: deps.adapterService,
     }),
+
+    // Agent sync router (Local Device → Backend 元数据同步)
+    agentSync: createAgentSyncRouter(deps.agentDiscoveryService),
 
     // Agent DM router
     agentDM: createAgentDMRouter({
@@ -109,7 +112,7 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     channel: channelRouter(deps.channelService),
 
     // Message router
-    message: messageRouter(deps.messageService, deps.channelService),
+    message: messageRouter(deps.messageService, deps.channelService, deps.eventBus),
 
     // Task router
     task: taskRouter(deps.taskService),

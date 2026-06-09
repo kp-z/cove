@@ -2,13 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'http';
 import { createAgentRouter } from './agent.router';
 import { AgentService } from '../../../application/services/agent/agent.service';
-import { AgentRuntimeService } from '../../../application/services/agent/agent-runtime.service';
 import { AgentEntity } from '../../../domain/models/agent/agent.entity';
 import { AgentNotFoundError, AgentAlreadyExistsError } from '../../../application/services/agent/agent.errors';
 
 describe('agentRouter', () => {
   let mockAgentService: AgentService;
-  let mockAgentRuntimeService: AgentRuntimeService;
   let router: ReturnType<typeof createAgentRouter>;
   let mockContext: any;
 
@@ -20,12 +18,6 @@ describe('agentRouter', () => {
       updateAgent: vi.fn(),
       deleteAgent: vi.fn(),
     } as unknown as AgentService;
-
-    mockAgentRuntimeService = {
-      startAgent: vi.fn(),
-      stopAgent: vi.fn(),
-      getStatus: vi.fn(),
-    } as unknown as AgentRuntimeService;
 
     mockContext = {
       userId: 'test-user-id',
@@ -52,7 +44,6 @@ describe('agentRouter', () => {
 
     router = createAgentRouter({
       agentService: mockAgentService,
-      agentRuntimeService: mockAgentRuntimeService,
     });
   });
 
@@ -287,54 +278,6 @@ describe('agentRouter', () => {
           }
         })
       );
-    });
-  });
-
-  describe('start', () => {
-    it('should start agent successfully', async () => {
-      vi.mocked(mockAgentRuntimeService.startAgent).mockResolvedValue(undefined);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.start({ agentId: 'agent-1' });
-
-      expect(result).toEqual({ message: 'Agent start initiated' });
-      expect(mockAgentRuntimeService.startAgent).toHaveBeenCalledWith('agent-1');
-    });
-
-    it('should throw BAD_REQUEST when agent not ready', async () => {
-      const error = new Error('Agent not ready');
-      error.name = 'AgentNotReadyError';
-      vi.mocked(mockAgentRuntimeService.startAgent).mockRejectedValue(error);
-
-      const caller = router.createCaller(mockContext);
-
-      await expect(
-        caller.start({ agentId: 'agent-1' })
-      ).rejects.toThrow('Agent not ready');
-    });
-  });
-
-  describe('stop', () => {
-    it('should stop agent successfully', async () => {
-      vi.mocked(mockAgentRuntimeService.stopAgent).mockResolvedValue(undefined);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.stop({ agentId: 'agent-1' });
-
-      expect(result).toEqual({ message: 'Agent stop initiated' });
-      expect(mockAgentRuntimeService.stopAgent).toHaveBeenCalledWith('agent-1');
-    });
-  });
-
-  describe('getStatus', () => {
-    it('should get agent status successfully', async () => {
-      const status = { agentId: 'agent-1', status: 'active', uptime: 3600 };
-      vi.mocked(mockAgentRuntimeService.getStatus).mockResolvedValue(status);
-
-      const caller = router.createCaller(mockContext);
-      const result = await caller.getStatus({ agentId: 'agent-1' });
-
-      expect(result).toEqual(status);
     });
   });
 
