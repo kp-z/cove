@@ -10,6 +10,23 @@ import * as yaml from 'js-yaml';
  * 说明：扫描与解析职责已下沉到 Local Device，
  * Backend 仅通过 tRPC 接收 Local 推送的元数据并 upsert 入库（详见 AgentSyncRouter）。
  */
+/**
+ * Agent 内容（Phase 4 路线 A）
+ *
+ * 由 Local 解析本地文件后随元数据上送，Backend 序列化写入 DB 的 contentJson 列，
+ * 作为 UI/查询的内容真源；Backend 不再读取 agent 目录文件。
+ */
+export interface AgentContent {
+  description?: string;
+  capabilities?: string[];
+  tags?: string[];
+  runtimeConfig?: Record<string, unknown>;
+  persona?: Record<string, unknown>;
+  skills?: Record<string, unknown>;
+  tools?: Record<string, unknown>;
+  triggers?: Record<string, unknown>;
+}
+
 export interface AgentMetadata {
   agent_id: string;
   name: string;
@@ -20,6 +37,7 @@ export interface AgentMetadata {
   tags?: string[];
   created_by?: string;
   created_at?: string;
+  content?: AgentContent;
 }
 
 export class AgentDiscoveryService {
@@ -176,6 +194,8 @@ export class AgentDiscoveryService {
         scope: 'user',
         projectIds: '[]',
         configPath,
+        // Phase 4 路线 A：内容真源写入 contentJson（Local 上送的完整内容）
+        contentJson: metadata.content ? JSON.stringify(metadata.content) : null,
         avatarUrl: null,
         avatarType: 'dicebear',
         createdBy: metadata.created_by || 'system',
@@ -199,6 +219,9 @@ export class AgentDiscoveryService {
         displayName: metadata.display_name || metadata.name,
         status: metadata.status || 'active',
         configPath,  // Fix old .json format paths
+        // Phase 4 路线 A：仅当 Local 上送了内容时才更新 contentJson（Local 为准），
+        // 否则保留 DB 既有内容，避免被空值覆盖。
+        ...(metadata.content ? { contentJson: JSON.stringify(metadata.content) } : {}),
       },
     });
 

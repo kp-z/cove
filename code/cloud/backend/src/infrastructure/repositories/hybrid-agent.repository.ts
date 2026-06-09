@@ -46,6 +46,8 @@ interface AgentDbRecord {
   scope: string;
   projectIds: string;
   configPath: string;
+  // Phase 4 路线 A：Agent 内容真源（JSON 序列化的 AgentContent），可空以兼容历史数据
+  contentJson: string | null;
   avatarUrl: string | null;
   avatarType: string;
   createdBy: string;
@@ -132,6 +134,8 @@ export class HybridAgentRepository
       scope: entity.scope,
       projectIds: JSON.stringify(entity.projectIds),
       configPath: '',
+      // Phase 4 路线 A：实体内容序列化进 contentJson（DB 为内容真源）
+      contentJson: JSON.stringify(this.toStorage(entity)),
       avatarUrl: avatar?.url ?? null,
       avatarType: avatar?.type || 'dicebear',
       createdBy: entity.createdBy,
@@ -400,46 +404,81 @@ export class HybridAgentRepository
   }
 
   /**
-   * 覆盖验证方法，添加 agent.md 特定检查
+   * 覆盖验证方法（Phase 4 路线 A）
+   *
+   * 注意：不再调用基类基于 `{id}.json` 的一致性检查 —— Agent 使用目录结构 +
+   * contentJson，从不写 `.json` 内容文件，调用基类会必然误报 MISSING_CONTENT_FILE
+   * 进而在每次 save 后触发 reconstructEntity 修复，用有损默认值覆盖刚写入的内容。
+   *
+   * 新的有效性判定：DB 记录存在，且（contentJson 可解析）或（agent.md 非空）。
    */
   protected async validateEntityConsistency(
     entityId: string,
     realmId: string
   ): Promise<{ valid: boolean; issues: string[] }> {
-    // 调用基类验证
-    const baseResult = await super.validateEntityConsistency(entityId, realmId);
+    const issues: string[] = [];
 
-    if (!baseResult.valid) {
-      return baseResult;
+    const dbRecord = await this.findInDatabase(entityId, realmId);
+    if (!dbRecord) {
+      return { valid: false, issues: ['MISSING_DB_RECORD'] };
     }
 
-    // Agent 特定验证：检查 agent.md
-    try {
-      const dbRecord = await this.findInDatabase(entityId, realmId);
-      if (!dbRecord) {
-        return baseResult;
-      }
-
-      const agentDir = path.join(this.coveRoot, dbRecord.configPath);
-      const agentMdPath = path.join(agentDir, 'agent.md');
-
+    // 内容真源：contentJson 存在且可解析即视为有效
+    if (dbRecord.contentJson) {
       try {
-        const content = await fs.readFile(agentMdPath, 'utf-8');
-        if (content.trim().length === 0) {
-          baseResult.issues.push('EMPTY_AGENT_MD');
-          baseResult.valid = false;
-        }
-      } catch (error: any) {
-        if (error.code === 'ENOENT') {
-          baseResult.issues.push('MISSING_AGENT_MD');
-          baseResult.valid = false;
-        }
+        JSON.parse(dbRecord.contentJson);
+        return { valid: true, issues: [] };
+      } catch {
+        issues.push('INVALID_CONTENT_JSON');
+      }
+    }
+
+    // 回退：兼容未回填 contentJson 的历史数据，检查目录 agent.md
+    const agentMdPath = path.join(this.coveRoot, dbRecord.configPath, 'agent.md');
+    try {
+      const content = await fs.readFile(agentMdPath, 'utf-8');
+      if (content.trim().length === 0) {
+        issues.push('EMPTY_AGENT_MD');
       }
     } catch (error: any) {
-      this.logger.error(`Failed to validate agent.md for ${entityId}`, error);
+      if (error.code === 'ENOENT') {
+        issues.push('MISSING_AGENT_MD');
+      } else {
+        this.logger.error(`Failed to validate agent.md for ${entityId}`, error);
+      }
     }
 
-    return baseResult;
+    return { valid: issues.length === 0, issues };
+  }
+
+  /**
+   * 解析 agent 内容（Phase 4 路线 A）
+   *
+   * 优先使用 DB 的 contentJson（内容真源）；为空时回退读取目录文件，
+   * 兼容尚未回填 contentJson 的历史数据。
+   */
+  private async resolveContent(dbRecord: AgentDbRecord): Promise<AgentContent> {
+    if (dbRecord.contentJson) {
+      try {
+        const parsed = JSON.parse(dbRecord.contentJson) as Partial<AgentContent>;
+        return {
+          description: parsed.description,
+          capabilities: parsed.capabilities ?? [],
+          tags: parsed.tags ?? [],
+          runtimeConfig: parsed.runtimeConfig,
+          persona: parsed.persona,
+          skills: parsed.skills,
+          tools: parsed.tools,
+          triggers: parsed.triggers,
+          createdBy: parsed.createdBy ?? dbRecord.createdBy,
+        };
+      } catch (error) {
+        this.logger.warn(`Invalid contentJson for agent ${dbRecord.id}, falling back to files`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return this.loadAgentContent(this.getContentPath(dbRecord));
   }
 
   /**
@@ -559,8 +598,7 @@ export class HybridAgentRepository
     const dbRecord = await this.findInDatabase(entityId, realmId);
     if (!dbRecord) return null;
 
-    const contentPath = this.getContentPath(dbRecord);
-    const content = await this.loadAgentContent(contentPath);
+    const content = await this.resolveContent(dbRecord);
 
     return this.toDomain(dbRecord, content);
   }
@@ -571,8 +609,7 @@ export class HybridAgentRepository
   protected async loadEntities(dbRecords: AgentDbRecord[]): Promise<AgentEntity[]> {
     return await Promise.all(
       dbRecords.map(async (record) => {
-        const contentPath = this.getContentPath(record);
-        const content = await this.loadAgentContent(contentPath);
+        const content = await this.resolveContent(record);
         return this.toDomain(record, content);
       })
     );
@@ -656,101 +693,134 @@ export class HybridAgentRepository
     await fs.rename(tmpPath, filePath);
   }
 
-  async getRuntime(agentId: string): Promise<AgentRuntimeConfig> {
-    const configPath = path.join(this.getAgentConfigDir(agentId), 'runtime.yaml');
+  // ===== Phase 4 路线 A：contentJson 读写辅助 =====
+
+  /**
+   * 读取 DB 中的 agent 内容（contentJson 解析），不存在或解析失败返回 {}。
+   */
+  private async readDbContent(agentId: string): Promise<Partial<AgentContent>> {
+    const { realmId } = getRealmContext();
+    const dbRecord = await this.prisma.agent.findFirst({
+      where: { id: agentId, realmId },
+      select: { contentJson: true },
+    });
+    if (!dbRecord?.contentJson) return {};
+    try {
+      return JSON.parse(dbRecord.contentJson) as Partial<AgentContent>;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * 将内容字段合并写回 DB contentJson（内容真源）。
+   * 仅更新传入的字段，其余保留。
+   */
+  private async writeDbContentPatch(agentId: string, patch: Partial<AgentContent>): Promise<void> {
+    const { realmId } = getRealmContext();
+    const current = await this.readDbContent(agentId);
+    const merged = { ...current, ...patch };
+    await this.prisma.agent.updateMany({
+      where: { id: agentId, realmId },
+      data: { contentJson: JSON.stringify(merged) },
+    });
+  }
+
+  /**
+   * 读取 YAML 文件（不存在返回 null）—— contentJson 缺失时的回退来源
+   */
+  private async readYamlFileOrNull<T>(agentId: string, relativePath: string): Promise<T | null> {
+    const configPath = path.join(this.getAgentConfigDir(agentId), relativePath);
     try {
       const raw = await fs.readFile(configPath, 'utf-8');
-      return YAML.parse(raw) as AgentRuntimeConfig;
+      return YAML.parse(raw) as T;
     } catch {
-      return DEFAULT_RUNTIME_CONFIG;
+      return null;
     }
+  }
+
+  async getRuntime(agentId: string): Promise<AgentRuntimeConfig> {
+    // Phase 4：优先 DB contentJson，回退文件，最后默认值
+    const dbContent = await this.readDbContent(agentId);
+    if (dbContent.runtimeConfig) {
+      return dbContent.runtimeConfig as AgentRuntimeConfig;
+    }
+    return (await this.readYamlFileOrNull<AgentRuntimeConfig>(agentId, 'runtime.yaml')) ?? DEFAULT_RUNTIME_CONFIG;
   }
 
   async updateRuntime(agentId: string, partial: Record<string, unknown>): Promise<AgentRuntimeConfig> {
     const current = await this.getRuntime(agentId);
     const merged = deepmerge(current, partial) as unknown as AgentRuntimeConfig;
-    const dir = this.getAgentConfigDir(agentId);
-    await this.writeYamlAtomic(dir, 'runtime.yaml', merged);
+    // 内容真源写 DB；同时 dual-write 文件 shim（供 Local 执行，Increment 2 移除）
+    await this.writeDbContentPatch(agentId, { runtimeConfig: merged as unknown as Record<string, unknown> });
+    await this.writeYamlAtomic(this.getAgentConfigDir(agentId), 'runtime.yaml', merged);
     return merged;
   }
 
   async getPersona(agentId: string): Promise<PersonaConfig> {
-    const configPath = path.join(this.getAgentConfigDir(agentId), 'persona.yaml');
-    try {
-      const raw = await fs.readFile(configPath, 'utf-8');
-      return YAML.parse(raw) as PersonaConfig;
-    } catch {
-      // Return default persona
-      const { realmId } = getRealmContext();
-      const agent = await this.findById(agentId, realmId);
-      return {
-        name: agent?.displayName || 'Agent',
-        title: 'AI Assistant',
-        description: agent?.description || 'Cove agent',
-        language_style: {
-          formality: 'professional',
-          verbosity: 'concise',
-          preferred_language: 'zh-CN',
-        },
-        behavior: {
-          proactive: false,
-          ask_before_action: true,
-        },
-      };
-    }
+    const dbContent = await this.readDbContent(agentId);
+    const persona = (dbContent.persona as PersonaConfig | undefined)
+      ?? (await this.readYamlFileOrNull<PersonaConfig>(agentId, 'persona.yaml'));
+    if (persona) return persona;
+
+    // 默认 persona
+    const { realmId } = getRealmContext();
+    const agent = await this.findById(agentId, realmId);
+    return {
+      name: agent?.displayName || 'Agent',
+      title: 'AI Assistant',
+      description: agent?.description || 'Cove agent',
+      language_style: {
+        formality: 'professional',
+        verbosity: 'concise',
+        preferred_language: 'zh-CN',
+      },
+      behavior: {
+        proactive: false,
+        ask_before_action: true,
+      },
+    };
   }
 
   async updatePersona(agentId: string, partial: Record<string, unknown>): Promise<PersonaConfig> {
     const current = await this.getPersona(agentId);
     const merged = deepmerge(current, partial) as unknown as PersonaConfig;
-    const dir = this.getAgentConfigDir(agentId);
-    await this.writeYamlAtomic(dir, 'persona.yaml', merged);
+    await this.writeDbContentPatch(agentId, { persona: merged as unknown as Record<string, unknown> });
+    await this.writeYamlAtomic(this.getAgentConfigDir(agentId), 'persona.yaml', merged);
     return merged;
   }
 
   async getSkills(agentId: string): Promise<SkillsConfig | null> {
-    const configPath = path.join(this.getAgentConfigDir(agentId), 'config', 'skills.yaml');
-    try {
-      const raw = await fs.readFile(configPath, 'utf-8');
-      return YAML.parse(raw) as SkillsConfig;
-    } catch {
-      return null;
-    }
+    const dbContent = await this.readDbContent(agentId);
+    return (dbContent.skills as SkillsConfig | undefined)
+      ?? (await this.readYamlFileOrNull<SkillsConfig>(agentId, 'config/skills.yaml'));
   }
 
   async updateSkills(agentId: string, skills: SkillsConfig): Promise<void> {
-    const dir = this.getAgentConfigDir(agentId);
-    await this.writeYamlAtomic(dir, 'config/skills.yaml', skills);
+    await this.writeDbContentPatch(agentId, { skills: skills as unknown as Record<string, unknown> });
+    await this.writeYamlAtomic(this.getAgentConfigDir(agentId), 'config/skills.yaml', skills);
   }
 
   async getTools(agentId: string): Promise<ToolsConfig | null> {
-    const configPath = path.join(this.getAgentConfigDir(agentId), 'config', 'tools.yaml');
-    try {
-      const raw = await fs.readFile(configPath, 'utf-8');
-      return YAML.parse(raw) as ToolsConfig;
-    } catch {
-      return null;
-    }
+    const dbContent = await this.readDbContent(agentId);
+    return (dbContent.tools as ToolsConfig | undefined)
+      ?? (await this.readYamlFileOrNull<ToolsConfig>(agentId, 'config/tools.yaml'));
   }
 
   async updateTools(agentId: string, tools: ToolsConfig): Promise<void> {
-    const dir = this.getAgentConfigDir(agentId);
-    await this.writeYamlAtomic(dir, 'config/tools.yaml', tools);
+    await this.writeDbContentPatch(agentId, { tools: tools as unknown as Record<string, unknown> });
+    await this.writeYamlAtomic(this.getAgentConfigDir(agentId), 'config/tools.yaml', tools);
   }
 
   async getTriggers(agentId: string): Promise<TriggersConfig | null> {
-    const configPath = path.join(this.getAgentConfigDir(agentId), 'config', 'triggers.yaml');
-    try {
-      const raw = await fs.readFile(configPath, 'utf-8');
-      return YAML.parse(raw) as TriggersConfig;
-    } catch {
-      return null;
-    }
+    const dbContent = await this.readDbContent(agentId);
+    return (dbContent.triggers as TriggersConfig | undefined)
+      ?? (await this.readYamlFileOrNull<TriggersConfig>(agentId, 'config/triggers.yaml'));
   }
 
   async updateTriggers(agentId: string, triggers: TriggersConfig): Promise<void> {
-    const dir = this.getAgentConfigDir(agentId);
-    await this.writeYamlAtomic(dir, 'config/triggers.yaml', triggers);
+    await this.writeDbContentPatch(agentId, { triggers: triggers as unknown as Record<string, unknown> });
+    await this.writeYamlAtomic(this.getAgentConfigDir(agentId), 'config/triggers.yaml', triggers);
   }
 
   async getFilePaths(agentId: string): Promise<AgentFilePaths> {

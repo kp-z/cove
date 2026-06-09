@@ -11,7 +11,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as yaml from 'js-yaml'
-import type { AgentMetadata } from './agent-metadata'
+import type { AgentMetadata, AgentContent } from './agent-metadata'
 
 /**
  * 扫描器日志接口（与 Local 现有 logger 兼容的最小子集）
@@ -116,6 +116,10 @@ export class AgentScanner {
       return null
     }
 
+    // Phase 4：解析完整内容（persona/runtime/config + agent.md 正文），随元数据一并上送
+    const body = this.extractBody(content)
+    const agentContent = await this.readAgentContent(agentDir, metadata, body)
+
     return {
       agent_id: metadata.agent_id,
       name: metadata.name,
@@ -126,6 +130,63 @@ export class AgentScanner {
       tags: metadata.tags,
       created_by: metadata.created_by,
       created_at: metadata.created_at,
+      content: agentContent,
+    }
+  }
+
+  /**
+   * 提取 agent.md 正文（frontmatter 之后的部分），用作内容描述兜底来源
+   */
+  private extractBody(raw: string): string {
+    return raw.replace(/^---\n[\s\S]*?\n---\n?/, '').trim()
+  }
+
+  /**
+   * 读取并组装 Agent 完整内容
+   *
+   * 读取以下文件（缺失则对应字段省略）：
+   * - persona.yaml / runtime.yaml
+   * - config/skills.yaml / config/tools.yaml / config/triggers.yaml
+   * description/capabilities/tags 取 frontmatter，正文作为 description。
+   */
+  private async readAgentContent(
+    agentDir: string,
+    frontmatter: Partial<AgentMetadata>,
+    body: string
+  ): Promise<AgentContent> {
+    const [persona, runtimeConfig, skills, tools, triggers] = await Promise.all([
+      this.readYamlIfExists(path.join(agentDir, 'persona.yaml')),
+      this.readYamlIfExists(path.join(agentDir, 'runtime.yaml')),
+      this.readYamlIfExists(path.join(agentDir, 'config', 'skills.yaml')),
+      this.readYamlIfExists(path.join(agentDir, 'config', 'tools.yaml')),
+      this.readYamlIfExists(path.join(agentDir, 'config', 'triggers.yaml')),
+    ])
+
+    return {
+      description: body || undefined,
+      capabilities: frontmatter.capabilities,
+      tags: frontmatter.tags,
+      runtimeConfig: runtimeConfig ?? undefined,
+      persona: persona ?? undefined,
+      skills: skills ?? undefined,
+      tools: tools ?? undefined,
+      triggers: triggers ?? undefined,
+    }
+  }
+
+  /**
+   * 读取 YAML 文件，不存在或解析失败返回 null
+   */
+  private async readYamlIfExists(filePath: string): Promise<Record<string, unknown> | null> {
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8')
+      const parsed = yaml.load(raw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>
+      }
+      return null
+    } catch {
+      return null
     }
   }
 }

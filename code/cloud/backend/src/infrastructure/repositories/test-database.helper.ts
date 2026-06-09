@@ -205,6 +205,7 @@ export class TestDatabaseHelper {
         "scope" TEXT NOT NULL DEFAULT 'user',
         "projectIds" TEXT NOT NULL DEFAULT '[]',
         "configPath" TEXT NOT NULL,
+        "contentJson" TEXT,
         "avatarUrl" TEXT,
         "avatarType" TEXT NOT NULL DEFAULT 'dicebear',
         "createdBy" TEXT NOT NULL DEFAULT 'system',

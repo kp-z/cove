@@ -240,6 +240,7 @@ model Agent {
   scope       String   @default("user") // built-in | user | project | admin
   projectIds  String   @default("[]") // JSON array of project IDs
   configPath  String   // 指向 .cove/storage/agents/{realmId}/{id}.json
+  contentJson String?  // Agent 内容真源（description/capabilities/tags/persona/runtime/skills/tools/triggers 的 JSON 序列化）。Phase 4 路线 A：DB 为内容真源，Local 接管物理文件。
   avatarUrl   String?  // 头像 URL（上传的文件路径或外部 URL）
   avatarType  String   @default("dicebear") // uploaded | dicebear | default
   createdBy   String   @default("system")

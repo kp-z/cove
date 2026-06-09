@@ -110,6 +110,20 @@ export interface BackendGateway {
 }
 
 /**
+ * Agent 内容传输对象（Phase 4 路线 A：写入 Backend DB 的 contentJson）
+ */
+export interface AgentContentDto {
+  description?: string;
+  capabilities?: string[];
+  tags?: string[];
+  runtimeConfig?: Record<string, unknown>;
+  persona?: Record<string, unknown>;
+  skills?: Record<string, unknown>;
+  tools?: Record<string, unknown>;
+  triggers?: Record<string, unknown>;
+}
+
+/**
  * Agent 元数据传输对象（与 Backend agentSync.sync 契约一致）
  */
 export interface AgentMetadataDto {
@@ -122,4 +136,5 @@ export interface AgentMetadataDto {
   tags?: string[];
   created_by?: string;
   created_at?: string;
+  content?: AgentContentDto;
 }

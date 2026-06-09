@@ -72,6 +72,43 @@ tags: [builtin]
     })
   })
 
+  it('应解析完整内容（正文 description + persona.yaml + runtime.yaml + config/*.yaml）', async () => {
+    const dir = path.join(tmpRoot, 'agent-full')
+    await fs.mkdir(path.join(dir, 'config'), { recursive: true })
+    await fs.writeFile(
+      path.join(dir, 'agent.md'),
+      `---
+agent_id: agent-full
+name: full
+display_name: Full Bot
+capabilities: [coding]
+tags: [backend]
+---
+
+这是正文描述`,
+      'utf-8'
+    )
+    await fs.writeFile(path.join(dir, 'persona.yaml'), 'name: Full Bot\ntitle: Dev\n', 'utf-8')
+    await fs.writeFile(path.join(dir, 'runtime.yaml'), 'model: claude-sonnet-4\n', 'utf-8')
+    await fs.writeFile(path.join(dir, 'config', 'skills.yaml'), 'skill_ids: [s1]\n', 'utf-8')
+
+    const scanner = new AgentScanner(tmpRoot, silentLogger)
+    const result = await scanner.scan()
+
+    expect(result).toHaveLength(1)
+    const content = result[0]?.content
+    expect(content).toBeDefined()
+    expect(content?.description).toBe('这是正文描述')
+    expect(content?.capabilities).toEqual(['coding'])
+    expect(content?.tags).toEqual(['backend'])
+    expect(content?.persona).toMatchObject({ name: 'Full Bot', title: 'Dev' })
+    expect(content?.runtimeConfig).toMatchObject({ model: 'claude-sonnet-4' })
+    expect(content?.skills).toMatchObject({ skill_ids: ['s1'] })
+    // 缺失的 tools/triggers 应为 undefined
+    expect(content?.tools).toBeUndefined()
+    expect(content?.triggers).toBeUndefined()
+  })
+
   it('display_name 缺失时回退为 name', async () => {
     await writeAgent(
       tmpRoot,
