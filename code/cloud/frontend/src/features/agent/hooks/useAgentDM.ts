@@ -72,7 +72,7 @@ export function useAgentDM() {
         openChannel(channel.channel_id);
       }
     } catch (error) {
-      console.error('[ERROR] Failed to open agent DM', error);
+      console.error('Failed to open agent DM', error);
       throw error;
     }
   };

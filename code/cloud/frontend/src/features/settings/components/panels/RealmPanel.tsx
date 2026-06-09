@@ -169,15 +169,15 @@ export function RealmPanel() {
           members={members}
           isLoading={membersLoading}
           canManage={canEdit}
-          onAddMember={() => console.log('Add member')}
+          onAddMember={() => {}}
         />
 
         {/* Adapters */}
         <RealmAdaptersCard
           adapters={mockAdapters}
           canManage={canEdit}
-          onAddAdapter={() => console.log('Add adapter')}
-          onSetDefault={(id) => console.log('Set default adapter:', id)}
+          onAddAdapter={() => {}}
+          onSetDefault={() => {}}
         />
       </div>
 

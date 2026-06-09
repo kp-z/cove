@@ -102,20 +102,60 @@ import { ILogger, LogContext, LogLevel } from './application/interfaces/index';
 import { createAppRouter } from './infrastructure/trpc/routers';
 import { createContext } from './infrastructure/trpc/context';
 
+/**
+ * 日志级别权重（数值越大越严重），用于级别过滤
+ */
+const LOG_LEVEL_WEIGHT: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+  fatal: 50,
+};
+
+/**
+ * 解析有效日志级别
+ *
+ * 优先级：LOG_LEVEL 环境变量 > 开发环境默认 debug > 生产默认 info。
+ * 取值非法时回退到 info。
+ */
+function resolveLogLevel(): LogLevel {
+  const fromEnv = process.env.LOG_LEVEL?.toLowerCase();
+  if (fromEnv && fromEnv in LOG_LEVEL_WEIGHT) {
+    return fromEnv as LogLevel;
+  }
+  return process.env.NODE_ENV === 'development' ? 'debug' : 'info';
+}
+
 class ConsoleLogger implements ILogger {
+  private threshold: number;
+
+  constructor(level: LogLevel = resolveLogLevel()) {
+    this.threshold = LOG_LEVEL_WEIGHT[level];
+  }
+
+  /** 当前级别是否应输出 */
+  private enabled(level: LogLevel): boolean {
+    return LOG_LEVEL_WEIGHT[level] >= this.threshold;
+  }
+
   debug(message: string, context?: LogContext): void {
+    if (!this.enabled('debug')) return;
     console.log(`[DEBUG] ${message}`, context || '');
   }
 
   info(message: string, context?: LogContext): void {
+    if (!this.enabled('info')) return;
     console.log(`[INFO] ${message}`, context || '');
   }
 
   warn(message: string, context?: LogContext): void {
+    if (!this.enabled('warn')) return;
     console.warn(`[WARN] ${message}`, context || '');
   }
 
   error(message: string, error?: Error, context?: LogContext): void {
+    if (!this.enabled('error')) return;
     console.error(`[ERROR] ${message}`, error, context || '');
   }
 
@@ -127,18 +167,18 @@ class ConsoleLogger implements ILogger {
     return this;
   }
 
-  setLevel(_level: LogLevel): void {
-    // Console logger doesn't support dynamic level changes
+  setLevel(level: LogLevel): void {
+    this.threshold = LOG_LEVEL_WEIGHT[level];
   }
 }
 
 function initializeDependencies() {
   const logger = new ConsoleLogger();
-  logger.info('Initializing dependencies...');
+  logger.debug('Initializing dependencies...');
 
   // Database + Storage
   const prisma = getPrismaClient();
-  logger.info('Prisma client initialized', { hasPrisma: !!prisma });
+  logger.debug('Prisma client initialized');
 
   // Use global .cove directory in user's home directory
   const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
@@ -509,9 +549,9 @@ function initializeDependencies() {
   );
   realmMemberChannelAutoJoinService.start();
 
-  logger.info('Auto-join services started successfully');
+  logger.debug('Auto-join services started');
 
-  logger.info('Dependencies initialized successfully');
+  logger.info('⚙️  Dependencies initialized');
 
   // Listen to device connection events and publish to EventBus
   deviceConnectionManager.on('device.connected', ({ deviceId }) => {
@@ -696,8 +736,8 @@ function createStandaloneServer(deps: {
     const origin = req.headers.origin || 'http://localhost:5174';
 
     try {
-      // Log all requests
-      deps.logger.info(`${req.method} ${req.url}`);
+      // Log all requests（降为 debug，避免每个 HTTP 请求刷屏）
+      deps.logger.debug(`${req.method} ${req.url}`);
 
       // Handle CORS preflight requests
       if (req.method === 'OPTIONS') {
@@ -974,27 +1014,22 @@ async function startServer() {
       },
     });
 
-    deps.logger.info('tRPC WebSocket handler configured');
+    deps.logger.debug('tRPC WebSocket handler configured');
 
-    // Start MessageOrchestrator to process queued messages
-    deps.logger.info('Starting MessageOrchestrator...');
+    // 启动消息编排器
     await deps.messageOrchestrator.start();
-    deps.logger.info('MessageOrchestrator started successfully');
+    deps.logger.debug('MessageOrchestrator started');
 
-    // Start DeviceService offline detection
-    deps.logger.info('Starting DeviceService offline detection...');
+    // 启动设备离线检测
     deps.deviceService.startOfflineDetection();
-    deps.logger.info('DeviceService offline detection started successfully');
+    deps.logger.debug('DeviceService offline detection started');
 
     httpServer.listen(PORT, () => {
-      deps.logger.info(`Cove Backend Server started on http://localhost:${PORT}`);
-      deps.logger.info(`WebSocket: ws://localhost:${PORT}`);
-      deps.logger.info('');
-      deps.logger.info('Endpoints:');
-      deps.logger.info(`  tRPC HTTP: http://localhost:${PORT}/trpc`);
-      deps.logger.info(`  tRPC WebSocket: ws://localhost:${PORT}`);
-      deps.logger.info(`  Health: http://localhost:${PORT}/health`);
-      deps.logger.info(`  API Docs: http://localhost:${PORT}/docs`);
+      deps.logger.info(`🚀 Cove Backend ready — http://localhost:${PORT}`);
+      deps.logger.info(`   tRPC HTTP  : http://localhost:${PORT}/trpc`);
+      deps.logger.info(`   WebSocket  : ws://localhost:${PORT}`);
+      deps.logger.info(`   Health     : http://localhost:${PORT}/health`);
+      deps.logger.info(`   API Docs   : http://localhost:${PORT}/docs`);
     });
 
     // Graceful shutdown handler

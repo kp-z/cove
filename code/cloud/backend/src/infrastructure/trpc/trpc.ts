@@ -21,17 +21,8 @@ export const middleware = t.middleware;
 
 // RealmContext injection middleware with member verification
 const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
-  // Debug logging
-  console.log('[RealmContext Middleware]', {
-    realmId: ctx.realmId,
-    userId: ctx.userId,
-    hasRealmId: !!ctx.realmId,
-    hasUserId: !!ctx.userId
-  });
-
   // Check realmId is present
   if (!ctx.realmId) {
-    console.log('[RealmContext Middleware] Missing realmId');
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'Realm ID is required. Make sure x-realm-id header is set.',
@@ -40,7 +31,6 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
 
   // Check userId is present
   if (!ctx.userId) {
-    console.log('[RealmContext Middleware] Missing userId');
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'User authentication is required.',
@@ -51,9 +41,9 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
   const isMember = await ctx.realmMemberVerification.isMember(ctx.userId, ctx.realmId);
 
   if (!isMember) {
-    console.log('[RealmContext Middleware] Access denied - user is not a member of realm', {
+    ctx.logger.warn('Access denied - user is not a member of realm', {
       userId: ctx.userId,
-      realmId: ctx.realmId
+      realmId: ctx.realmId,
     });
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -62,24 +52,16 @@ const realmContextMiddleware = t.middleware(async ({ ctx, next }) => {
   }
 
   // Inject RealmContext into AsyncLocalStorage
-  console.log('[RealmContext Middleware] Injecting context', {
-    userId: ctx.userId,
-    realmId: ctx.realmId
-  });
   const realmContext = RealmContext.create(ctx.realmId, ctx.userId);
   return serverContextStore.run(realmContext, () => next());
 });
 
-// Logger middleware
+// Logger middleware（每请求耗时记录，降为 debug 避免刷屏）
 const loggerMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
   const start = Date.now();
-  ctx.logger.info(`tRPC ${type} ${path} - Start`);
-
   const result = await next();
-
   const duration = Date.now() - start;
-  ctx.logger.info(`tRPC ${type} ${path} - ${duration}ms`);
-
+  ctx.logger.debug(`tRPC ${type} ${path} - ${duration}ms`);
   return result;
 });
 

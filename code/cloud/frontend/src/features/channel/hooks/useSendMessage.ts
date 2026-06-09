@@ -11,6 +11,9 @@ import { Message, type MessageError } from '../domain/models';
 import { messageStateManager } from '../domain/MessageStateManager';
 import { messageQueue } from '../domain/MessageQueue';
 import { systemLog } from '../stores/systemEventStore';
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('useSendMessage');
 
 export function useSendMessage() {
   const { userId, user } = useCurrentUser();
@@ -19,13 +22,11 @@ export function useSendMessage() {
   // 监听网络状态变化
   useEffect(() => {
     const handleOnline = () => {
-      console.log('[useSendMessage] Network back online, processing queue...');
-      // 网络恢复后，处理队列中的消息
-      // messageQueue 会自动处理，这里只是日志
+      log.debug('Network back online');
     };
 
     const handleOffline = () => {
-      console.log('[useSendMessage] Network offline');
+      log.debug('Network offline');
     };
 
     window.addEventListener('online', handleOnline);
@@ -39,12 +40,9 @@ export function useSendMessage() {
 
   const send = useCallback(
     async (channelId: string, content: string) => {
-      console.log('🚀🚀🚀 [useSendMessage] send() CALLED!!! 🚀🚀🚀', { channelId, content });
-      console.log('👉 This should appear IMMEDIATELY when you send a message!');
-
       // 1. 创建本地消息
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      console.log('📝 [useSendMessage] Creating local message with tempId:', tempId);
+      log.debug('Sending message', { channelId, tempId });
 
       const localMessage = new Message({
         id: tempId,
@@ -61,19 +59,12 @@ export function useSendMessage() {
       });
 
       // 2. 立即添加到状态管理器（optimistic update）
-      console.log('[useSendMessage] Adding local message:', {
-        id: localMessage.id,
-        content: localMessage.content.substring(0, 50),
-        channelId: localMessage.channelId,
-        status: localMessage.status,
-      });
       messageStateManager.addLocalMessage(localMessage);
-      console.log('[useSendMessage] Local message added successfully');
 
       // 3. 检查网络状态
       if (!navigator.onLine) {
         // 离线：标记为排队状态
-        console.log('[useSendMessage] Offline, queuing message');
+        log.debug('Offline, queuing message', { tempId });
         systemLog.warn(channelId, 'message.queued', 'Message queued (offline)', { messageId: tempId });
         messageStateManager.updateMessageStatus(tempId, 'queued');
         messageQueue.enqueue({
@@ -89,12 +80,10 @@ export function useSendMessage() {
 
       // 4. 发送到服务器
       try {
-        console.log('[useSendMessage] Sending to server...');
-
         // 标记为 sending 状态
         messageStateManager.updateMessageStatus(tempId, 'sending');
 
-        const result = await mutation.mutateAsync({
+        await mutation.mutateAsync({
           channelId,
           senderId: userId || 'unknown',
           senderType: 'human',
@@ -102,7 +91,6 @@ export function useSendMessage() {
         });
 
         // 5. 成功：标记为 sent
-        console.log('[useSendMessage] Message sent successfully');
         messageStateManager.updateMessageStatus(tempId, 'sent');
 
         // 6. 触发 lastMessage 缓存失效，更新 channel list

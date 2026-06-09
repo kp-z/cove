@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { trpcClient } from '@/lib/trpc';
+import { logger } from '@/lib/logger';
 
 export type UserRole = 'owner' | 'admin' | 'user' | 'visitor';
 
@@ -93,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
         trpcClient.user.updatePreferences.mutate({
           lastAccessedRealmId: realmId,
         }).catch((error) => {
-          console.warn('Failed to update user preference (lastAccessedRealmId):', error);
+          logger.warn('[authStore] Failed to update user preference (lastAccessedRealmId)', error);
           // 静默失败，不影响用户体验
         });
       },

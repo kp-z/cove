@@ -18,6 +18,9 @@ import { LoginFlowOrchestrator } from './LoginFlowOrchestrator';
 import { BackendStatusIndicator } from './BackendStatusIndicator';
 import { useBackendHealth } from '@/core/hooks/useBackendHealth';
 import { useRealmStore } from '@/core/stores/realmStore';
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('LoginPage');
 
 const REMEMBERED_USERNAME_KEY = 'cove_remembered_username';
 
@@ -118,7 +121,7 @@ export default function LoginPage() {
             setShowOrchestrator(true);
           }
         } catch (error) {
-          console.error('Failed to fetch realm list on refresh:', error);
+          log.error('Failed to fetch realm list on refresh', error);
         } finally {
           setIsCheckingRealm(false);
         }
@@ -173,9 +176,6 @@ export default function LoginPage() {
         { username, password },
         {
           onSuccess: async (data) => {
-            console.log('Login success data:', data);
-            console.log('Context:', data.context);
-
             // 清除之前的 realm 缓存（登录是新会话的开始）
             localStorage.removeItem('current_realm_id');
             sessionStorage.removeItem('current_realm_id');
@@ -193,10 +193,8 @@ export default function LoginPage() {
             // 获取完整的 Realm 列表（包含 deviceStatus, isDefault, logoUrl）
             try {
               const realmListData = await utils.realm.list.fetch();
-              console.log('Realm list data:', realmListData);
 
               if (realmListData && realmListData.realms && realmListData.realms.length > 0) {
-                console.log('Has realms, setting context');
 
                 // 规范化 realm 数据：snake_case → camelCase
                 const normalizedRealms = realmListData.realms.map((realm: any) => ({
@@ -227,29 +225,26 @@ export default function LoginPage() {
 
                 if (destination.realmId) {
                   // 自动进入 realm：设置 currentRealmId 并导航
-                  console.log('Auto-entering realm:', destination.realmId);
+                  log.debug('Auto-entering realm', { realmId: destination.realmId });
                   const { setCurrentRealmId } = useAuthStore.getState();
                   setCurrentRealmId(destination.realmId);
                   setShowOrchestrator(false);
                   navigate(destination.path, { replace: true });
                 } else if (destination.path === '/select-realm') {
                   // 显示 realm 选择器
-                  console.log('Showing realm selector');
                   setUserContext(userContext);
                   // showOrchestrator 已经在前面设置为 true
                 } else {
                   // 其他路径（welcome 等）
-                  console.log('Navigating to:', destination.path);
                   setUserContext(userContext);
                   // showOrchestrator 已经在前面设置为 true
                 }
               } else {
-                console.log('No realms, navigating to:', from);
                 setShowOrchestrator(false);
                 navigate(from, { replace: true });
               }
             } catch (error) {
-              console.error('Failed to fetch realm list:', error);
+              log.error('Failed to fetch realm list', error);
               // 回退到旧流程
               setShowOrchestrator(false);
               navigate(from, { replace: true });

@@ -2,31 +2,20 @@ import { trpc } from '@/lib/trpc';
 import { notify } from '@/core/services/notificationService';
 import { useEffect, useState } from 'react';
 import { systemLog } from '@/features/channel/stores/systemEventStore';
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('useSendMessage');
 
 export function useSendMessage() {
   const utils = trpc.useUtils();
 
   return trpc.message.send.useMutation({
-    onMutate: (variables) => {
-      console.log('[useSendMessage] Mutation started', {
-        channelId: variables.channelId,
-        senderId: variables.senderId,
-        contentLength: variables.content.length,
-      });
-    },
     onSuccess: (_data, variables) => {
-      console.log('[useSendMessage] Mutation succeeded', {
-        messageId: _data.message_id,
-        channelId: variables.channelId,
-      });
       utils.message.list.invalidate({ channelId: variables.channelId });
       // Toast 已移除：新架构通过 MessageStatus 组件显示状态
     },
     onError: (error) => {
-      console.error('[useSendMessage] Mutation failed', {
-        error: error.message,
-        code: error.data?.code,
-      });
+      log.error('Mutation failed', { error: error.message, code: error.data?.code });
       // Toast 已移除：新架构通过 MessageStatus 组件显示错误
       // 仅保留系统级错误（如权限错误）的 Toast
       if (error.data?.code === 'FORBIDDEN' || error.data?.code === 'UNAUTHORIZED') {
@@ -274,7 +263,7 @@ export function useMessageStreaming(messageId: string | null) {
         });
       },
       onError: (error) => {
-        console.error('Streaming error:', error);
+        log.error('Streaming error', error);
         setState((prev) => ({ ...prev, isStreaming: false, status: 'idle' }));
       },
     }

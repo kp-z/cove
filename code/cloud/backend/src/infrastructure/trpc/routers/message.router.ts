@@ -71,24 +71,14 @@ export const messageRouter = (messageService: MessageService, channelService?: a
     send: publicProcedure
       .input(sendMessageSchema)
       .mutation(async ({ input, ctx }) => {
-        console.log('[message.router] send endpoint called', {
-          channelId: input.channelId,
-          senderId: input.senderId,
-          realmId: ctx.realmId,
-          userId: ctx.userId,
-        });
         try {
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
             const message = await messageService.sendMessage(input);
-            console.log('[message.router] Message sent successfully', {
-              messageId: message.messageId,
-            });
-          return message.toJSON();
+            return message.toJSON();
           });
         } catch (error: any) {
-          console.error('[message.router] Error sending message', {
-            error: error.message,
+          ctx.logger.error('Failed to send message', error as Error, {
             channelId: input.channelId,
           });
           throw mapErrorToTRPC(error);
@@ -388,54 +378,46 @@ export const messageRouter = (messageService: MessageService, channelService?: a
               ? input.channelId.split(':')[1]
               : input.channelId;
 
-            console.log('[saveResponse] Input channelId:', input.channelId);
-            console.log('[saveResponse] Parsed channelId:', channelId);
-            console.log('[saveResponse] Input senderId:', input.senderId);
-            console.log('[saveResponse] channelService available:', !!channelService);
-
             // Get senderId from channel's agentPool if not provided or if it's 'system'
             let senderId = input.senderId;
             if ((!senderId || senderId === 'system') && channelService) {
               try {
-                console.log('[saveResponse] Fetching channel...');
                 const channel = await channelService.getChannelById(channelId);
-                console.log('[saveResponse] Channel agentPool:', channel.agentPool);
 
                 // agentPool might be already parsed as array or a JSON string
                 let agentPool: string[] = [];
                 if (Array.isArray(channel.agentPool)) {
                   agentPool = channel.agentPool;
-                  console.log('[saveResponse] agentPool is already an array:', agentPool);
                 } else if (typeof channel.agentPool === 'string') {
                   try {
                     agentPool = JSON.parse(channel.agentPool);
-                    console.log('[saveResponse] Parsed agentPool from string:', agentPool);
                   } catch (parseErr) {
-                    console.error('[saveResponse] Failed to parse agentPool:', parseErr);
+                    ctx.logger.warn('Failed to parse channel agentPool', {
+                      channelId,
+                      error: (parseErr as Error).message,
+                    });
                   }
                 }
 
                 if (agentPool.length > 0) {
                   senderId = agentPool[0];
-                  console.log('[saveResponse] Using agent from pool:', senderId);
                 }
 
                 // If still no senderId, use channelId as fallback
                 if (!senderId || senderId === 'system') {
                   senderId = channelId;
-                  console.log('[saveResponse] Using channelId as senderId:', senderId);
                 }
               } catch (err) {
-                console.error('[saveResponse] Failed to get channel:', err);
+                ctx.logger.warn('saveResponse: failed to resolve channel sender', {
+                  channelId,
+                  error: (err as Error).message,
+                });
                 senderId = channelId;
               }
             }
             if (!senderId) {
               senderId = channelId;
-              console.log('[saveResponse] Ultimate fallback to channelId:', senderId);
             }
-
-            console.log('[saveResponse] Final senderId:', senderId);
 
             // 转换 execution 数据为 agentExecutionMetadata 格式
             const agentExecutionMetadata = input.execution ? {

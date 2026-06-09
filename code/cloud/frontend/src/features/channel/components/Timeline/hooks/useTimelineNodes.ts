@@ -47,8 +47,7 @@ export function useTimelineNodes({ channelId, limit = 50 }: UseTimelineNodesOpti
         // 过滤掉调试消息（content 是 message ID 格式的消息）
         const isDebugMessage = /^message-\d+-[a-z0-9]+$/.test(message.content || '');
         if (isDebugMessage) {
-          console.log('[useTimelineNodes] 跳过调试消息:', message.content);
-          return; // 跳过这条消息
+          return; // 跳过调试消息（content 是 message ID 格式）
         }
 
         timelineNodes.push({

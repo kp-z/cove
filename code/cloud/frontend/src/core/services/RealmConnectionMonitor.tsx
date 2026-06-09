@@ -10,6 +10,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/auth/authStore';
+import { logger } from '@/lib/logger';
 
 export function RealmConnectionMonitor() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export function RealmConnectionMonitor() {
         return;
       }
 
-      console.log('[RealmConnectionMonitor] Current realm disconnected, redirecting to realm selection');
+      logger.debug('[RealmConnectionMonitor] Current realm disconnected, redirecting to realm selection');
 
       // 清除当前 realm 选择
       setCurrentRealmId(null);

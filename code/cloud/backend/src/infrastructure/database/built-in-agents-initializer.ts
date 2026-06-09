@@ -27,38 +27,28 @@ export class BuiltInAgentsInitializer {
     this.prisma = options.prisma;
     this.logger = options.logger;
     this.storageRoot = options.storageRoot;
-
-    // Debug logging
-    this.logger.debug('BuiltInAgentsInitializer constructed', {
-      hasPrisma: !!this.prisma,
-      hasLogger: !!this.logger,
-      storageRoot: this.storageRoot
-    });
   }
 
   /**
-   * Initialize all built-in agents
-   * This is idempotent - safe to run multiple times
+   * 初始化所有内置 Agent（幂等，可安全重复运行）
+   *
+   * 职责说明（过渡期）：
+   *   ✅ DB upsert（scope: 'built-in'）—— Backend 持久层，理应在这里。
+   *   ⚠️  物理文件创建（persona.yaml / agent.md / runtime.yaml）—— 临时 shim：
+   *       Local 需要扫描这些文件才能将元数据同步回 Backend。
+   *       Phase 4 Increment 2 完成（Local 从 contentJson 物化文件）后，
+   *       Backend 可删除此处的文件操作。
    */
   async initialize(): Promise<void> {
-    this.logger.info('Initializing built-in agents...', {
-      count: BUILT_IN_AGENTS.length,
-    });
+    this.logger.debug(`Checking ${BUILT_IN_AGENTS.length} built-in agent(s)...`);
 
-    // Debug: check prisma
-    this.logger.debug('Before findFirst', {
-      hasPrisma: !!this.prisma,
-      hasRealm: !!(this.prisma as any).realm,
-      prismaType: typeof this.prisma
-    });
-
-    // Get nexus realm (the default realm)
+    // 获取默认 Realm（Nexus）
     const defaultRealm = await this.prisma.realm.findFirst({
       where: { name: 'nexus' },
     });
 
     if (!defaultRealm) {
-      this.logger.error('Nexus realm not found, cannot initialize built-in agents');
+      this.logger.error('❌ Nexus realm not found, cannot initialize built-in agents');
       return;
     }
 
@@ -66,14 +56,11 @@ export class BuiltInAgentsInitializer {
       try {
         await this.createOrUpdateAgent(agentConfig, defaultRealm.id);
       } catch (error) {
-        this.logger.error(`Failed to initialize built-in agent: ${agentConfig.name}`, error as Error);
-        // Continue with other agents even if one fails
+        this.logger.error(`❌ Failed to initialize built-in agent: ${agentConfig.displayName} (${agentConfig.name})`, error as Error);
       }
     }
 
-    this.logger.info('Built-in agents initialization complete');
-
-    // Validate and repair built-in agents
+    // 校验并修复
     if (process.env.SKIP_AGENT_VALIDATION !== 'true') {
       await this.validateAndRepair(defaultRealm.id);
     }
@@ -83,10 +70,6 @@ export class BuiltInAgentsInitializer {
    * Create or update a single built-in agent
    */
   private async createOrUpdateAgent(config: BuiltInAgentConfig, realmId: string): Promise<void> {
-    this.logger.debug(`Creating/updating built-in agent: ${config.name}`, {
-      id: config.id,
-    });
-
     // 1. Upsert agent in database
     const agent = await this.prisma.agent.upsert({
       where: { id: config.id },
@@ -111,7 +94,7 @@ export class BuiltInAgentsInitializer {
       },
     });
 
-    this.logger.debug(`Agent database record ready: ${agent.id}`);
+    this.logger.debug(`Agent DB record ready: ${agent.id}`);
 
     // 2. Create agent directory structure
     const agentDir = path.join(this.storageRoot, 'storage', 'agents', config.id);
@@ -195,7 +178,7 @@ ${config.tags.join(', ')}
       this.logger.debug(`Created default runtime config: ${runtimePath}`);
     }
 
-    this.logger.info(`Built-in agent initialized: ${config.displayName} (${config.name})`);
+    this.logger.debug(`Built-in agent ready: ${config.displayName} (${config.name})`);
   }
 
   /**
@@ -203,7 +186,6 @@ ${config.tags.join(', ')}
    * Checks for missing or empty agent.md files and repairs them
    */
   private async validateAndRepair(realmId: string): Promise<void> {
-    this.logger.info('Validating built-in agents...');
     let repairedCount = 0;
 
     for (const agentConfig of BUILT_IN_AGENTS) {
@@ -218,13 +200,13 @@ ${config.tags.join(', ')}
       try {
         const content = await fs.readFile(agentMdPath, 'utf-8');
         if (content.trim().length === 0) {
-          this.logger.warn(`agent.md is empty for ${agentConfig.name}, repairing...`);
+          this.logger.warn(`⚠️  agent.md is empty for ${agentConfig.displayName}, repairing...`);
           await this.createOrUpdateAgent(agentConfig, realmId);
           repairedCount++;
         }
       } catch (error: any) {
         if (error.code === 'ENOENT') {
-          this.logger.warn(`agent.md missing for ${agentConfig.name}, repairing...`);
+          this.logger.warn(`⚠️  agent.md missing for ${agentConfig.displayName}, repairing...`);
           await this.createOrUpdateAgent(agentConfig, realmId);
           repairedCount++;
         }
@@ -232,10 +214,9 @@ ${config.tags.join(', ')}
     }
 
     if (repairedCount > 0) {
-      this.logger.info(`Repaired ${repairedCount} built-in agents`);
-    } else {
-      this.logger.info('All built-in agents are valid');
+      this.logger.info(`🔧 Repaired ${repairedCount} built-in agent(s)`);
     }
+    // 校验通过时静默（info 级别不再重复打印 "all valid"）
   }
 
   /**

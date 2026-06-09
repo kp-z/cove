@@ -88,17 +88,12 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
     setDefaultTab(undefined);
   }, []);
 
-  const handleEdit = useCallback(() => {
-    console.log('Edit message:', message.id);
-  }, [message.id]);
+  // TODO: 实现编辑/删除/回复
+  const handleEdit = useCallback(() => {}, []);
 
-  const handleDelete = useCallback(() => {
-    console.log('Delete message:', message.id);
-  }, [message.id]);
+  const handleDelete = useCallback(() => {}, []);
 
-  const handleReply = useCallback(() => {
-    console.log('Reply to message:', message.id);
-  }, [message.id]);
+  const handleReply = useCallback(() => {}, []);
 
   const hoverActionsConfig = getDefaultConfig(
     message,

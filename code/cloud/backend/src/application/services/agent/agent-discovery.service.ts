@@ -1,8 +1,5 @@
 import { PrismaClient } from '../../../../generated/client';
-import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as os from 'os';
-import * as yaml from 'js-yaml';
 
 /**
  * Agent 元数据（来自 agent.md frontmatter）
@@ -41,58 +38,7 @@ export interface AgentMetadata {
 }
 
 export class AgentDiscoveryService {
-  private readonly agentsDir: string;
-
-  constructor(private readonly prisma: PrismaClient) {
-    this.agentsDir = path.join(os.homedir(), '.cove', 'storage', 'agents');
-  }
-
-  async discoverAndSyncAgents(): Promise<void> {
-    console.log('[AgentDiscoveryService] Starting agent discovery and sync...');
-
-    try {
-      const agentDirs = await this.scanAgentsDirectory();
-      console.log(`[AgentDiscoveryService] Found ${agentDirs.length} agent directories`);
-
-      for (const agentDir of agentDirs) {
-        await this.syncAgent(agentDir);
-      }
-
-      console.log('[AgentDiscoveryService] Agent discovery and sync completed');
-    } catch (error) {
-      console.error('[AgentDiscoveryService] Failed to discover and sync agents', error);
-      throw error;
-    }
-  }
-
-  private async scanAgentsDirectory(): Promise<string[]> {
-    try {
-      await fs.access(this.agentsDir);
-      const entries = await fs.readdir(this.agentsDir, { withFileTypes: true });
-      return entries
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-        .map((entry) => path.join(this.agentsDir, entry.name));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.warn(`[AgentDiscoveryService] Agents directory not found: ${this.agentsDir}`);
-        return [];
-      }
-      throw error;
-    }
-  }
-
-  private async syncAgent(agentDir: string): Promise<void> {
-    const agentDirName = path.basename(agentDir);
-    console.log(`[AgentDiscoveryService] Syncing agent: ${agentDirName}`);
-
-    const metadata = await this.readAgentMetadata(agentDir);
-    if (!metadata) {
-      console.warn(`[AgentDiscoveryService] No valid metadata found for agent: ${agentDirName}`);
-      return;
-    }
-
-    await this.syncAgentMetadata(metadata);
-  }
+  constructor(private readonly prisma: PrismaClient) {}
 
   /**
    * 根据元数据 upsert 单个 Agent（供 Local 推送同步调用）
@@ -113,10 +59,8 @@ export class AgentDiscoveryService {
       });
 
       if (existingAgent) {
-        console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} exists, updating (Local wins)...`);
         await this.updateAgent(metadata);
       } else {
-        console.log(`[AgentDiscoveryService] Agent ${metadata.agent_id} not in database, creating...`);
         await this.createAgent(metadata);
       }
     } catch (error) {
@@ -137,41 +81,10 @@ export class AgentDiscoveryService {
     return { synced };
   }
 
-  private async readAgentMetadata(agentDir: string): Promise<AgentMetadata | null> {
-    const agentMdPath = path.join(agentDir, 'agent.md');
-
-    try {
-      const content = await fs.readFile(agentMdPath, 'utf-8');
-      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-
-      if (!frontmatterMatch || !frontmatterMatch[1]) {
-        console.warn(`[AgentDiscoveryService] No frontmatter found in ${agentMdPath}`);
-        return null;
-      }
-
-      const metadata = yaml.load(frontmatterMatch[1]) as AgentMetadata;
-
-      if (!metadata.agent_id || !metadata.name) {
-        console.warn(`[AgentDiscoveryService] Invalid metadata in ${agentMdPath}: missing agent_id or name`);
-        return null;
-      }
-
-      return metadata;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.warn(`[AgentDiscoveryService] agent.md not found in ${agentDir}`);
-      } else {
-        console.error(`[AgentDiscoveryService] Failed to read agent.md in ${agentDir}`, error);
-      }
-      return null;
-    }
-  }
-
   private async createAgent(
     metadata: AgentMetadata,
   ): Promise<void> {
     const now = new Date();
-    const agentDir = path.join(os.homedir(), '.cove', 'storage', 'agents', metadata.agent_id);
     const configPath = path.join('storage', 'agents', metadata.agent_id);
 
     // Get default realm ID (agents discovered from filesystem belong to default realm)
@@ -202,14 +115,11 @@ export class AgentDiscoveryService {
         createdAt: metadata.created_at ? new Date(metadata.created_at) : now,
       },
     });
-
-    console.log(`[AgentDiscoveryService] Created agent ${metadata.agent_id} in database (workspace: ${agentDir})`);
   }
 
   private async updateAgent(
     metadata: AgentMetadata,
   ): Promise<void> {
-    const agentDir = path.join(os.homedir(), '.cove', 'storage', 'agents', metadata.agent_id);
     const configPath = path.join('storage', 'agents', metadata.agent_id);
 
     await this.prisma.agent.update({
@@ -224,7 +134,5 @@ export class AgentDiscoveryService {
         ...(metadata.content ? { contentJson: JSON.stringify(metadata.content) } : {}),
       },
     });
-
-    console.log(`[AgentDiscoveryService] Updated agent ${metadata.agent_id} in database (filesystem wins, workspace: ${agentDir})`);
   }
 }

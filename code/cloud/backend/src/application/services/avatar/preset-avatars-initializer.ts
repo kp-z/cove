@@ -30,9 +30,7 @@ export class PresetAvatarsInitializer {
    * 下载并保存到本地，幂等操作
    */
   async initialize(): Promise<void> {
-    this.logger.info('Initializing preset avatars...', {
-      count: PRESET_AVATARS.length,
-    });
+    this.logger.info(`🖼️  Preset avatars: checking ${PRESET_AVATARS.length} preset(s)...`);
 
     // 创建预设头像目录
     await fs.mkdir(this.presetsDir, { recursive: true });
@@ -54,11 +52,10 @@ export class PresetAvatarsInitializer {
       }
     }
 
-    this.logger.info('Preset avatars initialization complete', {
-      downloaded: downloadedCount,
-      skipped: skippedCount,
-      total: PRESET_AVATARS.length,
-    });
+    const summary = downloadedCount > 0
+      ? `🖼️  Preset avatars ready — ${downloadedCount} downloaded, ${skippedCount} cached`
+      : `🖼️  Preset avatars ready — ${skippedCount} cached`;
+    this.logger.info(summary);
   }
 
   /**

@@ -34,7 +34,7 @@ export class DefaultChannelsAutoJoinService {
    * 启动服务，订阅事件
    */
   start(): void {
-    this.logger.info('Starting DefaultChannelsAutoJoinService...');
+    this.logger.debug('Starting DefaultChannelsAutoJoinService...');
 
     // 订阅 user.created 事件
     const unsubUser = this.eventBus.subscribe('user.created', async (event: DomainEvent) => {
@@ -48,7 +48,7 @@ export class DefaultChannelsAutoJoinService {
 
     this.unsubscribers.push(unsubUser, unsubAgent);
 
-    this.logger.info('DefaultChannelsAutoJoinService started successfully');
+    this.logger.debug('DefaultChannelsAutoJoinService started');
   }
 
   /**

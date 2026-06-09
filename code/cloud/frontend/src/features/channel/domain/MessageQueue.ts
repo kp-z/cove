@@ -3,6 +3,10 @@
  * 管理离线和失败消息的重试
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('MessageQueue');
+
 export interface QueuedMessage {
   id: string;
   channelId: string;
@@ -27,7 +31,7 @@ export class MessageQueue {
   enqueue(message: QueuedMessage): void {
     // 检查队列大小限制
     if (this.queue.length >= this.MAX_QUEUE_SIZE) {
-      console.warn('Message queue is full, removing oldest message');
+      log.warn('Message queue is full, removing oldest message');
       this.queue.shift();
     }
 
@@ -59,7 +63,7 @@ export class MessageQueue {
         await this.sendMessage(msg);
         this.dequeue(msg.id);
       } catch (error) {
-        console.error('Failed to send queued message:', error);
+        log.error('Failed to send queued message', error);
 
         // 重试次数超过3次，移除
         if (msg.retryCount >= 3) {
@@ -115,7 +119,7 @@ export class MessageQueue {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('online', () => {
-      console.log('Network online, processing queue...');
+      log.debug('Network online, processing queue');
       this.processQueue();
     });
   }
@@ -132,7 +136,7 @@ export class MessageQueue {
         }));
       }
     } catch (error) {
-      console.error('Failed to load queue from storage:', error);
+      log.error('Failed to load queue from storage', error);
     }
   }
 
@@ -142,7 +146,7 @@ export class MessageQueue {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.queue));
     } catch (error) {
-      console.error('Failed to save queue to storage:', error);
+      log.error('Failed to save queue to storage', error);
     }
   }
 

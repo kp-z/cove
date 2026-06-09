@@ -26,7 +26,7 @@ export class RealmMemberChannelAutoJoinService {
    * 启动服务，订阅事件
    */
   start(): void {
-    this.logger.info('Starting RealmMemberChannelAutoJoinService...');
+    this.logger.debug('Starting RealmMemberChannelAutoJoinService...');
 
     // 订阅 server_member.added 事件
     const unsubscribe = this.eventBus.subscribe('server_member.added', async (event: DomainEvent) => {
@@ -35,7 +35,7 @@ export class RealmMemberChannelAutoJoinService {
 
     this.unsubscribers.push(unsubscribe);
 
-    this.logger.info('RealmMemberChannelAutoJoinService started successfully');
+    this.logger.debug('RealmMemberChannelAutoJoinService started');
   }
 
   /**

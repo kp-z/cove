@@ -29,14 +29,6 @@ export interface CreateContextOptions {
 
 export function createContext(opts: CreateContextOptions) {
   return async ({ req, res }: CreateHTTPContextOptions): Promise<Context> => {
-    // Debug logging for incoming request
-    console.log('[Context Creation] Headers:', {
-      authorization: req.headers.authorization ? 'Bearer ***' : undefined,
-      'x-realm-id': req.headers['x-realm-id'],
-      'x-user-id': req.headers['x-user-id'],
-      'x-device-id': req.headers['x-device-id'],
-    });
-
     // Set CORS headers - use specific origin instead of wildcard when credentials are included
     const origin = req.headers.origin || 'http://localhost:5174';
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -100,7 +92,7 @@ export function createContext(opts: CreateContextOptions) {
         });
       }
 
-      opts.logger.info('Attempting device authentication');
+      opts.logger.debug('Attempting device authentication');
 
       try {
         const authResult = await opts.deviceAuthService.authenticateDevice(
@@ -108,8 +100,6 @@ export function createContext(opts: CreateContextOptions) {
           apiKey,
           realmId
         );
-
-        opts.logger.info('Device auth result');
 
         if (!authResult.isValid) {
           opts.logger.error('Device auth failed: invalid credentials');
@@ -128,13 +118,7 @@ export function createContext(opts: CreateContextOptions) {
           });
         }
 
-        opts.logger.info('Device authenticated successfully');
-
-        console.log('[Context Creation] Device authenticated:', {
-          userId: deviceId,
-          realmId,
-          userType: 'agent',
-        });
+        opts.logger.debug('Device authenticated successfully', { deviceId, realmId });
 
         return {
           realmId,
@@ -162,12 +146,6 @@ export function createContext(opts: CreateContextOptions) {
     // Fallback: Extract user info from legacy headers (for backward compatibility)
     const userId = req.headers['x-user-id'] as string | undefined;
     const userType = req.headers['x-user-type'] as 'human' | 'agent' | undefined;
-
-    console.log('[Context Creation] Using legacy headers:', {
-      userId,
-      realmId,
-      userType: userType || 'human',
-    });
 
     return {
       realmId,

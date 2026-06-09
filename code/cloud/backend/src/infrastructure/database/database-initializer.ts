@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import { PrismaClient } from '../../../generated/client';
 import { ILogger } from '../../application/interfaces/index';
-import { BuiltInAgentsInitializer } from './built-in-agents-initializer';
 import { DefaultDataInitializer } from './default-data-initializer';
 
 export interface DatabaseInitializerOptions {
@@ -112,12 +111,12 @@ export class DatabaseInitializer {
       return false;
     }
 
-    this.logger.info('Checking database initialization status...');
+    this.logger.info('🗄️  Database: checking initialization status...');
 
     const needsMigration = this.needsInitialization();
 
     if (needsMigration) {
-      this.logger.info('Database needs initialization, starting setup...');
+      this.logger.info('🗄️  Database: first-time setup, running migrations...');
 
       try {
         // Step 1: Ensure database directory exists
@@ -136,61 +135,29 @@ export class DatabaseInitializer {
           throw new Error('Database file is still empty after migration');
         }
 
-        this.logger.info('Database initialized successfully', {
-          path: this.databasePath,
-          size: stats.size
-        });
+      this.logger.info(`🗄️  Database: initialized (${(stats.size / 1024).toFixed(0)} KB)`);
       } catch (error) {
         this.logger.error('Database initialization failed', error as Error);
         throw error;
       }
     } else {
-      this.logger.info('Database is already initialized, skipping migration');
+      this.logger.info('🗄️  Database: already initialized, skipping migration');
     }
 
-    // Step 4: Initialize built-in agents (if prisma and storageRoot are provided)
-    // This runs regardless of whether migration was needed, to ensure agents exist
+    // Step 4: 初始化默认数据（Nexus Realm + 内置 Agent + 默认频道）
+    // 内置 Agent 的种入已移至 DefaultDataInitializer 内部，与 Nexus Realm 创建绑定，
+    // 不在此处单独扫描。新 Realm 通过 realm.service.ts createRealm → addPlatformAgentToRealm 自动关联。
     if (this.prisma && this.storageRoot) {
-      await this.initializeBuiltInAgents();
-
-      // Step 5: Initialize default data (Nexus realm + default channels)
-      // This runs regardless of whether migration was needed, to ensure default data exists
       await this.initializeDefaultData();
     } else {
-      this.logger.debug('Skipping built-in agents and default data initialization (prisma or storageRoot not provided)');
+      this.logger.debug('Skipping default data initialization (prisma or storageRoot not provided)');
     }
 
     return needsMigration;
   }
 
   /**
-   * Initialize built-in agents
-   */
-  private async initializeBuiltInAgents(): Promise<void> {
-    if (!this.prisma || !this.storageRoot) {
-      return;
-    }
-
-    try {
-      this.logger.info('Initializing built-in agents...');
-
-      const agentsInitializer = new BuiltInAgentsInitializer({
-        prisma: this.prisma,
-        logger: this.logger,
-        storageRoot: this.storageRoot,
-      });
-
-      await agentsInitializer.initialize();
-
-      this.logger.info('Built-in agents initialization complete');
-    } catch (error) {
-      this.logger.error('Failed to initialize built-in agents', error as Error);
-      // Don't throw - built-in agents initialization failure shouldn't block database initialization
-    }
-  }
-
-  /**
-   * Initialize default data (Nexus realm + default channels)
+   * 初始化默认数据（Nexus Realm + 内置 Agent + 默认频道）
    */
   private async initializeDefaultData(): Promise<void> {
     if (!this.prisma || !this.storageRoot) {
@@ -198,8 +165,6 @@ export class DatabaseInitializer {
     }
 
     try {
-      this.logger.info('Initializing default data...');
-
       const defaultDataInitializer = new DefaultDataInitializer({
         prisma: this.prisma,
         logger: this.logger,
@@ -207,11 +172,9 @@ export class DatabaseInitializer {
       });
 
       await defaultDataInitializer.initialize();
-
-      this.logger.info('Default data initialization complete');
     } catch (error) {
-      this.logger.error('Failed to initialize default data', error as Error);
-      // Don't throw - default data initialization failure shouldn't block database initialization
+      this.logger.error('❌ Failed to initialize default data', error as Error);
+      // 不阻断启动
     }
   }
 

@@ -31,29 +31,13 @@ export class ChannelQueryService {
   }
 
   async canSendMessage(channelId: string, senderId: string): Promise<{ allowed: boolean; reason?: string }> {
-    console.log('[ChannelQueryService] canSendMessage called', {
-      channelId,
-      senderId,
-      realmId: getRealmContext().realmId,
-    });
-
     const channel = await this.channelRepository.findById(channelId, getRealmContext().realmId);
     if (!channel) {
-      console.warn('[ChannelQueryService] Channel not found', { channelId });
       return { allowed: false, reason: 'Channel not found' };
     }
 
     const recentCount = await this.messageRepository.countRecentByChannelAndSender(channelId, senderId, 1);
     const result = channel.canSendMessage(senderId, recentCount);
-
-    console.log('[ChannelQueryService] Permission check result', {
-      channelId,
-      senderId,
-      allowed: result.allowed,
-      reason: result.reason,
-      channelStatus: channel.status,
-      isMember: channel.members.some(m => m.memberId === senderId),
-    });
 
     return result;
   }

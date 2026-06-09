@@ -47,11 +47,10 @@ export function createDeviceSubscriptionRouter(deps: DeviceSubscriptionRouterDep
           deps.deviceConnectionManager.registerConnection(
             deviceId,
             (_event: string, data: any) => {
-              deps.logger.info('[DeviceSubscription] Emit called', {
+              deps.logger.debug('Device emit', {
                 deviceId,
                 event: _event,
                 dataType: data?.type,
-                hasData: !!data
               });
               emit.next(data);
             },

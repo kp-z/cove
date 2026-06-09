@@ -3,10 +3,12 @@
  * 专门处理 Agent 响应的流式更新
  */
 
-import { useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { messageStateManager } from '../domain/MessageStateManager';
 import { Message } from '../domain/models/Message';
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('useAgentStreaming');
 
 export function useAgentStreaming(channelId: string) {
   // 订阅 Agent 响应事件
@@ -24,7 +26,7 @@ export function useAgentStreaming(channelId: string) {
     {
       enabled: !!channelId,
       onData: (event) => {
-        console.log('[useAgentStreaming] Agent response event:', event);
+        log.debug('Agent response event', event);
 
         const { eventType, data } = event;
 
@@ -50,12 +52,6 @@ export function useAgentStreaming(channelId: string) {
               });
 
               messageStateManager.addLocalMessage(agentPlaceholder);
-              console.log('[useAgentStreaming] Agent placeholder created:', {
-                id: agentPlaceholderId,
-                agentId: data.agentId,
-                agentName: data.agentName,
-                channelId: data.channelId,
-              });
 
               // 设置超时清理（30 秒）
               setTimeout(() => {
@@ -66,7 +62,7 @@ export function useAgentStreaming(channelId: string) {
                 if (message && (message.streamingPhase === 'accepted' ||
                                 message.streamingPhase === 'thinking' ||
                                 message.streamingPhase === 'pending')) {
-                  console.warn('[useAgentStreaming] Agent response timeout:', {
+                  log.warn('Agent response timeout', {
                     id: agentPlaceholderId,
                     phase: message.streamingPhase,
                   });
@@ -124,7 +120,7 @@ export function useAgentStreaming(channelId: string) {
         }
       },
       onError: (error) => {
-        console.error('[useAgentStreaming] Subscription error:', error);
+        log.error('Subscription error', error);
       },
     }
   );
@@ -137,7 +133,7 @@ export function useAgentStreaming(channelId: string) {
     {
       enabled: false, // 暂时禁用，需要配合具体的 messageId
       onData: (event) => {
-        console.log('[useAgentStreaming] Message streaming event:', event);
+        log.debug('Message streaming event', event);
 
         const { eventType, data } = event;
 

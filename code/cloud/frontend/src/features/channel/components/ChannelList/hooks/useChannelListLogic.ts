@@ -67,18 +67,16 @@ export function useChannelListLogic(options: ChannelListLogicOptions = {}) {
     }
   };
 
-  const handleMarkAsRead = async (channel: ChannelEntity) => {
+  const handleMarkAsRead = async (_channel: ChannelEntity) => {
     // TODO: Implement mark as read functionality
-    console.log('Mark as read:', channel.channel_id);
   };
 
   const handleOpenSettings = (channel: ChannelEntity) => {
     navigate(`/channels/${channel.channel_id}/edit`);
   };
 
-  const handleLeaveChannel = async (channel: ChannelEntity) => {
+  const handleLeaveChannel = async (_channel: ChannelEntity) => {
     // TODO: Implement leave channel functionality
-    console.log('Leave channel:', channel.channel_id);
   };
 
   const handleChannelSelect = (channelId: string) => {

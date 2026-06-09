@@ -131,12 +131,6 @@ export class HybridUserRepository
   }
 
   async findByRole(role: UserRole): Promise<UserEntity[]> {
-    console.log('[HybridUserRepository] findByRole called', {
-      role,
-      hasPrisma: !!this.prisma,
-      prismaType: typeof this.prisma
-    });
-
     if (!this.prisma) {
       throw new Error('Prisma client is not initialized in HybridUserRepository');
     }

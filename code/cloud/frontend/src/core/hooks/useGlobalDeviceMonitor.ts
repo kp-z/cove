@@ -12,6 +12,9 @@ import { trpc } from '@/lib/trpc';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useRealmStore } from '@/core/stores/realmStore';
 import { notify } from '@/core/services/notificationService';
+import { logger } from '@/lib/logger';
+
+const log = logger.scope('GlobalDeviceMonitor');
 
 export function useGlobalDeviceMonitor() {
   const { isAuthenticated, currentRealmId } = useAuthStore();
@@ -24,7 +27,7 @@ export function useGlobalDeviceMonitor() {
     onData: (data) => {
       const { realmId, deviceStatus } = data;
 
-      console.log('[GlobalDeviceMonitor] Device status changed:', {
+      log.debug('Device status changed', {
         realmId,
         deviceStatus,
         isCurrentRealm: realmId === currentRealmId,
@@ -41,7 +44,7 @@ export function useGlobalDeviceMonitor() {
       const previousStatus = previousStatusRef.current.get(realmId);
 
       if (realmId === currentRealmId && deviceStatus === 'offline' && previousStatus === 'online') {
-        console.log('[GlobalDeviceMonitor] Current realm device went offline, showing notification');
+        log.debug('Current realm device went offline, showing notification');
 
         // 显示 persistent notification（重要事件，不要用 toast）
         notify.persistent.warning(
@@ -59,7 +62,7 @@ export function useGlobalDeviceMonitor() {
       previousStatusRef.current.set(realmId, deviceStatus);
     },
     onError: (error) => {
-      console.error('[GlobalDeviceMonitor] Subscription error:', error);
+      log.error('Subscription error', error);
     },
   });
 

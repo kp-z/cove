@@ -15,6 +15,7 @@ import { ILogger } from '../../application/interfaces';
 import { nanoid } from 'nanoid';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { BuiltInAgentsInitializer } from './built-in-agents-initializer';
 
 export interface DefaultDataInitializerOptions {
   prisma: PrismaClient;
@@ -84,28 +85,43 @@ export class DefaultDataInitializer {
    */
   async initialize(): Promise<void> {
     try {
-      this.logger.info('Starting default data initialization...');
+      this.logger.info('🌐 Default data: checking Nexus realm, agents & channels...');
 
-      // Step 1: 确保默认 Realm (Nexus) 存在
+      // Step 1: Nexus Realm
       await this.ensureDefaultRealm();
 
-      // Step 2: 确保 Nexus Device 存在
+      // Step 2: 内置 Agent（与 Realm 创建绑定 — 不在 Backend 启动时全局扫描）
+      //
+      // 设计说明：agent-zhang 等内置 Agent 是全局共享记录（非 per-realm 副本），
+      // 新 Realm 创建时通过 RealmMember 将其关联进去（见 realm.service.ts addPlatformAgentToRealm）。
+      // 此处仅在 Nexus 首次创建时种入 DB record + 临时 bootstrap 文件；
+      // 未来 Phase 4 Incr2 完成后，文件写入职责将整体移至 Local。
+      await this.ensureBuiltInAgents();
+
+      // Step 3-6: 设备、成员、频道、欢迎消息
       await this.ensureNexusDevice();
-
-      // Step 3: 确保初始成员存在（admin + agent-zhang）
       await this.ensureInitialMembers();
-
-      // Step 4: 确保默认 Channels 存在
       await this.ensureDefaultChannels();
-
-      // Step 5: 确保欢迎消息存在
       await this.ensureWelcomeMessage();
 
-      this.logger.info('Default data initialization completed successfully');
+      this.logger.info('✅ Default data ready');
     } catch (error) {
-      this.logger.error('Failed to initialize default data', error as Error);
+      this.logger.error('❌ Failed to initialize default data', error as Error);
       throw error;
     }
+  }
+
+  /**
+   * 确保内置 Agent 存在（幂等）
+   * 与 Nexus realm 创建绑定，不在 Backend 全局启动时扫描。
+   */
+  private async ensureBuiltInAgents(): Promise<void> {
+    const agentsInitializer = new BuiltInAgentsInitializer({
+      prisma: this.prisma,
+      logger: this.logger,
+      storageRoot: this.storageRoot,
+    });
+    await agentsInitializer.initialize();
   }
 
   /**
@@ -268,7 +284,7 @@ export class DefaultDataInitializer {
    * 确保初始成员存在（admin + agent-zhang）
    */
   private async ensureInitialMembers(): Promise<void> {
-    this.logger.info('Ensuring initial members in Nexus...');
+    this.logger.debug('Ensuring initial members in Nexus...');
 
     const now = new Date();
 
@@ -320,7 +336,7 @@ export class DefaultDataInitializer {
    * 确保默认 Channels 存在
    */
   private async ensureDefaultChannels(): Promise<void> {
-    this.logger.info('Ensuring default channels...');
+    this.logger.debug('Ensuring default channels...');
 
     const now = new Date();
 

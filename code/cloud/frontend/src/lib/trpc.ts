@@ -6,6 +6,9 @@ import type { AppRouter } from '../../../backend/src/infrastructure/trpc/routers
 import { env } from '../core/config/env';
 import { useAuthStore } from '../core/auth/authStore';
 import { getCurrentUser } from '../core/auth/useCurrentUser';
+import { logger } from './logger';
+
+const log = logger.scope('trpc');
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -50,7 +53,7 @@ function getOrCreateWSClient() {
     isAuthenticated = useAuthStore.getState().isAuthenticated;
   } catch (error) {
     // useAuthStore 还未初始化，返回 dummy client
-    console.log('[WebSocket] AuthStore not ready, skipping connection');
+    log.debug('AuthStore not ready, skipping WebSocket connection');
     return createWSClient({
       url: () => {
         throw new Error('WebSocket not available - auth store not ready');
@@ -61,7 +64,7 @@ function getOrCreateWSClient() {
 
   if (!isAuthenticated) {
     // 未认证时返回一个不会真正连接的 dummy client
-    console.log('[WebSocket] User not authenticated, skipping connection');
+    log.debug('User not authenticated, skipping WebSocket connection');
     return createWSClient({
       url: () => {
         throw new Error('WebSocket not available for unauthenticated users');
@@ -87,7 +90,7 @@ function getOrCreateWSClient() {
 
           // 如果用户已认证且已选择 realm，说明后端断开了
           if (isAuthenticated && currentRealmId) {
-            console.log('[WebSocket] Connection closed, clearing realm selection');
+            log.debug('Connection closed, clearing realm selection');
 
             // 清除当前 realm
             useAuthStore.getState().setCurrentRealmId(null);
@@ -99,7 +102,7 @@ function getOrCreateWSClient() {
             }, 100);
           }
         } catch (error) {
-          console.error('[WebSocket] Error handling close:', error);
+          log.error('Error handling WebSocket close', error);
         }
       },
     });
@@ -134,9 +137,9 @@ export const trpcClient = trpc.createClient({
                                  sessionStorage.getItem('current_realm_id') ||
                                  'realm-nexus';
 
-          // Log warning if authentication data is missing
+          // 认证数据缺失时仅在开发环境提示（启动/登录阶段可能短暂缺失，避免刷屏）
           if (!token || !userId || !currentRealmId) {
-            console.warn('[TRPC] Missing authentication data:', {
+            log.debug('Missing authentication data', {
               hasToken: !!token,
               hasUserId: !!userId,
               hasRealmId: !!currentRealmId,

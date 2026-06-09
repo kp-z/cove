@@ -394,7 +394,7 @@ export class DeviceService {
       return;
     }
 
-    this.logger.info('Starting device offline detection', {
+    this.logger.debug('Starting device offline detection', {
       checkInterval: `${this.CHECK_INTERVAL_MS}ms`,
       heartbeatTimeout: `${this.HEARTBEAT_TIMEOUT_MS}ms`,
     });

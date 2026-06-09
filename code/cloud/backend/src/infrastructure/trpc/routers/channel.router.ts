@@ -129,37 +129,22 @@ export const channelRouter = (channelService: ChannelService) =>
               throw new Error('Agent ID is required for DM channel');
             }
 
-            console.log('[INFO] [DEBUG] Checking for existing DM channel', { agentId, userId: ctx.userId });
-
             // 使用优化的查询方法，直接在数据库层面查找
             // 传递 userId 以确保只返回当前用户的 DM channel
             const existingDM = await channelService.getAgentDMChannel(agentId, ctx.userId);
 
-            console.log('[INFO] [DEBUG] Existing DM channel check result', {
-              agentId,
-              userId: ctx.userId,
-              found: !!existingDM,
-              channelId: existingDM?.channelId,
-              members: existingDM?.members.map(m => ({ memberId: m.memberId, memberType: m.memberType })),
-            });
-
             // 如果已存在，直接返回（幂等性）
             if (existingDM) {
-              console.log('[INFO] [DEBUG] Returning existing DM channel (idempotent)', { channelId: existingDM.channelId });
               return existingDM.toJSON();
             }
           }
 
-          console.log('[INFO] [DEBUG] Creating new channel', { type: input.type, name: input.name });
-
           // 创建 channel（业务逻辑和验证在 Service 层）
           const channel = await channelService.createChannel(input);
 
-          console.log('[INFO] [DEBUG] Channel created successfully', { channelId: channel.channelId });
-
           return channel.toJSON();
         } catch (error: any) {
-          console.error('[ERROR] Failed to create channel', error);
+          ctx.logger.error('Failed to create channel', error as Error);
           throw mapErrorToTRPC(error);
         }
       }),

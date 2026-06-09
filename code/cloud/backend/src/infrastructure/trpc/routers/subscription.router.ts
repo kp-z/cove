@@ -26,7 +26,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onMessage',
           channelId: input.channelId,
           userId: ctx.userId,
@@ -53,7 +53,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onMessage',
               channelId: input.channelId,
             });
@@ -81,7 +81,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onTask',
           channelId: input.channelId,
           userId: ctx.userId,
@@ -110,7 +110,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onTask',
               channelId: input.channelId,
             });
@@ -127,7 +127,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onAgentStatus',
           agentId: input.agentId,
           userId: ctx.userId,
@@ -147,7 +147,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onAgentStatus',
               agentId: input.agentId,
             });
@@ -172,7 +172,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onChannelMember',
           channelId: input.channelId,
           userId: ctx.userId,
@@ -198,7 +198,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onChannelMember',
               channelId: input.channelId,
             });
@@ -223,7 +223,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onThread',
           channelId: input.channelId,
           userId: ctx.userId,
@@ -249,7 +249,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onThread',
               channelId: input.channelId,
             });
@@ -266,7 +266,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onMessageStreaming',
           messageId: input.messageId,
           userId: ctx.userId,
@@ -301,7 +301,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onMessageStreaming',
               messageId: input.messageId,
             });
@@ -329,7 +329,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
         })
       )
       .subscription(({ input, ctx }) => {
-        ctx.logger.info('Subscription started', {
+        ctx.logger.debug('Subscription started', {
           type: 'onAgentResponse',
           channelId: input.channelId,
           userId: ctx.userId,
@@ -358,7 +358,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           });
 
           return () => {
-            ctx.logger.info('Subscription ended', {
+            ctx.logger.debug('Subscription ended', {
               type: 'onAgentResponse',
               channelId: input.channelId,
             });

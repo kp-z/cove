@@ -171,23 +171,10 @@ export function Composer({
   }, [toolMenuOpen, modeMenuOpen]);
 
   const handleSend = async () => {
-    console.log('[Composer] handleSend called', {
-      contentLength: content.length,
-      trimmedLength: content.trim().length,
-      isSending,
-      channelId,
-    });
-
     const trimmedContent = content.trim();
     if (!trimmedContent || isSending) {
-      console.warn('[Composer] Send blocked', {
-        hasContent: !!trimmedContent,
-        isSending,
-      });
       return;
     }
-
-    console.log('[Composer] Sending message via new architecture:', trimmedContent.substring(0, 50));
 
     // 停止输入状态
     stopTyping();
@@ -198,12 +185,10 @@ export function Composer({
     // 清空输入框和草稿
     setContent('');
     localStorage.removeItem(draftKey);
-    console.log('[Composer] Content cleared and draft removed');
   };
 
   const handleStop = () => {
     // TODO: 实现停止生成功能
-    console.log('[Composer] Stop generation not implemented yet');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
