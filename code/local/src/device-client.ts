@@ -22,8 +22,6 @@ import { DeviceProcessor } from './domain/agent-runtime/device-processor';
 import { ConfigurationService } from './domain/configuration/configuration-service';
 import { DeviceLifecycleManager } from './domain/device-lifecycle/device-lifecycle-manager';
 import { AdapterManager } from './infrastructure/adapters/adapter-manager';
-import { AnthropicAdapter } from './infrastructure/adapters/llm/anthropic-adapter';
-import { OpenAIAdapter } from './infrastructure/adapters/llm/openai-adapter';
 
 export interface DeviceClientConfig extends Config {
   logLevel?: 'debug' | 'info' | 'warn' | 'error';
@@ -32,7 +30,7 @@ export interface DeviceClientConfig extends Config {
 }
 
 export class DeviceClient {
-  private logger: ILogger;
+  private readonly logger: ILogger;
   private prisma: PrismaClient | null = null;
   private wsClient: TrpcWebSocketClient | null = null;
   private messageOrchestrator: MessageOrchestrator | null = null;
@@ -41,92 +39,72 @@ export class DeviceClient {
   private running = false;
   private shuttingDown = false;
 
-  constructor(private config: DeviceClientConfig) {
-    this.logger = new ConsoleLogger(config.logLevel || 'info');
+  constructor(private config: DeviceClientConfig, logger?: ILogger) {
+    // 允许外部传入 root logger（例如 main.ts 创建的 ConsoleLogger）
+    this.logger = logger ?? new ConsoleLogger(config.logLevel || 'info');
   }
 
   async start(): Promise<void> {
     if (this.running) {
-      this.logger.warn('Device client already running');
+      this.logger.warn('⚠️  Device client already running');
       return;
     }
 
-    this.logger.info('Starting Device Client', {
-      deviceId: this.config.device.id,
-      serverUrl: this.config.server.url,
+    this.logger.info('🚀 Starting Cove Local Device Agent...', {
+      device: this.config.device.id,
+      realm: this.config.device.realmId,
     });
 
     try {
-      // 1. Initialize Prisma Client
-      this.logger.info('Initializing database');
-
-      // Use DATABASE_URL from env if set, otherwise use config path
+      // 步骤 1 — 初始化数据库
       const dbUrl = process.env.DATABASE_URL || `file:${this.config.local.dataDir}/device.db`;
-      this.logger.info('Database configuration', { dbUrl });
-
       this.prisma = new PrismaClient({
-        datasources: {
-          db: {
-            url: dbUrl,
-          },
-        },
+        datasources: { db: { url: dbUrl } },
       });
       await this.prisma.$connect();
-      this.logger.info('Database connected successfully');
+      this.logger.info('🗄️  Database ready');
 
-      // 2. Create Backend Gateway
-      this.logger.info('Creating backend gateway');
+      // 步骤 2 — 创建 Backend Gateway（HTTP tRPC）
+      const httpUrl = this.config.server.url
+        .replace(/^ws:/, 'http:')
+        .replace(/^wss:/, 'https:')
+        .replace(/\/trpc$/, '');
 
-      // Convert WebSocket URL to HTTP URL for tRPC client
-      const httpUrl = this.config.server.url.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/trpc$/, '');
-      this.logger.info('Backend gateway URLs', {
-        original: this.config.server.url,
-        http: httpUrl
-      });
-
+      const gatewayLogger = this.logger.scope('Gateway');
       const backendGateway = new TrpcBackendGateway(
         httpUrl,
         this.config.device.realmId,
-        this.config.device.id
+        this.config.device.id,
+        gatewayLogger
       );
+      this.logger.debug(`⚙️  Backend: ${httpUrl}`);
 
-      // 3. Create Storage Layer
-      this.logger.info('Creating storage layer');
+      // 步骤 3 — 创建存储层
       const messageQueue = new SqliteMessageQueue(this.prisma);
-      const taskStore = new SqliteTaskStore(this.prisma);
-      const configCache = new SqliteConfigCache(this.prisma);
+      const taskStore    = new SqliteTaskStore(this.prisma);
+      const configCache  = new SqliteConfigCache(this.prisma);
 
-      // 4. Create Adapter Manager
-      this.logger.info('Creating adapter manager');
+      // 步骤 4 — 注册 Adapters
       const adapterManager = new AdapterManager();
 
-      // Register Claude CLI adapter (always available if claude CLI is installed)
       await adapterManager.loadAdapter({
         name: 'claude-cli-adapter',
         type: 'custom',
         version: '1.0.0',
         enabled: true,
-        config: {
-          cliPath: 'claude',
-          model: 'opus',
-          thinkingEnabled: true,
-        },
+        config: { cliPath: 'claude', model: 'opus', thinkingEnabled: true },
       });
-      this.logger.info('Registered Claude CLI adapter');
+      const registeredAdapters = ['claude-cli-adapter'];
 
-      // Register LLM adapters
       if (this.config.anthropicApiKey) {
         await adapterManager.loadAdapter({
           name: 'anthropic-adapter',
           type: 'anthropic',
           version: '1.0.0',
           enabled: true,
-          config: {
-            apiKey: this.config.anthropicApiKey,
-            model: 'claude-3-5-sonnet-20241022',
-          },
+          config: { apiKey: this.config.anthropicApiKey, model: 'claude-3-5-sonnet-20241022' },
         });
-        this.logger.info('Registered Anthropic adapter');
+        registeredAdapters.push('anthropic-adapter');
       }
 
       if (this.config.openaiApiKey) {
@@ -135,38 +113,33 @@ export class DeviceClient {
           type: 'openai',
           version: '1.0.0',
           enabled: true,
-          config: {
-            apiKey: this.config.openaiApiKey,
-            model: 'gpt-4o',
-          },
+          config: { apiKey: this.config.openaiApiKey, model: 'gpt-4o' },
         });
-        this.logger.info('Registered OpenAI adapter');
+        registeredAdapters.push('openai-adapter');
       }
 
-      // 5. Create Processor（仅本地 Device 处理器）
-      this.logger.info('Creating message processor');
+      this.logger.info(`⚙️  Adapters: ${registeredAdapters.join(', ')} ✓`);
+
+      // 步骤 5 — 创建消息处理器
+      const processorLogger = this.logger.scope('Processor');
       const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager, {
-        defaultAdapter: 'claude-cli-adapter', // 默认使用 Claude CLI
+        defaultAdapter: 'claude-cli-adapter',
+        logger: processorLogger,
       });
 
-      // 6. Create Message Orchestrator（单一 Device 执行模式）
-      this.logger.info('Creating message orchestrator');
+      // 步骤 6 — 创建消息编排器
       this.messageOrchestrator = new MessageOrchestrator(
         deviceProcessor,
         messageQueue,
         taskStore,
-        {
-          maxAttempts: 3,
-          pollInterval: 1000,
-        }
+        { maxAttempts: 3, pollInterval: 1000 }
       );
 
-      // 7. Create Configuration Service
-      this.logger.info('Creating configuration service');
+      // 步骤 7 — 配置服务
       this.configService = new ConfigurationService(backendGateway, configCache);
 
-      // 8. Create Device Lifecycle Manager
-      this.logger.info('Creating lifecycle manager');
+      // 步骤 8 — 创建生命周期管理器（含子 scoped loggers）
+      const lifecycleLogger = this.logger.scope('Lifecycle');
       this.lifecycleManager = new DeviceLifecycleManager(
         {
           deviceId: this.config.device.id,
@@ -177,130 +150,106 @@ export class DeviceClient {
             reconnectMaxAttempts: 10,
           },
           health: {
-            reportInterval: 60000, // 1 minute
+            reportInterval: 60000,
           },
+          logger: lifecycleLogger,
         },
         backendGateway,
         taskStore
       );
 
-      // 9. Connect to Backend via WebSocket
-      this.logger.info('Connecting to backend');
+      // 步骤 9 — 连接 Backend（WebSocket）
       await this.connectToBackend();
 
-      // 10. Sync Configuration
-      this.logger.info('Syncing configuration');
+      // 步骤 10 — 同步配置
       const syncResult = await this.configService.syncConfig(this.config.device.realmId);
       if (!syncResult.success) {
-        this.logger.warn('Configuration sync failed, continuing anyway');
+        this.logger.warn('⚠️  Configuration sync failed, continuing');
       } else {
-        this.logger.info('Configuration synced', {
-          version: syncResult.version,
-          checksum: syncResult.checksum,
-        });
+        this.logger.debug('⚙️  Configuration synced', { version: syncResult.version });
       }
 
-      // 10.5 扫描本地 Agent 目录并将元数据同步到 Backend
-      //  - 文件位于 Local，扫描/解析由 Local 负责；Backend 仅被动接收 upsert
+      // 步骤 10.5 — 扫描本地 Agent 目录并同步元数据到 Backend
       await this.syncLocalAgents(backendGateway);
 
-      // 11. Start Lifecycle Manager
-      this.logger.info('Starting lifecycle manager');
+      // 步骤 11 — 启动生命周期管理器
       await this.lifecycleManager.start();
 
-      // 12. Start Message Processing Loop
-      this.logger.info('Starting message processing loop');
+      // 步骤 12 — 启动消息处理循环
       await this.messageOrchestrator.start();
 
       this.running = true;
-      this.logger.info('Device Client started successfully', {
-        deviceId: this.config.device.id,
-      });
+      this.logger.info(`✅ Device Agent running — device: ${this.config.device.id}, realm: ${this.config.device.realmId}`);
     } catch (error) {
-      this.logger.error('Failed to start Device Client', error as Error);
+      this.logger.error('❌ Failed to start Device Client', error as Error);
       await this.cleanup();
       throw error;
     }
   }
 
   /**
-   * 扫描本地 Agent 目录并将元数据同步到 Backend
-   *
-   * 目录解析与 Backend 保持一致：优先 COVE_ROOT，否则 ~/.cove。
-   * 同步失败仅告警，不阻断设备启动（best-effort）。
+   * 扫描本地 Agent 目录并将元数据同步到 Backend（best-effort）
    */
   private async syncLocalAgents(backendGateway: BackendGateway): Promise<void> {
     try {
-      const coveRoot = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
+      const coveRoot  = process.env.COVE_ROOT || path.join(os.homedir(), '.cove');
       const agentsDir = path.join(coveRoot, 'storage', 'agents');
 
       const scanner = new AgentScanner(agentsDir, this.logger);
-      const agents = await scanner.scan();
+      const agents  = await scanner.scan();
 
       if (agents.length === 0) {
-        this.logger.info('No local agents to sync');
+        this.logger.debug('🤖 No local agents to sync');
         return;
       }
 
       const result = await backendGateway.syncAgentMetadata({
         deviceId: this.config.device.id,
-        realmId: this.config.device.realmId,
+        realmId:  this.config.device.realmId,
         agents,
       });
 
-      this.logger.info('Agent metadata synced to backend', {
-        synced: result.synced,
-        received: result.received,
-      });
+      this.logger.info(`🤖 Agents: ${result.synced} synced to backend`);
     } catch (error) {
-      this.logger.warn('Agent metadata sync failed, continuing');
+      this.logger.warn('⚠️  Agent metadata sync failed, continuing');
     }
   }
 
   async stop(): Promise<void> {
     if (this.shuttingDown) {
-      this.logger.warn('Already shutting down');
+      this.logger.warn('⚠️  Already shutting down');
       return;
     }
 
     if (!this.running) {
-      this.logger.warn('Device client not running');
+      this.logger.warn('⚠️  Device client not running');
       return;
     }
 
     this.shuttingDown = true;
-    this.logger.info('Stopping Device Client');
+    this.logger.info('🛑 Stopping Device Client...');
 
     try {
-      // 1. Stop accepting new messages
       if (this.messageOrchestrator) {
-        this.logger.info('Stopping message orchestrator');
         await this.messageOrchestrator.stop();
       }
 
-      // 2. Wait for current tasks to complete (with timeout)
-      this.logger.info('Waiting for current tasks to complete');
-      await this.waitForTasksToComplete(30000); // 30 seconds timeout
+      await this.waitForTasksToComplete(30000);
 
-      // 3. Stop lifecycle manager
       if (this.lifecycleManager) {
-        this.logger.info('Stopping lifecycle manager');
         await this.lifecycleManager.stop();
       }
 
-      // 4. Disconnect WebSocket
       if (this.wsClient) {
-        this.logger.info('Disconnecting from backend');
         await this.wsClient.disconnect();
       }
 
-      // 5. Close database connection
       await this.cleanup();
 
       this.running = false;
-      this.logger.info('Device Client stopped successfully');
+      this.logger.info('✅ Device Client stopped');
     } catch (error) {
-      this.logger.error('Error during shutdown', error as Error);
+      this.logger.error('❌ Error during shutdown', error as Error);
       throw error;
     } finally {
       this.shuttingDown = false;
@@ -314,18 +263,18 @@ export class DeviceClient {
   private async connectToBackend(): Promise<void> {
     this.wsClient = new TrpcWebSocketClient({
       serverUrl: this.config.server.url,
-      deviceId: this.config.device.id,
-      apiKey: this.config.device.apiKey,
-      realmId: this.config.device.realmId,
+      deviceId:  this.config.device.id,
+      apiKey:    this.config.device.apiKey,
+      realmId:   this.config.device.realmId,
       onMessage: (message) => this.handleMessage(message),
       onConnected: () => {
-        this.logger.info('Connected to backend');
+        this.logger.info(`✅ Connected to backend (device: ${this.config.device.id})`);
       },
       onDisconnected: () => {
-        this.logger.warn('Disconnected from backend');
+        this.logger.warn('⚠️  Disconnected from backend');
       },
       onError: (error) => {
-        this.logger.error('WebSocket error', error);
+        this.logger.error('❌ WebSocket error', error);
       },
       logger: this.logger,
     });
@@ -334,59 +283,50 @@ export class DeviceClient {
   }
 
   private async handleMessage(message: any): Promise<void> {
-    this.logger.info('[DeviceClient] Received message from backend', {
-      type: message.type,
-      timestamp: message.timestamp,
-      hasPayload: !!message.payload
+    this.logger.debug('📨 Message received from backend', {
+      type:       message.type,
+      hasPayload: !!message.payload,
     });
 
     if (!this.messageOrchestrator) {
-      this.logger.error('Message orchestrator not initialized');
+      this.logger.error('❌ Message orchestrator not initialized');
       return;
     }
 
     try {
-      // Handle message.process (from backend's DeviceProcessor)
       if (message.type === 'message.process' && message.payload) {
-        this.logger.info('[DeviceClient] Processing message.process', {
-          messageId: message.payload.messageId,
-          channelId: message.payload.channelId
-        });
+        const { messageId, channelId, content } = message.payload;
+        this.logger.info('📨 Message received', { msgId: messageId, channel: channelId });
 
         const taskId = await this.messageOrchestrator.enqueue({
-          messageId: message.payload.messageId,
-          channelId: message.payload.channelId,
-          content: message.payload.content,
+          messageId,
+          channelId,
+          content,
           priority: 0,
         });
 
-        this.logger.info('Message enqueued for processing', { taskId, messageId: message.payload.messageId });
-      }
-      // Handle legacy 'task' message format
-      else if (message.type === 'task' && message.data) {
+        this.logger.debug('Message enqueued', { taskId, messageId });
+      } else if (message.type === 'task' && message.data) {
         const taskId = await this.messageOrchestrator.enqueue({
           messageId: message.data.messageId || crypto.randomUUID(),
           channelId: message.data.channelId,
-          content: message.data.content,
-          priority: message.data.priority || 0,
+          content:   message.data.content,
+          priority:  message.data.priority || 0,
         });
-
-        this.logger.info('Message enqueued', { taskId });
+        this.logger.debug('Legacy task enqueued', { taskId });
       } else if (message.type === 'config' && message.data) {
-        // Handle configuration update
-        this.logger.info('Configuration update received');
+        this.logger.debug('⚙️  Config update received');
         if (this.configService) {
           await this.configService.syncConfig(this.config.device.realmId);
         }
       } else {
-        this.logger.warn('[DeviceClient] Unknown message type', {
+        this.logger.warn('⚠️  Unknown message type', {
           type: message.type,
           hasData: !!message.data,
-          hasPayload: !!message.payload
         });
       }
     } catch (error) {
-      this.logger.error('Failed to handle message', error as Error, {
+      this.logger.error('❌ Failed to handle message', error as Error, {
         messageType: message.type,
       });
     }
@@ -396,18 +336,14 @@ export class DeviceClient {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
-      // Check if there are any active tasks
-      // TODO: Implement proper task counting in MessageOrchestrator
+      // TODO: implement proper task counting in MessageOrchestrator
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // For now, just wait a bit
       break;
     }
   }
 
   private async cleanup(): Promise<void> {
     if (this.prisma) {
-      this.logger.info('Closing database connection');
       await this.prisma.$disconnect();
       this.prisma = null;
     }

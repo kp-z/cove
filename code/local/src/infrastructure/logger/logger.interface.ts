@@ -10,4 +10,6 @@ export interface ILogger {
   warn(message: string, context?: LogContext): void;
   error(message: string, error?: Error, context?: LogContext): void;
   setLevel(level: LogLevel): void;
+  /** 返回一个带 [name] 前缀的子 logger */
+  scope(name: string): ILogger;
 }

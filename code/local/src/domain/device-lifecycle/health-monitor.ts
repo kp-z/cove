@@ -8,6 +8,7 @@ import type { BackendGateway } from '../../infrastructure/gateway/backend-gatewa
 import type { DeviceHealth } from './device-lifecycle-manager.interface'
 import type { ConnectionManager } from './connection-manager'
 import type { IMessageQueue } from '../../infrastructure/storage/message-queue.interface'
+import type { ILogger } from '../../infrastructure/logger'
 
 /**
  * 健康监控配置
@@ -20,6 +21,7 @@ export interface HealthMonitorConfig {
     memoryUsage?: number
     errorRate?: number
   }
+  logger?: ILogger
 }
 
 /**
@@ -30,13 +32,23 @@ export class HealthMonitor {
   private lastHealth?: DeviceHealth
   private errorCount = 0
   private totalRequests = 0
+  private readonly logger: ILogger
 
   constructor(
     private readonly config: HealthMonitorConfig,
     private readonly backendGateway: BackendGateway,
     private readonly connectionManager?: ConnectionManager,
     private readonly messageQueue?: IMessageQueue
-  ) {}
+  ) {
+    this.logger = config.logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    }
+  }
 
   /**
    * 启动监控
@@ -52,9 +64,11 @@ export class HealthMonitor {
       await this.checkAndReport()
     }, interval)
 
+    this.logger.debug(`💓 Health monitor started (interval: ${interval / 1000}s)`)
+
     // 立即执行一次
     this.checkAndReport().catch(error => {
-      console.error('Initial health check failed:', error)
+      this.logger.error('❌ Initial health check failed', error as Error)
     })
   }
 
@@ -123,7 +137,7 @@ export class HealthMonitor {
         metrics: health.metrics
       })
     } catch (error) {
-      console.error('Health check failed:', error)
+      this.logger.warn('⚠️  Health check failed', { error: (error as Error).message })
 
       // 标记为不健康
       this.lastHealth = {
@@ -151,7 +165,7 @@ export class HealthMonitor {
       try {
         queueDepth = await this.messageQueue.size()
       } catch (error) {
-        console.warn('Failed to get queue depth:', error)
+        this.logger.warn('⚠️  Failed to get queue depth', { error: (error as Error).message })
       }
     }
 

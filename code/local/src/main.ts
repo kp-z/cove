@@ -2,18 +2,22 @@
 /**
  * Cove Local Device Agent
  *
- * This is the main entry point for the local device agent that connects
- * to the Cloud backend and executes tasks locally.
+ * 本地设备代理的主入口：创建 root logger、加载配置、启动 DeviceClient
  */
 
 import { DeviceClient } from './device-client';
 import { loadConfig } from './config';
+import { ConsoleLogger } from './infrastructure/logger';
+import type { ILogger } from './infrastructure/logger';
 
 class ShutdownManager {
   private isShuttingDown = false;
   private forceExitTimer: NodeJS.Timeout | null = null;
 
-  constructor(private client: DeviceClient) {}
+  constructor(
+    private client: DeviceClient,
+    private logger: ILogger
+  ) {}
 
   async shutdown(signal: string, exitCode: number): Promise<void> {
     if (this.isShuttingDown) {
@@ -21,12 +25,12 @@ class ShutdownManager {
     }
     this.isShuttingDown = true;
 
-    console.log(`\n🛑 Shutting down gracefully... (signal: ${signal})`);
+    this.logger.info(`🛑 Shutting down gracefully... (signal: ${signal})`);
 
     this.forceExitTimer = setTimeout(() => {
-      console.log('⚠️  Shutdown timeout reached, forcing exit...');
+      this.logger.warn('⚠️  Shutdown timeout reached, forcing exit...');
       process.exit(1);
-    }, 30000); // 30 seconds timeout
+    }, 30000);
 
     try {
       await this.client.stop();
@@ -35,52 +39,53 @@ class ShutdownManager {
         clearTimeout(this.forceExitTimer);
       }
 
-      console.log('✅ Shutdown complete');
+      this.logger.info('✅ Shutdown complete');
       process.exit(exitCode);
     } catch (error) {
-      console.error('⚠️  Error during shutdown:', error);
+      this.logger.error('❌ Error during shutdown', error as Error);
       process.exit(1);
     }
   }
 }
 
 async function main() {
-  console.log('🚀 Starting Cove Local Device Agent...');
+  // 创建全局 root logger（日志级别由 LOG_LEVEL 环境变量控制）
+  const logLevel = (process.env.LOG_LEVEL as any) || 'info';
+  const logger = new ConsoleLogger(logLevel);
 
-  // Load configuration
+  // 加载配置
   const config = await loadConfig();
 
-  // Create Device Client
-  const client = new DeviceClient({
-    ...config,
-    logLevel: (process.env.LOG_LEVEL as any) || 'info',
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    openaiApiKey: process.env.OPENAI_API_KEY,
-  });
+  // 创建 DeviceClient（注入 root logger）
+  const client = new DeviceClient(
+    {
+      ...config,
+      logLevel,
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      openaiApiKey: process.env.OPENAI_API_KEY,
+    },
+    logger
+  );
 
-  // Setup shutdown manager
-  const shutdownManager = new ShutdownManager(client);
+  // 注册优雅停机
+  const shutdownManager = new ShutdownManager(client, logger);
 
-  // Register signal handlers
   process.on('SIGTERM', () => shutdownManager.shutdown('SIGTERM', 0));
-  process.on('SIGINT', () => shutdownManager.shutdown('SIGINT', 0));
-  process.on('SIGHUP', () => shutdownManager.shutdown('SIGHUP', 0));
+  process.on('SIGINT',  () => shutdownManager.shutdown('SIGINT', 0));
+  process.on('SIGHUP',  () => shutdownManager.shutdown('SIGHUP', 0));
 
   process.on('unhandledRejection', (reason) => {
-    console.error('❌ Unhandled rejection:', reason);
+    logger.error('❌ Unhandled rejection', reason as Error);
     shutdownManager.shutdown('unhandledRejection', 1);
   });
 
   process.on('uncaughtException', (error) => {
-    console.error('❌ Uncaught exception:', error);
+    logger.error('❌ Uncaught exception', error as Error);
     shutdownManager.shutdown('uncaughtException', 1);
   });
 
-  // Start the client
+  // 启动
   await client.start();
-
-  console.log('✅ Local Device Agent is running');
-  console.log('Press Ctrl+C to stop');
 }
 
 main().catch((error) => {

@@ -13,6 +13,7 @@
 import type { BackendGateway } from '../../../infrastructure/gateway/backend-gateway.interface'
 import type { MessageTask } from '../message-orchestrator.interface'
 import type { ExecutionMetadata, ToolUseMetadata, UsageMetadata } from './types'
+import type { ILogger } from '../../../infrastructure/logger'
 
 /**
  * Transmission strategy configuration
@@ -24,6 +25,7 @@ export interface TransmissionStrategyConfig {
   maxRetries?: number
   /** Delay between retries in milliseconds */
   retryDelayMs?: number
+  logger?: ILogger
 }
 
 /**
@@ -40,11 +42,21 @@ interface FailedTransmission {
  */
 export class ResilientTransmissionStrategy {
   private failedTransmissions: Map<string, FailedTransmission[]> = new Map()
+  private readonly logger: ILogger
 
   constructor(
     private readonly backendGateway: BackendGateway,
     private readonly config: TransmissionStrategyConfig = {}
-  ) {}
+  ) {
+    this.logger = config.logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    }
+  }
 
   /**
    * Transmit thinking chunk
@@ -59,7 +71,7 @@ export class ResilientTransmissionStrategy {
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'thinking', chunk)
-      console.warn('[TransmissionStrategy] Failed to transmit thinking chunk:', error)
+      this.logger.warn('⚠️  Failed to transmit thinking chunk', { error: (error as Error).message })
       // Don't throw - collection continues
     }
   }
@@ -77,7 +89,7 @@ export class ResilientTransmissionStrategy {
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'tool', toolLog)
-      console.warn('[TransmissionStrategy] Failed to transmit tool use:', error)
+      this.logger.warn('⚠️  Failed to transmit tool use', { error: (error as Error).message })
     }
   }
 
@@ -94,7 +106,7 @@ export class ResilientTransmissionStrategy {
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'usage', usage)
-      console.warn('[TransmissionStrategy] Failed to transmit usage:', error)
+      this.logger.warn('⚠️  Failed to transmit usage', { error: (error as Error).message })
     }
   }
 
@@ -111,7 +123,7 @@ export class ResilientTransmissionStrategy {
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'status', { status })
-      console.warn('[TransmissionStrategy] Failed to transmit status:', error)
+      this.logger.warn('⚠️  Failed to transmit status', { error: (error as Error).message })
     }
   }
 
@@ -178,14 +190,14 @@ export class ResilientTransmissionStrategy {
     const maxRetries = this.config.maxRetries ?? 3
     const retryDelayMs = this.config.retryDelayMs ?? 100
 
-    console.log(`[TransmissionStrategy] Retrying ${failures.length} failed transmissions`)
+    this.logger.debug(`🔄 Retrying ${failures.length} failed transmission(s)`)
 
     // Limit to first 10 failures to avoid overwhelming the backend
     const toRetry = failures.slice(0, 10)
 
     for (const failure of toRetry) {
       if (failure.attempts >= maxRetries) {
-        console.warn(`[TransmissionStrategy] Max retries exceeded for ${failure.type}`)
+        this.logger.warn(`⚠️  Max retries exceeded for transmission`, { type: failure.type })
         continue
       }
 
@@ -213,7 +225,7 @@ export class ResilientTransmissionStrategy {
           failures.splice(index, 1)
         }
       } catch (error) {
-        console.warn(`[TransmissionStrategy] Retry failed for ${failure.type}:`, error)
+        this.logger.warn(`⚠️  Retry failed`, { type: failure.type, error: (error as Error).message })
       }
 
       // Rate limiting

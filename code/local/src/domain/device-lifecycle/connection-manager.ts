@@ -11,6 +11,7 @@
  */
 
 import WebSocket from 'ws'
+import type { ILogger } from '../../infrastructure/logger'
 
 /**
  * 连接状态
@@ -27,9 +28,10 @@ export type ConnectionState =
  */
 export interface ConnectionConfig {
   url: string
-  heartbeatInterval?: number  // 心跳间隔（毫秒），默认 30000
-  reconnectMaxAttempts?: number  // 最大重连次数，默认 10
-  reconnectBaseDelay?: number  // 重连基础延迟（毫秒），默认 1000
+  heartbeatInterval?: number       // 心跳间隔（毫秒），默认 30000
+  reconnectMaxAttempts?: number    // 最大重连次数，默认 10
+  reconnectBaseDelay?: number      // 重连基础延迟（毫秒），默认 1000
+  logger?: ILogger
 }
 
 /**
@@ -48,12 +50,22 @@ export class ConnectionManager {
   private readonly heartbeatInterval: number
   private readonly reconnectMaxAttempts: number
   private readonly reconnectBaseDelay: number
+  private readonly logger: ILogger
 
   constructor(config: ConnectionConfig) {
     this.url = config.url
     this.heartbeatInterval = config.heartbeatInterval ?? 30000
     this.reconnectMaxAttempts = config.reconnectMaxAttempts ?? 10
     this.reconnectBaseDelay = config.reconnectBaseDelay ?? 1000
+    // 默认 no-op logger，避免未注入时崩溃
+    this.logger = config.logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    }
   }
 
   /**
@@ -69,29 +81,30 @@ export class ConnectionManager {
     }
 
     this.state = 'CONNECTING'
+    this.logger.info(`🔌 Connecting to ${this.url}...`)
 
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url)
 
         this.ws.on('open', () => {
-          console.log('WebSocket connected')
           this.state = 'CONNECTED'
           this.reconnectAttempts = 0
+          this.logger.info('🔌 WebSocket connected')
           this.startHeartbeat()
           this.flushMessageQueue()
           resolve()
         })
 
         this.ws.on('close', (code, reason) => {
-          console.log(`WebSocket closed: ${code} ${reason}`)
           this.state = 'DISCONNECTED'
           this.stopHeartbeat()
+          this.logger.info('🔌 WebSocket closed', { code, reason: reason.toString() })
           this.scheduleReconnect()
         })
 
         this.ws.on('error', (error) => {
-          console.error('WebSocket error:', error)
+          this.logger.error('❌ WebSocket error', error as Error)
           if (this.state === 'CONNECTING') {
             this.state = 'ERROR'
             reject(error)
@@ -122,7 +135,7 @@ export class ConnectionManager {
    * 断开连接
    */
   async disconnect(): Promise<void> {
-    console.log('Disconnecting WebSocket...')
+    this.logger.debug('🔌 Disconnecting WebSocket...')
 
     this.stopHeartbeat()
 
@@ -152,8 +165,7 @@ export class ConnectionManager {
    */
   async send(message: any): Promise<void> {
     if (!this.isConnected() || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      // 缓存消息，等待连接恢复
-      console.log('WebSocket not connected, queueing message')
+      this.logger.debug('📨 Message queued (offline)')
       this.messageQueue.push(message)
       return
     }
@@ -162,7 +174,7 @@ export class ConnectionManager {
       const data = JSON.stringify(message)
       this.ws.send(data)
     } catch (error) {
-      console.error('Failed to send message:', error)
+      this.logger.error('❌ Failed to send message', error as Error)
       this.messageQueue.push(message)
     }
   }
@@ -174,23 +186,14 @@ export class ConnectionManager {
     this.messageHandlers.push(callback)
   }
 
-  /**
-   * 获取连接状态
-   */
   getState(): ConnectionState {
     return this.state
   }
 
-  /**
-   * 检查是否已连接
-   */
   isConnected(): boolean {
     return this.state === 'CONNECTED' && this.ws?.readyState === WebSocket.OPEN
   }
 
-  /**
-   * 获取队列大小
-   */
   getQueueSize(): number {
     return this.messageQueue.length
   }
@@ -207,15 +210,13 @@ export class ConnectionManager {
           type: 'heartbeat',
           timestamp: Date.now()
         }).catch(err => {
-          console.error('Failed to send heartbeat:', err)
+          this.logger.warn('⚠️  Heartbeat send failed', { error: (err as Error).message })
         })
+        this.logger.debug('💓 Heartbeat sent')
       }
     }, this.heartbeatInterval)
   }
 
-  /**
-   * 停止心跳
-   */
   private stopHeartbeat(): void {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer)
@@ -228,7 +229,7 @@ export class ConnectionManager {
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.reconnectMaxAttempts) {
-      console.error(`Max reconnect attempts (${this.reconnectMaxAttempts}) reached`)
+      this.logger.error(`❌ Max reconnects reached (${this.reconnectMaxAttempts})`)
       this.state = 'ERROR'
       return
     }
@@ -241,13 +242,12 @@ export class ConnectionManager {
 
     this.reconnectAttempts++
 
-    console.log(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.reconnectMaxAttempts})`)
+    this.logger.info(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.reconnectMaxAttempts})`)
 
     this.reconnectTimer = setTimeout(() => {
-      console.log(`Reconnecting... (attempt ${this.reconnectAttempts})`)
       this.state = 'RECONNECTING'
       this.connect().catch(err => {
-        console.error('Reconnect failed:', err)
+        this.logger.error('❌ Reconnect failed', err as Error)
       })
     }, delay)
   }
@@ -256,15 +256,16 @@ export class ConnectionManager {
    * 刷新消息队列
    */
   private flushMessageQueue(): void {
-    console.log(`Flushing ${this.messageQueue.length} queued messages`)
+    if (this.messageQueue.length > 0) {
+      this.logger.debug(`📨 Flushing ${this.messageQueue.length} queued message(s)`)
+    }
 
     const messagesToSend = [...this.messageQueue]
     this.messageQueue = []
 
     for (const message of messagesToSend) {
       this.send(message).catch(err => {
-        console.error('Failed to send queued message:', err)
-        // 重新入队
+        this.logger.error('❌ Failed to send queued message', err as Error)
         this.messageQueue.push(message)
       })
     }
@@ -283,16 +284,15 @@ export class ConnectionManager {
         return
       }
 
-      // 分发消息给所有处理器
       this.messageHandlers.forEach(handler => {
         try {
           handler(message)
         } catch (error) {
-          console.error('Message handler error:', error)
+          this.logger.error('❌ Message handler error', error as Error)
         }
       })
     } catch (error) {
-      console.error('Failed to parse message:', error)
+      this.logger.error('❌ Failed to parse message', error as Error)
     }
   }
 }

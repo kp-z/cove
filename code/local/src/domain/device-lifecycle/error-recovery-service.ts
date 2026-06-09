@@ -5,6 +5,7 @@
  */
 
 import type { ITaskStore } from '../../infrastructure/storage/task-store.interface'
+import type { ILogger } from '../../infrastructure/logger'
 
 /**
  * 错误恢复配置
@@ -13,16 +14,28 @@ export interface ErrorRecoveryConfig {
   maxRetries?: number  // 最大重试次数
   retryDelay?: number  // 重试延迟（毫秒）
   recoveryTimeout?: number  // 恢复超时（毫秒）
+  logger?: ILogger
 }
 
 /**
  * 错误恢复服务
  */
 export class ErrorRecoveryService {
+  private readonly logger: ILogger
+
   constructor(
     private readonly taskStore: ITaskStore,
     private readonly config: ErrorRecoveryConfig = {}
-  ) {}
+  ) {
+    this.logger = config.logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    }
+  }
 
   /**
    * 恢复未完成的任务
@@ -34,14 +47,18 @@ export class ErrorRecoveryService {
       // 1. 查找所有处理中的任务
       const processingTasks = await this.taskStore.findByState('PROCESSING')
 
-      console.log(`Found ${processingTasks.length} processing tasks to recover`)
+      if (processingTasks.length > 0) {
+        this.logger.info(`🔄 Recovering ${processingTasks.length} pending task(s)...`)
+      } else {
+        this.logger.debug('🔄 No pending tasks to recover')
+      }
 
       // 2. 检查每个任务的状态
       for (const task of processingTasks) {
         await this.recoverTask(task.messageId)
       }
     } catch (error) {
-      console.error('Failed to recover pending tasks:', error)
+      this.logger.error('❌ Failed to recover pending tasks', error as Error)
       throw error
     }
   }
@@ -54,7 +71,7 @@ export class ErrorRecoveryService {
       const task = await this.taskStore.get(messageId)
 
       if (!task) {
-        console.warn(`Task ${messageId} not found`)
+        this.logger.warn(`⚠️  Task not found during recovery`, { messageId })
         return
       }
 
@@ -66,9 +83,6 @@ export class ErrorRecoveryService {
       const recoveryTimeout = this.config.recoveryTimeout ?? 300000  // 默认 5 分钟
 
       if (timeSinceLastAttempt > recoveryTimeout) {
-        // 任务超时，可能是崩溃导致的
-        console.log(`Task ${messageId} timed out, marking for retry`)
-
         const maxRetries = this.config.maxRetries ?? 3
 
         if (task.attempts >= maxRetries) {
@@ -82,7 +96,7 @@ export class ErrorRecoveryService {
             maxAttempts: task.maxAttempts,
             error: 'Max retries exceeded after recovery'
           })
-          console.log(`Task ${messageId} moved to dead letter queue`)
+          this.logger.warn(`⚠️  Task exceeded max retries — moved to dead letter`, { messageId, attempts: task.attempts })
         } else {
           // 重置为 PENDING 状态，等待重新处理
           await this.taskStore.upsert({
@@ -94,14 +108,13 @@ export class ErrorRecoveryService {
             maxAttempts: task.maxAttempts,
             error: 'Recovered from timeout'
           })
-          console.log(`Task ${messageId} reset to PENDING for retry`)
+          this.logger.info(`🔄 Task reset to PENDING for retry`, { messageId, attempts: task.attempts })
         }
       } else {
-        // 任务还在处理中，可能是正常的长时间任务
-        console.log(`Task ${messageId} is still processing (${timeSinceLastAttempt}ms since last attempt)`)
+        this.logger.debug(`Task still processing`, { messageId, elapsedMs: timeSinceLastAttempt })
       }
     } catch (error) {
-      console.error(`Failed to recover task ${messageId}:`, error)
+      this.logger.error(`❌ Failed to recover task`, error as Error, { messageId })
     }
   }
 
@@ -115,7 +128,7 @@ export class ErrorRecoveryService {
       const task = await this.taskStore.get(messageId)
 
       if (!task) {
-        console.warn(`Task ${messageId} not found`)
+        this.logger.warn(`⚠️  Task not found for error handling`, { messageId })
         return 'fail'
       }
 
@@ -165,7 +178,7 @@ export class ErrorRecoveryService {
         return 'fail'
       }
     } catch (err) {
-      console.error(`Failed to handle error for task ${messageId}:`, err)
+      this.logger.error(`❌ Failed to handle error for task`, err as Error, { messageId })
       return 'fail'
     }
   }

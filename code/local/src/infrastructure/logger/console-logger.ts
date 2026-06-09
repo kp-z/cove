@@ -8,23 +8,42 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const LOG_COLORS: Record<LogLevel, string> = {
-  debug: '\x1b[36m',
-  info: '\x1b[32m',
-  warn: '\x1b[33m',
-  error: '\x1b[31m',
+  debug: '\x1b[36m',   // cyan
+  info:  '\x1b[32m',   // green
+  warn:  '\x1b[33m',   // yellow
+  error: '\x1b[31m',   // red
 };
 
 const RESET_COLOR = '\x1b[0m';
+const DIM_COLOR   = '\x1b[2m';
+
+/** HH:MM:SS.mmm — 比完整 ISO 时间戳更易阅读 */
+function shortTimestamp(): string {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const ms = String(d.getMilliseconds()).padStart(3, '0');
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
 
 export class ConsoleLogger implements ILogger {
   private currentLevel: LogLevel;
+  private readonly prefix: string;
 
-  constructor(level: LogLevel = 'info') {
+  constructor(level: LogLevel = 'info', prefix = '') {
     this.currentLevel = level;
+    this.prefix = prefix;
   }
 
   setLevel(level: LogLevel): void {
     this.currentLevel = level;
+  }
+
+  /** 返回带 [name] 前缀的子 logger，继承当前 level */
+  scope(name: string): ILogger {
+    const child = new ConsoleLogger(this.currentLevel, `[${name}] `);
+    return child;
   }
 
   debug(message: string, context?: LogContext): void {
@@ -45,7 +64,7 @@ export class ConsoleLogger implements ILogger {
       ...(error && {
         errorName: error.name,
         errorMessage: error.message,
-        errorStack: error.stack,
+        ...(process.env.LOG_LEVEL === 'debug' && { errorStack: error.stack }),
       }),
     };
     this.log('error', message, errorContext);
@@ -56,22 +75,22 @@ export class ConsoleLogger implements ILogger {
       return;
     }
 
-    const timestamp = new Date().toISOString();
+    const ts    = shortTimestamp();
     const color = LOG_COLORS[level];
-    const levelStr = level.toUpperCase().padEnd(5);
+    const lvl   = level.toUpperCase().padEnd(5);
 
-    let logMessage = `${color}[${timestamp}] ${levelStr}${RESET_COLOR} ${message}`;
+    let line = `${DIM_COLOR}${ts}${RESET_COLOR} ${color}${lvl}${RESET_COLOR} ${this.prefix}${message}`;
 
     if (context && Object.keys(context).length > 0) {
-      logMessage += ` ${JSON.stringify(context)}`;
+      line += ` ${JSON.stringify(context)}`;
     }
 
     if (level === 'error') {
-      console.error(logMessage);
+      console.error(line);
     } else if (level === 'warn') {
-      console.warn(logMessage);
+      console.warn(line);
     } else {
-      console.log(logMessage);
+      console.log(line);
     }
   }
 }

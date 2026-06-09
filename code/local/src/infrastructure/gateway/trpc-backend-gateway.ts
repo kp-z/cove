@@ -6,15 +6,27 @@
 
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { BackendGateway, ExecutionMode, FeatureFlag, RealmConfiguration, AgentMetadataDto } from './backend-gateway.interface';
+import type { ILogger } from '../logger';
 
 export class TrpcBackendGateway implements BackendGateway {
   private client: any; // TODO: Import proper AppRouter type from backend
+  private readonly logger: ILogger;
 
   constructor(
     private backendUrl: string,
     private realmId?: string,
-    private deviceId?: string
+    private deviceId?: string,
+    logger?: ILogger
   ) {
+    this.logger = logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    };
+
     this.client = createTRPCProxyClient({
       links: [
         httpBatchLink({
@@ -39,8 +51,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.executionMode.getMode.query({ channelId });
       return result;
     } catch (error) {
-      console.error('Failed to get execution mode:', error);
-      // Fallback to local mode on error
+      this.logger.error('❌ Failed to get execution mode', error as Error);
       return { mode: 'local', reason: 'Backend unavailable' };
     }
   }
@@ -50,7 +61,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.featureFlag.isEnabled.query({ name: flagName });
       return result;
     } catch (error) {
-      console.error('Failed to check feature flag:', error);
+      this.logger.error('❌ Failed to check feature flag', error as Error, { flag: flagName });
       return false;
     }
   }
@@ -60,7 +71,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.featureFlag.list.query();
       return result;
     } catch (error) {
-      console.error('Failed to get feature flags:', error);
+      this.logger.error('❌ Failed to get feature flags', error as Error);
       return [];
     }
   }
@@ -70,7 +81,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.configuration.fetch.query({ realmId });
       return result;
     } catch (error) {
-      console.error('Failed to fetch realm configuration:', error);
+      this.logger.error('❌ Failed to fetch realm configuration', error as Error, { realmId });
       throw error;
     }
   }
@@ -80,7 +91,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.configuration.getVersion.query({ realmId });
       return result;
     } catch (error) {
-      console.error('Failed to get config version:', error);
+      this.logger.error('❌ Failed to get config version', error as Error, { realmId });
       throw error;
     }
   }
@@ -97,7 +108,7 @@ export class TrpcBackendGateway implements BackendGateway {
         status: health.metrics,
       });
     } catch (error) {
-      console.error('Failed to report health:', error);
+      this.logger.warn('⚠️  Failed to report health', { error: (error as Error).message });
       // Don't throw - health reporting is best-effort
     }
   }
@@ -107,7 +118,7 @@ export class TrpcBackendGateway implements BackendGateway {
       await this.client.health.check.query();
       return true;
     } catch (error) {
-      console.error('Backend health check failed:', error);
+      this.logger.warn('⚠️  Backend health check failed', { error: (error as Error).message });
       return false;
     }
   }
@@ -120,7 +131,7 @@ export class TrpcBackendGateway implements BackendGateway {
       const result = await this.client.message.getHistory.query({ channelId });
       return result;
     } catch (error) {
-      console.error('Failed to get message history:', error);
+      this.logger.error('❌ Failed to get message history', error as Error, { channelId });
       return [];
     }
   }
@@ -143,7 +154,7 @@ export class TrpcBackendGateway implements BackendGateway {
         const channelInfo = await this.client.channel.getById.query({ channelId });
         senderId = channelInfo.agentId || channelInfo.id || 'system';
       } catch (err) {
-        console.warn('Could not get channel info, using fallback senderId');
+        this.logger.warn('⚠️  Could not get channel info, using fallback senderId');
       }
 
       await this.client.message.saveResponse.mutate({
@@ -151,7 +162,7 @@ export class TrpcBackendGateway implements BackendGateway {
         senderId,
       });
     } catch (error) {
-      console.error('Failed to save agent response:', error);
+      this.logger.error('❌ Failed to save agent response', error as Error, { messageId: response.messageId });
       throw error;
     }
   }
@@ -165,7 +176,7 @@ export class TrpcBackendGateway implements BackendGateway {
     try {
       await this.client.message.pushChunk.mutate(chunk);
     } catch (error) {
-      console.error('Failed to push response chunk:', error);
+      this.logger.warn('⚠️  Failed to push response chunk', { error: (error as Error).message });
       // Don't throw - chunk pushing is best-effort
     }
   }
@@ -178,7 +189,7 @@ export class TrpcBackendGateway implements BackendGateway {
     try {
       return await this.client.agentSync.sync.mutate(payload);
     } catch (error) {
-      console.error('Failed to sync agent metadata:', error);
+      this.logger.error('❌ Failed to sync agent metadata', error as Error);
       // 同步失败不应阻断设备启动，返回 0 同步数兜底
       return { synced: 0, received: payload.agents.length };
     }

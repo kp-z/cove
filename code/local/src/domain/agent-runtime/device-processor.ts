@@ -11,6 +11,7 @@ import type { IAdapterManager } from '../../infrastructure/adapters/adapter-mana
 import type { PostProcessorConfig } from './post-processors'
 import type { DeduplicationConfig } from './deduplication'
 import type { LlmAdapter } from '../../infrastructure/adapters/llm/llm-adapter.interface'
+import type { ILogger } from '../../infrastructure/logger'
 import {
   PostProcessorManager,
   ValidationPostProcessor,
@@ -40,6 +41,7 @@ export interface DeviceProcessorConfig {
   metadataPoolSize?: number
   enableTransmissionRetry?: boolean
   maxTransmissionRetries?: number
+  logger?: ILogger
 }
 
 /**
@@ -56,12 +58,22 @@ export class DeviceProcessor implements IMessageProcessor {
   private readonly deduplicationManager: DeduplicationManager | undefined
   private readonly collectorFactory: MetadataCollectorFactory
   private readonly transmissionStrategy: ResilientTransmissionStrategy
+  private readonly logger: ILogger
 
   constructor(
     private readonly backendGateway: BackendGateway,
     private readonly adapterManager: IAdapterManager,
     config: DeviceProcessorConfig = {}
   ) {
+    this.logger = config.logger ?? {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+      setLevel: () => {},
+      scope: () => this.logger,
+    }
+
     this.timeout = config.timeout ?? 30000
     this.defaultAdapter = config.defaultAdapter ?? 'anthropic-adapter'
     this.fallbackAdapters = config.fallbackAdapters ?? []
@@ -101,7 +113,8 @@ export class DeviceProcessor implements IMessageProcessor {
       this.backendGateway,
       {
         enableRetry: config.enableTransmissionRetry ?? true,
-        maxRetries: config.maxTransmissionRetries ?? 3
+        maxRetries: config.maxTransmissionRetries ?? 3,
+        logger: this.logger.scope('Transmission'),
       }
     )
   }
@@ -129,7 +142,7 @@ export class DeviceProcessor implements IMessageProcessor {
         )
 
         if (cached) {
-          console.log('Request is duplicate, returning cached response')
+          this.logger.debug('📨 Duplicate request — returning cached response', { messageId: task.messageId })
           metrics.fromCache = true
           metrics.totalTime = Date.now() - startTime
 
@@ -167,7 +180,7 @@ export class DeviceProcessor implements IMessageProcessor {
         const adapter = await this.adapterManager.getAdapter(adapterName)
         if (!adapter) {
           lastError = `Adapter '${adapterName}' not found`
-          console.warn(lastError)
+          this.logger.warn(`⚠️  Adapter not found`, { adapter: adapterName })
           continue
         }
 
@@ -205,7 +218,7 @@ export class DeviceProcessor implements IMessageProcessor {
 
             // 记录验证错误
             if (postProcessResult.validationErrors) {
-              console.warn('Response validation errors:', postProcessResult.validationErrors)
+              this.logger.warn('⚠️  Response validation errors', { errors: postProcessResult.validationErrors })
               metrics.validationErrors = postProcessResult.validationErrors
             }
           }
@@ -231,11 +244,11 @@ export class DeviceProcessor implements IMessageProcessor {
           return { success: true }
         } catch (error) {
           lastError = error instanceof Error ? error.message : 'Unknown error'
-          console.warn(`Adapter '${adapterName}' failed:`, lastError)
+          this.logger.warn(`⚠️  Adapter failed`, { adapter: adapterName, error: lastError })
 
           // 如果不是最后一个 adapter，继续尝试下一个
           if (adapterName !== adapters[adapters.length - 1]) {
-            console.log(`Trying next adapter...`)
+            this.logger.info(`🔄 Falling back to next adapter`)
             continue
           }
         }
@@ -268,7 +281,7 @@ export class DeviceProcessor implements IMessageProcessor {
     try {
       return await this.backendGateway.getMessageHistory(channelId)
     } catch (error) {
-      console.warn('Failed to get message history, using empty history:', error)
+      this.logger.warn('⚠️  Failed to get message history, using empty history', { error: (error as Error).message })
       return []
     }
   }
@@ -294,7 +307,7 @@ export class DeviceProcessor implements IMessageProcessor {
 
     // 批量模式：Adapter 直接返回完整元数据（Claude CLI）
     if (capabilities.supportsBatchMetadata && adapter.generateBatchResponse) {
-      console.log('[DeviceProcessor] Using batch mode for', this.defaultAdapter)
+      this.logger.debug(`🤖 [batch] Adapter: ${this.defaultAdapter}`)
 
       const batch = await adapter.generateBatchResponse({
         systemPrompt,
@@ -314,7 +327,7 @@ export class DeviceProcessor implements IMessageProcessor {
     }
 
     // 流式模式：使用 Collector 收集元数据（Anthropic/OpenAI）
-    console.log('[DeviceProcessor] Using streaming mode for', this.defaultAdapter)
+    this.logger.debug(`🤖 [stream] Adapter: ${this.defaultAdapter}`)
 
     const collector = this.collectorFactory.create(
       this.defaultAdapter,
@@ -435,9 +448,7 @@ export class DeviceProcessor implements IMessageProcessor {
 
     // 保留最近的 maxHistoryMessages 条消息
     const truncated = history.slice(-this.maxHistoryMessages)
-    console.log(
-      `Truncated history from ${history.length} to ${truncated.length} messages`
-    )
+    this.logger.debug(`History truncated`, { from: history.length, to: truncated.length })
     return truncated
   }
 }
