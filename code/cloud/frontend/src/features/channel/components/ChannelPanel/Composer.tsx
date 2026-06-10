@@ -18,6 +18,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useSendMessage, useTypingState, useMessageQueue } from '../../hooks';
+import { useChannelMembers, useChannel } from '@/lib/trpc/hooks/channel.hooks';
+import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 
 type ComposerMode = 'normal' | 'code' | 'markdown';
 
@@ -100,6 +102,40 @@ export function Composer({
   const { startTyping, stopTyping } = useTypingState(channelId);
   const { queueSize, isOnline } = useMessageQueue();
 
+  // ── 解析「将要回复的 agent」信息（用于发送时插入拟人化占位气泡）──
+  // 步骤1：取频道成员中的 agent，以及频道的 agentPool；二者任一非空即说明会有 agent 回复。
+  const { data: membersData } = useChannelMembers(channelId);
+  const { data: channelData } = useChannel(channelId);
+
+  const agentMemberIds = useMemo(() => {
+    // membersData 在 tRPC 类型坍缩场景下可能为 any，这里显式标注元素类型以避免隐式 any。
+    const members = ((membersData as any)?.members ?? []) as Array<{
+      memberType?: string;
+      memberId: string;
+    }>;
+    return members.filter((m) => m.memberType === 'agent').map((m) => m.memberId);
+  }, [membersData]);
+  // agent_pool 为可选字段，做防御性读取，避免类型不齐时报错。
+  const agentPool: string[] = ((channelData as any)?.agent_pool as string[]) ?? [];
+
+  // 步骤2：选取主回复 agent（优先成员中的 agent，其次 agentPool 首个）。
+  const primaryAgentId = agentMemberIds[0] ?? agentPool[0];
+  const { data: primaryAgent } = useAgent(primaryAgentId ?? '', {
+    enabled: !!primaryAgentId,
+  });
+
+  // 步骤3：构造 respondingAgent；纯人类频道（无 agent）时为 null，发送时不插入占位。
+  const respondingAgent = useMemo(() => {
+    if (!primaryAgentId) return null;
+    return {
+      agentId: primaryAgentId,
+      agentName:
+        (primaryAgent as any)?.display_name ||
+        (primaryAgent as any)?.name ||
+        'Agent',
+    };
+  }, [primaryAgentId, primaryAgent]);
+
   // Initialize content from localStorage
   const [content, setContent] = useState(() => {
     const savedDraft = localStorage.getItem(draftKey);
@@ -179,8 +215,8 @@ export function Composer({
     // 停止输入状态
     stopTyping();
 
-    // 使用新架构发送消息
-    await send(channelId, trimmedContent);
+    // 使用新架构发送消息；若本频道存在会回复的 agent，则一并传入用于插入占位气泡。
+    await send(channelId, trimmedContent, { respondingAgent });
 
     // 清空输入框和草稿
     setContent('');

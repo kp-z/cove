@@ -323,6 +323,8 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
                 'agent.response.thinking',
                 'agent.response.tool_use',
                 'agent.response.streaming',
+                // 实时反馈：status 相位事件，承载 'thinking'|'tool_use'|'responding'|'completed'
+                'agent.response.status',
                 'agent.response.completed',
                 'agent.response.failed',
               ])
@@ -344,6 +346,8 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
             'agent.response.thinking',
             'agent.response.tool_use',
             'agent.response.streaming',
+            // 实时反馈：status 相位事件，承载 'thinking'|'tool_use'|'responding'|'completed'
+            'agent.response.status',
             'agent.response.completed',
             'agent.response.failed',
           ];
@@ -353,7 +357,8 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
             // agent.response.* 事件中，accepted/completed/failed 用裸 channelId，
             // 而 streaming（来自 pushChunk）的 channelId 可能带 realm 前缀，
             // 统一按裸 id 比较，避免流式事件被错误过滤丢弃。
-            if (isSameChannel(event.payload.channelId, input.channelId)) {
+            const matched = isSameChannel(event.payload.channelId, input.channelId);
+            if (matched) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,

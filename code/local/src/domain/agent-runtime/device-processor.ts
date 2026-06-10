@@ -353,6 +353,15 @@ export class DeviceProcessor implements IMessageProcessor {
     ]
     const systemPrompt = this.getSystemPrompt(task)
 
+    // 实时反馈：在调用适配器之前，主动发一次 status:'thinking' 心跳。
+    // 目的：批量适配器（如 Claude CLI）在整段调用返回前不会触发任何流式回调，
+    //       若不主动上报，前端将长时间看不到任何"思考中"反馈。
+    //       通过这一次心跳，让批量/流式两条路径都能立即进入"思考中"活跃态。
+    // 说明：对流式路径而言，适配器随后仍会通过 onStatusChange 上报真实状态，
+    //       由于此处与流式首个状态同为 'thinking'，不会造成状态来回跳变。
+    // best-effort：心跳上报失败不应阻断正常生成流程。
+    await this.transmissionStrategy.transmitStatus(task, 'thinking').catch(() => {})
+
     // 批量模式：Adapter 直接返回完整元数据（Claude CLI）
     if (capabilities.supportsBatchMetadata && adapter.generateBatchResponse) {
       this.logger.debug(`🤖 [batch] Adapter: ${this.defaultAdapter}`)
@@ -432,11 +441,13 @@ export class DeviceProcessor implements IMessageProcessor {
         await this.transmissionStrategy.transmitUsage(task, usage)
       },
 
-      onStatusChange: async (status: string) => {
+      // 实时反馈：状态变更回调统一经 pushChunk(phase:'status') 中继到前端，
+      // status 取值约束为 'thinking'|'tool_use'|'responding'|'completed'。
+      onStatusChange: async (status: 'thinking' | 'tool_use' | 'responding' | 'completed') => {
         // 收集元数据
-        collector.recordStatus(status as any)
+        collector.recordStatus(status)
 
-        // 传输到 Backend
+        // 传输到 Backend（错误隔离，best-effort）
         await this.transmissionStrategy.transmitStatus(task, status)
       }
     }

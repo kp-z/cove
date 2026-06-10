@@ -5,7 +5,7 @@
  * 支持流式更新显示
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { TFunction } from 'i18next';
 import { Coins } from 'lucide-react';
 import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
@@ -19,6 +19,7 @@ import { useAuthStore } from '@/core/auth/authStore';
 import { StreamingContent } from './StreamingContent';
 import { ToolCallIndicator } from './ToolCallIndicator';
 import { StreamingStatusIndicator } from './StreamingStatusIndicator';
+import { mapStreamingPhaseToAvatarStatus } from './avatarStatus';
 
 interface MessageBubbleProps {
   message: Message;
@@ -122,6 +123,8 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                 type={entityType}
                 size="sm"
                 className="w-10 h-10"
+                // 仅 agent 头像接入状态胶囊：由流式阶段/失败态映射而来；非 agent 不显示
+                status={isAgent ? mapStreamingPhaseToAvatarStatus(message.streamingPhase, isFailed) : undefined}
               />
             )}
           </div>

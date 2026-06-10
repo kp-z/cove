@@ -4,14 +4,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { trpc } from '@/lib/trpc';
 import { Message } from '../domain/models/Message';
 import { messageStateManager } from '../domain/MessageStateManager';
 
 export function useMessageList(channelId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
 
   // 订阅本地状态管理器
   useEffect(() => {
@@ -29,8 +28,9 @@ export function useMessageList(channelId: string) {
 
   useEffect(() => {
     if (remoteMessages?.messages) {
+      // 服务端权威正文：始终 upsert 到 serverMessages（覆盖），并清理已落库的乐观消息 / agent 进度。
       const messages = remoteMessages.messages.map((m) => Message.fromRemote(m));
-      messageStateManager.syncRemoteMessages(channelId, messages);
+      messageStateManager.upsertServerMessages(channelId, messages);
     }
   }, [remoteMessages, channelId]);
 
@@ -43,9 +43,9 @@ export function useMessageList(channelId: string) {
     {
       enabled: !!channelId,
       onData: () => {
-        queryClient.invalidateQueries({
-          queryKey: [['message', 'list'], { input: { channelId } }],
-        });
+        // 使用 tRPC useUtils 生成正确 query key，确保 message.list 真正重新拉取。
+        // （手写 queryKey 偏匹配在本仓库实测无法命中，导致实时刷新失效。）
+        void utils.message.list.invalidate();
       },
     }
   );

@@ -47,32 +47,11 @@ const authErrorLink: TRPCLink<AppRouter> = () => {
 let wsClient: ReturnType<typeof createWSClient> | null = null;
 
 function getOrCreateWSClient() {
-  // 延迟访问 useAuthStore，避免循环依赖
-  let isAuthenticated = false;
-  try {
-    isAuthenticated = useAuthStore.getState().isAuthenticated;
-  } catch (error) {
-    // useAuthStore 还未初始化，返回 dummy client
-    log.debug('AuthStore not ready, skipping WebSocket connection');
-    return createWSClient({
-      url: () => {
-        throw new Error('WebSocket not available - auth store not ready');
-      },
-      lazy: true,
-    });
-  }
-
-  if (!isAuthenticated) {
-    // 未认证时返回一个不会真正连接的 dummy client
-    log.debug('User not authenticated, skipping WebSocket connection');
-    return createWSClient({
-      url: () => {
-        throw new Error('WebSocket not available for unauthenticated users');
-      },
-      lazy: true, // 懒加载，不立即连接
-    });
-  }
-
+  // 关键修复：不要在创建 WS client 时同步读取 useAuthStore（trpc.ts ↔ authStore.ts 存在循环依赖，
+  // 模块初始化期间 getState() 会抛错，导致返回一个 url() 永远 throw 的 dummy client，
+  // 进而使整个会话的所有 WS 订阅永久失效）。
+  // 改为始终创建一个真实的 lazy client，认证门控完全交给 splitLink.condition（按操作运行时判断 isAuthenticated）。
+  // lazy:true 保证只有当订阅真正被路由到 WS（即已认证）时才建立连接，并在 connect-time 惰性读取当前 userId。
   if (!wsClient) {
     wsClient = createWSClient({
       url: () => {
@@ -81,8 +60,10 @@ function getOrCreateWSClient() {
           userId: userId || 'anonymous',
           userType: 'human',
         });
-        return `${env.wsUrl}?${params.toString()}`;
+        const fullUrl = `${env.wsUrl}?${params.toString()}`;
+        return fullUrl;
       },
+      lazy: true,
       onClose: () => {
         // 当 WebSocket 连接关闭时，检查是否是因为后端断开
         try {
@@ -140,7 +121,8 @@ export const trpcClient = trpc.createClient({
       condition: (op) => {
         // 只有在认证状态下才使用 WebSocket
         const { isAuthenticated } = useAuthStore.getState();
-        return op.type === 'subscription' && isAuthenticated;
+        const useWS = op.type === 'subscription' && isAuthenticated;
+        return useWS;
       },
       true: wsLink({
         client: getOrCreateWSClient(),

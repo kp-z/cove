@@ -44,6 +44,9 @@ export type MessageProps = {
   id: string;
   messageId?: string;
   tempId?: string;
+  // 关联的「被回复」消息 id。用于把 agent 占位气泡与触发它的用户消息绑定，
+  // 便于 accepted 事件到达时精确认领占位（pending → accepted 复用同一气泡）。
+  inReplyTo?: string;
   channelId: string;
   senderId: string;
   senderName: string;
@@ -64,6 +67,7 @@ export class Message {
   readonly id: string;
   readonly messageId?: string;
   readonly tempId?: string;
+  readonly inReplyTo?: string;
   readonly channelId: string;
   readonly senderId: string;
   readonly senderName: string;
@@ -83,6 +87,7 @@ export class Message {
     this.id = props.id;
     this.messageId = props.messageId;
     this.tempId = props.tempId;
+    this.inReplyTo = props.inReplyTo;
     this.channelId = props.channelId;
     this.senderId = props.senderId;
     this.senderName = props.senderName;

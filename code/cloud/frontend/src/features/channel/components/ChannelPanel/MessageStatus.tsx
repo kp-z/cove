@@ -1,10 +1,15 @@
 /**
  * MessageStatus 组件
- * 显示消息状态（pending/sending/sent/failed/queued）
- * 使用图标清晰展示各种状态
+ * 仅展示「发送失败 + 重试」入口。
+ *
+ * 设计说明（live feedback 改造）：
+ * 为贴近真人即时聊天体验，正常/成功路径（pending/sending/sent「已送达」）不再展示
+ * 任何状态行——用户消息发出后即时回显即可，无需「已送达」回执。离线排队提示由
+ * Composer 顶部的全局横幅统一承担，故此处也不再逐条展示 queued 状态。
+ * 唯一保留的是失败态及其重试按钮，确保发送失败时用户能感知并恢复。
  */
 
-import { Loader2, AlertCircle, CheckCheck, Clock, Upload, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Message } from '../../domain/models/Message';
 
 interface MessageStatusProps {
@@ -13,42 +18,12 @@ interface MessageStatusProps {
 }
 
 export function MessageStatus({ message, onRetry }: MessageStatusProps) {
-  // 只显示本地消息的状态
+  // 只处理本地消息，且仅在失败时展示。
   if (message.source !== 'local') {
     return null;
   }
 
-  // 排队状态（离线）
-  if (message.status === 'queued') {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-yellow-400 mt-1">
-        <Upload className="w-3.5 h-3.5" />
-        <span>排队中，等待网络恢复</span>
-      </div>
-    );
-  }
-
-  // 等待发送
-  if (message.status === 'pending') {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
-        <Clock className="w-3.5 h-3.5" />
-        <span>等待发送</span>
-      </div>
-    );
-  }
-
-  // 发送中
-  if (message.status === 'sending') {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-blue-400 mt-1">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        <span>发送中</span>
-      </div>
-    );
-  }
-
-  // 发送失败
+  // 发送失败：展示错误信息 + 可重试入口。
   if (message.status === 'failed') {
     return (
       <div className="flex items-center gap-2 text-xs text-red-400 mt-1">
@@ -68,15 +43,6 @@ export function MessageStatus({ message, onRetry }: MessageStatusProps) {
     );
   }
 
-  // 发送成功（显示双勾）
-  if (message.status === 'sent') {
-    return (
-      <div className="flex items-center gap-1 text-xs text-green-400 mt-1">
-        <CheckCheck className="w-3.5 h-3.5" />
-        <span className="opacity-70">已送达</span>
-      </div>
-    );
-  }
-
+  // 正常/成功/排队等状态：不展示状态行。
   return null;
 }

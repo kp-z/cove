@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { getIconForType, type EntityType, type ChannelType } from './utils.tsx';
+import { AvatarStatusBadge, type AvatarStatus } from './AvatarStatusBadge';
 
 /**
  * 统一的 Avatar 组件
@@ -36,8 +37,13 @@ export interface AvatarProps {
   channelType?: ChannelType;
   /** Avatar size */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  /** Show running status indicator */
+  /**
+   * Show running status indicator
+   * @deprecated 改用 status（isRunning 等价于 status='online'）。保留以兼容现有调用（如 AvatarStack 透传）。
+   */
   isRunning?: boolean;
+  /** 右上角状态胶囊（领域无关的抽象状态，优先级高于 isRunning） */
+  status?: AvatarStatus;
   /** Additional CSS classes */
   className?: string;
   /** Click handler */
@@ -59,10 +65,14 @@ export function Avatar({
   channelType = 'public',
   size = 'md',
   isRunning = false,
+  status,
   className,
   onClick,
 }: AvatarProps) {
   const [imageError, setImageError] = useState(false);
+
+  // 步骤 1：计算生效状态 —— 显式 status 优先；否则回退到 isRunning（兼容旧调用，等价 online）
+  const effectiveStatus: AvatarStatus | undefined = status ?? (isRunning ? 'online' : undefined);
 
   const sizeClass = sizeMap[size].container;
   const iconSize = sizeMap[size].icon;
@@ -74,10 +84,11 @@ export function Avatar({
   const showIcon = !src || imageError;
 
   return (
+    // 外层容器：relative 定位 + 形状（供 className 传入的 ring/border 呈圆形），
+    // 关键：外层不再 overflow-hidden，否则会把溢出到边界外的状态胶囊一起裁掉。
     <div
       className={cn(
-        'relative flex items-center justify-center overflow-hidden flex-shrink-0',
-        'border border-white/10',
+        'relative flex items-center justify-center flex-shrink-0',
         sizeClass,
         shape,
         onClick && 'cursor-pointer transition-transform hover:scale-105',
@@ -86,23 +97,29 @@ export function Avatar({
       onClick={onClick}
       title={alt}
     >
-      {showIcon ? (
-        <div className="w-full h-full bg-white/5 flex items-center justify-center text-gray-500">
-          {getIconForType(type, channelType, iconSize)}
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt={alt}
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-        />
-      )}
+      {/* 步骤 2：媒体层 —— 单独承担圆形裁剪与边框，避免裁掉右上角状态胶囊 */}
+      <div
+        className={cn(
+          'w-full h-full overflow-hidden border border-white/10',
+          shape
+        )}
+      >
+        {showIcon ? (
+          <div className="w-full h-full bg-white/5 flex items-center justify-center text-gray-500">
+            {getIconForType(type, channelType, iconSize)}
+          </div>
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        )}
+      </div>
 
-      {/* Running indicator */}
-      {isRunning && (
-        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#0f111a] animate-pulse" />
-      )}
+      {/* 步骤 3：状态胶囊 —— 处于裁剪层之外，可正常溢出显示；online 与历史绿色脉冲圆点视觉一致 */}
+      {effectiveStatus && <AvatarStatusBadge status={effectiveStatus} size={size} />}
     </div>
   );
 }

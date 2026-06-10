@@ -363,9 +363,19 @@ export const messageRouter = (messageService: MessageService, channelService?: a
               });
               break;
 
-            // status / usage 仅为元数据相位：不渲染为正文，
-            // 最终用量与状态在 saveResponse 落库时统一收口，无需扇出独立事件。
+            // 实时反馈：status 相位扇出独立事件，让前端即便面对批量适配器
+            // （如 Claude CLI）也能展示"思考中"等活跃状态。
+            // 注意：Cloud 完全适配器无关，仅原样中继 Local 上报的统一 status，
+            //       不做任何按适配器分支的处理。
             case 'status':
+              await fanOut('agent.response.status', {
+                ...basePayload,
+                status: (input.data as any).status,
+              });
+              break;
+
+            // usage 仅为元数据相位：不渲染为正文，
+            // 最终用量在 saveResponse 落库时统一收口，无需扇出独立事件。
             case 'usage':
             default:
               break;
@@ -529,6 +539,14 @@ export const messageRouter = (messageService: MessageService, channelService?: a
 
             // 契约2：落库成功后发布 agent.response.completed 生命周期事件，
             // 让前端占位消息从 streaming 收敛为完成态（messageId 与占位 id 一致）。
+            //
+            // 方案A（自给自足，消除 refetch 竞态）：completed 事件直接携带刚落库的
+            // 权威消息（message.toJSON()，与 message.list 返回结构一致）。
+            // 前端在 completed 时可直接把正文写入「单一真相源」（serverMessages），
+            // 正文即刻原地显示，完全不依赖后续 message.list 的重新拉取（refetch），
+            // 从根上消除「completed 抢跑在正文落库之前 / refetch 被去重」的竞态。
+            // 随后真正的 message.list 落库结果到达时，因共享同一 messageId 自然覆盖一致，
+            // 既不重复也不闪烁。
             if (eventBus) {
               try {
                 await eventBus.publish({
@@ -541,6 +559,9 @@ export const messageRouter = (messageService: MessageService, channelService?: a
                     messageId: message.messageId,
                     channelId, // 裸 channelId
                     agentId: senderId,
+                    // 方案A：随事件下发权威正文 + 全量 metadata（snake_case，
+                    // 与 message.list 一致），供前端 Message.fromRemote 直接落地。
+                    message: message.toJSON(),
                   },
                 });
                 // 可观测性：以 agentMessageId(=message.messageId) 为 correlation id

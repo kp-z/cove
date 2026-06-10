@@ -4,6 +4,8 @@ export type { AvatarProps } from './Avatar';
 export { AvatarStack } from './AvatarStack';
 export type { AvatarStackProps, AvatarStackItem } from './AvatarStack';
 export { AvatarEditor } from './AvatarEditor';
+export { AvatarStatusBadge } from './AvatarStatusBadge';
+export type { AvatarStatus, AvatarSize, AvatarStatusBadgeProps } from './AvatarStatusBadge';
 
 // Hooks
 export { useUserAvatarData, useAgentAvatarData, useEntityAvatarData } from './useAvatarData';

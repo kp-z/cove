@@ -59,6 +59,20 @@ export interface StreamingCallbacks {
    * @param status - 新的流式状态
    */
   onStatusChange?: (status: 'thinking' | 'tool_use' | 'responding' | 'completed') => Promise<void> | void;
+
+  /**
+   * 【Phase 3 预留 · 暂未接线】逐 token 正文流式回调
+   *
+   * 预留用于未来的逐 token 正文增量推送：当某适配器支持真正的正文级流式时，
+   * 由其在生成过程中调用本回调，按如下链路最终驱动前端 StreamingContent 增量渲染：
+   *   onContent → transmissionStrategy.transmitContent → pushChunk(phase:'content')
+   *             → 事件 agent.response.streaming → 前端 StreamingContent
+   *
+   * 注意：本相位（device-processor / Cloud）当前不接线、不调用本回调，
+   *       仅作为接口契约预留，待 Phase 3 实现逐 token 正文流式时再行接入。
+   * @param chunk - 增量正文内容
+   */
+  onContent?: (chunk: string) => Promise<void> | void;
 }
 
 export interface GenerateParams {
