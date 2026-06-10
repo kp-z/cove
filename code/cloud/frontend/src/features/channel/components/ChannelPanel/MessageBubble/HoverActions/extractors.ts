@@ -2,7 +2,7 @@
  * 状态信息提取器
  */
 
-import { Brain, Wrench, Coins, Zap } from 'lucide-react';
+import { Wrench, Coins, Zap } from 'lucide-react';
 import type { StatusBadge, StatusExtractor } from './types';
 
 /**
@@ -15,7 +15,7 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
     return badges;
   }
 
-  const { usage, thinking, toolLogs, executionMode } = message.agentMetadata;
+  const { usage, toolLogs, executionMode } = message.agentMetadata;
 
   // Token 使用状态
   if (usage?.totalTokens) {
@@ -32,17 +32,7 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
     });
   }
 
-  // Thinking 状态
-  if (thinking) {
-    badges.push({
-      id: 'thinking',
-      label: 'Thinking',
-      icon: Brain,
-      variant: 'purple',
-      priority: 20,
-      tooltip: 'AI thinking process available',
-    });
-  }
+  // 思考过程不再以状态徽章展示（详情统一在点击面板查看）
 
   // Tool 使用状态
   const toolCount = toolLogs?.length || 0;

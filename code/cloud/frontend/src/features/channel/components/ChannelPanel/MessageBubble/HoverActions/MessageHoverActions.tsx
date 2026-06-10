@@ -3,7 +3,7 @@
  * 管理 hover 状态，集成操作栏和状态信息
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { MessageActionBar } from './MessageActionBar';
 import { MessageStatusInfo } from './MessageStatusInfo';
@@ -14,12 +14,15 @@ interface MessageHoverActionsProps {
   message: Message;
   config: MessageHoverActionsConfig;
   className?: string;
+  /** 行尾附加内容，与操作按钮同行渲染（如单条消息成本） */
+  trailing?: ReactNode;
 }
 
 export const MessageHoverActions = memo(function MessageHoverActions({
   message,
   config,
   className,
+  trailing,
 }: MessageHoverActionsProps) {
   const {
     actionGroups,
@@ -47,7 +50,8 @@ export const MessageHoverActions = memo(function MessageHoverActions({
     return false;
   }, [message, actionGroups, statusExtractor, showStatus, showActions]);
 
-  if (!hasVisibleContent) {
+  // 只要存在按钮/状态或行尾附加内容，就需要渲染该行
+  if (!hasVisibleContent && !trailing) {
     return null;
   }
 
@@ -64,6 +68,8 @@ export const MessageHoverActions = memo(function MessageHoverActions({
       )}
 
       {showActions && <MessageActionBar actionGroups={actionGroups} message={message} />}
+
+      {trailing}
     </div>
   );
 });

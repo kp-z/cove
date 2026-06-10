@@ -109,6 +109,7 @@ export interface MessageHoverActionsConfig {
  * 预定义的操作类型
  */
 export type ActionType =
+  | 'details'
   | 'thinking'
   | 'tools'
   | 'usage'

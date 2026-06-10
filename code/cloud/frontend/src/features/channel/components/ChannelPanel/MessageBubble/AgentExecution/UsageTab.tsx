@@ -7,7 +7,7 @@ interface UsageTabProps {
 }
 
 export const UsageTab = memo(function UsageTab({ usage }: UsageTabProps) {
-  const formatNumber = (num: number) => num.toLocaleString();
+  const formatNumber = (num: number | undefined) => (num ?? 0).toLocaleString();
   const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
   const formatDuration = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;

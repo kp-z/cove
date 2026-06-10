@@ -3,13 +3,30 @@
  */
 
 import { Brain, Wrench, Coins, FileCode, Copy, Edit, Trash2, Reply } from 'lucide-react';
-import type { ActionFactory, ActionRegistry, ActionType, MessageAction } from './types';
+import type { ActionFactory, ActionType, MessageAction } from './types';
 
 /**
  * 默认操作注册表
  * 使用 Record 类型映射确保类型安全
  */
 const defaultActionRegistry: Record<ActionType, ActionFactory> = {
+  // 合并后的「详情」入口：思考过程 + 工具调用 + 用量统计统一在详情面板中查看
+  details: (config) => ({
+    id: 'details',
+    label: '详情',
+    icon: Brain,
+    priority: 10,
+    tooltip: '查看思考过程、工具调用与用量详情',
+    variant: 'ghost',
+    // 只要有思考内容或工具调用记录即显示（用量数值已在气泡下方常驻展示）
+    shouldShow: (message) =>
+      !!message.agentMetadata?.thinking || (message.agentMetadata?.tool_logs?.length ?? 0) > 0,
+    onClick: () => {
+      // 由外部配置提供具体实现
+    },
+    ...config,
+  }),
+
   thinking: (config) => ({
     id: 'thinking',
     label: 'Thinking',
@@ -60,11 +77,10 @@ const defaultActionRegistry: Record<ActionType, ActionFactory> = {
     tooltip: 'View file changes',
     variant: 'ghost',
     shouldShow: (message) => {
-      return (
-        message.agentMetadata?.toolLogs?.some(
-          (log: any) => log.toolName === 'Edit' || log.toolName === 'Write'
-        ) || false
-      );
+      const logs = (message.agentMetadata?.tool_logs ?? message.agentMetadata?.toolLogs ?? []) as Array<{
+        toolName?: string;
+      }>;
+      return logs.some((log) => log.toolName === 'Edit' || log.toolName === 'Write');
     },
     onClick: () => {
       // 由外部配置提供具体实现

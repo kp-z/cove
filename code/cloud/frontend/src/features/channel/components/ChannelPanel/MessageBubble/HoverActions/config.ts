@@ -28,20 +28,9 @@ export function getDefaultConfig(
         {
           id: 'agent-details',
           actions: [
-            messageActionManager.get('thinking', {
-              onClick: () => onOpenModal?.('thinking'),
-            })!,
-            messageActionManager.get('tools', {
-              onClick: () => onOpenModal?.('tools'),
-            })!,
-            messageActionManager.get('usage', {
-              onClick: () => onOpenModal?.('usage'),
-            })!,
-            messageActionManager.get('diff', {
-              onClick: () => {
-                // TODO: 实现 diff 查看器
-                console.log('Open diff viewer');
-              },
+            // 单一「详情」按钮：点击打开详情面板，思考过程/工具调用/用量等细节统一在面板内查看
+            messageActionManager.get('details', {
+              onClick: () => onOpenModal?.(),
             })!,
           ].filter(Boolean),
         },

@@ -7,20 +7,18 @@
 
 import React, { useState, useCallback } from 'react';
 import type { TFunction } from 'i18next';
-import { Brain, Loader2 } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
 import { AgentExecutionModal, type TabType } from './MessageBubble/AgentExecution/AgentExecutionModal';
 import { MessageStatus } from './MessageStatus';
 import { Message } from '../../domain/models/Message';
 import { MessageHoverActions, getDefaultConfig } from './MessageBubble/HoverActions';
+import { computeMessageCostUsd, formatCostUsd } from './MessageBubble/usageCost';
 import { getUserColor, getColorWithOpacity } from '@/shared/utils/userColor';
 import { useAuthStore } from '@/core/auth/authStore';
 import { StreamingContent } from './StreamingContent';
 import { ToolCallIndicator } from './ToolCallIndicator';
-import { AgentThinking } from './AgentThinking';
 import { StreamingStatusIndicator } from './StreamingStatusIndicator';
-import { ToolLogsDisplay } from './ToolLogsDisplay';
-import { TokenUsageDisplay } from './TokenUsageDisplay';
 
 interface MessageBubbleProps {
   message: Message;
@@ -103,6 +101,9 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
     handleReply
   );
 
+  // 单条 agent 消息的美元成本（仅在 hover 操作行内展示）
+  const messageCostUsd = isAgent ? computeMessageCostUsd(message.agentMetadata?.usage) : null;
+
   return (
     <div
       className={`group relative flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
@@ -167,70 +168,32 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                   />
                 )}
 
-                {/* thinking 阶段：显示思考内容（默认展开）*/}
-                {message.streamingPhase === 'thinking' && message.streamingData?.thinking && (
-                  <AgentThinking
-                    thinking={message.streamingData.thinking}
-                    isStreaming={true}
-                    defaultExpanded={true}
+                {/* tool_use 阶段：仅显示工具调用（思考过程 UI 已移除）*/}
+                {message.streamingPhase === 'tool_use' && message.streamingData?.currentTool && (
+                  <ToolCallIndicator
+                    toolName={message.streamingData.currentTool.name}
+                    params={message.streamingData.currentTool.params}
                   />
                 )}
 
-                {/* tool_use 阶段：显示工具 + 思考内容（自动收起）*/}
-                {message.streamingPhase === 'tool_use' && (
-                  <>
-                    {message.streamingData?.currentTool && (
-                      <ToolCallIndicator
-                        toolName={message.streamingData.currentTool.name}
-                        params={message.streamingData.currentTool.params}
-                      />
-                    )}
-                    {message.streamingData?.thinking && (
-                      <AgentThinking
-                        thinking={message.streamingData.thinking}
-                        isStreaming={false}
-                        defaultExpanded={false}
-                      />
-                    )}
-                  </>
-                )}
-
-                {/* responding 阶段：流式显示回复 + 思考内容（自动收起）*/}
+                {/* responding 阶段：流式显示回复（思考过程 UI 已移除）*/}
                 {message.streamingPhase === 'responding' && (
-                  <>
-                    <div className="text-sm text-gray-100 leading-relaxed">
-                      <StreamingContent
-                        content={message.streamingData?.partialContent || message.content}
-                        isStreaming={true}
-                        skipAnimation={message.skipAnimation}
-                      />
-                    </div>
-                    {message.streamingData?.thinking && (
-                      <AgentThinking
-                        thinking={message.streamingData.thinking}
-                        isStreaming={false}
-                        defaultExpanded={false}
-                      />
-                    )}
-                  </>
+                  <div className="text-sm text-gray-100 leading-relaxed">
+                    <StreamingContent
+                      content={message.streamingData?.partialContent || message.content}
+                      isStreaming={true}
+                      skipAnimation={message.skipAnimation}
+                    />
+                  </div>
                 )}
 
-                {/* completed 或无 phase：显示完整内容 + 思考内容可查 */}
+                {/* completed 或无 phase：显示完整内容（思考过程 UI 已移除）*/}
                 {(!message.streamingPhase || message.streamingPhase === 'completed') && (
-                  <>
-                    <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
-                      isFailed ? 'text-red-400' : ''
-                    }`}>
-                      {message.content}
-                    </div>
-                    {(message.streamingData?.thinking || message.agentMetadata?.thinking) && (
-                      <AgentThinking
-                        thinking={message.streamingData?.thinking || message.agentMetadata?.thinking || ''}
-                        isStreaming={false}
-                        defaultExpanded={false}
-                      />
-                    )}
-                  </>
+                  <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
+                    isFailed ? 'text-red-400' : ''
+                  }`}>
+                    {message.content}
+                  </div>
                 )}
 
                 {/* pending 或 accepted 阶段：只显示状态，无内容 */}
@@ -253,30 +216,26 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
               )}
             </div>
 
-            {/* Hover actions */}
+            {/* Hover actions：操作按钮与单条消息成本同行，仅 hover 时显示 */}
             <div className="mt-1">
-              <MessageHoverActions message={message} config={hoverActionsConfig} />
+              <MessageHoverActions
+                message={message}
+                config={hoverActionsConfig}
+                trailing={
+                  isAgent && message.hasUsageStats() && !message.isStreaming() ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenModal('usage')}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-300 hover:bg-green-500/30 transition-colors tabular-nums"
+                      title="本条消息花费（点击查看用量详情）"
+                    >
+                      <Coins className="w-3 h-3" />
+                      {formatCostUsd(messageCostUsd ?? 0)}
+                    </button>
+                  ) : undefined
+                }
+              />
             </div>
-
-            {/* Agent Execution Metadata - 新增的展示区域 */}
-            {isAgent && message.agentMetadata && !message.isStreaming() && (
-              <div className="mt-2 space-y-2 w-full">
-                {/* Thinking */}
-                {message.hasThinking() && message.agentMetadata.thinking && (
-                  <AgentThinking thinking={message.agentMetadata.thinking} />
-                )}
-
-                {/* Tool Logs */}
-                {message.hasToolLogs() && message.agentMetadata.tool_logs && (
-                  <ToolLogsDisplay logs={message.agentMetadata.tool_logs} />
-                )}
-
-                {/* Token Usage */}
-                {message.hasUsageStats() && message.agentMetadata.usage && (
-                  <TokenUsageDisplay usage={message.agentMetadata.usage} />
-                )}
-              </div>
-            )}
           </div>
         </>
       )}

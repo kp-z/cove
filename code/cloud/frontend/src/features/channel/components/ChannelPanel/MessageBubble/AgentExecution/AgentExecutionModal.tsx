@@ -5,6 +5,7 @@ import { ThinkingTab } from './ThinkingTab';
 import { ToolsTab } from './ToolsTab';
 import { UsageTab } from './UsageTab';
 import { StatsTab } from './StatsTab';
+import { normalizeAgentMetadata } from './normalizeAgentMetadata';
 
 export type TabType = 'thinking' | 'tools' | 'usage' | 'stats';
 
@@ -23,9 +24,14 @@ export const AgentExecutionModal = memo(function AgentExecutionModal({
   onClose,
   defaultTab: initialTab,
 }: AgentExecutionModalProps) {
-  const hasThinking = !!metadata.thinking;
-  const hasTools = (metadata.toolLogs?.length || 0) > 0;
-  const hasUsage = !!metadata.usage;
+  // 运行时下发的是 snake_case 元数据，统一归一化为驼峰结构供各标签页安全消费
+  const normalizedMetadata: AgentMetadata = normalizeAgentMetadata(metadata);
+  const toolLogs = normalizedMetadata.toolLogs ?? [];
+  const usage = normalizedMetadata.usage;
+
+  const hasThinking = !!normalizedMetadata.thinking;
+  const hasTools = toolLogs.length > 0;
+  const hasUsage = !!usage;
 
   // Auto-select first available tab
   const autoSelectedTab = hasThinking ? 'thinking' : hasTools ? 'tools' : hasUsage ? 'usage' : 'stats';
@@ -72,7 +78,7 @@ export const AgentExecutionModal = memo(function AgentExecutionModal({
                   : 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
               }`}
             >
-              Tools ({metadata.toolLogs?.length || 0})
+              Tools ({toolLogs.length})
             </button>
           )}
           {hasUsage && (
@@ -102,16 +108,16 @@ export const AgentExecutionModal = memo(function AgentExecutionModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {currentTab === 'thinking' && hasThinking && (
-            <ThinkingTab content={metadata.thinking!} isStreaming={isStreaming} />
+            <ThinkingTab content={normalizedMetadata.thinking!} isStreaming={isStreaming} />
           )}
           {currentTab === 'tools' && hasTools && (
-            <ToolsTab logs={metadata.toolLogs!} isStreaming={isStreaming} />
+            <ToolsTab logs={toolLogs} isStreaming={isStreaming} />
           )}
           {currentTab === 'usage' && hasUsage && (
-            <UsageTab usage={metadata.usage!} />
+            <UsageTab usage={usage!} />
           )}
           {currentTab === 'stats' && (
-            <StatsTab metadata={metadata} isStreaming={isStreaming} />
+            <StatsTab metadata={normalizedMetadata} isStreaming={isStreaming} />
           )}
         </div>
       </div>
