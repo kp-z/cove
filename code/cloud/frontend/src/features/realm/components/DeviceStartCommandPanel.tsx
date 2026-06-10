@@ -13,31 +13,17 @@ import { useCurrentUser } from '@/core/auth/useCurrentUser';
 interface DeviceStartCommandPanelProps {
   realmId: string;
   realmOwnerId: string;
-  onDeviceOnline: () => void;
   onClose: () => void;
 }
 
 export function DeviceStartCommandPanel({
   realmId,
   realmOwnerId,
-  onDeviceOnline,
   onClose,
 }: DeviceStartCommandPanelProps) {
   const { user } = useCurrentUser();
   const isSuperAdmin = user?.username === 'kp'; // kp 是超级管理员
   const isOwner = user?.id === realmOwnerId || isSuperAdmin;
-
-  const { data: deviceStatus, refetch: refetchStatus } = trpc.realm.getDeviceStatus.useQuery(
-    { realmId },
-    {
-      refetchInterval: 10000, // 降低到 10 秒（主要依赖 WebSocket 推送）
-      onSuccess: (data) => {
-        if (data.isOnline) {
-          onDeviceOnline();
-        }
-      },
-    }
-  );
 
   const generateCommandMutation = trpc.realm.generateDeviceStartCommand.useMutation();
   const rotateKeyMutation = trpc.realm.rotateDeviceApiKey.useMutation();
@@ -69,7 +55,6 @@ export function DeviceStartCommandPanel({
     try {
       const result = await rotateKeyMutation.mutateAsync({ realmId });
       setCommandData(result);
-      refetchStatus();
     } catch (error: any) {
       console.error('Failed to rotate key:', error);
       alert(error.message || 'Failed to rotate key');

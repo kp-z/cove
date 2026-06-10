@@ -547,7 +547,7 @@ export const realmRouter = (
     // 订阅 Realm device 状态变化（WebSocket）
     subscribeDeviceStatus: publicProcedure
       .input(z.object({
-        realmId: z.string().optional(),
+        realmIds: z.array(z.string()).max(500).optional(),
       }).optional())
       .subscription(({ input }) => {
         return observable<{ realmId: string; deviceStatus: 'online' | 'offline' }>((emit) => {
@@ -555,15 +555,34 @@ export const realmRouter = (
             return () => {};
           }
 
+          const hasRealmIdsInput = Array.isArray(input?.realmIds);
+          const realmIdFilter = hasRealmIdsInput ? new Set(input!.realmIds) : null;
+
+          const shouldEmitRealm = (realmId: string): boolean => {
+            if (!realmIdFilter) {
+              return true;
+            }
+            return realmIdFilter.has(realmId);
+          };
+
           // 订阅 device 心跳事件 (表示 online)
           const unsubscribeHeartbeat = eventBus.subscribe('device.heartbeat', async (event) => {
             const deviceId = event.payload.deviceId as string;
+            const heartbeatRealmId = event.payload.realmId as string | undefined;
+
+            if (heartbeatRealmId && shouldEmitRealm(heartbeatRealmId)) {
+              emit.next({
+                realmId: heartbeatRealmId,
+                deviceStatus: 'online',
+              });
+              return;
+            }
 
             // 查找该 device 对应的 realm
             if (deviceService) {
               try {
                 const device = await deviceService.getDeviceById(deviceId);
-                if (device && (!input?.realmId || device.realm_id === input.realmId)) {
+                if (device && shouldEmitRealm(device.realm_id)) {
                   emit.next({
                     realmId: device.realm_id,
                     deviceStatus: 'online',
@@ -579,8 +598,8 @@ export const realmRouter = (
           const unsubscribeOffline = eventBus.subscribe('device.offline', async (event) => {
             const realmId = event.payload.realmId as string;
 
-            // 如果指定了 realmId，只推送匹配的 realm
-            if (!input?.realmId || realmId === input.realmId) {
+            // 如果指定了 realmIds，只推送匹配的 realm
+            if (shouldEmitRealm(realmId)) {
               emit.next({
                 realmId,
                 deviceStatus: 'offline',

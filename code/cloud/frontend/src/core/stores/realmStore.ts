@@ -16,21 +16,14 @@ import { create } from 'zustand';
 import { trpc } from '@/lib/trpc';
 import type { RealmInfo } from '@/features/realm/components/RealmCard';
 
-interface DeviceStatus {
-  isOnline: boolean;
-  lastSeenAt?: Date;
-}
-
 interface RealmState {
   // State
   realms: RealmInfo[];
   currentRealmId: string | null;
-  deviceStatuses: Record<string, DeviceStatus>;
 
   // Actions
-  setRealms: (realms: RealmInfo[]) => void;
+  setRealms: (realms: RealmInfo[] | ((previousRealms: RealmInfo[]) => RealmInfo[])) => void;
   setCurrentRealm: (realmId: string) => void;
-  updateDeviceStatus: (realmId: string, status: DeviceStatus) => void;
   clearRealms: () => void;
 
   // Selectors
@@ -43,11 +36,14 @@ export const useRealmStore = create<RealmState>((set, get) => ({
   // Initial state
   realms: [],
   currentRealmId: null,
-  deviceStatuses: {},
 
   // Actions
-  setRealms: (realms) => {
-    set({ realms });
+  setRealms: (realmsOrUpdater) => {
+    set((state) => ({
+      realms: typeof realmsOrUpdater === 'function'
+        ? realmsOrUpdater(state.realms)
+        : realmsOrUpdater,
+    }));
   },
 
   setCurrentRealm: async (realmId) => {
@@ -67,20 +63,10 @@ export const useRealmStore = create<RealmState>((set, get) => ({
     }
   },
 
-  updateDeviceStatus: (realmId, status) => {
-    set((state) => ({
-      deviceStatuses: {
-        ...state.deviceStatuses,
-        [realmId]: status,
-      },
-    }));
-  },
-
   clearRealms: () => {
     set({
       realms: [],
       currentRealmId: null,
-      deviceStatuses: {},
     });
   },
 
@@ -95,7 +81,7 @@ export const useRealmStore = create<RealmState>((set, get) => ({
   },
 
   getOnlineRealms: () => {
-    const { realms, deviceStatuses } = get();
-    return realms.filter((r) => deviceStatuses[r.realmId]?.isOnline);
+    const { realms } = get();
+    return realms.filter((r) => r.deviceStatus === 'online');
   },
 }));

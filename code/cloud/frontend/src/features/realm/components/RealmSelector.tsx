@@ -15,7 +15,7 @@ import type { RealmInfo } from './';
 import { useRealmStore } from '@/core/stores/realmStore';
 import { LoginHeroThree } from '@/shared/components/ui/animations/LoginHeroThree';
 import { GlassCard, GlassCardVariants } from '@/shared/components/ui/cards/GlassCard';
-import { trpc } from '@/lib/trpc';
+import { useRealmRealtimeStatus } from '@/features/realm/hooks/useRealmRealtimeStatus';
 
 interface RealmSelectorProps {
   realms: RealmInfo[];
@@ -28,34 +28,20 @@ export function RealmSelector({
   onSelect,
   variant = 'page',
 }: RealmSelectorProps) {
-  const [realms, setRealms] = useState<RealmInfo[]>(initialRealms);
   const [selectedRealmId, setSelectedRealmId] = useState<string>();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [expandedRealmId, setExpandedRealmId] = useState<string | null>(null);
-  const { setCurrentRealm } = useRealmStore();
+  const { realms, setCurrentRealm } = useRealmStore();
   const navigate = useNavigate();
 
-  // 初始化时更新 realms
-  useEffect(() => {
-    setRealms(initialRealms);
-  }, [initialRealms]);
-
-  // 订阅 device 状态变化（WebSocket）
-  trpc.realm.subscribeDeviceStatus.useSubscription(undefined, {
-    onData: (data) => {
-      // 收到 device 状态变化通知，立即更新本地状态
-      setRealms(prev => prev.map(r =>
-        r.realmId === data.realmId
-          ? { ...r, deviceStatus: data.deviceStatus }
-          : r
-      ));
-    },
-    onError: (error) => {
-      console.error('Device status subscription error:', error);
-    },
+  useRealmRealtimeStatus({
+    initialRealms,
+    enabled: variant === 'page',
   });
 
   const handleRealmClick = (realm: RealmInfo) => {
+    setSelectedRealmId(realm.realmId);
+
     if (realm.deviceStatus !== 'online') {
       // Device 离线，展开启动命令，不允许进入
       setExpandedRealmId(realm.realmId);
@@ -68,28 +54,28 @@ export function RealmSelector({
     navigate('/'); // 导航到首页 (Dashboard)
   };
 
-  const handleDeviceOnline = (realm: RealmInfo) => {
-    // Device 上线后，更新本地状态
-    setRealms(prev => prev.map(r =>
-      r.realmId === realm.realmId
-        ? { ...r, deviceStatus: 'online' as const }
-        : r
-    ));
-
-    // 关闭启动命令面板
-    setExpandedRealmId(null);
-
-    // 自动进入 realm
-    setCurrentRealm(realm.realmId);
-    onSelect?.(realm.realmId);
-    navigate('/'); // 导航到首页 (Dashboard)
-  };
-
   const handleCreateSuccess = (newRealm: RealmInfo) => {
     setShowCreateForm(false);
     // 自动展开新 Realm 的启动命令
     setExpandedRealmId(newRealm.realmId);
   };
+
+  // 步骤 2：当离线面板对应的 realm 变为 online 时自动进入。
+  useEffect(() => {
+    if (!expandedRealmId) {
+      return;
+    }
+
+    const expandedRealm = realms.find((item) => item.realmId === expandedRealmId);
+    if (!expandedRealm || expandedRealm.deviceStatus !== 'online') {
+      return;
+    }
+
+    setExpandedRealmId(null);
+    setCurrentRealm(expandedRealm.realmId);
+    onSelect?.(expandedRealm.realmId);
+    navigate('/');
+  }, [expandedRealmId, realms, navigate, onSelect, setCurrentRealm]);
 
   return (
     <div className="fixed inset-0 bg-gray-950">
@@ -137,7 +123,6 @@ export function RealmSelector({
                         <DeviceStartCommandPanel
                           realmId={realm.realmId}
                           realmOwnerId={realm.ownerId || ''}
-                          onDeviceOnline={() => handleDeviceOnline(realm)}
                           onClose={() => setExpandedRealmId(null)}
                         />
                       </motion.div>
