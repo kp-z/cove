@@ -102,4 +102,19 @@ export interface EnqueueMessage {
   channelId: string
   content: string
   priority?: number
+  /**
+   * 契约1/契约3：从云端 message.process 透传的元数据。
+   * 关键字段：
+   * - agentId         触发响应的 agent id（用于回报/落库 senderId）
+   * - agentName       agent 显示名
+   * - agentMessageId  服务端预分配的权威回复消息 id（贯穿流式与落库）
+   * - userMessageId   触发本次响应的用户消息 id
+   */
+  metadata?: {
+    agentId?: string
+    agentName?: string
+    agentMessageId?: string
+    userMessageId?: string
+    [key: string]: any
+  }
 }

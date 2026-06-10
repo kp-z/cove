@@ -83,17 +83,24 @@ export function useSendMessage() {
         // 标记为 sending 状态
         messageStateManager.updateMessageStatus(tempId, 'sending');
 
-        await mutation.mutateAsync({
+        const result = await mutation.mutateAsync({
           channelId,
           senderId: userId || 'unknown',
           senderType: 'human',
           content,
         });
 
-        // 5. 成功：标记为 sent
+        // 5. 契约1：关联服务端权威 id，便于后续 syncRemoteMessages 精确去重
+        const serverMessageId =
+          (result as any)?.message_id ?? (result as any)?.messageId;
+        if (serverMessageId) {
+          messageStateManager.attachServerId(tempId, serverMessageId);
+        }
+
+        // 6. 成功：标记为 sent
         messageStateManager.updateMessageStatus(tempId, 'sent');
 
-        // 6. 触发 lastMessage 缓存失效，更新 channel list
+        // 7. 触发 lastMessage 缓存失效，更新 channel list
         queryClient.invalidateQueries({
           queryKey: [['message', 'getLastByChannel'], { input: { channelId } }],
         });

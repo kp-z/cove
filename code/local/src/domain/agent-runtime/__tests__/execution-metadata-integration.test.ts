@@ -21,6 +21,7 @@ describe('Agent Execution Metadata - Integration Test', () => {
       getMessageHistory: vi.fn(),
       saveAgentResponse: vi.fn().mockResolvedValue(undefined),
       pushResponseChunk: vi.fn().mockResolvedValue(undefined),
+      reportAgentFailure: vi.fn().mockResolvedValue(undefined),
       getExecutionMode: vi.fn(),
       isFeatureFlagEnabled: vi.fn(),
       getAllFeatureFlags: vi.fn(),

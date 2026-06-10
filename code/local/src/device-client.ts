@@ -295,14 +295,22 @@ export class DeviceClient {
 
     try {
       if (message.type === 'message.process' && message.payload) {
-        const { messageId, channelId, content } = message.payload;
-        this.logger.info('📨 Message received', { msgId: messageId, channel: channelId });
+        const { messageId, channelId, content, metadata } = message.payload;
+        this.logger.info('📨 Message received', {
+          msgId: messageId,
+          channel: channelId,
+          agentId: metadata?.agentId,
+          agentMessageId: metadata?.agentMessageId,
+        });
 
+        // 契约1/契约3：透传 metadata（含 agentMessageId/agentId），
+        // 否则 Local 侧流式回报与落库会丢失服务端权威 id 与 agent 身份。
         const taskId = await this.messageOrchestrator.enqueue({
           messageId,
           channelId,
           content,
           priority: 0,
+          metadata,
         });
 
         this.logger.debug('Message enqueued', { taskId, messageId });

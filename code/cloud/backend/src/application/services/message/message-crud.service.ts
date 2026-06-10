@@ -34,6 +34,12 @@ export interface SendMessageDTO {
   readonly attachments?: readonly string[];
   readonly mentions?: readonly MessageMention[];
   readonly agentExecutionMetadata?: AgentExecutionMetadata;
+  /**
+   * 契约1：服务端权威消息 ID。
+   * 若上游已预分配（如 agent 响应链在 accepted 阶段分配的 agentMessageId），
+   * 则沿用之以保证占位/流式/落库三处 id 一致；不传则由服务端自动生成。
+   */
+  readonly messageId?: string;
 }
 
 export interface UpdateMessageDTO {
@@ -58,7 +64,7 @@ export class MessageCrudService {
 
   async sendMessage(dto: SendMessageDTO): Promise<MessageEntity> {
       const context = getRealmContext();
-    this.logger.info('Sending message', { channelId: dto.channelId, senderId: dto.senderId, realmId: context.realmId });
+    this.logger.debug('Sending message', { channelId: dto.channelId, senderId: dto.senderId, realmId: context.realmId });
 
     const result = await this.channelQueryService.canSendMessage(dto.channelId, dto.senderId);
     if (!result.allowed) {
@@ -92,7 +98,19 @@ export class MessageCrudService {
       mentions = this.parseMentionsFromContent(dto.content, channel);
     }
 
-    const messageId = this.generateMessageId();
+    // 契约1：幂等保护——若已用权威 id 落库（如 Local 重传 saveResponse），直接返回现有消息，避免重复气泡。
+    if (dto.messageId) {
+      const existing = await this.messageRepository.findById(dto.messageId, context.realmId);
+      if (existing) {
+        this.logger.info('Message already exists with authoritative id, returning existing (idempotent)', {
+          messageId: dto.messageId,
+          realmId: context.realmId,
+        });
+        return existing;
+      }
+    }
+
+    const messageId = dto.messageId ?? this.generateMessageId();
     const msgShortId = messageId.split('-')[2] || 'unknown'; // 使用随机部分而不是时间戳
     const now = new Date();
 
@@ -153,7 +171,7 @@ export class MessageCrudService {
 
   async updateMessage(dto: UpdateMessageDTO): Promise<MessageEntity> {
       const context = getRealmContext();
-    this.logger.info('Updating message', { messageId: dto.messageId, realmId: context.realmId });
+    this.logger.debug('Updating message', { messageId: dto.messageId, realmId: context.realmId });
 
     const message = await this.getMessageById(dto.messageId);
 
@@ -184,7 +202,7 @@ export class MessageCrudService {
 
   async deleteMessage(dto: DeleteMessageDTO): Promise<MessageEntity> {
       const context = getRealmContext();
-    this.logger.info('Deleting message', { messageId: dto.messageId, realmId: context.realmId });
+    this.logger.debug('Deleting message', { messageId: dto.messageId, realmId: context.realmId });
 
     const message = await this.getMessageById(dto.messageId);
 

@@ -326,6 +326,27 @@ describe('StorageService', () => {
       const savedContent = await storageService.loadJson(relativePath);
       expect(savedContent).toEqual(content);
     });
+
+    // 回归测试：修复设备连接时的并发写竞态（固定 .tmp 名导致 ENOENT）
+    it('should not throw ENOENT when the same entity is written concurrently', async () => {
+      const writes = Array.from({ length: 20 }, (_, i) =>
+        storageService.saveJsonAtomic('devices', 'device-1', { version: i })
+      );
+
+      // 并发写入同一实体不应抛错（此前会因共享 .tmp 而 rename ENOENT）
+      const results = await Promise.allSettled(writes);
+      const rejected = results.filter((r) => r.status === 'rejected');
+      expect(rejected).toHaveLength(0);
+
+      // 最终文件存在且为合法 JSON（内容为其中某一次写入）
+      const savedContent = await storageService.loadJson('storage/devices/device-1.json');
+      expect(savedContent).toHaveProperty('version');
+
+      // 不残留任何临时文件
+      const dir = path.join(testProjectRoot, 'storage', 'devices');
+      const leftovers = (await fs.readdir(dir)).filter((f) => f.includes('.tmp'));
+      expect(leftovers).toHaveLength(0);
+    });
   });
 
   describe('integration scenarios', () => {

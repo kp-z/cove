@@ -20,6 +20,7 @@ import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
+import { bareChannelId } from '../../../common/channel-ref';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -64,6 +65,25 @@ const replyToThreadSchema = z.object({
   attachments: z.array(z.string()).readonly().optional(),
   mentions: z.array(mentionSchema).readonly().optional(),
 });
+
+/**
+ * 契约3：将消息的 sender_type 映射为 LLM 对话历史的 role。
+ *
+ * @param senderType 消息发送者类型（human / agent / system 等）
+ * @returns 对应 LLM role；无法映射（如 system/未知）返回 null，由调用方过滤
+ */
+function mapSenderTypeToRole(senderType: unknown): 'user' | 'assistant' | null {
+  switch (senderType) {
+    case 'human':
+    case 'user':
+      return 'user';
+    case 'agent':
+    case 'assistant':
+      return 'assistant';
+    default:
+      return null;
+  }
+}
 
 export const messageRouter = (messageService: MessageService, channelService?: any, eventBus?: IEventBus) =>
   router({
@@ -262,13 +282,23 @@ export const messageRouter = (messageService: MessageService, channelService?: a
         try {
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            // Extract channel ID (remove realm prefix if present)
-            const channelId = input.channelId.includes(':')
-              ? input.channelId.split(':')[1]
-              : input.channelId;
+            // 契约3：统一通过 bareChannelId 去除 realm 前缀（消除散落的 split(':')）
+            const channelId = bareChannelId(input.channelId);
 
             const messages = await messageService.getMessagesByChannel(channelId, input.limit, 0);
-            return messages.map(m => m.toJSON());
+
+            // 契约3：在服务端完成 sender_type → role 映射，直接返回对消费者（Local/LLM）
+            // 友好的 { role, content } 结构，避免各消费者各自猜测 sender_type 语义。
+            // - human → user，agent → assistant
+            // - system 及未知类型不进入对话历史（其上下文应通过 systemPrompt 注入）
+            return messages.reduce<Array<{ role: 'user' | 'assistant'; content: string }>>((acc, m) => {
+              const json = m.toJSON();
+              const role = mapSenderTypeToRole(json.sender_type);
+              if (role && typeof json.content === 'string' && json.content.length > 0) {
+                acc.push({ role, content: json.content });
+              }
+              return acc;
+            }, []);
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
@@ -281,28 +311,67 @@ export const messageRouter = (messageService: MessageService, channelService?: a
         channelId: z.string(),
         messageId: z.string(),
         agentId: z.string(),
-        chunk: z.string(),
+        // 契约2：类型化进度信封 { phase, data }
+        phase: z.enum(['thinking', 'tool', 'content', 'status', 'usage']),
+        data: z.record(z.unknown()),
       }))
       .mutation(async ({ input }) => {
-        // 发布流式内容事件
-        if (eventBus) {
-          try {
-            await eventBus.publish({
-              eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              eventType: 'agent.response.streaming',
-              aggregateId: input.messageId,
-              aggregateType: 'Message',
-              occurredAt: new Date(),
-              payload: {
-                messageId: input.messageId,
-                channelId: input.channelId,
-                agentId: input.agentId,
-                chunk: input.chunk,
-              },
-            });
-          } catch (error) {
-            console.error('[pushChunk] Failed to publish streaming event:', error);
+        if (!eventBus) {
+          return { success: true };
+        }
+
+        // 契约3：事件 payload 统一使用裸 channelId（Local 入参可能带 realm 前缀）
+        const channelId = bareChannelId(input.channelId);
+        const basePayload = {
+          messageId: input.messageId,
+          channelId,
+          agentId: input.agentId,
+        };
+
+        // 契约2：按 phase 扇出到不同的 agent.response.* 事件，
+        // 让前端各 handler 由真实事件驱动，从根上避免把结构化数据当正文渲染。
+        const fanOut = (eventType: string, payload: Record<string, unknown>) =>
+          eventBus.publish({
+            eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            eventType,
+            aggregateId: input.messageId,
+            aggregateType: 'Message',
+            occurredAt: new Date(),
+            payload,
+          });
+
+        try {
+          switch (input.phase) {
+            case 'thinking':
+              await fanOut('agent.response.thinking', {
+                ...basePayload,
+                thinking: (input.data as any).text ?? '',
+              });
+              break;
+
+            case 'tool':
+              await fanOut('agent.response.tool_use', {
+                ...basePayload,
+                tool: input.data,
+              });
+              break;
+
+            case 'content':
+              await fanOut('agent.response.streaming', {
+                ...basePayload,
+                chunk: (input.data as any).chunk ?? '',
+              });
+              break;
+
+            // status / usage 仅为元数据相位：不渲染为正文，
+            // 最终用量与状态在 saveResponse 落库时统一收口，无需扇出独立事件。
+            case 'status':
+            case 'usage':
+            default:
+              break;
           }
+        } catch (error) {
+          console.error('[pushChunk] Failed to publish progress event:', error);
         }
         return { success: true };
       }),
@@ -373,10 +442,8 @@ export const messageRouter = (messageService: MessageService, channelService?: a
         try {
           const context = RealmContext.create(ctx.realmId || 'default-server', ctx.userId || 'system');
           return await runWithContext(context, async () => {
-            // Extract channel ID (remove realm prefix if present)
-            const channelId = input.channelId.includes(':')
-              ? input.channelId.split(':')[1]
-              : input.channelId;
+            // 契约3：统一通过 bareChannelId 去除 realm 前缀（消除散落的 split(':')）
+            const channelId = bareChannelId(input.channelId);
 
             // Get senderId from channel's agentPool if not provided or if it's 'system'
             let senderId = input.senderId;
@@ -453,13 +520,79 @@ export const messageRouter = (messageService: MessageService, channelService?: a
               channelId, // Use the parsed channelId without realm prefix
               content: input.content,
               agentExecutionMetadata,
+              // 契约1：沿用 Local 回传的权威 agentMessageId 落库，
+              // 使其与前端占位、流式事件中的 messageId 完全一致（幂等）。
+              messageId: input.messageId,
               // Don't set threadId - agent responses should appear in main chat flow
               // threadId: input.inReplyTo || input.messageId,
             });
+
+            // 契约2：落库成功后发布 agent.response.completed 生命周期事件，
+            // 让前端占位消息从 streaming 收敛为完成态（messageId 与占位 id 一致）。
+            if (eventBus) {
+              try {
+                await eventBus.publish({
+                  eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                  eventType: 'agent.response.completed',
+                  aggregateId: message.messageId,
+                  aggregateType: 'Message',
+                  occurredAt: new Date(),
+                  payload: {
+                    messageId: message.messageId,
+                    channelId, // 裸 channelId
+                    agentId: senderId,
+                  },
+                });
+                // 可观测性：以 agentMessageId(=message.messageId) 为 correlation id
+                ctx.logger.info('Agent response completed', {
+                  agentMessageId: message.messageId,
+                  channelId,
+                  agentId: senderId,
+                });
+              } catch (publishErr) {
+                ctx.logger.warn('Failed to publish agent.response.completed', {
+                  messageId: message.messageId,
+                  error: (publishErr as Error).message,
+                });
+              }
+            }
+
             return message.toJSON();
           });
         } catch (error: any) {
           throw mapErrorToTRPC(error);
         }
+      }),
+
+    // 契约2：Local 处理失败时上报，发布 agent.response.failed 生命周期事件。
+    // 使前端占位消息能正确进入失败态（而非 30s 超时误判）。
+    reportFailure: publicProcedure
+      .input(z.object({
+        channelId: z.string(),
+        messageId: z.string(), // 服务端预分配的权威 agentMessageId
+        agentId: z.string().optional(),
+        error: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (eventBus) {
+          try {
+            await eventBus.publish({
+              eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              eventType: 'agent.response.failed',
+              aggregateId: input.messageId,
+              aggregateType: 'Message',
+              occurredAt: new Date(),
+              payload: {
+                messageId: input.messageId,
+                channelId: bareChannelId(input.channelId), // 裸 channelId
+                agentId: input.agentId,
+                error: input.error,
+              },
+            });
+          } catch (publishErr) {
+            console.error('[reportFailure] Failed to publish failed event:', publishErr);
+          }
+        }
+        return { success: true };
       }),
   });

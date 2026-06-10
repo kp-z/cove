@@ -30,6 +30,8 @@ export class SqliteMessageQueue implements IMessageQueue {
         maxAttempts: task.maxAttempts,
         priority: task.priority,
         error: task.error,
+        // 契约1/契约3：metadata 以 JSON 字符串持久化，出队时还原，避免 agentMessageId 丢失。
+        metadata: task.metadata ? JSON.stringify(task.metadata) : null,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         lastAttemptAt: task.lastAttemptAt,
@@ -114,7 +116,24 @@ export class SqliteMessageQueue implements IMessageQueue {
       updatedAt: record.updatedAt,
       lastAttemptAt: record.lastAttemptAt,
       completedAt: record.completedAt,
-      error: record.error ?? undefined
+      error: record.error ?? undefined,
+      // 契约1/契约3：还原 JSON 字符串为 metadata 对象。
+      metadata: this.parseMetadata(record.metadata)
+    }
+  }
+
+  /**
+   * 解析持久化的 metadata JSON 字符串。
+   * 解析失败时返回 undefined，避免污染任务处理流程。
+   */
+  private parseMetadata(raw: unknown): MessageTask['metadata'] {
+    if (typeof raw !== 'string' || raw.length === 0) {
+      return undefined
+    }
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return undefined
     }
   }
 }

@@ -13,8 +13,6 @@ import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAgentStreaming } from '../../hooks/useAgentStreaming';
 import { systemLog } from '../../stores/systemEventStore';
-import { Message } from '../../domain/models/Message';
-import { messageStateManager } from '../../domain/MessageStateManager';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -76,47 +74,12 @@ export function ChannelPanel({
   // 订阅 Agent 流式更新 (统一入口)
   useAgentStreaming(channel_id);
 
-  // WebSocket 订阅：监听消息事件
-  trpc.subscription.onMessage.useSubscription(
-    {
-      channelId: channel_id,
-      events: ['message.created', 'message.updated', 'message.deleted'],
-    },
-    {
-      onData: (event) => {
-        systemLog.info(
-          channel_id,
-          'websocket.message_received',
-          `Received ${event.eventType} event`,
-          { eventType: event.eventType, messageId: event.data.message_id }
-        );
-
-        // 直接更新 MessageStateManager，不再 invalidateQueries
-        if (event.eventType === 'message.created') {
-          const message = Message.fromRemote(event.data);
-          messageStateManager.syncRemoteMessages(channel_id, [message]);
-
-          // 如果是 Agent 消息，流式更新已经由 useAgentStreaming 处理
-          // 不需要设置 streamingMessageId
-        }
-
-        // 对于其他事件类型（updated/deleted），仍然刷新列表
-        if (event.eventType !== 'message.created') {
-          queryClient.invalidateQueries({
-            queryKey: [['message', 'list'], { input: { channelId: channel_id } }],
-          });
-        }
-      },
-      onError: (error) => {
-        systemLog.error(
-          channel_id,
-          'websocket.subscription_error',
-          `Message subscription error: ${error.message}`,
-          { error: error.message }
-        );
-      },
-    }
-  );
+  // 说明（契约修复 F1/F2）：
+  // message.created/updated/deleted 的 WebSocket 订阅由 useMessageList 统一持有，
+  // 其在收到事件后 invalidate message.list 查询并重新拉取「全量 snake_case」数据，
+  // 经 Message.fromRemote 正确解析后写入 MessageStateManager。
+  // 此处不再重复订阅并直接解析 camelCase 最小 payload（旧实现会产出无 content/
+  // 无 timestamp 的损坏消息，且与 useMessageList 形成双重订阅竞态）。
 
   // WebSocket 订阅：监听成员变化事件
   trpc.subscription.onChannelMember.useSubscription(

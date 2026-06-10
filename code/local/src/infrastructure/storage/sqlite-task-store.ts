@@ -47,6 +47,8 @@ export class SqliteTaskStore {
           maxAttempts: task.maxAttempts ?? 3,
           priority: task.priority ?? 0,
           error: task.error,
+          // 契约1/契约3：持久化 metadata，保证崩溃恢复后 agentMessageId 不丢失。
+          metadata: task.metadata ? JSON.stringify(task.metadata) : null,
           createdAt: new Date(),
           updatedAt: new Date()
         }
@@ -157,7 +159,24 @@ export class SqliteTaskStore {
       priority: record.priority,
       error: record.error ?? undefined,
       createdAt: record.createdAt,
-      updatedAt: record.updatedAt
+      updatedAt: record.updatedAt,
+      // 契约1/契约3：还原 metadata JSON 字符串。
+      metadata: this.parseMetadata(record.metadata)
+    }
+  }
+
+  /**
+   * 解析持久化的 metadata JSON 字符串。
+   * 解析失败时返回 undefined，避免污染任务处理流程。
+   */
+  private parseMetadata(raw: unknown): MessageTask['metadata'] {
+    if (typeof raw !== 'string' || raw.length === 0) {
+      return undefined
+    }
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return undefined
     }
   }
 }

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, procedure } from '../trpc';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
+import { isSameChannel } from '../../../common/channel-ref';
 
 export interface SubscriptionRouterDependencies {
   eventBus: IEventBus;
@@ -42,7 +43,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
             // 过滤：如果指定了 channelId，只发送匹配的事件
-            if (!input.channelId || event.aggregateId === input.channelId || event.payload.channelId === input.channelId) {
+            if (!input.channelId || event.aggregateId === input.channelId || isSameChannel(event.payload.channelId, input.channelId)) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,
@@ -99,7 +100,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
             // 过滤：如果指定了 channelId，只发送匹配的事件
-            if (!input.channelId || event.payload.channelId === input.channelId) {
+            if (!input.channelId || isSameChannel(event.payload.channelId, input.channelId)) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,
@@ -187,7 +188,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
             // 过滤：只发送匹配 channelId 的事件
-            if (event.aggregateId === input.channelId || event.payload.channelId === input.channelId) {
+            if (event.aggregateId === input.channelId || isSameChannel(event.payload.channelId, input.channelId)) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,
@@ -238,7 +239,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
             // 过滤：只发送匹配 channelId 的事件
-            if (event.payload.channelId === input.channelId) {
+            if (isSameChannel(event.payload.channelId, input.channelId)) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,
@@ -320,6 +321,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
               z.enum([
                 'agent.response.accepted',
                 'agent.response.thinking',
+                'agent.response.tool_use',
                 'agent.response.streaming',
                 'agent.response.completed',
                 'agent.response.failed',
@@ -340,19 +342,24 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
           const eventTypes = input.events || [
             'agent.response.accepted',
             'agent.response.thinking',
+            'agent.response.tool_use',
             'agent.response.streaming',
             'agent.response.completed',
             'agent.response.failed',
           ];
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {
-            // 过滤：只发送匹配 channelId 的事件
-            if (event.payload.channelId === input.channelId) {
+            // 契约3：归一化比较 channelId。
+            // agent.response.* 事件中，accepted/completed/failed 用裸 channelId，
+            // 而 streaming（来自 pushChunk）的 channelId 可能带 realm 前缀，
+            // 统一按裸 id 比较，避免流式事件被错误过滤丢弃。
+            if (isSameChannel(event.payload.channelId, input.channelId)) {
               emit.next({
                 eventId: event.eventId,
                 eventType: event.eventType,
                 timestamp: event.occurredAt.toISOString(),
-                data: event.payload,
+                // 同时把 payload.channelId 归一化为裸 id 回传，前端始终拿到一致形态
+                data: { ...event.payload, channelId: input.channelId },
               });
             }
           });

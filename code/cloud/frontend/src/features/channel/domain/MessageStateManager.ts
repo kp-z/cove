@@ -34,12 +34,19 @@ export class MessageStateManager {
     const message = this.localMessages.get(id) || this.remoteMessages.get(id);
     if (!message) return;
 
-    const updated =
-      status === 'failed'
-        ? message.markAsFailed(error!)
-        : status === 'queued'
-          ? message.markAsQueued()
-          : new Message({ ...message, status });
+    let updated: Message;
+    if (status === 'failed') {
+      const failed = message.markAsFailed(error!);
+      // 契约2：流式中的 agent 消息失败时，同步将 streamingPhase 置为 'failed'，
+      // 使 StreamingStatusIndicator 正确显示失败态（修复旧 F4）。
+      updated = message.streamingPhase
+        ? new Message({ ...failed, streamingPhase: 'failed' })
+        : failed;
+    } else if (status === 'queued') {
+      updated = message.markAsQueued();
+    } else {
+      updated = new Message({ ...message, status });
+    }
 
     const isLocal = message.isLocal();
 
@@ -134,6 +141,17 @@ export class MessageStateManager {
     this.notifySubscribers(message.channelId);
   }
 
+  // 契约1：将服务端返回的权威消息 id 关联到本地乐观消息。
+  // 用户消息发送成功后调用，使 syncRemoteMessages 能通过 id 精确去重，
+  // 不再依赖脆弱的「内容 + 时间戳」模糊匹配。
+  attachServerId(localId: string, messageId: string): void {
+    const message = this.localMessages.get(localId);
+    if (!message) return;
+
+    const updated = new Message({ ...message, messageId });
+    this.localMessages.set(localId, updated);
+  }
+
   // 同步远程消息
   syncRemoteMessages(channelId: string, messages: Message[]): void {
     let syncedCount = 0;
@@ -142,26 +160,24 @@ export class MessageStateManager {
     messagesToSync.forEach((msg) => {
       this.remoteMessages.set(msg.id, msg);
 
-      // 查找对应的本地消息 - 优先使用 tempId 匹配
+      // 契约1：占位/最终消息共享同一权威 id，按 id 精确匹配即可，无需模糊匹配。
       const localMsg = Array.from(this.localMessages.values()).find((m) => {
-        // 方案1: 使用 tempId 匹配（如果后端返回了 tempId）
+        // 方案1: 权威 id 直接命中（agent 占位 id == 最终 id；用户消息已 attachServerId）
+        if (m.id === msg.id) {
+          return true;
+        }
+
+        // 方案2: tempId 匹配（若后端回传了 tempId）
         if (m.tempId && msg.tempId && m.tempId === msg.tempId) {
           return true;
         }
 
-        // 方案2: 使用 messageId 匹配（如果本地消息已经有 messageId）
+        // 方案3: 本地已关联的 messageId 匹配
         if (m.messageId && m.messageId === msg.id) {
           return true;
         }
 
-        // 方案3: 备用匹配 - content + timestamp + channelId
-        // 只在 3 秒内且内容完全相同才认为是同一条消息
-        return (
-          m.tempId &&
-          m.content === msg.content &&
-          m.channelId === channelId &&
-          Math.abs(m.timestamp.getTime() - msg.timestamp.getTime()) < 3000
-        );
+        return false;
       });
 
       if (localMsg) {

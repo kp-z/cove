@@ -26,6 +26,8 @@ model MessageTask {
   maxAttempts     Int      @default(3)
   priority        Int      @default(0)
   error           String?
+  // 契约1/契约3：透传的消息元数据（JSON 字符串），含 agentMessageId/agentId 等。
+  metadata        String?
   createdAt       DateTime
   updatedAt       DateTime
   lastAttemptAt   DateTime?

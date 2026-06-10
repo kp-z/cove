@@ -132,7 +132,13 @@ export class DeviceProcessor implements IMessageProcessor {
       adapterUsed: this.defaultAdapter
     }
 
+    // 可观测性：以 agentMessageId 作为贯穿三进程（前端/Backend/Local）的 correlation id，
+    // 所有关键日志统一带上，便于一次 grep 还原整条消息链路。
+    const corr = this.correlationFields(task)
+
     try {
+      this.logger.info('🚀 Processing agent task', corr)
+
       // 1. 检查请求去重
       if (this.deduplicationManager) {
         const idempotencyKey = (task as any).idempotencyKey
@@ -142,7 +148,7 @@ export class DeviceProcessor implements IMessageProcessor {
         )
 
         if (cached) {
-          this.logger.debug('📨 Duplicate request — returning cached response', { messageId: task.messageId })
+          this.logger.debug('📨 Duplicate request — returning cached response', corr)
           metrics.fromCache = true
           metrics.totalTime = Date.now() - startTime
 
@@ -257,17 +263,59 @@ export class DeviceProcessor implements IMessageProcessor {
       // 所有 Adapters 都失败
       metrics.totalTime = Date.now() - startTime
 
+      const allFailedError = lastError ?? 'All adapters failed'
+      this.logger.error('❌ All adapters failed for agent task', undefined, { ...corr, error: allFailedError })
+      await this.reportFailure(task, allFailedError)
+
       return {
         success: false,
-        error: lastError ?? 'All adapters failed'
+        error: allFailedError
       }
     } catch (error) {
       metrics.totalTime = Date.now() - startTime
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error('❌ Agent task processing threw', error as Error, corr)
+      await this.reportFailure(task, errorMessage)
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       }
+    }
+  }
+
+  /**
+   * 可观测性：构造贯穿三进程的 correlation 日志字段。
+   * 以 agentMessageId 为主关联键（与前端占位、流式事件、最终落库消息 id 一致）。
+   */
+  private correlationFields(task: MessageTask): Record<string, unknown> {
+    return {
+      agentMessageId: task.metadata?.agentMessageId || task.messageId,
+      userMessageId: task.metadata?.userMessageId || task.messageId,
+      channelId: task.channelId,
+      agentId: task.metadata?.agentId,
+    }
+  }
+
+  /**
+   * 契约2：上报 agent 响应失败，触发后端发布 agent.response.failed 事件。
+   * 使用服务端权威 agentMessageId，使前端占位消息正确进入失败态（而非 30s 超时误判）。
+   * best-effort：上报失败不应掩盖原始错误。
+   */
+  private async reportFailure(task: MessageTask, error: string): Promise<void> {
+    try {
+      await this.backendGateway.reportAgentFailure({
+        channelId: task.channelId,
+        messageId: task.metadata?.agentMessageId || task.messageId,
+        agentId: task.metadata?.agentId,
+        error,
+      })
+    } catch (reportErr) {
+      this.logger.warn('⚠️  Failed to report agent failure', {
+        agentMessageId: task.metadata?.agentMessageId || task.messageId,
+        error: (reportErr as Error).message,
+      })
     }
   }
 
@@ -405,15 +453,29 @@ export class DeviceProcessor implements IMessageProcessor {
     // 准备最终化（重试失败的传输）
     const { hadTransmissionFailures } = await this.transmissionStrategy.prepareFinalization(task)
 
-    // 保存响应（包含完整的 content 和 metadata）
+    // 契约1：使用服务端预分配的权威 agentMessageId 落库，
+    // 使最终持久化消息 id 与前端占位、流式事件中的 messageId 完全一致（幂等）。
+    const agentMessageId = task.metadata?.agentMessageId || task.messageId
+
+    // 契约 L4：将结构化执行元数据作为顶层 execution 传给网关，
+    // 由网关映射为后端 saveResponse 期望的 schema；metadata 仅保留向后兼容的附加信息。
     await this.backendGateway.saveAgentResponse({
       channelId: task.channelId,
-      messageId: task.messageId,
+      messageId: agentMessageId,
       content,
+      // 契约 L5：透传触发本次响应的 agentId，供后端 senderId 直接使用
+      agentId: task.metadata?.agentId,
+      execution: metadata,
       metadata: {
-        execution: metadata,
         hadTransmissionFailures
       }
+    })
+
+    this.logger.info('💾 Agent response saved', {
+      agentMessageId,
+      channelId: task.channelId,
+      agentId: task.metadata?.agentId,
+      hadTransmissionFailures,
     })
   }
 

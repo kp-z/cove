@@ -479,4 +479,89 @@ describe('messageRouter', () => {
       expect(result).toHaveProperty('content', 'Reply');
     });
   });
+
+  // 契约2 回归：pushChunk 按 phase 扇出到不同的 agent.response.* 事件
+  describe('pushChunk fan-out（契约2 类型化信封）', () => {
+    let eventBus: { publish: ReturnType<typeof vi.fn> };
+    let routerWithBus: ReturnType<typeof messageRouter>;
+
+    beforeEach(() => {
+      eventBus = { publish: vi.fn().mockResolvedValue(undefined) };
+      routerWithBus = messageRouter(mockMessageService, undefined, eventBus as any);
+    });
+
+    function lastPublishedEvent() {
+      const calls = eventBus.publish.mock.calls;
+      return calls.length > 0 ? (calls[calls.length - 1][0] as any) : undefined;
+    }
+
+    it('phase=thinking → 发布 agent.response.thinking，payload.thinking 取自 data.text', async () => {
+      const caller = routerWithBus.createCaller(mockContext);
+      await caller.pushChunk({
+        channelId: 'realm-1:channel-1',
+        messageId: 'msg-agent-1',
+        agentId: 'agent-1',
+        phase: 'thinking',
+        data: { text: '思考中...' },
+      });
+
+      const evt = lastPublishedEvent();
+      expect(evt.eventType).toBe('agent.response.thinking');
+      expect(evt.payload.messageId).toBe('msg-agent-1');
+      // 契约3：channelId 归一化为裸 id
+      expect(evt.payload.channelId).toBe('channel-1');
+      expect(evt.payload.thinking).toBe('思考中...');
+    });
+
+    it('phase=content → 发布 agent.response.streaming，payload.chunk 取自 data.chunk', async () => {
+      const caller = routerWithBus.createCaller(mockContext);
+      await caller.pushChunk({
+        channelId: 'channel-1',
+        messageId: 'msg-agent-1',
+        agentId: 'agent-1',
+        phase: 'content',
+        data: { chunk: 'Hello' },
+      });
+
+      const evt = lastPublishedEvent();
+      expect(evt.eventType).toBe('agent.response.streaming');
+      expect(evt.payload.chunk).toBe('Hello');
+    });
+
+    it('phase=tool → 发布 agent.response.tool_use，payload.tool 为结构化数据', async () => {
+      const caller = routerWithBus.createCaller(mockContext);
+      const tool = { toolName: 'search', status: 'success' };
+      await caller.pushChunk({
+        channelId: 'channel-1',
+        messageId: 'msg-agent-1',
+        agentId: 'agent-1',
+        phase: 'tool',
+        data: tool,
+      });
+
+      const evt = lastPublishedEvent();
+      expect(evt.eventType).toBe('agent.response.tool_use');
+      expect(evt.payload.tool).toMatchObject(tool);
+    });
+
+    it('phase=status / usage → 不扇出独立事件（仅作元数据）', async () => {
+      const caller = routerWithBus.createCaller(mockContext);
+      await caller.pushChunk({
+        channelId: 'channel-1',
+        messageId: 'msg-agent-1',
+        agentId: 'agent-1',
+        phase: 'status',
+        data: { status: 'responding' },
+      });
+      await caller.pushChunk({
+        channelId: 'channel-1',
+        messageId: 'msg-agent-1',
+        agentId: 'agent-1',
+        phase: 'usage',
+        data: { inputTokens: 1, outputTokens: 2 },
+      });
+
+      expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -32,7 +32,7 @@ export interface TransmissionStrategyConfig {
  * Failed transmission record
  */
 interface FailedTransmission {
-  type: 'thinking' | 'tool' | 'usage' | 'status'
+  type: 'thinking' | 'tool' | 'content' | 'usage' | 'status'
   data: any
   attempts: number
 }
@@ -59,15 +59,25 @@ export class ResilientTransmissionStrategy {
   }
 
   /**
-   * Transmit thinking chunk
+   * 契约1：解析回报用的权威消息 id。
+   * 所有 agent.response.* 事件统一使用服务端预分配的 agentMessageId，
+   * 以便前端占位、流式更新、最终落库共享同一 id；缺失时回退到 task.messageId。
+   */
+  private reportMessageId(task: MessageTask): string {
+    return task.metadata?.agentMessageId || task.messageId
+  }
+
+  /**
+   * 契约2：上报思考增量（phase=thinking，data={text}）
    */
   async transmitThinking(task: MessageTask, chunk: string): Promise<void> {
     try {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
-        messageId: task.messageId,
+        messageId: this.reportMessageId(task),
         agentId: task.metadata?.agentId || 'unknown',
-        chunk
+        phase: 'thinking',
+        data: { text: chunk }
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'thinking', chunk)
@@ -77,15 +87,16 @@ export class ResilientTransmissionStrategy {
   }
 
   /**
-   * Transmit tool use
+   * 契约2：上报工具调用（phase=tool，data=工具日志结构）
    */
   async transmitToolUse(task: MessageTask, toolLog: ToolUseMetadata): Promise<void> {
     try {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
-        messageId: task.messageId,
+        messageId: this.reportMessageId(task),
         agentId: task.metadata?.agentId || 'unknown',
-        chunk: JSON.stringify({ type: 'tool_use', data: toolLog })
+        phase: 'tool',
+        data: toolLog as unknown as Record<string, unknown>
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'tool', toolLog)
@@ -94,15 +105,34 @@ export class ResilientTransmissionStrategy {
   }
 
   /**
-   * Transmit usage
+   * 契约2：上报正文增量（phase=content，data={chunk}）
+   */
+  async transmitContent(task: MessageTask, chunk: string): Promise<void> {
+    try {
+      await this.backendGateway.pushResponseChunk({
+        channelId: task.channelId,
+        messageId: this.reportMessageId(task),
+        agentId: task.metadata?.agentId || 'unknown',
+        phase: 'content',
+        data: { chunk }
+      })
+    } catch (error) {
+      this.recordFailure(task.messageId, 'content', chunk)
+      this.logger.warn('⚠️  Failed to transmit content chunk', { error: (error as Error).message })
+    }
+  }
+
+  /**
+   * 契约2：上报用量（phase=usage，data=用量结构；仅作元数据，不渲染为正文）
    */
   async transmitUsage(task: MessageTask, usage: UsageMetadata): Promise<void> {
     try {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
-        messageId: task.messageId,
+        messageId: this.reportMessageId(task),
         agentId: task.metadata?.agentId || 'unknown',
-        chunk: JSON.stringify({ type: 'usage', data: usage })
+        phase: 'usage',
+        data: usage as unknown as Record<string, unknown>
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'usage', usage)
@@ -111,15 +141,16 @@ export class ResilientTransmissionStrategy {
   }
 
   /**
-   * Transmit status change
+   * 契约2：上报状态变更（phase=status，data={status}；用于相位提示，不渲染为正文）
    */
   async transmitStatus(task: MessageTask, status: string): Promise<void> {
     try {
       await this.backendGateway.pushResponseChunk({
         channelId: task.channelId,
-        messageId: task.messageId,
+        messageId: this.reportMessageId(task),
         agentId: task.metadata?.agentId || 'unknown',
-        chunk: JSON.stringify({ type: 'status', data: { status } })
+        phase: 'status',
+        data: { status }
       })
     } catch (error) {
       this.recordFailure(task.messageId, 'status', { status })
@@ -210,6 +241,9 @@ export class ResilientTransmissionStrategy {
             break
           case 'tool':
             await this.transmitToolUse(task, failure.data)
+            break
+          case 'content':
+            await this.transmitContent(task, failure.data)
             break
           case 'usage':
             await this.transmitUsage(task, failure.data)

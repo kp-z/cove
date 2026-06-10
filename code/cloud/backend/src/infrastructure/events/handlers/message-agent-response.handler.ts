@@ -153,24 +153,22 @@ export class MessageAgentResponseHandler {
       return true;
     }
 
-    // 5. DM channel 检查
-    if (channel.type === 'dm') {
-      const isDmWithAgent = channel.members.some(
-        (m) => m.memberId === agent.agentId && m.memberType === 'agent'
-      );
-      if (isDmWithAgent) {
-        this.logger.info('Agent in DM channel', {
-          agentId: agent.agentId,
-          channelId: channel.channelId,
-        });
-        return true;
-      }
+    // 5. agentPool 自动响应（对齐 commit 653e869）
+    // 设计决策：凡是被加入 channel.agentPool 的 agent，在该 channel 内的任意
+    // 用户消息都应自动响应，不再限制 channel 类型（public/private/dm 一致）。
+    // selectRespondingAgents 已保证只有 agentPool 中的 agent 会进入本方法，
+    // 这里显式校验一次，保证语义清晰且对未来调用方安全。
+    if (channel.agentPool.includes(agent.agentId)) {
+      this.logger.info('Agent in channel agentPool - auto responding', {
+        agentId: agent.agentId,
+        channelId: channel.channelId,
+        channelType: channel.type,
+      });
+      return true;
     }
 
-    // 6. 其他 channel 类型不自动响应
-    // 只有被 @mention 或在 DM channel 中才会响应
-    // 如果需要在 public/private channel 中自动响应，应该通过 @mention
-    this.logger.debug('Agent not triggered - no mention and not DM', {
+    // 6. 不在 agentPool 且未被 @mention，不响应
+    this.logger.debug('Agent not triggered - not mentioned and not in agentPool', {
       agentId: agent.agentId,
       channelId: channel.channelId,
       channelType: channel.type,
@@ -185,16 +183,24 @@ export class MessageAgentResponseHandler {
   ): Promise<void> {
     const agentName = agent.displayName || agent.name || 'Agent';
 
+    // 契约1：服务端权威消息 ID。
+    // 在此处预分配 agent 回复消息的最终 ID，并贯穿前端占位、Local 流式、最终落库。
+    // 这样占位消息 id 与最终持久化消息 id 完全一致，前端无需任何模糊匹配/重连。
+    const agentMessageId = this.generateMessageId();
+
     try {
-      // 1. 立即发布接收确认事件（前端可以立即显示"Agent 正在思考..."）
+      // 1. 立即发布接收确认事件（前端据此创建 id=agentMessageId 的占位消息）
+      // 约定：所有 agent.response.* 事件的 payload.messageId 都等于 agentMessageId。
+      // channelId 统一使用裸 channelId（不带 realm 前缀），与订阅过滤保持一致。
       await this.eventBus.publish({
         eventId: this.generateEventId(),
         eventType: 'agent.response.accepted',
-        aggregateId: message.messageId,
+        aggregateId: agentMessageId,
         aggregateType: 'Message',
         occurredAt: new Date(),
         payload: {
-          messageId: message.messageId,
+          messageId: agentMessageId,
+          inReplyTo: message.messageId, // 触发本次响应的用户消息 id
           channelId: channel.channelId,
           agentId: agent.agentId,
           agentName,
@@ -203,12 +209,15 @@ export class MessageAgentResponseHandler {
       });
 
       this.logger.info('Agent response accepted', {
-        messageId: message.messageId,
+        agentMessageId,
+        inReplyTo: message.messageId,
         agentId: agent.agentId,
         agentName,
       });
 
       // 2. 异步入队处理（不阻塞，通过 MessageOrchestrator 路由到 Local Device）
+      // task.messageId 仍为用户消息 id（用于上下文/历史语义），
+      // 而 agentMessageId 通过 metadata 贯穿到 Local，用于流式回报与最终落库。
       await this.messageOrchestrator.enqueue({
         messageId: message.messageId,
         channelId: `${channel.realmId}:${channel.channelId}`,
@@ -217,16 +226,20 @@ export class MessageAgentResponseHandler {
         metadata: {
           agentId: agent.agentId,
           agentName,
+          agentMessageId,
+          userMessageId: message.messageId,
         },
       });
 
       this.logger.info('Agent response enqueued', {
-        messageId: message.messageId,
+        agentMessageId,
+        userMessageId: message.messageId,
         agentId: agent.agentId,
       });
     } catch (error) {
       this.logger.error('Failed to trigger agent response', error as Error, {
-        messageId: message.messageId,
+        agentMessageId,
+        userMessageId: message.messageId,
         agentId: agent.agentId,
       });
     }
@@ -234,5 +247,14 @@ export class MessageAgentResponseHandler {
 
   private generateEventId(): string {
     return `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  /**
+   * 生成 agent 回复消息的权威 ID。
+   * 格式与 MessageCrudService.generateMessageId 对齐（msg-时间戳-随机串），
+   * 以便 saveResponse 落库时沿用同一 id。
+   */
+  private generateMessageId(): string {
+    return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 }

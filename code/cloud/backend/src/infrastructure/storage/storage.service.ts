@@ -6,6 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { randomUUID } from 'crypto';
 
 export class StorageService {
   constructor(
@@ -189,16 +190,26 @@ export class StorageService {
       `${entityId}.json`
     );
 
-    const tempPath = `${filePath}.tmp`;
+    // 临时文件名必须唯一：同一实体可能被并发写入（如设备连接时
+    // WebSocket 处理与 device.connected 事件订阅几乎同时触发）。
+    // 若多个写入共用同一个 .tmp，先 rename 的会把 .tmp 移走，
+    // 后 rename 的就会因找不到源文件而抛出 ENOENT。
+    const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
 
     // 确保目录存在
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
-    // 写入临时文件
-    await fs.writeFile(tempPath, JSON.stringify(content, null, 2), 'utf-8');
+    try {
+      // 写入临时文件
+      await fs.writeFile(tempPath, JSON.stringify(content, null, 2), 'utf-8');
 
-    // 原子性重命名
-    await fs.rename(tempPath, filePath);
+      // 原子性重命名（每个写入拥有独立的 .tmp，rename 本身互不影响）
+      await fs.rename(tempPath, filePath);
+    } catch (error) {
+      // 写入或重命名失败时清理残留的临时文件，避免堆积
+      await fs.rm(tempPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
 
     // 返回相对路径
     return path.relative(this.coveRoot, filePath);

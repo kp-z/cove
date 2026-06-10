@@ -11,6 +11,7 @@ import type {
   MessageState
 } from './message-orchestrator.interface'
 import type { IMessageProcessor } from './message-processor.interface'
+import { realmIdFromChannel } from '../../common/channel-ref'
 
 /**
  * 消息队列接口
@@ -215,12 +216,11 @@ export class MessageOrchestrator implements IMessageOrchestrator {
   }
 
   /**
-   * 从 channelId 中提取 realmId
+   * 从 channelId 中提取 realmId（契约3：统一收敛到 channel-ref helper）
    * @param channelId 格式: realm-id:channel-id
    * @returns realmId
    */
   private extractRealmId(channelId: string): string {
-    const parts = channelId.split(':')
-    return parts[0] || 'default'
+    return realmIdFromChannel(channelId)
   }
 }

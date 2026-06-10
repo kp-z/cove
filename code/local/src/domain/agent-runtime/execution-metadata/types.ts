@@ -91,6 +91,23 @@ export interface UsageMetadata {
 }
 
 /**
+ * 契约2：类型化进度事件信封（typed envelope）。
+ *
+ * Local 作为相位（phase）权威发起方，将每一次流式进度封装为 { phase, data } 结构上报，
+ * 不再把 thinking/tool/usage/status/正文混塞进同一个 string chunk。
+ * Backend 据 phase 扇出到不同的 agent.response.* 事件，前端各 handler 由真实事件驱动。
+ */
+export type AgentProgressEnvelope =
+  | { phase: 'thinking'; data: { text: string } }
+  | { phase: 'tool'; data: ToolUseMetadata }
+  | { phase: 'content'; data: { chunk: string } }
+  | { phase: 'status'; data: { status: string } }
+  | { phase: 'usage'; data: UsageMetadata }
+
+/** 进度相位枚举（与 AgentProgressEnvelope 的 phase 对齐） */
+export type AgentProgressPhase = AgentProgressEnvelope['phase']
+
+/**
  * Status transition event - tracks execution state changes
  */
 export interface StatusEvent {

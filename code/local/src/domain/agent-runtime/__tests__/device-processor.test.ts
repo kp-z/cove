@@ -44,6 +44,7 @@ describe('DeviceProcessor', () => {
       ]),
       saveAgentResponse: vi.fn().mockResolvedValue(undefined),
       pushResponseChunk: vi.fn().mockResolvedValue(undefined),
+      reportAgentFailure: vi.fn().mockResolvedValue(undefined),
       getExecutionMode: vi.fn(),
       isFeatureFlagEnabled: vi.fn(),
       getFeatureFlags: vi.fn(),
@@ -165,13 +166,14 @@ describe('DeviceProcessor', () => {
 
       await deviceProcessor.process(task)
 
+      // 契约 L4：执行元数据作为顶层 execution 字段下发（而非嵌套在 metadata 内）
       expect(mockBackendGateway.saveAgentResponse).toHaveBeenCalledWith(
         expect.objectContaining({
           channelId: 'channel-1',
           messageId: 'msg-1',
           content: 'AI response content',
-          metadata: expect.objectContaining({
-            executionMode: 'device',
+          execution: expect.objectContaining({
+            executionMode: 'streaming',
             adapter: 'anthropic-adapter',
             timestamp: expect.any(String)
           })
@@ -471,23 +473,24 @@ describe('DeviceProcessor', () => {
 
       await deviceProcessor.process(task)
 
-      // 验证 chunk 被推送了至少两次（第一次失败，第二次重试，可能还有性能指标）
+      // 契约2：thinking 以类型化信封 { phase:'thinking', data:{ text } } 上报
       expect(mockBackendGateway.pushResponseChunk).toHaveBeenCalledWith(
         expect.objectContaining({
           channelId: 'channel-1',
           messageId: 'msg-1',
-          chunk: 'test chunk'
+          phase: 'thinking',
+          data: expect.objectContaining({ text: 'test chunk' })
         })
       )
 
-      // 验证重试逻辑被触发
+      // 验证重试逻辑被触发（第一次失败，第二次重试）
       const chunkCalls = (mockBackendGateway.pushResponseChunk as any).mock.calls.filter(
-        (call: any) => call[0].chunk === 'test chunk'
+        (call: any) => call[0].phase === 'thinking' && call[0].data?.text === 'test chunk'
       )
       expect(chunkCalls.length).toBe(2) // 第一次失败，第二次重试
     })
 
-    it('应该上报性能指标', async () => {
+    it('处理成功后落库并携带执行元数据（性能指标在落库时收口）', async () => {
       const task: MessageTask = {
         id: 'task-1',
         messageId: 'msg-1',
@@ -502,21 +505,22 @@ describe('DeviceProcessor', () => {
         updatedAt: new Date()
       }
 
-      await deviceProcessor.process(task)
+      const result = await deviceProcessor.process(task)
 
-      // 验证上报了性能指标
-      const metricsCalls = (mockBackendGateway.pushResponseChunk as any).mock.calls.filter(
-        (call: any) => {
-          try {
-            const data = JSON.parse(call[0].chunk)
-            return data.type === 'metrics'
-          } catch {
-            return false
-          }
-        }
+      // 处理成功
+      expect(result.success).toBe(true)
+
+      // 契约 L4：响应落库时携带顶层 execution 执行元数据（处理耗时等指标在此收口）。
+      // 注：DeviceProcessor 不再以 chunk 形式单独上报 metrics；性能数据随 execution 一并持久化。
+      expect(mockBackendGateway.saveAgentResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channelId: 'channel-1',
+          messageId: 'msg-1',
+          execution: expect.objectContaining({
+            executionMode: expect.any(String),
+          }),
+        })
       )
-
-      expect(metricsCalls.length).toBeGreaterThan(0)
     })
   })
 })

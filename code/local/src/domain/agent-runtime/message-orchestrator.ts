@@ -61,6 +61,7 @@ export class MessageOrchestrator implements IMessageOrchestrator {
    */
   async enqueue(message: EnqueueMessage): Promise<string> {
     // 1. 创建任务（单一 Device 执行模式）
+    // 契约1/契约3：透传 metadata（含 agentMessageId/agentId），供流式回报与落库使用。
     const task: MessageTask = {
       id: this.generateTaskId(),
       messageId: message.messageId,
@@ -72,7 +73,8 @@ export class MessageOrchestrator implements IMessageOrchestrator {
       maxAttempts: this.config.maxAttempts ?? 3,
       priority: message.priority ?? 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      metadata: message.metadata
     }
 
     // 2. 入队

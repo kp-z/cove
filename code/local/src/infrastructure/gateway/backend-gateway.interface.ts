@@ -5,6 +5,8 @@
  * Provides a stable interface for accessing backend services.
  */
 
+import type { ExecutionMetadata, AgentProgressPhase } from '../../domain/agent-runtime/execution-metadata';
+
 export interface ExecutionMode {
   mode: 'cloud' | 'local' | 'hybrid';
   reason?: string;
@@ -79,22 +81,50 @@ export interface BackendGateway {
 
   /**
    * Save agent response to backend
+   *
+   * @param response.agentId 触发本次响应的 agent id（契约 L5）。
+   *   senderId 优先使用此值，避免依赖 channel.getById 反查（后者在多 agent / 字段缺失时不可靠）。
+   * @param response.execution 结构化执行元数据（思考/工具/用量等）。
+   *   网关负责将其映射为后端 message.saveResponse 期望的「顶层 execution」结构（契约 L4），
+   *   而非嵌套在 metadata 内（旧实现会导致后端读取 input.execution 为 undefined）。
    */
   saveAgentResponse(response: {
     channelId: string;
     messageId: string;
     content: string;
+    agentId?: string;
+    execution?: ExecutionMetadata;
     metadata?: Record<string, unknown>;
   }): Promise<void>;
 
   /**
-   * Push response chunk to backend (for streaming)
+   * 契约2：以类型化信封 { phase, data } 上报流式进度。
+   *
+   * Backend 依据 phase 扇出到不同的 agent.response.* 事件：
+   *   - 'thinking' → agent.response.thinking（前端写入思考 UI）
+   *   - 'content'  → agent.response.streaming（前端追加正文）
+   *   - 'tool'     → agent.response.tool_use（前端进入工具阶段）
+   *   - 'status' / 'usage' → 仅用于元数据，落库时统一收口，不再渲染为正文
+   *
+   * data 为相位相关的结构化对象（不再是裸字符串），从根上消除 JSON 文本污染正文的问题。
    */
-  pushResponseChunk(chunk: {
+  pushResponseChunk(progress: {
     channelId: string;
     messageId: string;
     agentId: string;
-    chunk: string;
+    phase: AgentProgressPhase;
+    data: Record<string, unknown>;
+  }): Promise<void>;
+
+  /**
+   * 契约2：上报 agent 响应失败，触发后端发布 agent.response.failed 事件。
+   * messageId 为服务端预分配的权威 agentMessageId，使前端占位消息正确进入失败态。
+   */
+  reportAgentFailure(failure: {
+    channelId: string;
+    messageId: string;
+    agentId?: string;
+    error?: string;
   }): Promise<void>;
 
   /**
