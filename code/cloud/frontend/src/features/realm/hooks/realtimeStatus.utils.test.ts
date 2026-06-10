@@ -4,7 +4,6 @@ import {
   applyDeviceStatusEvent,
   mergeRealmSnapshotPreserveStatus,
   normalizeRealmListResponse,
-  replaceRealmSnapshot,
 } from './realtimeStatus.utils';
 
 const offlineRealm: RealmInfo = {
@@ -70,10 +69,5 @@ describe('realtimeStatus.utils', () => {
       deviceStatus: 'online',
       ownerId: 'owner-1',
     });
-  });
-
-  it('replaces snapshot during reconnect resync', () => {
-    const replaced = replaceRealmSnapshot([offlineRealm]);
-    expect(replaced[0].deviceStatus).toBe('offline');
   });
 });

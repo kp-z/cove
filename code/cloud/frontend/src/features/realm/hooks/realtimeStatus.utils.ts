@@ -42,10 +42,6 @@ export function mergeRealmSnapshotPreserveStatus(
   }));
 }
 
-export function replaceRealmSnapshot(incomingRealms: RealmInfo[]): RealmInfo[] {
-  return incomingRealms;
-}
-
 export function applyDeviceStatusEvent(
   previousRealms: RealmInfo[],
   realmId: string,
