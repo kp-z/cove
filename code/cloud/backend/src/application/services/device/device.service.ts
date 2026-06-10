@@ -176,7 +176,7 @@ export class DeviceService {
 
   async updateDevice(deviceId: string, dto: UpdateDeviceDTO): Promise<DeviceEntity> {
     const context = getRealmContext();
-    this.logger.info('Updating device', { deviceId });
+    this.logger.debug('Updating device', { deviceId });
 
     let device = await this.getDeviceById(deviceId);
 
@@ -241,7 +241,7 @@ export class DeviceService {
       payload: { deviceId, changes: dto },
     });
 
-    this.logger.info('Device updated successfully', { deviceId });
+    this.logger.debug('Device updated successfully', { deviceId });
     return device;
   }
 

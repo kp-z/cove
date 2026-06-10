@@ -189,24 +189,24 @@ export class HybridDeviceRepository
   }
 
   async save(device: DeviceEntity, realmId: string): Promise<void> {
-    this.logger.info('HybridDeviceRepository.save called', {
+    this.logger.debug('HybridDeviceRepository.save called', {
       deviceId: device.device_id,
       realmId,
       hasApiKeyHash: !!device.apiKeyHash
     });
     await this.saveEntity(device, realmId);
-    this.logger.info('HybridDeviceRepository.save completed', { deviceId: device.device_id });
+    this.logger.debug('HybridDeviceRepository.save completed', { deviceId: device.device_id });
   }
 
   async update(device: DeviceEntity, realmId: string): Promise<void> {
-    this.logger.info('HybridDeviceRepository.update called', {
+    this.logger.debug('HybridDeviceRepository.update called', {
       deviceId: device.device_id,
       realmId,
       hasApiKeyHash: !!device.apiKeyHash,
       apiKeyHashLength: device.apiKeyHash?.length
     });
     await this.updateEntity(device, realmId);
-    this.logger.info('HybridDeviceRepository.update completed', { deviceId: device.device_id });
+    this.logger.debug('HybridDeviceRepository.update completed', { deviceId: device.device_id });
   }
 
   async delete(deviceId: string, realmId: string): Promise<void> {
@@ -251,7 +251,7 @@ export class HybridDeviceRepository
           apiKeyHash: dbRecord.apiKeyHash,
         },
       });
-      this.logger.info('Device saved to database', { deviceId: dbRecord.id, configPath: contentPath });
+      this.logger.debug('Device saved to database', { deviceId: dbRecord.id, configPath: contentPath });
     } catch (error: any) {
       this.logger.error('Failed to save device to database', error, { deviceId: dbRecord.id });
       throw error;
@@ -260,7 +260,7 @@ export class HybridDeviceRepository
 
   protected async updateInDatabase(entityId: string, dbRecord: DeviceDbRecord, contentPath: string): Promise<void> {
     try {
-      this.logger.info('Updating device in database', {
+      this.logger.debug('Updating device in database', {
         entityId,
         hasApiKeyHash: !!dbRecord.apiKeyHash,
         apiKeyHashLength: dbRecord.apiKeyHash?.length
@@ -281,7 +281,7 @@ export class HybridDeviceRepository
         },
       });
 
-      this.logger.info('Device updated in database successfully', { entityId });
+      this.logger.debug('Device updated in database successfully', { entityId });
     } catch (error: any) {
       this.logger.error('Failed to update device in database', error, { entityId });
       throw error;

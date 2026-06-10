@@ -127,11 +127,40 @@ function resolveLogLevel(): LogLevel {
   return process.env.NODE_ENV === 'development' ? 'debug' : 'info';
 }
 
+/** HH:MM:SS.mmm — 比完整 ISO 时间戳更易阅读 */
+function shortTs(): string {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const ms = String(d.getMilliseconds()).padStart(3, '0');
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+const ANSI = {
+  reset: '\x1b[0m',
+  dim:   '\x1b[2m',
+  cyan:  '\x1b[36m',
+  green: '\x1b[32m',
+  yellow:'\x1b[33m',
+  red:   '\x1b[31m',
+};
+
+const LEVEL_COLOR: Record<LogLevel, string> = {
+  debug: ANSI.cyan,
+  info:  ANSI.green,
+  warn:  ANSI.yellow,
+  error: ANSI.red,
+  fatal: ANSI.red,
+};
+
 class ConsoleLogger implements ILogger {
   private threshold: number;
+  private readonly prefix: string;
 
-  constructor(level: LogLevel = resolveLogLevel()) {
+  constructor(level: LogLevel = resolveLogLevel(), prefix = '') {
     this.threshold = LOG_LEVEL_WEIGHT[level];
+    this.prefix = prefix;
   }
 
   /** 当前级别是否应输出 */
@@ -139,32 +168,75 @@ class ConsoleLogger implements ILogger {
     return LOG_LEVEL_WEIGHT[level] >= this.threshold;
   }
 
+  /** 序列化上下文为单行 JSON（非空时附加到消息末尾） */
+  private fmtCtx(context?: LogContext): string {
+    if (!context || Object.keys(context).length === 0) return '';
+    return ' ' + JSON.stringify(context);
+  }
+
+  private emit(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
+    if (!this.enabled(level)) return;
+
+    const ts    = `${ANSI.dim}${shortTs()}${ANSI.reset}`;
+    const color = LEVEL_COLOR[level];
+    const lvl   = `${color}${level.toUpperCase().padEnd(5)}${ANSI.reset}`;
+    const msg   = `${this.prefix}${message}${this.fmtCtx(context)}`;
+
+    let line = `${ts} ${lvl} ${msg}`;
+
+    if (error) {
+      const errMsg = `${ANSI.red}${error.name}: ${error.message}${ANSI.reset}`;
+      const stack  = process.env.LOG_LEVEL === 'debug' && error.stack
+        ? `\n${ANSI.dim}${error.stack}${ANSI.reset}`
+        : '';
+      line += ` — ${errMsg}${stack}`;
+    }
+
+    if (level === 'error' || level === 'fatal') {
+      console.error(line);
+    } else if (level === 'warn') {
+      console.warn(line);
+    } else {
+      console.log(line);
+    }
+  }
+
   debug(message: string, context?: LogContext): void {
-    if (!this.enabled('debug')) return;
-    console.log(`[DEBUG] ${message}`, context || '');
+    this.emit('debug', message, context);
   }
 
   info(message: string, context?: LogContext): void {
-    if (!this.enabled('info')) return;
-    console.log(`[INFO] ${message}`, context || '');
+    this.emit('info', message, context);
   }
 
   warn(message: string, context?: LogContext): void {
-    if (!this.enabled('warn')) return;
-    console.warn(`[WARN] ${message}`, context || '');
+    this.emit('warn', message, context);
   }
 
   error(message: string, error?: Error, context?: LogContext): void {
-    if (!this.enabled('error')) return;
-    console.error(`[ERROR] ${message}`, error, context || '');
+    this.emit('error', message, context, error);
   }
 
   fatal(message: string, error?: Error, context?: LogContext): void {
-    console.error(`[FATAL] ${message}`, error, context || '');
+    this.emit('fatal', message, context, error);
   }
 
-  child(): ILogger {
-    return this;
+  /** 返回带 [name] 前缀的子 logger，继承当前 threshold */
+  scope(name: string): ILogger {
+    const child = new ConsoleLogger('debug', `[${name}] `);
+    child.threshold = this.threshold;
+    return child;
+  }
+
+  /** child() — 向后兼容；在上下文对象里附加 key=value 前缀 */
+  child(context?: LogContext): ILogger {
+    if (!context || Object.keys(context).length === 0) return this;
+    const extra = Object.entries(context)
+      .map(([k, v]) => `${k}=${String(v)}`)
+      .join(' ');
+    const child = new ConsoleLogger('debug', `${this.prefix}[${extra}] `);
+    child.threshold = this.threshold;
+    return child;
   }
 
   setLevel(level: LogLevel): void {
@@ -1090,7 +1162,7 @@ async function startServer() {
         // Fire and forget - don't block on Prisma disconnect
         getPrismaClient().$disconnect()
           .then(() => deps.logger.info('Prisma disconnected'))
-          .catch((err: Error) => deps.logger.warn('Prisma disconnect error', err));
+          .catch((err: Error) => deps.logger.error('Prisma disconnect error', err));
 
         // 5. Clear the force exit timeout
         clearTimeout(forceExitTimeout);

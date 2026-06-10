@@ -8,7 +8,6 @@ import { AgentCrudService, CreateAgentDTO, UpdateAgentDTO } from './agent-crud.s
 import { AgentQueryService } from './agent-query.service';
 import { AgentConfigService } from './agent-config.service';
 import { AgentTaskService, AgentAssignTaskDTO } from './agent-task.service';
-import { AgentResponseService } from './agent-response.service';
 import { AgentEntity } from '../../../domain/models/agent/agent.entity';
 import { TaskEntity } from '../../../domain/models/task/task.entity';
 import { AgentNotFoundError } from './agent.errors';
@@ -19,7 +18,6 @@ describe('AgentService', () => {
   let mockQueryService: AgentQueryService;
   let mockConfigService: AgentConfigService;
   let mockTaskService: AgentTaskService;
-  let mockResponseService: AgentResponseService;
 
   beforeEach(() => {
     mockCrudService = {
@@ -48,17 +46,11 @@ describe('AgentService', () => {
       assignTask: vi.fn(),
     } as unknown as AgentTaskService;
 
-    mockResponseService = {
-      shouldAgentRespond: vi.fn(),
-      generateAgentResponse: vi.fn(),
-    } as unknown as AgentResponseService;
-
     agentService = new AgentService(
       mockCrudService,
       mockQueryService,
       mockConfigService,
-      mockTaskService,
-      mockResponseService
+      mockTaskService
     );
   });
 

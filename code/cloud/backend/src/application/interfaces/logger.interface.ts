@@ -54,7 +54,13 @@ export interface ILogger {
    * @param context - 固定上下文
    * @returns 子 Logger
    */
-  child(context: LogContext): ILogger;
+  child(context?: LogContext): ILogger;
+
+  /**
+   * 返回带 [name] 前缀的 scoped logger（便于模块级区分）
+   * 可选实现 — ConsoleLogger 提供；test mock 可不实现。
+   */
+  scope?: (name: string) => ILogger;
 
   /**
    * 设置日志级别

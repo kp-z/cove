@@ -113,9 +113,27 @@ function getOrCreateWSClient() {
 export const trpcClient = trpc.createClient({
   links: [
     loggerLink({
-      enabled: (opts) =>
-        env.isDevelopment ||
-        (opts.direction === 'down' && opts.result instanceof Error),
+      // 日志策略：
+      // 1) 始终记录错误（无论 dev/prod），便于线上排障。
+      // 2) 生产环境只记录错误，不输出正常请求日志。
+      // 3) 开发环境记录 query/mutation，但跳过 subscription 的数据帧——
+      //    device 心跳/消息广播会高频触发 `<< subscription #N` 刷屏，
+      //    且在 StrictMode 下成对出现，极易被误认为报错。订阅的错误仍会记录（见第1条）。
+      enabled: (opts) => {
+        // 步骤1：错误始终记录
+        if (opts.direction === 'down' && opts.result instanceof Error) {
+          return true;
+        }
+        // 步骤2：生产环境静默正常日志
+        if (!env.isDevelopment) {
+          return false;
+        }
+        // 步骤3：开发环境跳过 subscription 的数据帧噪音
+        if (opts.type === 'subscription') {
+          return false;
+        }
+        return true;
+      },
     }),
     authErrorLink,
     splitLink({

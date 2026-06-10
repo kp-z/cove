@@ -448,6 +448,9 @@ export class HybridMessageRepository
       threadId: null,              // 排除线程回复
       status: { not: 'deleted' },  // 排除已删除消息
     };
+    // 聊天列表语义：默认返回「最新的 limit 条」，游标用于向上加载更早的历史。
+    // 此前实现为 asc + 无游标取最旧 limit 条，导致频道消息超过 limit 后，
+    // 新消息永远落在窗口之外、前端 refetch 永远同步不到（链路表现为「无响应」）。
     if (cursor) {
       const cursorRecord = await this.prisma.message.findFirst({
         where: {
@@ -456,21 +459,28 @@ export class HybridMessageRepository
         },
       });
       if (cursorRecord) {
-        // 修改为 gt（大于）以支持 asc 排序
-        where.createdAt = { gt: cursorRecord.createdAt };
+        // 向上翻页：加载比游标更早（createdAt 更小）的消息
+        where.createdAt = { lt: cursorRecord.createdAt };
       }
     }
+
+    // 先按 createdAt 降序取「最新的 limit(+1) 条」
     const records = await this.prisma.message.findMany({
       where,
-      // 修改为 asc 排序（最旧在前）
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: limit + 1,
     });
 
     const hasMore = records.length > limit;
+    // slice 为最新的 limit 条（降序：新→旧）。前端 MessageStateManager 会按
+    // 时间戳重新升序排序展示，故此处保持降序返回（同时契合游标分页「最新页优先」语义）。
     const slice = hasMore ? records.slice(0, limit) : records;
+
+    // nextCursor 指向本页最旧一条，供下一次向上加载更早历史使用
+    const nextCursor =
+      hasMore && slice.length > 0 ? slice[slice.length - 1]!.id : null;
+
     const entities = await this.loadEntities(slice as any);
-    const nextCursor = hasMore && slice.length > 0 ? slice[slice.length - 1]!.id : null;
 
     return { messages: entities, nextCursor };
   }
