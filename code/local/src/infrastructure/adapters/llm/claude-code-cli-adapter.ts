@@ -31,6 +31,38 @@ interface ClaudeCliOutput {
   ttft_ms?: number;
 }
 
+/**
+ * stream-json 模式下单条 NDJSON 事件结构
+ *
+ * claude CLI 在 `--output-format=stream-json` 下逐行输出 JSON 事件，主要类型：
+ *   - system  ：会话初始化等系统事件（subtype='init'）
+ *   - assistant：助手轮次，message.content 为内容块数组（text / tool_use）
+ *   - user    ：工具结果回灌（本期不渲染为正文）
+ *   - result  ：最终结果，结构与 ClaudeCliOutput 一致（含 usage/cost/ttft）
+ */
+interface ClaudeStreamEvent {
+  type: 'system' | 'assistant' | 'user' | 'result' | string;
+  subtype?: string;
+  // assistant / user 事件携带的消息体
+  message?: {
+    content?: Array<{
+      type: string;
+      // text 块
+      text?: string;
+      // tool_use 块
+      id?: string;
+      name?: string;
+      input?: Record<string, unknown>;
+    }>;
+  };
+  // result 事件直接复用 ClaudeCliOutput 的字段
+  result?: string;
+  usage?: ClaudeCliOutput['usage'];
+  total_cost_usd?: number;
+  duration_ms?: number;
+  ttft_ms?: number;
+}
+
 export interface ClaudeCodeCLIConfig {
   cliPath?: string;
   model?: string;
@@ -41,6 +73,13 @@ export interface ClaudeCodeCLIConfig {
   contextWindow?: number;
   thinkingEnabled?: boolean;
   thinkingBudget?: number;
+  /**
+   * 是否启用流式输出（默认 true）
+   * 启用后通过 `--output-format=stream-json` 逐 assistant 消息块实时上报正文/工具调用；
+   * 关闭后回退到批量 JSON（一次性返回完整结果）。
+   * 与 Cloud 侧配置字段 `enable_streaming` 对齐。
+   */
+  enableStreaming?: boolean;
 }
 
 export class ClaudeCodeCLIAdapter implements LlmAdapter {
@@ -53,6 +92,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
   private readonly contextWindow?: number;
   private readonly thinkingEnabled: boolean;
   private readonly thinkingBudget?: number;
+  private readonly enableStreaming: boolean;
 
   constructor(config: ClaudeCodeCLIConfig = {}) {
     this.cliPath = config.cliPath || 'claude';
@@ -64,14 +104,18 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     this.contextWindow = config.contextWindow;
     this.thinkingEnabled = config.thinkingEnabled ?? true;
     this.thinkingBudget = config.thinkingBudget;
+    this.enableStreaming = config.enableStreaming ?? true;
   }
 
   getCapabilities(): AdapterCapabilities {
     return {
-      supportsStreaming: false,
-      supportsBatchMetadata: true,
+      // 通过 stream-json 支持段/块级流式（逐 assistant 消息块上报）
+      supportsStreaming: this.enableStreaming,
+      // 关闭流式时回退批量元数据模式
+      supportsBatchMetadata: !this.enableStreaming,
       supportsThinking: this.thinkingEnabled,
-      supportsToolUse: false,
+      // stream-json 下可解析 tool_use 块
+      supportsToolUse: this.enableStreaming,
       supportsCostTracking: true
     };
   }
@@ -128,13 +172,22 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
   }
 
   /**
-   * Generate response (streaming mode compatibility)
-   * Internally calls batch mode and simulates callbacks
+   * Generate response
+   *
+   * 当提供了流式回调且启用了流式（enableStreaming）时，走真流式（stream-json）实现，
+   * 逐 assistant 消息块实时上报正文（onContent）与工具调用（onToolUse）；
+   * 否则回退批量模式（一次性 JSON），仅在结束时补发 usage/completed 以兼容回调契约。
    */
   async generateResponse(params: GenerateParams): Promise<string> {
+    // 真流式路径：有回调 + 启用流式
+    if (params.streaming && this.enableStreaming) {
+      return this.generateStreamingResponse(params);
+    }
+
+    // 回退批量路径
     const batch = await this.generateBatchResponse(params);
 
-    // If streaming callbacks provided, trigger them for compatibility
+    // 若提供了流式回调，补发结束态以兼容契约
     if (params.streaming) {
       if (batch.metadata.usage) {
         await params.streaming.onUsage?.(batch.metadata.usage);
@@ -143,6 +196,193 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     }
 
     return batch.content;
+  }
+
+  /**
+   * 真流式实现（基于 claude CLI 的 --output-format=stream-json）
+   *
+   * 步骤：
+   *   1. spawn CLI（stream-json + verbose），通过 stdin 传入 prompt。
+   *   2. 对 stdout 做行缓冲（NDJSON），逐行 JSON.parse。
+   *   3. 按事件 type 分发：assistant.text → onContent；assistant.tool_use → onToolUse；
+   *      result → 记录最终正文与用量。
+   *   4. 进程正常结束后：串行回调全部完成 → 补发 usage 与 completed → resolve 最终正文。
+   *
+   * 设计要点：
+   *   - 回调可能为异步，使用串行队列（callbackChain）保证正文/工具事件按到达顺序上报。
+   *   - 最终正文以 result.result 为权威；缺失时回退为已收集的 text 块拼接。
+   *   - 解析失败的行直接跳过；进程非 0 退出仍 reject，向上层暴露错误。
+   */
+  private generateStreamingResponse(params: GenerateParams): Promise<string> {
+    const { systemPrompt, streaming } = params;
+    const fullPrompt = this.buildPrompt(params);
+    const args = this.buildCliArgs(systemPrompt, true);
+    const startTime = Date.now();
+
+    return new Promise<string>((resolve, reject) => {
+      let stderr = '';
+      // 跨 data chunk 的半行缓冲
+      let lineBuffer = '';
+      // 已收集的 text 块（作为最终正文的兜底来源）
+      let collectedText = '';
+      // 最终 result 事件
+      let resultEvent: ClaudeStreamEvent | undefined;
+      // 串行回调队列：保证异步回调按事件到达顺序执行
+      let callbackChain: Promise<void> = Promise.resolve();
+      let settled = false;
+
+      const enqueue = (fn: () => Promise<void> | void): void => {
+        callbackChain = callbackChain.then(() => fn()).catch(() => {});
+      };
+
+      const child = spawn(this.cliPath, args, {
+        cwd: this.workingDir,
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      // 超时保护
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        child.kill('SIGTERM');
+        reject(new Error(`CLI streaming timeout after ${this.timeout}ms`));
+      }, this.timeout);
+
+      // 首个心跳：进入"思考中"
+      enqueue(() => streaming?.onStatusChange?.('thinking'));
+
+      // 写入 prompt
+      child.stdin.write(fullPrompt);
+      child.stdin.end();
+
+      // 逐行处理 NDJSON
+      const processLine = (rawLine: string): void => {
+        const line = rawLine.trim();
+        if (!line) return;
+
+        let event: ClaudeStreamEvent;
+        try {
+          event = JSON.parse(line) as ClaudeStreamEvent;
+        } catch {
+          // 非 JSON / 半行残留，跳过
+          return;
+        }
+
+        this.dispatchStreamEvent(event, streaming, enqueue, (text) => {
+          collectedText += text;
+        }, (result) => {
+          resultEvent = result;
+        });
+      };
+
+      child.stdout.on('data', (data: Buffer) => {
+        lineBuffer += data.toString();
+        const lines = lineBuffer.split('\n');
+        // 最后一段可能是半行，留到下次
+        lineBuffer = lines.pop() ?? '';
+        for (const l of lines) {
+          processLine(l);
+        }
+      });
+
+      child.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on('error', (error: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(new Error(`Failed to spawn CLI: ${error.message}`));
+      });
+
+      child.on('close', (code: number | null) => {
+        if (settled) return;
+        clearTimeout(timeoutId);
+
+        // 处理可能残留的最后一行
+        if (lineBuffer.trim()) {
+          processLine(lineBuffer);
+          lineBuffer = '';
+        }
+
+        if (code !== 0) {
+          settled = true;
+          reject(new Error(`CLI exited with code ${code}. stderr: ${stderr}`));
+          return;
+        }
+
+        // 等待串行回调全部完成 → 补发 usage 与 completed → resolve
+        const totalMs = Date.now() - startTime;
+        callbackChain
+          .then(async () => {
+            const usage = resultEvent
+              ? this.buildUsageMetadata(resultEvent as ClaudeCliOutput, totalMs)
+              : undefined;
+            if (usage) {
+              await streaming?.onUsage?.(usage);
+            }
+            await streaming?.onStatusChange?.('completed');
+          })
+          .catch(() => {})
+          .finally(() => {
+            settled = true;
+            const finalText = resultEvent?.result ?? collectedText;
+            resolve(finalText);
+          });
+      });
+    });
+  }
+
+  /**
+   * 分发单条 stream-json 事件到对应的流式回调
+   *
+   * @param event       已解析的事件
+   * @param streaming   流式回调集合
+   * @param enqueue     串行回调入队函数
+   * @param onText      收集 text 块（用于最终正文兜底）
+   * @param onResult    记录 result 事件
+   */
+  private dispatchStreamEvent(
+    event: ClaudeStreamEvent,
+    streaming: GenerateParams['streaming'],
+    enqueue: (fn: () => Promise<void> | void) => void,
+    onText: (text: string) => void,
+    onResult: (result: ClaudeStreamEvent) => void
+  ): void {
+    switch (event.type) {
+      case 'assistant': {
+        const blocks = event.message?.content ?? [];
+        for (const block of blocks) {
+          if (block.type === 'text' && block.text) {
+            // 正文块：累计并按段/句上报
+            onText(block.text);
+            const text = block.text;
+            enqueue(() => streaming?.onContent?.(text));
+          } else if (block.type === 'tool_use') {
+            // 工具调用块：整段上报（状态切到 tool_use）
+            const toolLog = {
+              id: block.id ?? `tool_${Date.now()}`,
+              toolName: block.name ?? 'unknown',
+              action: 'invoke',
+              params: block.input,
+              status: 'running' as const,
+            };
+            enqueue(() => streaming?.onStatusChange?.('tool_use'));
+            enqueue(() => streaming?.onToolUse?.(toolLog));
+          }
+        }
+        break;
+      }
+      case 'result': {
+        onResult(event);
+        break;
+      }
+      // system / user 等事件本期不渲染为正文
+      default:
+        break;
+    }
   }
 
   private buildUsageMetadata(parsed: ClaudeCliOutput, totalMs: number): UsageMetadata | undefined {
@@ -189,10 +429,14 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     };
   }
 
-  private buildCliArgs(systemPrompt?: string): string[] {
+  private buildCliArgs(systemPrompt?: string, streaming = false): string[] {
     const args = [
       '-p', // print mode
-      '--output-format=json',
+      // 流式：stream-json（NDJSON 实时事件，-p + stream-json 必须搭配 --verbose）
+      // 批量：json（一次性返回完整结果）
+      ...(streaming
+        ? ['--output-format=stream-json', '--verbose']
+        : ['--output-format=json']),
       '--bare', // 最小化模式
       '--model', this.model,
       '--no-session-persistence', // 不保存会话

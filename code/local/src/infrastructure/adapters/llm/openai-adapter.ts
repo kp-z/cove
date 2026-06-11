@@ -74,7 +74,8 @@ export class OpenAIAdapter implements LlmAdapter {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) {
         fullResponse += delta;
-        await streaming?.onThinking?.(delta);
+        // 正文增量统一走 onContent（phase=content）通道，与 CLI / Anthropic 渲染对齐。
+        await streaming?.onContent?.(delta);
       }
 
       // Collect usage info from the final chunk

@@ -1,9 +1,10 @@
 /**
  * StreamingStatusIndicator 组件
- * Agent 回复过程中的拟人化「正在输入」指示器：
- * - pending / accepted / thinking 等「无正文」阶段：聊天式三点跳动动画 + 轮换文案 + 已等待计时
- * - tool_use：展示当前工具
- * - responding：展示「正在回复…」
+ * Agent 回复过程中的进度指示器（简洁、中性、与阶段语义一一对应）：
+ * - pending / accepted / thinking 等「无正文」阶段：单行「<状态文案> · 已等待 Ns」，无任何前置动画
+ *   （加载/活着的观感由头像状态胶囊承担，避免与头像动画重复）
+ * - tool_use：静态工具图标 + 「调用工具 <name>」 + 单行截断参数摘要 + 保留尾部三点
+ * - responding：静态图标 + 「正在回复…」
  * - completed：不展示；failed：展示失败态
  */
 
@@ -23,14 +24,10 @@ interface StreamingStatusIndicatorProps {
   startedAt?: Date;
 }
 
-// 拟人化「正在输入」的轮换文案：营造真人在思考、查资料、组织语言的感觉。
-const THINKING_PHRASES = ['让我想想…', '正在查阅资料…', '正在整理回答…', '马上就好…'];
-// 文案轮换间隔（毫秒）。
-const PHRASE_ROTATE_MS = 2500;
 // 超过该秒数仍停留在「无正文」阶段时，切换为更耐心的安抚文案。
 const SLOW_THRESHOLD_SEC = 30;
 
-// 三个跳动的小圆点，模拟聊天「对方正在输入」动画。
+// 三个跳动的小圆点，模拟聊天「对方正在输入」动画（仅 tool_use 尾部复用）。
 function TypingDots({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-1', className)} aria-hidden>
@@ -46,8 +43,34 @@ function TypingDots({ className }: { className?: string }) {
   );
 }
 
+// 把工具参数压成单行摘要：对象取键值拼接，过长交由 CSS truncate 截断、不换行撑高。
+function summarizeToolParams(params: any): string {
+  try {
+    if (params == null) return '';
+    if (typeof params === 'string') return params;
+    if (typeof params !== 'object') return String(params);
+    // 步骤1：把对象键值拼成 `k: v` 形式（值为对象时序列化）。
+    const parts = Object.entries(params).map(([k, v]) => {
+      const val =
+        typeof v === 'string' ? v : typeof v === 'object' ? JSON.stringify(v) : String(v);
+      return `${k}: ${val}`;
+    });
+    return parts.join(', ');
+  } catch {
+    // 异常输入（如循环引用）时退化为空摘要，绝不抛错影响渲染。
+    return '';
+  }
+}
+
+// 无正文阶段的简洁状态文案：与后端 phase 一一对应；慢速时切换为安抚文案。
+function getPreContentLabel(phase: StreamingPhase, slow: boolean): string {
+  if (slow) return '仍在处理，请稍候…';
+  // thinking 单独区分「思考中」；pending / accepted 统一为「处理中」。
+  return phase === 'thinking' ? '思考中…' : '处理中…';
+}
+
 export function StreamingStatusIndicator({ phase, currentTool, startedAt }: StreamingStatusIndicatorProps) {
-  // 「无正文」阶段：需要计时与文案轮换以呈现拟人化等待体验。
+  // 「无正文」阶段：需要连续计时以呈现等待体验。
   const isPreContentPhase = phase === 'pending' || phase === 'accepted' || phase === 'thinking';
 
   // 计时基准：优先使用消息 timestamp，缺省时退化为组件挂载时刻。
@@ -55,7 +78,6 @@ export function StreamingStatusIndicator({ phase, currentTool, startedAt }: Stre
   const startMs = startedAt ? startedAt.getTime() : mountRef.current;
 
   const [elapsedSec, setElapsedSec] = useState(() => Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
-  const [phraseIdx, setPhraseIdx] = useState(0);
 
   useEffect(() => {
     if (!isPreContentPhase) return;
@@ -64,54 +86,64 @@ export function StreamingStatusIndicator({ phase, currentTool, startedAt }: Stre
     const tick = setInterval(() => {
       setElapsedSec(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
     }, 1000);
-    // 周期性轮换文案。
-    const rotate = setInterval(() => {
-      setPhraseIdx((i) => (i + 1) % THINKING_PHRASES.length);
-    }, PHRASE_ROTATE_MS);
 
-    return () => {
-      clearInterval(tick);
-      clearInterval(rotate);
-    };
+    return () => clearInterval(tick);
   }, [isPreContentPhase, startMs]);
 
   if (!phase) return null;
 
-  // 无正文阶段：统一渲染拟人化「正在输入」气泡。
+  // 无正文阶段：单行「<简洁状态文案> · 已等待 Ns」，无面包屑、无前置动画。
   if (isPreContentPhase) {
     const slow = elapsedSec >= SLOW_THRESHOLD_SEC;
-    const label = slow ? '仍在处理，请稍候…' : THINKING_PHRASES[phraseIdx];
+    const label = getPreContentLabel(phase, slow);
     return (
-      <div className="flex items-center gap-2 mb-2 text-sm text-blue-300">
-        <TypingDots className="text-blue-400" />
-        <span className="transition-opacity duration-300">{label}</span>
+      <div className="flex items-center gap-1.5 mb-2 text-xs text-blue-300">
+        <span>{label}</span>
+        {/* 连续「已等待」计时：tabular-nums 防抖动；用克制的中点分隔 */}
         {elapsedSec > 0 && (
-          <span className="text-xs text-gray-500 tabular-nums">已等待 {elapsedSec}s</span>
+          <>
+            <span className="text-gray-600" aria-hidden>
+              ·
+            </span>
+            <span className="text-gray-500 tabular-nums">已等待 {elapsedSec}s</span>
+          </>
         )}
       </div>
     );
   }
 
   switch (phase) {
-    case 'tool_use':
+    case 'tool_use': {
+      // 工具参数摘要：单行截断，过长不换行撑高。
+      const paramsSummary = currentTool?.params ? summarizeToolParams(currentTool.params) : '';
       return (
-        <div className="flex items-center gap-2 text-sm text-purple-400 mb-2">
-          <Wrench className="w-4 h-4 animate-bounce" />
-          <span>使用工具{currentTool ? `: ${currentTool.name}` : ''}</span>
-          <TypingDots className="text-purple-400" />
+        <div className="flex items-center gap-1.5 text-xs text-purple-400 mb-2 min-w-0">
+          {/* 前置工具图标：静态（无动画），加载动效交给头像胶囊 */}
+          <Wrench className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-shrink-0">调用工具{currentTool ? ` ${currentTool.name}` : ''}</span>
+          {/* 参数摘要：单行截断，hover 可看全文 */}
+          {paramsSummary && (
+            <span className="text-purple-300/70 truncate min-w-0" title={paramsSummary}>
+              {paramsSummary}
+            </span>
+          )}
+          {/* 尾部三点保留：用户明确要求保留尾部点 */}
+          <TypingDots className="text-purple-400 flex-shrink-0" />
         </div>
       );
+    }
 
     case 'responding':
       return (
-        <div className="flex items-center gap-2 text-sm text-blue-400 mb-2">
-          <MessageSquare className="w-4 h-4" />
+        <div className="flex items-center gap-1.5 text-xs text-blue-400 mb-2">
+          {/* 前置图标静态：不加动画 */}
+          <MessageSquare className="w-4 h-4 flex-shrink-0" />
           <span>正在回复…</span>
         </div>
       );
 
     case 'completed':
-      return null; // 完成后不显示状态
+      return null; // 完成后不显示状态，交由真实正文接管
 
     case 'failed':
       return (

@@ -391,14 +391,19 @@ export class DeviceProcessor implements IMessageProcessor {
       'streaming'
     )
 
+    // 空闲超时：只要有任一流式回调触发就重置计时，仅"持续无流式活动"才超时。
+    // 目的：CLI 等长任务在持续给出反馈（正文/工具/状态）时不应被固定总时长硬超时掐断，
+    //       既解决"运行太久被误杀"，又能在真正卡死（长时间无任何输出）时及时止损。
+    const idle = this.createIdleTimeout()
+
     try {
       const response = await Promise.race([
         adapter.generateResponse({
           systemPrompt,
           messages,
-          streaming: this.createStreamingCallbacks(task, collector)
+          streaming: this.createStreamingCallbacks(task, collector, () => idle.reset())
         }),
-        this.createTimeout()
+        idle.promise
       ])
 
       if (typeof response !== 'string') {
@@ -408,16 +413,28 @@ export class DeviceProcessor implements IMessageProcessor {
       const metadata = await collector.build()
       return { response, metadata }
     } finally {
+      idle.cancel()
       this.collectorFactory.release(collector)
     }
   }
 
   /**
    * 创建流式回调（封装 Collector + Transmission）
+   *
+   * @param task        当前消息任务
+   * @param collector   元数据收集器
+   * @param onActivity  任一流式活动发生时的回调（用于重置空闲超时）
    */
-  private createStreamingCallbacks(task: MessageTask, collector: any) {
+  private createStreamingCallbacks(
+    task: MessageTask,
+    collector: any,
+    onActivity: () => void
+  ) {
     return {
       onThinking: async (chunk: string) => {
+        // 活动感知：重置空闲超时
+        onActivity()
+
         // 收集元数据
         collector.recordThinking(chunk)
 
@@ -425,7 +442,23 @@ export class DeviceProcessor implements IMessageProcessor {
         await this.transmissionStrategy.transmitThinking(task, chunk)
       },
 
+      // 正文增量：经 phase=content 通道实时上报，驱动前端 partialContent 增量渲染。
+      // 所有支持流式的 adapter（API / CLI）的正文统一走此通道，实现渲染对齐。
+      onContent: async (chunk: string) => {
+        // 活动感知：重置空闲超时
+        onActivity()
+
+        // 收集元数据（统计 + first-token 延迟）
+        collector.recordContent(chunk)
+
+        // 传输到 Backend（错误隔离）
+        await this.transmissionStrategy.transmitContent(task, chunk)
+      },
+
       onToolUse: async (toolLog: any) => {
+        // 活动感知：重置空闲超时
+        onActivity()
+
         // 收集元数据
         collector.recordToolUse(toolLog)
 
@@ -434,6 +467,9 @@ export class DeviceProcessor implements IMessageProcessor {
       },
 
       onUsage: async (usage: any) => {
+        // 活动感知：重置空闲超时
+        onActivity()
+
         // 收集元数据
         collector.recordUsage(usage)
 
@@ -444,6 +480,9 @@ export class DeviceProcessor implements IMessageProcessor {
       // 实时反馈：状态变更回调统一经 pushChunk(phase:'status') 中继到前端，
       // status 取值约束为 'thinking'|'tool_use'|'responding'|'completed'。
       onStatusChange: async (status: 'thinking' | 'tool_use' | 'responding' | 'completed') => {
+        // 活动感知：重置空闲超时
+        onActivity()
+
         // 收集元数据
         collector.recordStatus(status)
 
@@ -491,14 +530,51 @@ export class DeviceProcessor implements IMessageProcessor {
   }
 
   /**
-   * 创建超时 Promise
+   * 创建空闲超时（idle timeout）
+   *
+   * 与"固定总时长超时"不同：每次 reset() 都会重新计时，只有在 timeout 毫秒内
+   * 完全没有任何流式活动（无 reset）时才触发拒绝。
+   *
+   * 用法：
+   *   const idle = this.createIdleTimeout()
+   *   Promise.race([work(), idle.promise])    // work 内的流式回调调用 idle.reset()
+   *   idle.cancel()                           // 结束后务必清理定时器，避免悬挂
+   *
+   * @returns { promise, reset, cancel }
+   *   - promise：空闲超过阈值时 reject 的 Promise（race 用）
+   *   - reset  ：重置空闲计时（有流式活动时调用）
+   *   - cancel ：取消并清理定时器（流程结束时调用）
    */
-  private createTimeout(): Promise<never> {
-    return new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Request timeout after ${this.timeout}ms`))
+  private createIdleTimeout(): { promise: Promise<never>; reset: () => void; cancel: () => void } {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let rejectFn: ((reason: Error) => void) | undefined
+    let finished = false
+
+    const arm = () => {
+      timer = setTimeout(() => {
+        if (finished) return
+        finished = true
+        rejectFn?.(new Error(`Request idle timeout after ${this.timeout}ms without streaming activity`))
       }, this.timeout)
+    }
+
+    const promise = new Promise<never>((_, reject) => {
+      rejectFn = reject
+      arm()
     })
+
+    const reset = () => {
+      if (finished) return
+      if (timer) clearTimeout(timer)
+      arm()
+    }
+
+    const cancel = () => {
+      finished = true
+      if (timer) clearTimeout(timer)
+    }
+
+    return { promise, reset, cancel }
   }
 
   /**

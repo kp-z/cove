@@ -27,6 +27,9 @@ export class ExecutionMetadataCollector {
   private thinkingBuffer: string[] = []
   private thinkingChunks = 0
   private firstTokenTimestamp?: number
+  // 正文块计数（onContent 通道）。正文最终以 generateResponse 返回值/落库为权威，
+  // collector 仅统计块数与首块时间，不缓存正文内容、不污染 thinking。
+  private contentChunks = 0
   private toolUses: Map<string, ToolUseMetadata> = new Map()
   private usage?: UsageMetadata
   private statusHistory: StatusEvent[] = []
@@ -74,6 +77,19 @@ export class ExecutionMetadataCollector {
   setCompleteThinking(content: string): void {
     this.thinkingBuffer = [content]
     this.thinkingChunks = 1
+  }
+
+  /**
+   * Record content chunk (streaming mode, body text via onContent channel)
+   *
+   * 记录正文增量统计：累计块数，并在首块时设置 first-token 时间戳（用于首字延迟）。
+   * 注意：不缓存正文内容，最终正文以 adapter 返回值/落库为权威，避免重复存储与污染 thinking。
+   */
+  recordContent(_chunk: string): void {
+    if (!this.firstTokenTimestamp) {
+      this.firstTokenTimestamp = Date.now()
+    }
+    this.contentChunks++
   }
 
   /**
@@ -167,6 +183,7 @@ export class ExecutionMetadataCollector {
   clear(): void {
     this.thinkingBuffer = []
     this.thinkingChunks = 0
+    this.contentChunks = 0
     this.firstTokenTimestamp = undefined
     this.toolUses.clear()
     this.usage = undefined

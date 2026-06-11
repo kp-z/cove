@@ -168,6 +168,9 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                   <StreamingStatusIndicator
                     phase={message.streamingPhase}
                     currentTool={message.streamingData?.currentTool}
+                    // 传入占位起始时间（= progress.startedAt，promote 重键时保留），
+                    // 使「已等待 Ns」跨 pending→accepted 重挂载保持连续，不再归零。
+                    startedAt={message.timestamp}
                   />
                 )}
 

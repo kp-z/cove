@@ -15,9 +15,6 @@ import { logger } from '@/lib/logger';
 
 const log = logger.scope('useSendMessage');
 
-// 占位气泡超时阈值：若 agent 在此时间内仍未被触发（占位停留在 pending），则清理占位。
-const PLACEHOLDER_TIMEOUT_MS = 30000;
-
 // 发送时可选传入的「将要回复的 agent」信息，用于即时插入拟人化占位气泡。
 export interface RespondingAgentInfo {
   agentId: string;
@@ -83,18 +80,13 @@ export function useSendMessage() {
       if (replyAgent && replyAgent.agentId) {
         // provisional 进度键为 `pending:<tempId>`，记录其回复的用户消息本地 id，
         // 以便 accepted(inReplyTo) 经 attachServerId 回填后能精确认领。
+        // 活动感知超时兜底已下沉到 manager 的 startAgentProgress：任意后端进度事件都会取消
+        // 占位超时，占位绝不中途消失；仅 30s 内全程无事件的「真卡死 pending」才被清理。
         messageStateManager.startAgentProgress(channelId, {
           repliesToLocalId: tempId,
           agentId: replyAgent.agentId,
           agentName: replyAgent.agentName || 'Agent',
         });
-
-        // 超时兜底：30s 内若进度仍停留在 pending（agent 始终未被触发 / 无 accepted），
-        // 则清理该 provisional 进度。若期间已被 promote 认领，键已变为权威 id，
-        // removeProvisionalIfPending 按 provisional 键查不到 → 自动空操作。
-        setTimeout(() => {
-          messageStateManager.removeProvisionalIfPending(`pending:${tempId}`);
-        }, PLACEHOLDER_TIMEOUT_MS);
       }
 
       // 3. 检查网络状态

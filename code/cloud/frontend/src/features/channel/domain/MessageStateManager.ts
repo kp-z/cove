@@ -16,6 +16,11 @@ import { Message, type MessageStatus, type MessageError } from './models';
 import type { StreamingPhase } from './models/Message';
 import { systemLog } from '../stores/systemEventStore';
 
+// 占位气泡「活动感知」超时阈值：startAgentProgress 后若 30s 内完全无任何后端进度事件
+// （accepted / thinking / tool_use / responding / 落库），则清理仍停留在 pending 的占位。
+// 任意进度事件都会经由对应方法 clearPendingTimer 取消该定时器，占位绝不中途消失。
+const PLACEHOLDER_TIMEOUT_MS = 30000;
+
 // Agent 流式进度叠加层。注意：这里只保存「过程态」，绝不保存最终正文（正文来自 serverMessages）。
 export interface AgentProgress {
   // 当前条目在 agentProgress Map 中的键。provisional 阶段为 `pending:<tempUserId>`，
@@ -48,6 +53,9 @@ export class MessageStateManager {
   private pendingSends: Map<string, Message> = new Map();
   // Agent 流式进度叠加层。
   private agentProgress: Map<string, AgentProgress> = new Map();
+  // provisional 占位的「活动感知」超时定时器，键为 provisional key（`pending:<tempUserId>`）。
+  // 任意后端进度事件都会 clearPendingTimer 取消它，仅「全程无事件」才到点清理占位。
+  private pendingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   // 频道订阅者。
   private subscribers: Map<string, Set<(messages: Message[]) => void>> = new Map();
 
@@ -87,6 +95,8 @@ export class MessageStateManager {
       // 步骤3：清理与该权威消息对应的 agent 进度叠加层（落库后占位无需再派生）。
       for (const [key, progress] of this.agentProgress) {
         if (progress.agentMessageId === msg.id) {
+          // 活动：正文已落库，连同其超时定时器一并清理。
+          this.clearPendingTimer(key);
           this.agentProgress.delete(key);
           droppedProgress++;
         }
@@ -205,6 +215,15 @@ export class MessageStateManager {
     };
     this.agentProgress.set(key, progress);
 
+    // 活动感知超时：调度一个仅在「仍为 pending」时才删除该 provisional 的定时器。
+    // 任意后端进度事件（promote / setPhase / update / append / fail / 落库）都会 clearPendingTimer
+    // 取消它，从而占位绝不中途消失；只有 30s 内完全无事件的「真卡死 pending」才被清理。
+    const timer = setTimeout(() => {
+      this.pendingTimers.delete(key);
+      this.removeProvisionalIfPending(key);
+    }, PLACEHOLDER_TIMEOUT_MS);
+    this.pendingTimers.set(key, timer);
+
     systemLog.info(
       channelId,
       'message.created_local',
@@ -213,6 +232,18 @@ export class MessageStateManager {
     );
 
     this.notifySubscribers(channelId);
+  }
+
+  /**
+   * 清理并删除指定 provisional key 的活动感知超时定时器（若存在）。
+   * 在所有「有活动」的进度方法中调用，使任意后端事件都能取消占位超时。
+   */
+  private clearPendingTimer(key: string): void {
+    const timer = this.pendingTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      this.pendingTimers.delete(key);
+    }
   }
 
   /**
@@ -265,6 +296,8 @@ export class MessageStateManager {
     }
 
     if (target) {
+      // 活动：accepted 已认领该 provisional，取消其超时定时器。
+      this.clearPendingTimer(target.key);
       // 重键：删除旧 provisional key，按权威 agentMessageId 重建，保留 startedAt。
       this.agentProgress.delete(target.key);
       this.agentProgress.set(agentMessageId, {
@@ -314,6 +347,8 @@ export class MessageStateManager {
     const progress = this.agentProgress.get(agentMessageId);
     if (!progress) return;
 
+    // 活动：有进度更新即取消占位超时定时器。
+    this.clearPendingTimer(agentMessageId);
     this.agentProgress.set(agentMessageId, { ...progress, ...partial });
     this.notifySubscribers(progress.channelId);
   }
@@ -325,6 +360,8 @@ export class MessageStateManager {
     const progress = this.agentProgress.get(agentMessageId);
     if (!progress) return;
 
+    // 活动：有正文增量即取消占位超时定时器。
+    this.clearPendingTimer(agentMessageId);
     this.agentProgress.set(agentMessageId, {
       ...progress,
       partialContent: (progress.partialContent ?? '') + chunk,
@@ -339,6 +376,8 @@ export class MessageStateManager {
     const progress = this.agentProgress.get(agentMessageId);
     if (!progress) return;
 
+    // 活动：有阶段推进即取消占位超时定时器。
+    this.clearPendingTimer(agentMessageId);
     this.agentProgress.set(agentMessageId, { ...progress, phase });
 
     if (phase === 'thinking' || phase === 'responding') {
@@ -362,6 +401,8 @@ export class MessageStateManager {
     const progress = this.agentProgress.get(agentMessageId);
     if (!progress) return;
 
+    // 活动：收到失败事件即取消占位超时定时器。
+    this.clearPendingTimer(agentMessageId);
     this.agentProgress.set(agentMessageId, { ...progress, phase: 'failed', error });
 
     systemLog.error(progress.channelId, 'message.failed', `Agent failed: ${error.message}`, {

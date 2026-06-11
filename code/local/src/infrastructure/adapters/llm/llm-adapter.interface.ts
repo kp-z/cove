@@ -61,15 +61,15 @@ export interface StreamingCallbacks {
   onStatusChange?: (status: 'thinking' | 'tool_use' | 'responding' | 'completed') => Promise<void> | void;
 
   /**
-   * 【Phase 3 预留 · 暂未接线】逐 token 正文流式回调
+   * 正文增量流式回调（正式生效通道）
    *
-   * 预留用于未来的逐 token 正文增量推送：当某适配器支持真正的正文级流式时，
-   * 由其在生成过程中调用本回调，按如下链路最终驱动前端 StreamingContent 增量渲染：
-   *   onContent → transmissionStrategy.transmitContent → pushChunk(phase:'content')
-   *             → 事件 agent.response.streaming → 前端 StreamingContent
+   * 所有支持流式的适配器（Anthropic / OpenAI / Claude Code CLI）统一通过本回调上报正文增量，
+   * 按如下链路驱动前端 partialContent 增量渲染（段/句级或逐 token 级均可）：
+   *   onContent → device-processor → transmissionStrategy.transmitContent
+   *             → pushChunk(phase:'content') → 事件 agent.response.streaming
+   *             → 前端 appendAgentProgressContent（partialContent）
    *
-   * 注意：本相位（device-processor / Cloud）当前不接线、不调用本回调，
-   *       仅作为接口契约预留，待 Phase 3 实现逐 token 正文流式时再行接入。
+   * 说明：onThinking 仅承载真正的 reasoning/thinking；正文一律走本通道，实现各适配器渲染对齐。
    * @param chunk - 增量正文内容
    */
   onContent?: (chunk: string) => Promise<void> | void;

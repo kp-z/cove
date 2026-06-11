@@ -95,8 +95,9 @@ export class AnthropicAdapter implements LlmAdapter {
     // 监听流式事件
     stream.on('text', async (text: string) => {
       fullResponse += text;
-      // Anthropic SDK 不直接暴露 thinking，这里作为响应内容处理
-      await streaming?.onThinking?.(text);
+      // 正文增量统一走 onContent（phase=content）通道，与 CLI / OpenAI 渲染对齐；
+      // onThinking 仅保留给真正的 reasoning/thinking（如后续接入 thinking block）。
+      await streaming?.onContent?.(text);
     });
 
     stream.on('message', async (message: Anthropic.Message) => {
