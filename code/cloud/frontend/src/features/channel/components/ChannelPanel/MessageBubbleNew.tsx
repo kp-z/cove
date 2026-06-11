@@ -17,8 +17,7 @@ import { computeMessageCostUsd, formatCostUsd } from './MessageBubble/usageCost'
 import { getUserColor, getColorWithOpacity } from '@/shared/utils/userColor';
 import { useAuthStore } from '@/core/auth/authStore';
 import { StreamingContent } from './StreamingContent';
-import { ToolCallIndicator } from './ToolCallIndicator';
-import { StreamingStatusIndicator } from './StreamingStatusIndicator';
+import { AgentProgressPanel } from './AgentProgressPanel';
 import { mapStreamingPhaseToAvatarStatus } from './avatarStatus';
 
 interface MessageBubbleProps {
@@ -159,32 +158,23 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                 }`}
                 style={{ borderColor: isFailed ? undefined : (message.streamingPhase ? undefined : borderColor) }}
               >
-                {/* 统一的状态指示器 */}
+                {/* Agent 进度面板：统一展示 thinking、tool_use 等实时过程 */}
                 {(message.streamingPhase === 'pending' ||
                   message.streamingPhase === 'accepted' ||
                   message.streamingPhase === 'thinking' ||
                   message.streamingPhase === 'tool_use' ||
                   message.streamingPhase === 'responding') && (
-                  <StreamingStatusIndicator
+                  <AgentProgressPanel
                     phase={message.streamingPhase}
+                    thinking={message.streamingData?.thinking}
                     currentTool={message.streamingData?.currentTool}
-                    // 传入占位起始时间（= progress.startedAt，promote 重键时保留），
-                    // 使「已等待 Ns」跨 pending→accepted 重挂载保持连续，不再归零。
                     startedAt={message.timestamp}
                   />
                 )}
 
-                {/* tool_use 阶段：仅显示工具调用（思考过程 UI 已移除）*/}
-                {message.streamingPhase === 'tool_use' && message.streamingData?.currentTool && (
-                  <ToolCallIndicator
-                    toolName={message.streamingData.currentTool.name}
-                    params={message.streamingData.currentTool.params}
-                  />
-                )}
-
-                {/* responding 阶段：流式显示回复（思考过程 UI 已移除）*/}
+                {/* responding 阶段：流式显示回复内容 */}
                 {message.streamingPhase === 'responding' && (
-                  <div className="text-sm text-gray-100 leading-relaxed">
+                  <div className="text-sm text-gray-100 leading-relaxed mt-2">
                     <StreamingContent
                       content={message.streamingData?.partialContent || message.content}
                       isStreaming={true}
@@ -193,18 +183,13 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                   </div>
                 )}
 
-                {/* completed 或无 phase：显示完整内容（思考过程 UI 已移除）*/}
+                {/* completed 或无 phase：显示完整内容 */}
                 {(!message.streamingPhase || message.streamingPhase === 'completed') && (
                   <div className={`text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words ${
                     isFailed ? 'text-red-400' : ''
                   }`}>
                     {message.content}
                   </div>
-                )}
-
-                {/* pending 或 accepted 阶段：只显示状态，无内容 */}
-                {(message.streamingPhase === 'pending' || message.streamingPhase === 'accepted') && (
-                  <div className="h-4"></div>
                 )}
               </div>
 

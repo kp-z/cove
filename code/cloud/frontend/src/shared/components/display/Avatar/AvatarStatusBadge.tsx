@@ -1,5 +1,4 @@
 import {
-  Loader2,
   Sparkles,
   Wrench,
   Pencil,
@@ -35,9 +34,11 @@ export type AvatarStatus =
 
 /** 单个状态的渲染配置 */
 interface StatusConfigItem {
-  /** 是否仅渲染为简单小圆点（online/offline），否则渲染为图标胶囊 */
+  /** 是否仅渲染为简单小圆点（online/offline），否则渲染为横胶囊 */
   dotOnly: boolean;
-  /** lucide 图标组件（dotOnly 时可为 undefined） */
+  /** 是否使用三点跳动动画（loading） */
+  dotsOnly?: boolean;
+  /** lucide 图标组件（dotOnly / dotsOnly 时可为 undefined） */
   icon?: LucideIcon;
   /** 胶囊/圆点的配色 class（背景/文字色） */
   colorClass: string;
@@ -47,17 +48,17 @@ interface StatusConfigItem {
   tooltip: string;
 }
 
-// 步骤 1：状态配置映射表 —— 每个状态对应图标、配色、动画与中文文案
+// 步骤 1：状态配置映射表 —— 每个状态对应符号、配色、动画与中文文案
 const STATUS_CONFIG: Record<AvatarStatus, StatusConfigItem> = {
-  // loading：旋转 Loader2，蓝色（与气泡内「正在输入」蓝色主题一致），表示等待/加载
+  // loading：横胶囊内三点跳动，蓝色，表示等待/加载
   loading: {
     dotOnly: false,
-    icon: Loader2,
+    dotsOnly: true,
     colorClass: 'bg-blue-500 text-white',
-    animationClass: 'animate-spin',
+    animationClass: '',
     tooltip: '正在加载…',
   },
-  // thinking：脉冲 Sparkles，蓝色，表示思考中
+  // thinking：横胶囊内 Sparkles，蓝色脉冲，表示思考中
   thinking: {
     dotOnly: false,
     icon: Sparkles,
@@ -65,15 +66,15 @@ const STATUS_CONFIG: Record<AvatarStatus, StatusConfigItem> = {
     animationClass: 'animate-pulse',
     tooltip: '思考中…',
   },
-  // tool：跳动 Wrench，紫色，表示调用工具
+  // tool：横胶囊内 Wrench，紫色，表示调用工具
   tool: {
     dotOnly: false,
     icon: Wrench,
     colorClass: 'bg-purple-500 text-white',
-    animationClass: 'animate-bounce',
+    animationClass: '',
     tooltip: '调用工具中…',
   },
-  // responding：轻脉冲 Pencil，绿色，表示正在回复
+  // responding：横胶囊内 Pencil，绿色脉冲，表示正在回复
   responding: {
     dotOnly: false,
     icon: Pencil,
@@ -81,7 +82,7 @@ const STATUS_CONFIG: Record<AvatarStatus, StatusConfigItem> = {
     animationClass: 'animate-pulse',
     tooltip: '正在回复…',
   },
-  // error：脉冲 AlertTriangle，红色，表示响应失败
+  // error：横胶囊内 AlertTriangle，红色脉冲，表示响应失败
   error: {
     dotOnly: false,
     icon: AlertTriangle,
@@ -89,7 +90,7 @@ const STATUS_CONFIG: Record<AvatarStatus, StatusConfigItem> = {
     animationClass: 'animate-pulse',
     tooltip: '响应失败',
   },
-  // success：静态 Check，绿色，表示已完成
+  // success：横胶囊内 Check，绿色静态，表示已完成
   success: {
     dotOnly: false,
     icon: Check,
@@ -114,17 +115,22 @@ const STATUS_CONFIG: Record<AvatarStatus, StatusConfigItem> = {
 };
 
 /**
- * 尺寸映射：根据头像 size 计算胶囊容器尺寸、图标像素、圆点尺寸。
- * - badge：图标胶囊（dotOnly=false）的容器尺寸 class。
+ * 尺寸映射：根据头像 size 计算横胶囊高度、内边距、图标像素、圆点尺寸。
+ * - pill：横胶囊高度 class（宽度由内容撑开）。
+ * - pillPx：横胶囊水平内边距 class。
  * - icon：lucide 图标的像素大小。
  * - dot：简单圆点（dotOnly=true）的尺寸 class（online 需与历史 w-2 h-2 一致）。
+ * - dotSize：三点动画中每个小圆点的尺寸 class。
  */
-const SIZE_MAP: Record<AvatarSize, { badge: string; icon: number; dot: string }> = {
-  xs: { badge: 'w-3 h-3', icon: 8, dot: 'w-1.5 h-1.5' },
-  sm: { badge: 'w-4 h-4', icon: 10, dot: 'w-2 h-2' },
-  md: { badge: 'w-4 h-4', icon: 11, dot: 'w-2 h-2' },
-  lg: { badge: 'w-5 h-5', icon: 13, dot: 'w-2.5 h-2.5' },
-  xl: { badge: 'w-6 h-6', icon: 16, dot: 'w-3 h-3' },
+const SIZE_MAP: Record<
+  AvatarSize,
+  { pill: string; pillPx: string; icon: number; dot: string; dotSize: string }
+> = {
+  xs: { pill: 'h-3', pillPx: 'px-1', icon: 8, dot: 'w-1.5 h-1.5', dotSize: 'w-0.5 h-0.5' },
+  sm: { pill: 'h-3.5', pillPx: 'px-1.5', icon: 9, dot: 'w-2 h-2', dotSize: 'w-0.5 h-0.5' },
+  md: { pill: 'h-4', pillPx: 'px-1.5', icon: 10, dot: 'w-2 h-2', dotSize: 'w-1 h-1' },
+  lg: { pill: 'h-4.5', pillPx: 'px-2', icon: 11, dot: 'w-2.5 h-2.5', dotSize: 'w-1 h-1' },
+  xl: { pill: 'h-5', pillPx: 'px-2', icon: 12, dot: 'w-3 h-3', dotSize: 'w-1 h-1' },
 };
 
 export interface AvatarStatusBadgeProps {
@@ -134,8 +140,23 @@ export interface AvatarStatusBadgeProps {
   size?: AvatarSize;
 }
 
+/** 三点跳动动画（loading 专用） */
+function TypingDots({ dotSize }: { dotSize: string }) {
+  return (
+    <span className="inline-flex items-center gap-[2px]" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={cn('rounded-full bg-current opacity-70 animate-bounce', dotSize)}
+          style={{ animationDelay: `${i * 150}ms`, animationDuration: '0.9s' }}
+        />
+      ))}
+    </span>
+  );
+}
+
 /**
- * AvatarStatusBadge —— 渲染头像右上角的状态圆点/图标胶囊。
+ * AvatarStatusBadge —— 渲染头像右上角的状态圆点/横胶囊。
  */
 export function AvatarStatusBadge({ status, size = 'sm' }: AvatarStatusBadgeProps) {
   // 步骤 1：取出当前状态与尺寸的配置
@@ -160,20 +181,25 @@ export function AvatarStatusBadge({ status, size = 'sm' }: AvatarStatusBadgeProp
     );
   }
 
-  // 步骤 3：其余状态渲染为「图标胶囊」（圆形容器 + 居中小图标 + 动画）
+  // 步骤 3：其余状态渲染为「横胶囊」（圆角 pill + 符号/三点动画）
   const Icon = config.icon;
   return (
     <div
       className={cn(
         'absolute -top-1 -right-1 flex items-center justify-center rounded-full ring-2 ring-[#0f111a]',
-        sizeConf.badge,
+        sizeConf.pill,
+        sizeConf.pillPx,
         config.colorClass
       )}
       title={config.tooltip}
       aria-label={config.tooltip}
       role="img"
     >
-      {Icon && <Icon size={sizeConf.icon} className={config.animationClass} />}
+      {config.dotsOnly ? (
+        <TypingDots dotSize={sizeConf.dotSize} />
+      ) : (
+        Icon && <Icon size={sizeConf.icon} className={config.animationClass} />
+      )}
     </div>
   );
 }
