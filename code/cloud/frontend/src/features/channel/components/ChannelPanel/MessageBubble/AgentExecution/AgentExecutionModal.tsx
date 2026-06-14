@@ -24,9 +24,9 @@ export const AgentExecutionModal = memo(function AgentExecutionModal({
   onClose,
   defaultTab: initialTab,
 }: AgentExecutionModalProps) {
-  // 运行时下发的是 snake_case 元数据，统一归一化为驼峰结构供各标签页安全消费
+  // 运行时下发的是 snake_case 元数据，统一归一化为 snake_case 结构供各标签页安全消费
   const normalizedMetadata: AgentMetadata = normalizeAgentMetadata(metadata);
-  const toolLogs = normalizedMetadata.toolLogs ?? [];
+  const toolLogs = normalizedMetadata.tool_logs ?? [];
   const usage = normalizedMetadata.usage;
 
   const hasThinking = !!normalizedMetadata.thinking;

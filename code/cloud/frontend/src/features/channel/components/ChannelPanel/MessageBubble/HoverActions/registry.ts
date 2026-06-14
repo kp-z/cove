@@ -48,7 +48,7 @@ const defaultActionRegistry: Record<ActionType, ActionFactory> = {
     priority: 20,
     tooltip: 'View tool usage logs',
     variant: 'ghost',
-    shouldShow: (message) => (message.agentMetadata?.toolLogs?.length || 0) > 0,
+    shouldShow: (message) => (message.agentMetadata?.tool_logs?.length || 0) > 0,
     onClick: () => {
       // 由外部配置提供具体实现
     },
@@ -77,10 +77,10 @@ const defaultActionRegistry: Record<ActionType, ActionFactory> = {
     tooltip: 'View file changes',
     variant: 'ghost',
     shouldShow: (message) => {
-      const logs = (message.agentMetadata?.tool_logs ?? message.agentMetadata?.toolLogs ?? []) as Array<{
-        toolName?: string;
+      const logs = (message.agentMetadata?.tool_logs ?? []) as Array<{
+        tool_name?: string;
       }>;
-      return logs.some((log) => log.toolName === 'Edit' || log.toolName === 'Write');
+      return logs.some((log) => log.tool_name === 'Edit' || log.tool_name === 'Write');
     },
     onClick: () => {
       // 由外部配置提供具体实现

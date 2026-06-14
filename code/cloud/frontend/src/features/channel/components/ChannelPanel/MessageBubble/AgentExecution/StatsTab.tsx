@@ -15,13 +15,13 @@ export const StatsTab = memo(function StatsTab({
     const hasThinking = !!metadata.thinking;
     const thinkingLength = metadata.thinking?.length || 0;
 
-    const toolCount = metadata.toolLogs?.length || 0;
-    const successCount = metadata.toolLogs?.filter(l => l.status === 'success').length || 0;
-    const errorCount = metadata.toolLogs?.filter(l => l.status === 'error').length || 0;
-    const totalDuration = metadata.toolLogs?.reduce((sum, l) => sum + (l.duration || 0), 0) || 0;
+    const toolCount = metadata.tool_logs?.length || 0;
+    const successCount = metadata.tool_logs?.filter(l => l.status === 'success').length || 0;
+    const errorCount = metadata.tool_logs?.filter(l => l.status === 'error').length || 0;
+    const totalDuration = metadata.tool_logs?.reduce((sum, l) => sum + (l.duration || 0), 0) || 0;
 
-    const totalTokens = metadata.usage?.totalTokens || 0;
-    const totalCost = metadata.usage?.cost?.totalCost || 0;
+    const totalTokens = metadata.usage?.total_tokens || 0;
+    const totalCost = metadata.usage?.cost?.total_cost || 0;
 
     return {
       hasThinking,

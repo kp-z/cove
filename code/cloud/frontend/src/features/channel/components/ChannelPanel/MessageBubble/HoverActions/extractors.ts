@@ -15,12 +15,12 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
     return badges;
   }
 
-  const { usage, toolLogs, executionMode } = message.agentMetadata;
+  const { usage, tool_logs, executionMode } = message.agentMetadata;
 
   // Token 使用状态
-  if (usage?.totalTokens) {
-    const totalTokens = usage.totalTokens;
-    const cost = usage.cost?.totalCost;
+  if (usage?.total_tokens) {
+    const totalTokens = usage.total_tokens;
+    const cost = usage.cost?.total_cost;
 
     badges.push({
       id: 'tokens',
@@ -35,7 +35,7 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
   // 思考过程不再以状态徽章展示（详情统一在点击面板查看）
 
   // Tool 使用状态
-  const toolCount = toolLogs?.length || 0;
+  const toolCount = tool_logs?.length || 0;
   if (toolCount > 0) {
     badges.push({
       id: 'tools',
@@ -59,8 +59,8 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
   }
 
   // 缓存命中率（如果可用）
-  if (usage?.cache?.hitRate !== undefined) {
-    const hitRate = usage.cache.hitRate;
+  if (usage?.cache?.hit_rate !== undefined) {
+    const hitRate = usage.cache.hit_rate;
     badges.push({
       id: 'cache',
       label: `${(hitRate * 100).toFixed(0)}% cache`,

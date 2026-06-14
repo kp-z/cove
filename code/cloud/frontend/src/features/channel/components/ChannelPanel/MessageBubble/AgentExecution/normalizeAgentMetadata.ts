@@ -33,7 +33,7 @@ function normalizeToolLog(raw: Record<string, unknown>): ToolLog {
   return {
     id: String(raw.id ?? ''),
     timestamp: String(raw.timestamp ?? ''),
-    toolName: String(raw.toolName ?? raw.tool_name ?? ''),
+    tool_name: String(raw.tool_name ?? ''),
     action: String(raw.action ?? ''),
     params: raw.params as Record<string, unknown> | undefined,
     status: (raw.status as ToolLog['status']) ?? 'success',
@@ -41,9 +41,9 @@ function normalizeToolLog(raw: Record<string, unknown>): ToolLog {
     result,
     meta: meta
       ? {
-          fileCount: num(meta.fileCount as number, meta.file_count as number) || undefined,
-          linesChanged: num(meta.linesChanged as number, meta.lines_changed as number) || undefined,
-          exitCode: firstDefined(meta.exitCode as number, meta.exit_code as number),
+          file_count: meta.file_count as number | undefined,
+          lines_changed: meta.lines_changed as number | undefined,
+          exit_code: meta.exit_code as number | undefined,
         }
       : undefined,
   };
@@ -56,48 +56,45 @@ function normalizeUsage(raw: Record<string, unknown> | undefined): TokenUsage | 
   const latency = raw.latency as Record<string, unknown> | undefined;
 
   return {
-    inputTokens: num(raw.inputTokens as number, raw.input_tokens as number),
-    outputTokens: num(raw.outputTokens as number, raw.output_tokens as number),
-    totalTokens: num(raw.totalTokens as number, raw.total_tokens as number),
+    input_tokens: (raw.input_tokens as number) || 0,
+    output_tokens: (raw.output_tokens as number) || 0,
+    total_tokens: (raw.total_tokens as number) || 0,
     cache: cache
       ? {
-          creationTokens: num(cache.creationTokens as number, cache.creation_tokens as number),
-          readTokens: num(cache.readTokens as number, cache.read_tokens as number),
-          hitRate: firstDefined(cache.hitRate as number, cache.hit_rate as number),
+          creation_tokens: (cache.creation_tokens as number) || 0,
+          read_tokens: (cache.read_tokens as number) || 0,
+          hit_rate: cache.hit_rate as number | undefined,
         }
       : undefined,
     cost: cost
       ? {
-          inputCost: num(cost.inputCost as number, cost.input_cost as number),
-          outputCost: num(cost.outputCost as number, cost.output_cost as number),
-          cacheCost: num(cost.cacheCost as number, cost.cache_cost as number),
-          totalCost: num(cost.totalCost as number, cost.total_cost as number),
+          input_cost: (cost.input_cost as number) || 0,
+          output_cost: (cost.output_cost as number) || 0,
+          cache_cost: (cost.cache_cost as number) || 0,
+          total_cost: (cost.total_cost as number) || 0,
         }
       : undefined,
     model: raw.model as string | undefined,
     latency: latency
       ? {
-          firstTokenMs: firstDefined(latency.firstTokenMs as number, latency.first_token_ms as number),
-          totalMs: firstDefined(latency.totalMs as number, latency.total_ms as number),
-          tokensPerSecond: firstDefined(
-            latency.tokensPerSecond as number,
-            latency.tokens_per_second as number
-          ),
+          first_token_ms: latency.first_token_ms as number | undefined,
+          total_ms: latency.total_ms as number | undefined,
+          tokens_per_second: latency.tokens_per_second as number | undefined,
         }
       : undefined,
   };
 }
 
 /**
- * 将任意来源的 agent 执行元数据归一化为详情面板可安全消费的驼峰结构。
+ * 将任意来源的 agent 执行元数据归一化为详情面板可安全消费的 snake_case 结构。
  */
 export function normalizeAgentMetadata(metadata: AgentMetadata): AgentMetadata {
   const raw = metadata as unknown as Record<string, unknown>;
-  const rawToolLogs = (raw.toolLogs ?? raw.tool_logs ?? []) as Array<Record<string, unknown>>;
+  const rawToolLogs = (raw.tool_logs ?? []) as Array<Record<string, unknown>>;
 
   return {
     ...metadata,
-    toolLogs: rawToolLogs.map(normalizeToolLog),
+    tool_logs: rawToolLogs.map(normalizeToolLog),
     usage: normalizeUsage(raw.usage as Record<string, unknown> | undefined),
   };
 }
