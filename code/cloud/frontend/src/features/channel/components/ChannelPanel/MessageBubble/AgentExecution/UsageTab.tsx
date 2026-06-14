@@ -29,26 +29,26 @@ export const UsageTab = memo(function UsageTab({ usage }: UsageTabProps) {
           <div className="space-y-1">
             <div className="text-xs text-gray-500">Input Tokens</div>
             <div className="text-lg font-semibold text-gray-200">
-              {formatNumber(usage.inputTokens)}
+              {formatNumber(usage.input_tokens)}
             </div>
           </div>
           <div className="space-y-1">
             <div className="text-xs text-gray-500">Output Tokens</div>
             <div className="text-lg font-semibold text-gray-200">
-              {formatNumber(usage.outputTokens)}
+              {formatNumber(usage.output_tokens)}
             </div>
           </div>
           <div className="space-y-1">
             <div className="text-xs text-gray-500">Total Tokens</div>
             <div className="text-lg font-semibold text-green-300">
-              {formatNumber(usage.totalTokens)}
+              {formatNumber(usage.total_tokens)}
             </div>
           </div>
         </div>
       </div>
 
       {/* Cache Statistics */}
-      {usage.cache && (usage.cache.creationTokens > 0 || usage.cache.readTokens > 0) && (
+      {usage.cache && (usage.cache.creation_tokens > 0 || usage.cache.read_tokens > 0) && (
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
             <Zap className="w-4 h-4 text-blue-400" />
@@ -58,20 +58,20 @@ export const UsageTab = memo(function UsageTab({ usage }: UsageTabProps) {
             <div className="space-y-1">
               <div className="text-xs text-gray-500">Cache Creation</div>
               <div className="text-lg font-semibold text-gray-200">
-                {formatNumber(usage.cache.creationTokens)}
+                {formatNumber(usage.cache.creation_tokens)}
               </div>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-gray-500">Cache Read</div>
               <div className="text-lg font-semibold text-blue-300">
-                {formatNumber(usage.cache.readTokens)}
+                {formatNumber(usage.cache.read_tokens)}
               </div>
             </div>
-            {usage.cache.hitRate !== undefined && (
+            {usage.cache.hit_rate !== undefined && (
               <div className="space-y-1">
                 <div className="text-xs text-gray-500">Hit Rate</div>
                 <div className="text-lg font-semibold text-blue-300">
-                  {(usage.cache.hitRate * 100).toFixed(1)}%
+                  {(usage.cache.hit_rate * 100).toFixed(1)}%
                 </div>
               </div>
             )}
@@ -90,27 +90,27 @@ export const UsageTab = memo(function UsageTab({ usage }: UsageTabProps) {
             <div className="space-y-1">
               <div className="text-xs text-gray-500">Input Cost</div>
               <div className="text-base font-semibold text-gray-200">
-                {formatCost(usage.cost.inputCost)}
+                {formatCost(usage.cost.input_cost)}
               </div>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-gray-500">Output Cost</div>
               <div className="text-base font-semibold text-gray-200">
-                {formatCost(usage.cost.outputCost)}
+                {formatCost(usage.cost.output_cost)}
               </div>
             </div>
-            {usage.cost.cacheCost > 0 && (
+            {usage.cost.cache_cost > 0 && (
               <div className="space-y-1">
                 <div className="text-xs text-gray-500">Cache Cost</div>
                 <div className="text-base font-semibold text-gray-200">
-                  {formatCost(usage.cost.cacheCost)}
+                  {formatCost(usage.cost.cache_cost)}
                 </div>
               </div>
             )}
             <div className="space-y-1">
               <div className="text-xs text-gray-500">Total Cost</div>
               <div className="text-lg font-semibold text-yellow-300">
-                {formatCost(usage.cost.totalCost)}
+                {formatCost(usage.cost.total_cost)}
               </div>
             </div>
           </div>
@@ -125,27 +125,27 @@ export const UsageTab = memo(function UsageTab({ usage }: UsageTabProps) {
             Performance Metrics
           </h3>
           <div className="grid grid-cols-3 gap-4">
-            {usage.latency.firstTokenMs !== undefined && (
+            {usage.latency.first_token_ms !== undefined && (
               <div className="space-y-1">
                 <div className="text-xs text-gray-500">First Token</div>
                 <div className="text-base font-semibold text-gray-200">
-                  {formatDuration(usage.latency.firstTokenMs)}
+                  {formatDuration(usage.latency.first_token_ms)}
                 </div>
               </div>
             )}
-            {usage.latency.totalMs !== undefined && (
+            {usage.latency.total_ms !== undefined && (
               <div className="space-y-1">
                 <div className="text-xs text-gray-500">Total Time</div>
                 <div className="text-base font-semibold text-gray-200">
-                  {formatDuration(usage.latency.totalMs)}
+                  {formatDuration(usage.latency.total_ms)}
                 </div>
               </div>
             )}
-            {usage.latency.tokensPerSecond !== undefined && (
+            {usage.latency.tokens_per_second !== undefined && (
               <div className="space-y-1">
                 <div className="text-xs text-gray-500">Tokens/sec</div>
                 <div className="text-base font-semibold text-purple-300">
-                  {usage.latency.tokensPerSecond.toFixed(1)}
+                  {usage.latency.tokens_per_second.toFixed(1)}
                 </div>
               </div>
             )}

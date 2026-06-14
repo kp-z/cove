@@ -1,12 +1,11 @@
 /**
  * Agent 执行元数据归一化
  *
- * 背景：运行时通过 message.list 下发的 agent_execution_metadata 为下划线命名
- *（input_tokens、tool_name、total_cost ...），而详情面板（UsageTab/ToolsTab/StatsTab）
- * 使用的类型为驼峰命名（inputTokens、toolName、totalCost ...）。
- * 直接传入会导致字段读取为 undefined，进而出现 `undefined.toLocaleString()` 崩溃。
+ * 背景：运行时通过 message.list 下发的 agent_execution_metadata 为 snake_case 命名
+ *（input_tokens、tool_name、total_cost ...），详情面板（UsageTab/ToolsTab/StatsTab）
+ * 使用的类型也为 snake_case 命名（input_tokens、tool_name、total_cost ...）。
  *
- * 本模块统一把任意大小写来源归一化为驼峰结构，供详情面板安全消费。
+ * 本模块统一把任意来源归一化为 snake_case 结构，供详情面板安全消费。
  */
 
 import type { AgentMetadata, TokenUsage, ToolLog } from '../../types';

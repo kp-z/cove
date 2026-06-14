@@ -2,9 +2,8 @@
  * 单条消息 token 成本计算工具
  *
  * 设计说明：
- * - Agent 执行元数据中的 usage 可能来自不同序列化路径，token 字段既可能是
- *   驼峰（inputTokens）也可能是下划线（input_tokens），这里统一做兼容读取。
- * - 若上游已提供真实成本（usage.cost.totalCost / total_cost），优先使用真实值。
+ * - 后端 API 统一使用 snake_case 字段命名（input_tokens、output_tokens 等）
+ * - 若上游已提供真实成本（usage.cost.total_cost），优先使用真实值。
  * - 否则按下方价格表（每百万 token 的美元单价）估算，价格可按需调整。
  */
 
@@ -25,28 +24,16 @@ const MODEL_PRICING_PER_MILLION: Array<{ match: string; input: number; output: n
 // 缺省单价：无法识别模型时按 Sonnet 量级估算
 const DEFAULT_PRICING_PER_MILLION = { input: 3, output: 15 };
 
-/** usage 的最小兼容形态（字段可能为驼峰或下划线） */
-type LooseUsage = {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
+/** usage 的类型定义（使用 snake_case） */
+type UsageData = {
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
   model?: string;
   cost?: {
-    totalCost?: number;
     total_cost?: number;
   };
 };
-
-// 兼容驼峰/下划线读取数值字段
-function num(...values: Array<number | undefined>): number {
-  for (const v of values) {
-    if (typeof v === 'number' && !Number.isNaN(v)) return v;
-  }
-  return 0;
-}
 
 function pricingForModel(model?: string): { input: number; output: number } {
   if (!model) return DEFAULT_PRICING_PER_MILLION;
@@ -59,16 +46,16 @@ function pricingForModel(model?: string): { input: number; output: number } {
  * 计算单条消息的美元成本。
  * @returns 美元成本；当没有任何 token 数据时返回 null（调用方据此决定是否渲染）。
  */
-export function computeMessageCostUsd(usage: LooseUsage | undefined | null): number | null {
+export function computeMessageCostUsd(usage: UsageData | undefined | null): number | null {
   if (!usage) return null;
 
   // 步骤1：优先使用上游提供的真实总成本
-  const realCost = num(usage.cost?.totalCost, usage.cost?.total_cost);
-  if (realCost > 0) return realCost;
+  const realCost = usage.cost?.total_cost;
+  if (realCost && realCost > 0) return realCost;
 
   // 步骤2：根据 token 数与价格表估算
-  const inputTokens = num(usage.inputTokens, usage.input_tokens);
-  const outputTokens = num(usage.outputTokens, usage.output_tokens);
+  const inputTokens = usage.input_tokens || 0;
+  const outputTokens = usage.output_tokens || 0;
   if (inputTokens === 0 && outputTokens === 0) return null;
 
   const { input, output } = pricingForModel(usage.model);

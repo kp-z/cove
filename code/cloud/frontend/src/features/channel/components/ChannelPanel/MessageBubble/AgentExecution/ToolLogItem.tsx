@@ -90,8 +90,8 @@ function StatusBadge({ status, result }: { status: ToolLog['status']; result?: T
 }
 
 export const ToolLogItem = memo(function ToolLogItem({ log, expanded = false }: ToolLogItemProps) {
-  const Icon = TOOL_ICONS[log.toolName] || Wrench;
-  const iconColor = TOOL_COLORS[log.toolName] || 'text-gray-400';
+  const Icon = TOOL_ICONS[log.tool_name] || Wrench;
+  const iconColor = TOOL_COLORS[log.tool_name] || 'text-gray-400';
 
   if (expanded) {
     // Expanded mode for modal
@@ -100,7 +100,7 @@ export const ToolLogItem = memo(function ToolLogItem({ log, expanded = false }: 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon className={`w-4 h-4 ${iconColor}`} />
-            <span className="text-sm font-semibold text-white/90">{log.toolName}</span>
+            <span className="text-sm font-semibold text-white/90">{log.tool_name}</span>
             {log.duration && (
               <span className="text-xs text-white/40">{formatDuration(log.duration)}</span>
             )}
@@ -115,9 +115,9 @@ export const ToolLogItem = memo(function ToolLogItem({ log, expanded = false }: 
         </div>
         {log.meta && (
           <div className="text-xs text-white/40 pl-6">
-            {log.meta.fileCount !== undefined && `${log.meta.fileCount} files`}
-            {log.meta.linesChanged !== undefined && ` · ${log.meta.linesChanged} lines changed`}
-            {log.meta.exitCode !== undefined && ` · exit ${log.meta.exitCode}`}
+            {log.meta.file_count !== undefined && `${log.meta.file_count} files`}
+            {log.meta.lines_changed !== undefined && ` · ${log.meta.lines_changed} lines changed`}
+            {log.meta.exit_code !== undefined && ` · exit ${log.meta.exit_code}`}
           </div>
         )}
       </div>
@@ -128,7 +128,7 @@ export const ToolLogItem = memo(function ToolLogItem({ log, expanded = false }: 
   return (
     <div className="flex items-center gap-2 text-xs font-mono group hover:bg-white/5 rounded px-1 py-0.5 transition-colors">
       <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
-      <span className="text-gray-300 font-semibold">{log.toolName}</span>
+      <span className="text-gray-300 font-semibold">{log.tool_name}</span>
       <span className="text-gray-500 truncate flex-1">{log.action}</span>
 
       {log.params && (
