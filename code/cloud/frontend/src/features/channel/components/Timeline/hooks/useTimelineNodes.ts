@@ -54,15 +54,7 @@ export function useTimelineNodes({ channelId, limit = 50 }: UseTimelineNodesOpti
           type: 'message',
           id: message.message_id,
           timestamp: message.created_at,
-          data: {
-            message_id: message.message_id,
-            content: message.content,
-            sender: {
-              user_id: message.sender_id,
-              display_name: message.sender?.display_name || 'Unknown',
-              avatar: message.sender?.avatar,
-            },
-          },
+          data: message, // 传递完整的消息对象
         });
       });
     }

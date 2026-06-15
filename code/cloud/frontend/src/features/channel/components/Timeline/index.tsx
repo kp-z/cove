@@ -228,7 +228,7 @@ export function Timeline({
                 </div>
 
                 {/* 时间组节点 */}
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   {groupNodes.map((node, index) => {
                     const Icon = getNodeIcon(node.type);
                     const nodeType = getNodeType(node.type);
@@ -252,8 +252,13 @@ export function Timeline({
                         metadata: event.metadata,
                         stack: event.stack,
                       };
+                    } else if (node.type === 'message') {
+                      // 消息节点 - 现在 node.data 是完整的 Message 对象
+                      const message = node.data as any;
+                      sender = message.sender_name || 'Unknown';
+                      metadata = message.content?.substring(0, 50) || '';
                     } else {
-                      // 消息和线程节点
+                      // 线程节点
                       sender = node.data?.sender?.display_name || node.title || 'Unknown';
                       metadata = node.data?.channel || node.data?.message_id || node.content || '';
                     }
@@ -271,6 +276,7 @@ export function Timeline({
                         onClick={() => onNodeClick?.(node)}
                         systemLevel={systemLevel}
                         systemDetails={systemDetails}
+                        messageData={node.type === 'message' ? node.data as any : undefined}
                       />
                     );
                   })}

@@ -1,9 +1,10 @@
 /**
  * useMessageList Hook
  * 管理频道消息列表，连接领域层和展示层
+ * 支持无限滚动加载历史消息
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Message } from '../domain/models/Message';
 import { messageStateManager } from '../domain/MessageStateManager';
@@ -20,19 +21,34 @@ export function useMessageList(channelId: string) {
     return unsubscribe;
   }, [channelId]);
 
-  // 订阅远程消息（React Query）
-  const { data: remoteMessages, isLoading } = trpc.message.list.useQuery(
-    { channelId, limit: 100 }, // 增加 limit 到 100，确保加载足够多的消息
-    { enabled: !!channelId }
+  // 使用无限查询支持滚动加载
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = trpc.message.list.useInfiniteQuery(
+    { channelId, limit: 20 },
+    {
+      enabled: !!channelId,
+      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined
+    }
   );
 
+  // 合并所有页的消息
+  const allRemoteMessages = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.messages);
+  }, [data]);
+
   useEffect(() => {
-    if (remoteMessages?.messages) {
+    if (allRemoteMessages.length > 0) {
       // 服务端权威正文：始终 upsert 到 serverMessages（覆盖），并清理已落库的乐观消息 / agent 进度。
-      const messages = remoteMessages.messages.map((m) => Message.fromRemote(m));
+      const messages = allRemoteMessages.map((m) => Message.fromRemote(m));
       messageStateManager.upsertServerMessages(channelId, messages);
     }
-  }, [remoteMessages, channelId]);
+  }, [allRemoteMessages, channelId]);
 
   // 订阅 WebSocket 实时消息
   trpc.subscription.onMessage.useSubscription(
@@ -50,5 +66,11 @@ export function useMessageList(channelId: string) {
     }
   );
 
-  return { messages, isLoading };
+  return {
+    messages,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage: hasNextPage ?? false,
+    loadMore: fetchNextPage
+  };
 }

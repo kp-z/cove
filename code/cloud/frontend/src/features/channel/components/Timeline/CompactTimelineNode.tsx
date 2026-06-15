@@ -8,6 +8,12 @@
 import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { BasicInfoSection } from './sections/BasicInfoSection';
+import { AgentExecutionSection } from './sections/AgentExecutionSection';
+import { PerformanceMetricsSection } from './sections/PerformanceMetricsSection';
+import { RelatedInfoSection } from './sections/RelatedInfoSection';
+import { SystemEventSection } from './sections/SystemEventSection';
+import { EditHistorySection } from './sections/EditHistorySection';
 
 export interface CompactTimelineNodeProps {
   type: 'text' | 'image' | 'file' | 'thread' | 'system';
@@ -25,6 +31,8 @@ export interface CompactTimelineNodeProps {
     metadata?: Record<string, any>;
     stack?: string;
   };
+  // 完整的消息数据（用于展开详情）
+  messageData?: any; // 使用 any 暂时，后续可以引入准确类型
 }
 
 // 类型颜色映射
@@ -87,6 +95,7 @@ export function CompactTimelineNode({
   onClick,
   systemLevel,
   systemDetails,
+  messageData,
 }: CompactTimelineNodeProps) {
   const colors = TYPE_COLORS[type];
   const [isExpanded, setIsExpanded] = useState(false);
@@ -99,8 +108,11 @@ export function CompactTimelineNode({
     !!systemDetails.stack
   );
 
+  // 判断是否有展开内容
+  const canExpand = isSystemEvent ? hasDetails : !!messageData;
+
   const handleClick = () => {
-    if (isSystemEvent && hasDetails) {
+    if (canExpand) {
       setIsExpanded(!isExpanded);
     } else if (onClick) {
       onClick();
@@ -109,7 +121,7 @@ export function CompactTimelineNode({
 
   return (
     <div className="relative">
-      <div className="relative flex items-start gap-3 group">
+      <div className="relative grid grid-cols-[24px_1fr] gap-3 group">
         {/* Timeline Line - 连续的，从节点底部延伸 */}
         {!isLast && (
           <div className="absolute left-3 top-6 bottom-[-8px] w-px bg-white/10" />
@@ -131,86 +143,80 @@ export function CompactTimelineNode({
           </div>
         </div>
 
-        {/* Content */}
-        <button
-          onClick={handleClick}
+        {/* Content Card */}
+        <div
           className={`
-            flex-1 flex items-center gap-2 px-3 py-2 rounded-lg
-            transition-all duration-200
+            min-w-0 rounded-lg overflow-hidden transition-all duration-200
             ${isActive
               ? 'bg-white/10 border border-white/20'
               : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
             }
           `}
         >
-          {/* Info */}
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            {/* 系统事件显示级别标签 */}
-            {isSystemEvent && systemLevel && (
-              <span className={`px-2 py-0.5 text-xs font-medium rounded border ${levelColors.badge}`}>
-                {systemLevel.toUpperCase()}
+          {/* Main Row */}
+          <button
+            onClick={handleClick}
+            className="w-full flex items-center gap-2 px-3 py-2"
+          >
+            {/* Info */}
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              {/* 系统事件显示级别标签 */}
+              {isSystemEvent && systemLevel && (
+                <span className={`px-2 py-0.5 text-xs font-medium rounded border ${levelColors.badge} flex-shrink-0`}>
+                  {systemLevel.toUpperCase()}
+                </span>
+              )}
+
+              <span className={`text-sm font-medium truncate ${isSystemEvent ? levelColors.text : 'text-white'}`}>
+                {sender}
               </span>
-            )}
-
-            <span className={`text-sm font-medium truncate ${isSystemEvent ? levelColors.text : 'text-white'}`}>
-              {sender}
-            </span>
-            <span className="text-white/40">•</span>
-            <span className="text-sm text-white/60 truncate">
-              {metadata}
-            </span>
-          </div>
-
-          {/* Timestamp and Expand Icon */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white/40 whitespace-nowrap">
-              {timestamp}
-            </span>
-            {isSystemEvent && hasDetails && (
-              <div className="flex-shrink-0">
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                )}
-              </div>
-            )}
-          </div>
-        </button>
-      </div>
-
-      {/* 展开的详细信息 */}
-      {isSystemEvent && isExpanded && systemDetails && (
-        <div className="ml-9 mt-2 px-4 py-3 rounded-lg bg-black/30 border border-white/5">
-          {/* 完整消息 */}
-          <div className="mb-3">
-            <div className="text-xs font-semibold text-gray-400 mb-2">Message:</div>
-            <div className="text-sm text-gray-300">
-              {systemDetails.message}
+              <span className="text-white/40 flex-shrink-0">•</span>
+              <span className="text-sm text-white/60 truncate">
+                {metadata}
+              </span>
             </div>
-          </div>
 
-          {/* Metadata */}
-          {systemDetails.metadata && Object.keys(systemDetails.metadata).length > 0 && (
-            <div className="mb-3">
-              <div className="text-xs font-semibold text-gray-400 mb-2">Metadata:</div>
-              <pre className="text-xs text-gray-300 font-mono overflow-x-auto bg-black/20 p-2 rounded">
-                {JSON.stringify(systemDetails.metadata, null, 2)}
-              </pre>
+            {/* Timestamp and Expand Icon - 固定宽度 */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-white/40 whitespace-nowrap w-16 text-right">
+                {timestamp}
+              </span>
+              {canExpand ? (
+                <div className="w-5 flex items-center justify-center">
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
+              ) : (
+                <div className="w-5" />
+              )}
             </div>
-          )}
+          </button>
 
-          {/* Stack Trace */}
-          {systemDetails.stack && (
-            <div>
-              <div className="text-xs font-semibold text-gray-400 mb-2">Stack Trace:</div>
-              <pre className="text-xs text-gray-500 font-mono overflow-x-auto max-h-40 overflow-y-auto bg-black/20 p-2 rounded">
-                {systemDetails.stack}
-              </pre>
+          {/* 展开的详细信息 - 现在在卡片内部 */}
+          {isExpanded && (
+            <div className="border-t border-white/10 px-4 py-3 transition-all duration-200">
+              {/* 系统事件：显示系统事件详情 */}
+              {isSystemEvent && systemDetails && (
+                <SystemEventSection systemDetails={systemDetails} />
+              )}
+
+              {/* 消息：显示所有适用的信息维度 */}
+              {messageData && !isSystemEvent && (
+                <>
+                  <BasicInfoSection messageData={messageData} />
+                  <AgentExecutionSection messageData={messageData} />
+                  <PerformanceMetricsSection messageData={messageData} />
+                  <RelatedInfoSection messageData={messageData} />
+                  <EditHistorySection messageData={messageData} />
+                </>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

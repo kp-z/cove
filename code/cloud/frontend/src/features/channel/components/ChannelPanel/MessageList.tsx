@@ -5,6 +5,7 @@ import { Message } from '../../domain/models/Message';
 import { MessageBubble } from './MessageBubbleNew';
 import { SystemMessage } from './SystemMessage';
 import { TypingIndicator } from './TypingIndicator';
+import { LoadMoreTrigger } from './LoadMoreTrigger';
 import { useMessageList, useSendMessage, useTypingState } from '../../hooks';
 
 interface MessageListProps {
@@ -65,18 +66,63 @@ export function MessageList({ channelId, className = '', targetMessageId }: Mess
   const { t } = useTranslation('channel');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevScrollHeightRef = useRef(0);
+  const isInitialLoadRef = useRef(true);
+  const prevMessageCountRef = useRef(0);
+  const lastMessageIdRef = useRef<string | null>(null);
 
-  // 使用新的 hooks
-  const { messages, isLoading } = useMessageList(channelId);
+  const {
+    messages,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    loadMore
+  } = useMessageList(channelId);
+
   const { retry } = useSendMessage();
   const { typingUsers } = useTypingState(channelId);
 
-  // 自动滚动到底部
+  // 加载历史消息后保持滚动位置
   useEffect(() => {
-    if (messagesEndRef.current && !targetMessageId) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (!isFetchingNextPage && containerRef.current) {
+      const container = containerRef.current;
+      const newScrollHeight = container.scrollHeight;
+      const prevScrollHeight = prevScrollHeightRef.current;
+
+      if (prevScrollHeight > 0 && newScrollHeight > prevScrollHeight) {
+        const scrollDiff = newScrollHeight - prevScrollHeight;
+        container.scrollTop += scrollDiff;
+      }
+
+      prevScrollHeightRef.current = newScrollHeight;
     }
-  }, [messages.length, targetMessageId]);
+  }, [messages.length, isFetchingNextPage]);
+
+  // 自动滚动到底部（仅初始加载或新消息到达底部）
+  useEffect(() => {
+    if (!messagesEndRef.current || targetMessageId || isFetchingNextPage) return;
+
+    const currentMessageCount = messages.length;
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageId = lastMessage?.id;
+
+    // 初始加载：立即滚动到底部
+    if (isInitialLoadRef.current && currentMessageCount > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      isInitialLoadRef.current = false;
+      prevMessageCountRef.current = currentMessageCount;
+      lastMessageIdRef.current = lastMessageId || null;
+      return;
+    }
+
+    // 检测是否有新消息到达（最后一条消息的 ID 变化）
+    if (lastMessageId && lastMessageId !== lastMessageIdRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      lastMessageIdRef.current = lastMessageId;
+    }
+
+    prevMessageCountRef.current = currentMessageCount;
+  }, [messages, targetMessageId, isFetchingNextPage]);
 
   // 滚动到特定消息
   useEffect(() => {
@@ -109,6 +155,15 @@ export function MessageList({ channelId, className = '', targetMessageId }: Mess
           <p className="text-sm">{t('messageList.emptyTitle')}</p>
           <p className="text-xs mt-1 text-gray-600">{t('messageList.emptyDescription')}</p>
         </div>
+      )}
+
+      {/* 加载更多触发器 */}
+      {messages.length > 0 && (
+        <LoadMoreTrigger
+          onLoadMore={loadMore}
+          isLoading={isFetchingNextPage}
+          hasMore={hasNextPage}
+        />
       )}
 
       {messages.map((message, index) => {
