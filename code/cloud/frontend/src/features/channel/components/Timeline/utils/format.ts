@@ -6,21 +6,24 @@
 /**
  * 格式化 Token 数量（千位分隔符）
  */
-export function formatTokens(tokens: number): string {
+export function formatTokens(tokens: number | undefined): string {
+  if (tokens === undefined || tokens === null) return 'N/A';
   return tokens.toLocaleString('en-US');
 }
 
 /**
  * 格式化百分比（1位小数）
  */
-export function formatPercentage(value: number): string {
+export function formatPercentage(value: number | undefined): string {
+  if (value === undefined || value === null) return 'N/A';
   return (value * 100).toFixed(1) + '%';
 }
 
 /**
  * 格式化成本（4位小数）
  */
-export function formatCost(cost: number): string {
+export function formatCost(cost: number | undefined): string {
+  if (cost === undefined || cost === null) return 'N/A';
   return '$' + cost.toFixed(4);
 }
 
@@ -28,7 +31,8 @@ export function formatCost(cost: number): string {
  * 格式化延迟时间
  * @param ms 毫秒
  */
-export function formatLatency(ms: number): string {
+export function formatLatency(ms: number | undefined): string {
+  if (ms === undefined || ms === null) return 'N/A';
   if (ms < 1000) {
     return Math.round(ms) + 'ms';
   }
@@ -39,16 +43,21 @@ export function formatLatency(ms: number): string {
  * 格式化时间戳
  * @param iso ISO 时间字符串
  */
-export function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+export function formatTimestamp(iso: string | undefined): string {
+  if (!iso) return 'N/A';
+  try {
+    const date = new Date(iso);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return 'Invalid Date';
+  }
 }
 
 /**
@@ -60,6 +69,7 @@ export function truncateText(text: string, maxLength: number = 150): {
   truncated: string;
   isTruncated: boolean;
 } {
+  if (!text) return { truncated: '', isTruncated: false };
   if (text.length <= maxLength) {
     return { truncated: text, isTruncated: false };
   }
@@ -69,7 +79,8 @@ export function truncateText(text: string, maxLength: number = 150): {
 /**
  * 格式化时长（毫秒转为可读格式）
  */
-export function formatDuration(ms: number): string {
+export function formatDuration(ms: number | undefined): string {
+  if (ms === undefined || ms === null) return 'N/A';
   if (ms < 1000) {
     return Math.round(ms) + 'ms';
   }
