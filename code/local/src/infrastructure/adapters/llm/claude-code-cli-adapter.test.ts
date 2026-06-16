@@ -430,3 +430,143 @@ describe('ClaudeCodeCLIAdapter - 批量回退', () => {
     expect(statuses).toContain('completed');
   });
 });
+
+describe('ClaudeCodeCLIAdapter - 多轮对话', () => {
+  it('startConversation 应成功启动并捕获 session_id', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: true,
+    });
+
+    const p = adapter.startConversation('You are helpful');
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const child = childInstances[0];
+
+    // 模拟 system.init 事件
+    child.stdout.emit('data', Buffer.from('{"type":"system","subtype":"init","session_id":"sess_abc123"}\n'));
+
+    const context = await p;
+
+    expect(context.id).toMatch(/^conv_/);
+    expect(context.sessionId).toBe('sess_abc123');
+    expect(context.ended).toBe(false);
+    expect(context.messages).toEqual([]);
+  });
+
+  it('sendMessage 应发送消息并返回回复', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: true,
+    });
+
+    const contextPromise = adapter.startConversation();
+    const child = childInstances[0];
+
+    // 初始化
+    child.stdout.emit('data', Buffer.from('{"type":"system","subtype":"init","session_id":"sess_123"}\n'));
+    const context = await contextPromise;
+
+    // 发送消息
+    const replyPromise = adapter.sendMessage(context, 'Hello');
+
+    // 验证 stdin 写入
+    expect(child.stdin.write).toHaveBeenCalled();
+    const writeCalls = (child.stdin.write as any).mock.calls;
+    const lastWrite = writeCalls[writeCalls.length - 1][0];
+    expect(lastWrite).toContain('{"text":"Hello"}');
+
+    // 模拟回复
+    child.stdout.emit('data', Buffer.from('{"type":"assistant","message":{"content":[{"type":"text","text":"Hi there"}]}}\n'));
+    child.stdout.emit('data', Buffer.from('{"type":"result","result":"Hi there","stop_reason":"end_turn"}\n'));
+
+    const reply = await replyPromise;
+
+    expect(reply).toBe('Hi there');
+    expect(context.messages).toEqual([
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'Hi there' },
+    ]);
+  });
+
+  it('多轮对话应保持上下文', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: true,
+    });
+
+    const contextPromise = adapter.startConversation();
+    const child = childInstances[0];
+
+    child.stdout.emit('data', Buffer.from('{"type":"system","subtype":"init","session_id":"sess_multi"}\n'));
+    const context = await contextPromise;
+
+    // 第一轮
+    const reply1Promise = adapter.sendMessage(context, 'First question');
+    child.stdout.emit('data', Buffer.from('{"type":"assistant","message":{"content":[{"type":"text","text":"First answer"}]}}\n'));
+    child.stdout.emit('data', Buffer.from('{"type":"result","result":"First answer"}\n'));
+    const reply1 = await reply1Promise;
+
+    expect(reply1).toBe('First answer');
+    expect(context.messages.length).toBe(2);
+
+    // 第二轮
+    const reply2Promise = adapter.sendMessage(context, 'Second question');
+    child.stdout.emit('data', Buffer.from('{"type":"assistant","message":{"content":[{"type":"text","text":"Second answer"}]}}\n'));
+    child.stdout.emit('data', Buffer.from('{"type":"result","result":"Second answer"}\n'));
+    const reply2 = await reply2Promise;
+
+    expect(reply2).toBe('Second answer');
+    expect(context.messages).toEqual([
+      { role: 'user', content: 'First question' },
+      { role: 'assistant', content: 'First answer' },
+      { role: 'user', content: 'Second question' },
+      { role: 'assistant', content: 'Second answer' },
+    ]);
+  });
+
+  it('endConversation 应结束对话并清理进程', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: true,
+    });
+
+    const contextPromise = adapter.startConversation();
+    const child = childInstances[0];
+
+    child.stdout.emit('data', Buffer.from('{"type":"system","subtype":"init"}\n'));
+    const context = await contextPromise;
+
+    adapter.endConversation(context);
+
+    expect(context.ended).toBe(true);
+    expect(child.stdin.end).toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+  });
+
+  it('在未启用流式输入时应拒绝启动对话', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: false, // 未启用
+    });
+
+    await expect(adapter.startConversation()).rejects.toThrow(/requires useStreamInput=true/);
+  });
+
+  it('在已结束的对话中发送消息应报错', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({
+      enableStreaming: true,
+      useStreamInput: true,
+    });
+
+    const contextPromise = adapter.startConversation();
+    const child = childInstances[0];
+
+    child.stdout.emit('data', Buffer.from('{"type":"system","subtype":"init"}\n'));
+    const context = await contextPromise;
+
+    adapter.endConversation(context);
+
+    await expect(adapter.sendMessage(context, 'test')).rejects.toThrow(/already ended/);
+  });
+});

@@ -6,8 +6,25 @@
  */
 
 import { spawn } from 'child_process';
+import type { ChildProcess } from 'child_process';
 import { LlmAdapter, GenerateParams, AdapterCapabilities, BatchResponse } from './llm-adapter.interface';
 import type { ExecutionMetadata, UsageMetadata } from '../../../domain/agent-runtime/execution-metadata';
+
+/**
+ * 多轮对话上下文
+ */
+export interface ConversationContext {
+  /** 对话 ID */
+  id: string;
+  /** CLI 子进程 */
+  process: ChildProcess;
+  /** 是否已结束 */
+  ended: boolean;
+  /** 会话 ID（从 system.init 事件捕获） */
+  sessionId?: string;
+  /** 消息历史 */
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+}
 
 interface ClaudeCliOutput {
   type: 'result';
@@ -641,6 +658,260 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         throw new Error(`Failed to parse CLI output as JSON: ${error.message}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * 启动多轮对话
+   *
+   * 创建一个持久的 CLI 进程，支持多次来回对话而不重新启动进程。
+   * 需要启用 useStreamInput=true 和 enableStreaming=true。
+   *
+   * @param systemPrompt 系统提示（可选）
+   * @returns 对话上下文
+   */
+  startConversation(systemPrompt?: string): Promise<ConversationContext> {
+    if (!this.useStreamInput || !this.enableStreaming) {
+      return Promise.reject(new Error('Multi-turn conversation requires useStreamInput=true and enableStreaming=true'));
+    }
+
+    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const args = this.buildCliArgs(systemPrompt, true);
+
+    return new Promise<ConversationContext>((resolve, reject) => {
+      let sessionId: string | undefined;
+      let lineBuffer = '';
+      let initReceived = false;
+
+      const child = spawn(this.cliPath, args, {
+        cwd: this.workingDir,
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      const context: ConversationContext = {
+        id: conversationId,
+        process: child,
+        ended: false,
+        messages: [],
+      };
+
+      // 监听 system.init 事件以捕获 session_id
+      const processLine = (rawLine: string): void => {
+        const line = rawLine.trim();
+        if (!line) return;
+
+        try {
+          const event = JSON.parse(line) as ClaudeStreamEvent;
+          if (event.type === 'system' && event.subtype === 'init') {
+            sessionId = event.session_id;
+            context.sessionId = sessionId;
+            initReceived = true;
+            resolve(context);
+          }
+        } catch {
+          // 忽略解析错误
+        }
+      };
+
+      child.stdout.on('data', (data: Buffer) => {
+        lineBuffer += data.toString();
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() ?? '';
+        for (const l of lines) {
+          processLine(l);
+        }
+      });
+
+      child.on('error', (error: Error) => {
+        if (!initReceived) {
+          reject(new Error(`Failed to start conversation: ${error.message}`));
+        }
+      });
+
+      child.on('close', () => {
+        context.ended = true;
+      });
+
+      // 超时保护
+      setTimeout(() => {
+        if (!initReceived) {
+          child.kill('SIGTERM');
+          reject(new Error('Conversation initialization timeout'));
+        }
+      }, 5000);
+    });
+  }
+
+  /**
+   * 在多轮对话中发送消息
+   *
+   * @param context 对话上下文
+   * @param message 用户消息
+   * @param streaming 流式回调（可选）
+   * @returns 助手回复
+   */
+  sendMessage(
+    context: ConversationContext,
+    message: string,
+    streaming?: GenerateParams['streaming']
+  ): Promise<string> {
+    if (context.ended) {
+      return Promise.reject(new Error('Conversation already ended'));
+    }
+
+    return new Promise<string>((resolve, reject) => {
+      let lineBuffer = '';
+      let collectedText = '';
+      let resultEvent: ClaudeStreamEvent | undefined;
+      let callbackChain: Promise<void> = Promise.resolve();
+      let turnCompleted = false;
+      const toolMap = new Map<string, { id: string; toolName: string; status: 'running' | 'success' | 'error' }>();
+      let dataHandler: ((data: Buffer) => void) | undefined;
+      let errorHandler: ((error: Error) => void) | undefined;
+      let closeHandler: (() => void) | undefined;
+
+      const enqueue = (fn: () => Promise<void> | void): void => {
+        callbackChain = callbackChain.then(() => fn()).catch(() => {});
+      };
+
+      // 状态切换到 thinking
+      enqueue(() => streaming?.onStatusChange?.('thinking'));
+
+      const processLine = (rawLine: string): void => {
+        const line = rawLine.trim();
+        if (!line) return;
+
+        let event: ClaudeStreamEvent;
+        try {
+          event = JSON.parse(line) as ClaudeStreamEvent;
+        } catch {
+          return;
+        }
+
+        // 分发事件
+        this.dispatchStreamEvent(
+          event,
+          streaming,
+          enqueue,
+          (text) => { collectedText += text; },
+          (result) => { resultEvent = result; },
+          () => {}, // sessionId 已在 startConversation 中捕获
+          toolMap
+        );
+
+        // 检测轮次结束
+        if (event.type === 'result' && !turnCompleted) {
+          turnCompleted = true;
+
+          // 移除事件监听器，避免影响下一轮
+          if (dataHandler) context.process.stdout.off('data', dataHandler);
+          if (errorHandler) context.process.off('error', errorHandler);
+          if (closeHandler) context.process.off('close', closeHandler);
+
+          // 等待回调链完成后 resolve
+          callbackChain
+            .then(async () => {
+              if (resultEvent && streaming) {
+                const usage = this.buildUsageMetadata(
+                  resultEvent as ClaudeCliOutput,
+                  0,
+                  context.sessionId
+                );
+                if (usage) {
+                  await streaming.onUsage?.(usage);
+                }
+                await streaming.onStatusChange?.('completed');
+              }
+            })
+            .catch(() => {})
+            .finally(() => {
+              const finalText = resultEvent?.result ?? collectedText;
+              // 更新消息历史
+              context.messages.push(
+                { role: 'user', content: message },
+                { role: 'assistant', content: finalText }
+              );
+              resolve(finalText);
+            });
+        }
+      };
+
+      dataHandler = (data: Buffer) => {
+        lineBuffer += data.toString();
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() ?? '';
+        for (const l of lines) {
+          processLine(l);
+        }
+      };
+
+      errorHandler = (error: Error) => {
+        if (!turnCompleted) {
+          turnCompleted = true;
+          if (dataHandler) context.process.stdout.off('data', dataHandler);
+          if (errorHandler) context.process.off('error', errorHandler);
+          if (closeHandler) context.process.off('close', closeHandler);
+          reject(new Error(`Conversation error: ${error.message}`));
+        }
+      };
+
+      closeHandler = () => {
+        context.ended = true;
+        if (!turnCompleted) {
+          turnCompleted = true;
+          if (dataHandler) context.process.stdout.off('data', dataHandler);
+          if (errorHandler) context.process.off('error', errorHandler);
+          if (closeHandler) context.process.off('close', closeHandler);
+          reject(new Error('CLI process closed unexpectedly'));
+        }
+      };
+
+      // 监听事件
+      context.process.stdout.on('data', dataHandler);
+      context.process.on('error', errorHandler);
+      context.process.on('close', closeHandler);
+
+      // 发送消息（NDJSON 格式）
+      const inputEvent = JSON.stringify({ text: message });
+      try {
+        context.process.stdin.write(inputEvent + '\n');
+      } catch (error) {
+        turnCompleted = true;
+        if (dataHandler) context.process.stdout.off('data', dataHandler);
+        if (errorHandler) context.process.off('error', errorHandler);
+        if (closeHandler) context.process.off('close', closeHandler);
+        reject(new Error(`Failed to send message: ${error instanceof Error ? error.message : String(error)}`));
+        return;
+      }
+
+      // 超时保护
+      setTimeout(() => {
+        if (!turnCompleted) {
+          turnCompleted = true;
+          if (dataHandler) context.process.stdout.off('data', dataHandler);
+          if (errorHandler) context.process.off('error', errorHandler);
+          if (closeHandler) context.process.off('close', closeHandler);
+          reject(new Error('Message timeout'));
+        }
+      }, this.timeout);
+    });
+  }
+
+  /**
+   * 结束多轮对话
+   *
+   * @param context 对话上下文
+   */
+  endConversation(context: ConversationContext): void {
+    if (!context.ended) {
+      try {
+        context.process.stdin.end();
+        context.process.kill('SIGTERM');
+      } catch {
+        // 忽略错误
+      }
+      context.ended = true;
     }
   }
 

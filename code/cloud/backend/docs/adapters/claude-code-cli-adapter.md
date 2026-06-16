@@ -92,6 +92,75 @@ Use this for:
 - Debugging and troubleshooting
 - Analytics and usage tracking
 
+## Multi-Turn Conversations
+
+The adapter supports persistent conversations where the CLI process stays alive across multiple turns:
+
+### Requirements
+
+- `enableStreaming: true`
+- `useStreamInput: true`
+
+### Usage Example
+
+```typescript
+const adapter = new ClaudeCodeCLIAdapter({
+  enableStreaming: true,
+  useStreamInput: true,
+});
+
+// Start conversation
+const context = await adapter.startConversation('You are a helpful assistant');
+console.log('Session ID:', context.sessionId);
+
+// Send first message
+const reply1 = await adapter.sendMessage(context, 'What is 2+2?');
+console.log('Reply 1:', reply1);
+
+// Send follow-up (context is preserved)
+const reply2 = await adapter.sendMessage(context, 'What about 3+3?');
+console.log('Reply 2:', reply2);
+
+// Access conversation history
+console.log('Messages:', context.messages);
+
+// End conversation when done
+adapter.endConversation(context);
+```
+
+### Benefits
+
+- **Performance**: No need to restart the CLI process for each turn
+- **Context preservation**: Conversation history is maintained
+- **Efficiency**: Reuses the same session for multiple interactions
+
+### Conversation Context
+
+The `ConversationContext` object contains:
+- `id`: Unique conversation identifier
+- `sessionId`: Session ID from Claude CLI
+- `messages`: Array of user/assistant message pairs
+- `ended`: Whether the conversation has been terminated
+- `process`: The underlying CLI process (internal use)
+
+### Error Handling
+
+```typescript
+try {
+  const context = await adapter.startConversation();
+  const reply = await adapter.sendMessage(context, 'Hello');
+  adapter.endConversation(context);
+} catch (error) {
+  console.error('Conversation error:', error);
+}
+```
+
+Common errors:
+- **Configuration error**: Throws if `useStreamInput` or `enableStreaming` is false
+- **Ended conversation**: Throws if trying to send to an already-ended conversation
+- **Timeout**: Rejects if message takes longer than configured timeout
+- **Process error**: Rejects if CLI process crashes or exits unexpectedly
+
 ## Configuration
 
 ### Basic Configuration
@@ -297,29 +366,33 @@ Error: Failed to parse CLI output as JSON
 
 ### Not Yet Supported
 
-- **Multi-turn conversations**: Each `generateResponse()` call is independent. The CLI is spawned and killed per request. To implement conversation history, pass previous messages via the `messages` parameter.
 - **MCP (Model Context Protocol) integration**: MCP servers require a permission proxy and HTTP IPC callback mechanism, which is not yet implemented in this adapter.
-- **Input streaming** (`--input-format=stream-json`): The adapter currently sends the full prompt at once via stdin. Real-time input streaming is not supported.
+
+### Supported Features
+
+- ✅ **Multi-turn conversations**: Implemented via `startConversation()`, `sendMessage()`, and `endConversation()` methods. Requires `useStreamInput: true` and `enableStreaming: true`.
+- ✅ **Input streaming** (`--input-format=stream-json`): Supported when `useStreamInput: true`.
+- ✅ **Conversation history**: Automatically maintained in `ConversationContext.messages`.
 
 ### Workarounds
 
-- **Conversation history**: Manually pass previous turns in the `messages` array:
+- **MCP tools**: Use built-in tools or deploy MCP servers separately, then reference their outputs in prompts.
+- **Single-turn with history**: For non-persistent conversations, manually pass previous turns in the `messages` array:
   ```typescript
   const messages = [
     { role: 'user', content: 'First question' },
     { role: 'assistant', content: 'First answer' },
     { role: 'user', content: 'Follow-up question' },
   ];
+  await adapter.generateResponse({ messages, systemPrompt: '...' });
   ```
-- **MCP tools**: Use built-in tools or deploy MCP servers separately, then reference their outputs in prompts.
 
 ## Future Enhancements
 
 Potential improvements:
-- [ ] Multi-turn conversation support (persistent CLI process)
 - [ ] MCP integration (permission proxy + HTTP IPC)
-- [ ] Input streaming (`--input-format=stream-json`)
 - [ ] File attachment support
-- [ ] Session persistence options
+- [ ] Session persistence to disk
 - [ ] Custom output parsers
 - [ ] Retry logic with exponential backoff
+- [ ] Conversation resumption from disk
