@@ -92,6 +92,12 @@ export interface ClaudeCodeCLIConfig {
    * 警告：此选项可能执行危险操作，请仅在受控环境中使用。
    */
   skipPermissions?: boolean;
+  /**
+   * 是否使用流式输入格式（默认 false）
+   * 启用后添加 `--input-format=stream-json` 参数，通过 NDJSON 格式发送输入。
+   * 注意：此选项主要用于多轮对话场景，单次请求无明显优势。
+   */
+  useStreamInput?: boolean;
 }
 
 export class ClaudeCodeCLIAdapter implements LlmAdapter {
@@ -106,6 +112,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
   private readonly thinkingBudget?: number;
   private readonly enableStreaming: boolean;
   private readonly skipPermissions: boolean;
+  private readonly useStreamInput: boolean;
 
   constructor(config: ClaudeCodeCLIConfig = {}) {
     this.cliPath = config.cliPath || 'claude';
@@ -119,6 +126,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     this.thinkingBudget = config.thinkingBudget;
     this.enableStreaming = config.enableStreaming ?? true;
     this.skipPermissions = config.skipPermissions ?? false;
+    this.useStreamInput = config.useStreamInput ?? false;
   }
 
   getCapabilities(): AdapterCapabilities {
@@ -274,8 +282,15 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       // 首个心跳：进入"思考中"
       enqueue(() => streaming?.onStatusChange?.('thinking'));
 
-      // 写入 prompt
-      child.stdin.write(fullPrompt);
+      // 写入 prompt（根据是否启用流式输入选择格式）
+      if (this.useStreamInput) {
+        // NDJSON 格式：{"text": "..."}
+        const inputEvent = JSON.stringify({ text: fullPrompt });
+        child.stdin.write(inputEvent + '\n');
+      } else {
+        // 纯文本格式
+        child.stdin.write(fullPrompt);
+      }
       child.stdin.end();
 
       // 逐行处理 NDJSON
@@ -511,6 +526,11 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       '--model', this.model,
       '--no-session-persistence', // 不保存会话
     ];
+
+    // 流式输入格式（NDJSON）
+    if (this.useStreamInput && streaming) {
+      args.push('--input-format=stream-json');
+    }
 
     // 自动批准工具调用（需谨慎使用）
     if (this.skipPermissions) {

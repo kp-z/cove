@@ -112,6 +112,61 @@ describe('ClaudeCodeCLIAdapter - 能力声明', () => {
     const args = (spawnMock.mock.calls[0][1] ?? []) as string[];
     expect(args).not.toContain('--dangerously-skip-permissions');
   });
+
+  it('useStreamInput=true 应在 CLI 参数中添加 --input-format=stream-json', () => {
+    const adapter = new ClaudeCodeCLIAdapter({ useStreamInput: true });
+
+    adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = (spawnMock.mock.calls[0][1] ?? []) as string[];
+    expect(args).toContain('--input-format=stream-json');
+  });
+
+  it('useStreamInput=false（默认）不应添加 --input-format=stream-json', () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+
+    adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = (spawnMock.mock.calls[0][1] ?? []) as string[];
+    expect(args).not.toContain('--input-format=stream-json');
+  });
+
+  it('useStreamInput=true 应以 NDJSON 格式写入 stdin', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({ useStreamInput: true });
+
+    const p = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hello' }],
+      streaming: makeStreaming(),
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const child = childInstances[0];
+
+    // 验证 stdin 写入格式
+    expect(child.stdin.write).toHaveBeenCalledTimes(1);
+    const writtenData = (child.stdin.write as any).mock.calls[0][0];
+    expect(writtenData).toContain('{"text":');
+    expect(writtenData).toContain('User: hello');
+
+    driveChild(child, [
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"Hi"}]}}\n',
+      '{"type":"result","result":"Hi"}\n',
+    ]);
+
+    const result = await p;
+    expect(result).toBe('Hi');
+  });
 });
 
 describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {

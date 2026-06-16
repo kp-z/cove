@@ -138,6 +138,7 @@ Use this for:
 | `context_window` | number | - | Context window size |
 | `enable_streaming` | boolean | `true` | Enable stream-json output for real-time events |
 | `skip_permissions` | boolean | `false` | Auto-approve tools (⚠️ security risk) |
+| `use_stream_input` | boolean | `false` | Use NDJSON input format (`--input-format=stream-json`) |
 
 ## CLI Arguments
 
