@@ -84,6 +84,34 @@ describe('ClaudeCodeCLIAdapter - 能力声明', () => {
     expect(caps.supportsBatchMetadata).toBe(true);
     expect(caps.supportsToolUse).toBe(false);
   });
+
+  it('skipPermissions=true 应在 CLI 参数中添加 --dangerously-skip-permissions', () => {
+    const adapter = new ClaudeCodeCLIAdapter({ skipPermissions: true });
+
+    adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = (spawnMock.mock.calls[0][1] ?? []) as string[];
+    expect(args).toContain('--dangerously-skip-permissions');
+  });
+
+  it('skipPermissions=false（默认）不应添加 --dangerously-skip-permissions', () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+
+    adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+    });
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const args = (spawnMock.mock.calls[0][1] ?? []) as string[];
+    expect(args).not.toContain('--dangerously-skip-permissions');
+  });
 });
 
 describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {
@@ -129,6 +157,30 @@ describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {
     expect(statuses).toContain('completed');
   });
 
+  it('捕获 system.init 事件中的 session_id', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const streaming = makeStreaming();
+
+    const p = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming,
+    });
+
+    driveChild(childInstances[0], [
+      '{"type":"system","subtype":"init","session_id":"sess_12345"}\n',
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}\n',
+      '{"type":"result","result":"Hello","stop_reason":"end_turn","usage":{"input_tokens":5,"output_tokens":3}}\n',
+    ]);
+
+    const result = await p;
+
+    expect(result).toBe('Hello');
+    expect(streaming.onUsage).toHaveBeenCalledTimes(1);
+    const usage = streaming.onUsage.mock.calls[0][0];
+    expect(usage.sessionId).toBe('sess_12345');
+  });
+
   it('tool_use 块触发 onToolUse 与 tool_use 状态', async () => {
     const adapter = new ClaudeCodeCLIAdapter();
     const streaming = makeStreaming();
@@ -158,6 +210,80 @@ describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {
     });
     const statuses = streaming.onStatusChange.mock.calls.map((c: any[]) => c[0]);
     expect(statuses).toContain('tool_use');
+  });
+
+  it('user.tool_result 事件更新工具状态', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const streaming = makeStreaming();
+
+    const p = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'run' }],
+      streaming,
+    });
+
+    driveChild(childInstances[0], [
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"cmd":"ls"}}]}}\n',
+      '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"file1.txt\\nfile2.txt","is_error":false}]}}\n',
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"Found 2 files"}]}}\n',
+      '{"type":"result","result":"Found 2 files","stop_reason":"end_turn"}\n',
+    ]);
+
+    const result = await p;
+
+    expect(result).toBe('Found 2 files');
+    // 应该有 2 次 onToolUse 调用：invoke + result
+    expect(streaming.onToolUse).toHaveBeenCalledTimes(2);
+
+    // 第一次：invoke
+    const toolInvoke = streaming.onToolUse.mock.calls[0][0];
+    expect(toolInvoke).toMatchObject({
+      id: 't1',
+      toolName: 'Bash',
+      action: 'invoke',
+      status: 'running',
+    });
+
+    // 第二次：result
+    const toolResult = streaming.onToolUse.mock.calls[1][0];
+    expect(toolResult).toMatchObject({
+      id: 't1',
+      toolName: 'Bash',
+      action: 'result',
+      status: 'success',
+      result: 'file1.txt\nfile2.txt',
+    });
+  });
+
+  it('user.tool_result 事件处理错误状态', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const streaming = makeStreaming();
+
+    const p = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'run' }],
+      streaming,
+    });
+
+    driveChild(childInstances[0], [
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"path":"/missing.txt"}}]}}\n',
+      '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","content":"File not found","is_error":true}]}}\n',
+      '{"type":"result","result":"Error occurred","stop_reason":"end_turn"}\n',
+    ]);
+
+    const result = await p;
+
+    expect(result).toBe('Error occurred');
+    expect(streaming.onToolUse).toHaveBeenCalledTimes(2);
+
+    // 第二次调用应该是 error 状态
+    const toolResult = streaming.onToolUse.mock.calls[1][0];
+    expect(toolResult).toMatchObject({
+      id: 't2',
+      action: 'result',
+      status: 'error',
+      result: 'File not found',
+    });
   });
 
   it('跨 data chunk 的半行能正确拼接解析', async () => {

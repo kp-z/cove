@@ -7,13 +7,90 @@ The Claude Code CLI Adapter enables integration with the Claude Code CLI tool, a
 ## Features
 
 - ✅ Full CLI integration via `spawn`
-- ✅ JSON output parsing
+- ✅ JSON and stream-json output parsing
 - ✅ Extended thinking support
 - ✅ Configurable timeout and working directory
 - ✅ Temperature and token control
 - ✅ System prompt support
 - ✅ Conversation history handling
 - ✅ Comprehensive error handling
+- ✅ **Tool use support** (stream-json mode)
+- ✅ **Session tracking** (session_id capture)
+- ✅ **Tool result tracking** (success/error status)
+- ✅ **Auto-approve tools** (--dangerously-skip-permissions)
+
+## Tool Capabilities
+
+### Automatic Tool Use
+
+When `enableStreaming: true` (default), the adapter supports Claude's built-in tools:
+
+- **Read** - Read files from the filesystem
+- **Write** - Write files to the filesystem
+- **Edit** - Edit existing files
+- **Bash** - Execute shell commands
+- **Agent** - Spawn sub-agents for parallel work
+- **WebSearch** - Search the web
+- **WebFetch** - Fetch web pages
+- And more...
+
+### Auto-Approve Mode
+
+Set `skipPermissions: true` to automatically approve all tool calls without manual confirmation:
+
+```typescript
+const adapter = new ClaudeCodeCLIAdapter({
+  enableStreaming: true,
+  skipPermissions: true, // ⚠️ Use with caution
+});
+```
+
+**⚠️ Security Warning**: This adds `--dangerously-skip-permissions` to the CLI, which bypasses all permission prompts. Only use in controlled environments where Claude has full access to your system.
+
+### Tool Execution Tracking
+
+The adapter captures:
+- **Tool invocation**: When Claude calls a tool (status: `running`)
+- **Tool result**: Success or error outcome (status: `success` | `error`)
+- **Tool output**: The actual result content
+
+Example callback flow:
+```typescript
+streaming: {
+  onToolUse: (tool) => {
+    if (tool.action === 'invoke') {
+      console.log(`Tool started: ${tool.toolName}`, tool.params);
+    } else if (tool.action === 'result') {
+      console.log(`Tool finished: ${tool.status}`, tool.result);
+    }
+  }
+}
+```
+
+## Skill Support
+
+Claude Code CLI automatically discovers and loads skills from:
+- `.claude/skills/` - Project-specific skills
+- `~/.claude/skills/` - User-global skills
+
+No adapter configuration needed - skills are available if present in the filesystem.
+
+## Session Tracking
+
+The adapter captures `session_id` from Claude CLI's `system.init` event (stream-json mode):
+
+```typescript
+streaming: {
+  onUsage: (usage) => {
+    console.log('Session ID:', usage.sessionId);
+  }
+}
+```
+
+Use this for:
+- Correlating multiple API calls in the same session
+- Debugging and troubleshooting
+- Analytics and usage tracking
 
 ## Configuration
 
@@ -59,6 +136,8 @@ The Claude Code CLI Adapter enables integration with the Claude Code CLI tool, a
 | `temperature` | number | - | Temperature for response generation (0-2) |
 | `max_tokens` | number | - | Maximum tokens in response |
 | `context_window` | number | - | Context window size |
+| `enable_streaming` | boolean | `true` | Enable stream-json output for real-time events |
+| `skip_permissions` | boolean | `false` | Auto-approve tools (⚠️ security risk) |
 
 ## CLI Arguments
 
@@ -210,12 +289,35 @@ Error: Failed to parse CLI output as JSON
 3. **Enable thinking for complex tasks**: Use `thinkingEnabled: true` for reasoning-heavy tasks
 4. **Monitor token usage**: Set `max_tokens` to control response length
 5. **Handle errors gracefully**: Wrap calls in try-catch blocks
+6. **Use streaming for tool-heavy workflows**: Enable `enable_streaming: true` to track tool execution in real-time
+7. **Be cautious with skip_permissions**: Only enable in trusted, controlled environments
+
+## Current Limitations
+
+### Not Yet Supported
+
+- **Multi-turn conversations**: Each `generateResponse()` call is independent. The CLI is spawned and killed per request. To implement conversation history, pass previous messages via the `messages` parameter.
+- **MCP (Model Context Protocol) integration**: MCP servers require a permission proxy and HTTP IPC callback mechanism, which is not yet implemented in this adapter.
+- **Input streaming** (`--input-format=stream-json`): The adapter currently sends the full prompt at once via stdin. Real-time input streaming is not supported.
+
+### Workarounds
+
+- **Conversation history**: Manually pass previous turns in the `messages` array:
+  ```typescript
+  const messages = [
+    { role: 'user', content: 'First question' },
+    { role: 'assistant', content: 'First answer' },
+    { role: 'user', content: 'Follow-up question' },
+  ];
+  ```
+- **MCP tools**: Use built-in tools or deploy MCP servers separately, then reference their outputs in prompts.
 
 ## Future Enhancements
 
 Potential improvements:
-- [ ] Streaming support
-- [ ] Tool use integration
+- [ ] Multi-turn conversation support (persistent CLI process)
+- [ ] MCP integration (permission proxy + HTTP IPC)
+- [ ] Input streaming (`--input-format=stream-json`)
 - [ ] File attachment support
 - [ ] Session persistence options
 - [ ] Custom output parsers

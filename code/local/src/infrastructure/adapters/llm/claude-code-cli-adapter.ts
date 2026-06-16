@@ -35,14 +35,16 @@ interface ClaudeCliOutput {
  * stream-json 模式下单条 NDJSON 事件结构
  *
  * claude CLI 在 `--output-format=stream-json` 下逐行输出 JSON 事件，主要类型：
- *   - system  ：会话初始化等系统事件（subtype='init'）
+ *   - system  ：会话初始化等系统事件（subtype='init'，含 session_id）
  *   - assistant：助手轮次，message.content 为内容块数组（text / tool_use）
- *   - user    ：工具结果回灌（本期不渲染为正文）
+ *   - user    ：工具结果回灌（含 tool_result）
  *   - result  ：最终结果，结构与 ClaudeCliOutput 一致（含 usage/cost/ttft）
  */
 interface ClaudeStreamEvent {
   type: 'system' | 'assistant' | 'user' | 'result' | string;
   subtype?: string;
+  // system 事件的会话 ID
+  session_id?: string;
   // assistant / user 事件携带的消息体
   message?: {
     content?: Array<{
@@ -53,6 +55,10 @@ interface ClaudeStreamEvent {
       id?: string;
       name?: string;
       input?: Record<string, unknown>;
+      // tool_result 块（user 事件）
+      tool_use_id?: string;
+      content?: string | Array<{ type: string; text?: string }>;
+      is_error?: boolean;
     }>;
   };
   // result 事件直接复用 ClaudeCliOutput 的字段
@@ -80,6 +86,12 @@ export interface ClaudeCodeCLIConfig {
    * 与 Cloud 侧配置字段 `enable_streaming` 对齐。
    */
   enableStreaming?: boolean;
+  /**
+   * 是否自动批准工具调用（默认 false）
+   * 启用后添加 `--dangerously-skip-permissions` 参数，工具调用无需手动确认。
+   * 警告：此选项可能执行危险操作，请仅在受控环境中使用。
+   */
+  skipPermissions?: boolean;
 }
 
 export class ClaudeCodeCLIAdapter implements LlmAdapter {
@@ -93,6 +105,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
   private readonly thinkingEnabled: boolean;
   private readonly thinkingBudget?: number;
   private readonly enableStreaming: boolean;
+  private readonly skipPermissions: boolean;
 
   constructor(config: ClaudeCodeCLIConfig = {}) {
     this.cliPath = config.cliPath || 'claude';
@@ -105,6 +118,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
     this.thinkingEnabled = config.thinkingEnabled ?? true;
     this.thinkingBudget = config.thinkingBudget;
     this.enableStreaming = config.enableStreaming ?? true;
+    this.skipPermissions = config.skipPermissions ?? false;
   }
 
   getCapabilities(): AdapterCapabilities {
@@ -204,8 +218,12 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
    * 步骤：
    *   1. spawn CLI（stream-json + verbose），通过 stdin 传入 prompt。
    *   2. 对 stdout 做行缓冲（NDJSON），逐行 JSON.parse。
-   *   3. 按事件 type 分发：assistant.text → onContent；assistant.tool_use → onToolUse；
-   *      result → 记录最终正文与用量。
+   *   3. 按事件 type 分发：
+   *      - system.init → 捕获 session_id
+   *      - assistant.text → onContent
+   *      - assistant.tool_use → onToolUse
+   *      - user.tool_result → 更新工具状态
+   *      - result → 记录最终正文与用量
    *   4. 进程正常结束后：串行回调全部完成 → 补发 usage 与 completed → resolve 最终正文。
    *
    * 设计要点：
@@ -227,6 +245,10 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       let collectedText = '';
       // 最终 result 事件
       let resultEvent: ClaudeStreamEvent | undefined;
+      // 会话 ID
+      let sessionId: string | undefined;
+      // 工具调用映射（id -> 状态）
+      const toolMap = new Map<string, { id: string; toolName: string; status: 'running' | 'success' | 'error' }>();
       // 串行回调队列：保证异步回调按事件到达顺序执行
       let callbackChain: Promise<void> = Promise.resolve();
       let settled = false;
@@ -273,7 +295,9 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
           collectedText += text;
         }, (result) => {
           resultEvent = result;
-        });
+        }, (sid) => {
+          sessionId = sid;
+        }, toolMap);
       };
 
       child.stdout.on('data', (data: Buffer) => {
@@ -318,7 +342,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         callbackChain
           .then(async () => {
             const usage = resultEvent
-              ? this.buildUsageMetadata(resultEvent as ClaudeCliOutput, totalMs)
+              ? this.buildUsageMetadata(resultEvent as ClaudeCliOutput, totalMs, sessionId)
               : undefined;
             if (usage) {
               await streaming?.onUsage?.(usage);
@@ -343,15 +367,26 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
    * @param enqueue     串行回调入队函数
    * @param onText      收集 text 块（用于最终正文兜底）
    * @param onResult    记录 result 事件
+   * @param onSessionId 记录会话 ID
+   * @param toolMap     工具调用映射（id -> 状态）
    */
   private dispatchStreamEvent(
     event: ClaudeStreamEvent,
     streaming: GenerateParams['streaming'],
     enqueue: (fn: () => Promise<void> | void) => void,
     onText: (text: string) => void,
-    onResult: (result: ClaudeStreamEvent) => void
+    onResult: (result: ClaudeStreamEvent) => void,
+    onSessionId: (sessionId: string) => void,
+    toolMap: Map<string, { id: string; toolName: string; status: 'running' | 'success' | 'error' }>
   ): void {
     switch (event.type) {
+      case 'system': {
+        // 捕获会话 ID
+        if (event.subtype === 'init' && event.session_id) {
+          onSessionId(event.session_id);
+        }
+        break;
+      }
       case 'assistant': {
         const blocks = event.message?.content ?? [];
         for (const block of blocks) {
@@ -369,8 +404,42 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
               params: block.input,
               status: 'running' as const,
             };
+            // 记录到 toolMap
+            toolMap.set(toolLog.id, {
+              id: toolLog.id,
+              toolName: toolLog.toolName,
+              status: 'running',
+            });
             enqueue(() => streaming?.onStatusChange?.('tool_use'));
             enqueue(() => streaming?.onToolUse?.(toolLog));
+          }
+        }
+        break;
+      }
+      case 'user': {
+        // 工具结果回灌：更新工具状态
+        const blocks = event.message?.content ?? [];
+        for (const block of blocks) {
+          if (block.type === 'tool_result' && block.tool_use_id) {
+            const toolId = block.tool_use_id;
+            const tool = toolMap.get(toolId);
+            if (tool) {
+              const newStatus = block.is_error ? 'error' : 'success';
+              tool.status = newStatus;
+              // 触发工具状态更新回调
+              enqueue(() => streaming?.onToolUse?.({
+                id: tool.id,
+                toolName: tool.toolName,
+                action: 'result',
+                params: {},
+                status: newStatus,
+                result: typeof block.content === 'string'
+                  ? block.content
+                  : Array.isArray(block.content)
+                    ? block.content.map(c => c.text ?? '').join('')
+                    : undefined,
+              }));
+            }
           }
         }
         break;
@@ -379,13 +448,13 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         onResult(event);
         break;
       }
-      // system / user 等事件本期不渲染为正文
+      // 其他事件类型暂不处理
       default:
         break;
     }
   }
 
-  private buildUsageMetadata(parsed: ClaudeCliOutput, totalMs: number): UsageMetadata | undefined {
+  private buildUsageMetadata(parsed: ClaudeCliOutput, totalMs: number, sessionId?: string): UsageMetadata | undefined {
     if (!parsed.usage) return undefined;
 
     return {
@@ -399,7 +468,8 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         firstTokenMs: parsed.ttft_ms,
         totalMs: totalMs,
         tokensPerSecond: parsed.usage.output_tokens / (totalMs / 1000)
-      }
+      },
+      sessionId
     };
   }
 
@@ -441,6 +511,11 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       '--model', this.model,
       '--no-session-persistence', // 不保存会话
     ];
+
+    // 自动批准工具调用（需谨慎使用）
+    if (this.skipPermissions) {
+      args.push('--dangerously-skip-permissions');
+    }
 
     // 如果有系统提示，添加 --system-prompt
     if (systemPrompt) {
