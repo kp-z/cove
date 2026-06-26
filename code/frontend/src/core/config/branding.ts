@@ -1,16 +1,16 @@
-/**
- * 品牌配置 - 在所有语言环境下保持英文
+﻿/**
+ * 鍝佺墝閰嶇疆 - 鍦ㄦ墍鏈夎瑷€鐜涓嬩繚鎸佽嫳鏂?
  */
 export const branding = {
-  // 应用信息
+  // 搴旂敤淇℃伅
   app: {
     name: 'Cove',
-    slogan: 'AI Works, You Chill',
+    slogan: 'yz',
     tagline: 'AI Agent Collaboration Platform',
     description: 'Empower your team with intelligent AI agents',
   },
 
-  // Logo 资源
+  // Logo 璧勬簮
   logo: {
     svg: '/cove-logo.svg',
     png: '/cove-logo.png',
@@ -18,17 +18,17 @@ export const branding = {
     alt: 'Cove Logo',
   },
 
-  // 社交链接
+  // 绀句氦閾炬帴
   social: {
     github: 'https://github.com/your-org/cove',
     twitter: 'https://twitter.com/cove',
     discord: 'https://discord.gg/cove',
   },
 
-  // 元数据
+  // 鍏冩暟鎹?
   meta: {
     version: '0.1.0',
-    copyright: `© ${new Date().getFullYear()} Cove. All rights reserved.`,
+    copyright: `漏 ${new Date().getFullYear()} Cove. All rights reserved.`,
   },
 } as const
 
