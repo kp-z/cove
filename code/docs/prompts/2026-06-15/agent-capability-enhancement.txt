@@ -1,0 +1,212 @@
+Agent 能力完善优化
+
+==================== 背景分析 ====================
+
+当前问题：
+  - 每个 agent 的 tools 权限由 frontmatter 中的 tools 字段限制
+  - 部分 agent 只有只读权限（Read、Grep、Glob），无法执行或修改
+  - Agent 无法调用未在白名单中的 tool
+
+Agent 工作目录：
+  - 默认：/Users/kp/项目/Proj/cove/code
+  - 继承主会话的工作目录
+
+现有 Agent tools 权限示例：
+  - planner：["Read", "Grep", "Glob"] - 只读
+  - architect：["Read", "Grep", "Glob"] - 只读
+  - code-reviewer：["Read", "Grep", "Glob", "Bash"] - 只读 + 命令
+  - build-error-resolver：["Read", "Write", "Edit", "Bash", "Grep", "Glob"] - 全权限
+
+==================== 需求确认 ====================
+
+请明确以下问题：
+
+1. 你想完善哪个 agent 的能力？
+   - 现有 agent（如 planner、architect）
+   - 新建自定义 agent
+   - 所有 agent 的通用能力
+
+2. 你希望 agent 能做什么？
+   - 只读分析（Read、Grep、Glob）
+   - 执行命令（Bash）
+   - 修改代码（Write、Edit）
+   - 使用 MCP 工具（如 context7）
+   - 其他特定能力
+
+3. 工作目录需求：
+   - 使用当前项目目录（默认）
+   - 需要访问其他目录
+   - 需要隔离环境（worktree）
+
+==================== Agent Tools 说明 ====================
+
+可用的基础 tools：
+  - Read：读取文件内容
+  - Write：写入新文件
+  - Edit：编辑现有文件
+  - Bash：执行 shell 命令
+  - Grep：搜索代码
+  - Glob：查找文件
+  - Agent：启动子 agent
+  - AskUserQuestion：询问用户
+
+MCP Tools（需要配置 MCP server）：
+  - mcp__context7__resolve-library-id：查询库 ID
+  - mcp__context7__query-docs：查询文档
+  - 其他自定义 MCP tools
+
+==================== 常见优化场景 ====================
+
+场景 1：让 planner agent 能执行测试命令
+  位置：~/.claude/agents/planner.md
+  修改：tools: ["Read", "Grep", "Glob", "Bash"]
+  用途：规划时能运行测试验证可行性
+
+场景 2：让 architect agent 能创建设计文档
+  位置：~/.claude/agents/architect.md
+  修改：tools: ["Read", "Grep", "Glob", "Write"]
+  用途：输出架构设计文档到 docs/
+
+场景 3：创建全能开发 agent
+  位置：~/.claude/agents/dev-agent.md
+  配置：tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent"]
+  用途：完整开发流程（分析、编码、测试、提交）
+
+场景 4：创建只读调研 agent
+  位置：~/.claude/agents/researcher.md
+  配置：tools: ["Read", "Grep", "Glob", "Bash"]
+  用途：代码调研和分析，能运行命令但不修改代码
+
+场景 5：Agent 需要访问文档 API
+  配置 MCP server：~/.claude/settings.json 中添加 mcpServers
+  Agent tools：["Read", "Grep", "mcp__context7__query-docs"]
+  用途：查询库文档
+
+==================== 优化步骤 ====================
+
+步骤 1：确定优化目标
+  - 列出需要完善的 agent 名称
+  - 列出每个 agent 需要新增的能力
+  - 说明使用场景
+
+步骤 2：检查现有配置
+  命令：cat ~/.claude/agents/<agent-name>.md | grep "tools:"
+  验证：当前有哪些 tools
+
+步骤 3：修改 agent 配置
+  编辑：~/.claude/agents/<agent-name>.md
+  修改 frontmatter 中的 tools 字段
+  格式：tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+
+步骤 4：测试验证
+  - 启动 agent：在对话中 @agent-name 或使用 Agent tool
+  - 验证权限：agent 能否调用新增的 tools
+  - 测试场景：执行实际任务确认功能正常
+
+步骤 5：文档记录
+  - 在 agent 的 frontmatter 或开头注释说明 tools 用途
+  - 记录为什么给予这些权限
+  - 说明使用限制
+
+==================== 安全建议 ====================
+
+权限最小化原则：
+  - 只给 agent 完成任务必需的 tools
+  - 只读 agent（planner、architect）不应该有 Write/Edit
+  - 分析类 agent 通常不需要 Bash
+
+危险权限组合：
+  - Write + Bash：能创建文件并执行，需谨慎
+  - Edit + Bash：能修改代码并运行，高风险
+  - 所有权限：仅给完全可信的 agent
+
+建议的权限层级：
+  1. 只读层：["Read", "Grep", "Glob"]
+  2. 分析层：["Read", "Grep", "Glob", "Bash"]
+  3. 文档层：["Read", "Grep", "Glob", "Write"]
+  4. 修复层：["Read", "Edit", "Bash", "Grep", "Glob"]
+  5. 全能层：["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent"]
+
+==================== Agent 工作目录控制 ====================
+
+默认行为：
+  - Agent 继承主会话的工作目录
+  - 如果主会话在 /Users/kp/项目/Proj/cove/code，agent 也在这里
+
+修改工作目录：
+  方法 1：在启动 agent 前 cd 到目标目录
+  方法 2：使用 isolation: "worktree" 创建隔离环境
+  方法 3：在 agent prompt 中用 Bash 工具 cd（需要 Bash 权限）
+
+Worktree 隔离：
+  使用场景：需要在独立分支工作，不影响主分支
+  启动方式：Agent tool 的 isolation 参数设为 "worktree"
+  效果：在 .claude/worktrees/ 下创建独立工作目录
+
+==================== 示例：创建自定义 agent ====================
+
+需求：创建一个能调研代码并生成报告的 agent
+
+步骤 1：创建 agent 文件
+  位置：~/.claude/agents/code-analyst.md
+
+步骤 2：编写配置
+---
+name: code-analyst
+description: 代码分析专家，深度调研代码并生成分析报告
+tools: ["Read", "Grep", "Glob", "Bash", "Write"]
+model: opus
+---
+
+你是一个代码分析专家，擅长深度调研代码库并生成结构化报告。
+
+工作流程：
+1. 使用 Grep 和 Glob 搜索相关代码
+2. 使用 Read 读取文件内容
+3. 使用 Bash 运行分析命令（如 cloc、git log）
+4. 使用 Write 生成 Markdown 报告
+
+输出格式：
+- 报告保存到 docs/analysis/ 目录
+- 包含代码结构、依赖关系、复杂度分析
+- 提供改进建议
+
+步骤 3：测试使用
+  在对话中：@code-analyst 分析 Timeline 组件的实现
+  验证：agent 能否读取代码、运行命令、生成报告
+
+==================== 核心要求 ====================
+
+1. 明确需求
+   - 不要猜测，先说明你要完善哪个 agent
+   - 说明为什么需要这些能力
+   - 列出具体使用场景
+
+2. 权限最小化
+   - 只给必需的 tools
+   - 优先使用只读权限
+   - 谨慎授予 Write/Edit
+
+3. 安全验证
+   - 修改配置后测试
+   - 确认 agent 不会误操作
+   - 记录权限变更原因
+
+4. 文档完善
+   - 在 agent 配置中说明 tools 用途
+   - 记录使用限制和注意事项
+   - 提供使用示例
+
+==================== 下一步 ====================
+
+请提供以下信息，我将帮你完善 agent 能力：
+
+1. 目标 agent 名称（现有或新建）
+2. 需要新增的能力（具体 tools）
+3. 使用场景说明
+4. 工作目录需求（如有特殊要求）
+
+---
+
+版本：1.0
+时间：2026-06-15
