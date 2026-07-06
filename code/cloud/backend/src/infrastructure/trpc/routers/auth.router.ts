@@ -22,6 +22,8 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
+  // 记住我：勾选后签发长有效期令牌，不传默认按短有效期处理
+  rememberMe: z.boolean().optional(),
 });
 
 // 验证令牌请求 schema
@@ -93,7 +95,7 @@ export function createAuthRouter(authService: AuthService) {
                            ctx.req.socket.remoteAddress;
           const userAgent = ctx.req.headers['user-agent'] as string | undefined;
 
-          const result = await authService.login(input.username, input.password, ipAddress, userAgent);
+          const result = await authService.login(input.username, input.password, ipAddress, userAgent, input.rememberMe);
 
           return {
             token: result.token,

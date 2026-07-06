@@ -147,6 +147,19 @@ export class MessageCrudService {
 
     await this.messageRepository.save(message, context.realmId);
 
+    // 根因修复：此前仅 ChannelEntity.incrementMessageCount() 存在但从未被调用，
+    // 导致 Channel 列表的"最近更新"角标（meta.updated_at）从不随消息发送刷新
+    // （人类消息 message.send 与 Agent 消息 message.saveResponse 都经过这里，
+    // 因此在此处统一调用即可覆盖两条路径）。失败仅记录日志，不影响消息发送本身。
+    try {
+      await this.channelQueryService.incrementMessageCount(dto.channelId);
+    } catch (err) {
+      this.logger.warn('Failed to update channel activity timestamp', {
+        channelId: dto.channelId,
+        error: (err as Error).message,
+      });
+    }
+
     await this.publishEvent({
       eventId: this.generateEventId(),
       eventType: 'message.created',

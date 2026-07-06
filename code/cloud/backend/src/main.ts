@@ -530,7 +530,11 @@ function initializeDependencies() {
     logger,
     auditService,
     serverRepository,
-    serverMemberRepository
+    serverMemberRepository,
+    undefined, // jwtSecret（使用默认环境变量/开发默认值）
+    undefined, // jwtExpiresIn
+    undefined, // jwtRememberMeExpiresIn
+    eventBus // 用于注册/自动入 Realm 后发布 user.created，驱动默认频道自动加入
   );
 
   const realmMemberVerification = new RealmMemberVerificationService(

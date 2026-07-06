@@ -16,6 +16,7 @@ import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from '.
 import { AuditService } from '../audit/audit.service';
 import { TRPCError } from '@trpc/server';
 import { RealmMemberEntity } from '../../../domain/models/realm-member/realm-member.entity';
+import type { IEventBus } from '../../interfaces/event-bus.interface';
 
 export interface JWTPayload {
   userId: string;
@@ -51,6 +52,7 @@ export interface LoginResult {
 export class AuthService {
   private readonly jwtSecret: string;
   private readonly jwtExpiresIn: string;
+  private readonly jwtRememberMeExpiresIn: string;
 
   constructor(
     private readonly userRepository: IUserRepository,
@@ -59,7 +61,9 @@ export class AuthService {
     private readonly realmRepository?: IRealmRepository,
     private readonly realmMemberRepository?: IRealmMemberRepository,
     jwtSecret?: string,
-    jwtExpiresIn?: string
+    jwtExpiresIn?: string,
+    jwtRememberMeExpiresIn?: string,
+    private readonly eventBus?: IEventBus
   ) {
     const secret = jwtSecret || process.env.JWT_SECRET;
 
@@ -74,12 +78,14 @@ export class AuthService {
     }
 
     this.jwtExpiresIn = jwtExpiresIn || process.env.JWT_EXPIRES_IN || '1h';
+    // "记住我"勾选时签发的长有效期令牌：默认 30 天，可通过环境变量覆盖
+    this.jwtRememberMeExpiresIn = jwtRememberMeExpiresIn || process.env.JWT_REMEMBER_ME_EXPIRES_IN || '30d';
   }
 
   /**
    * 用户登录
    */
-  async login(username: string, password: string, ipAddress?: string, userAgent?: string): Promise<LoginResult> {
+  async login(username: string, password: string, ipAddress?: string, userAgent?: string, rememberMe?: boolean): Promise<LoginResult> {
     this.logger.info('Login attempt', { username });
 
     // 查找用户
@@ -146,8 +152,8 @@ export class AuthService {
     // 获取用户的默认 realm（第一个加入的 realm）
     const defaultRealmId = await this.getUserDefaultRealm(loggedInUser.userId);
 
-    // 生成 JWT
-    const token = this.generateToken(loggedInUser);
+    // 生成 JWT：勾选"记住我"时签发长有效期令牌，否则使用默认（短）有效期
+    const token = this.generateToken(loggedInUser, rememberMe ? this.jwtRememberMeExpiresIn : undefined);
 
     // Audit log
     await this.auditService.log(
@@ -258,8 +264,10 @@ export class AuthService {
 
   /**
    * 生成 JWT 令牌
+   * @param user - 用户实体
+   * @param expiresInOverride - 自定义有效期（例如"记住我"场景下的长有效期），不传则使用默认有效期
    */
-  generateToken(user: UserEntity): string {
+  generateToken(user: UserEntity, expiresInOverride?: string): string {
     const payload: JWTPayload = {
       userId: user.userId,
       username: user.username,
@@ -267,7 +275,7 @@ export class AuthService {
     };
 
     return jwt.sign(payload, this.jwtSecret, {
-      expiresIn: this.jwtExpiresIn as any,
+      expiresIn: (expiresInOverride || this.jwtExpiresIn) as any,
     });
   }
 
@@ -562,6 +570,22 @@ export class AuthService {
       await this.realmMemberRepository.save(member, platformRealm.realm_id);
 
       this.logger.info('User added to platform realm', { userId, realmId: platformRealm.realm_id });
+
+      // 发布 user.created 事件：驱动 DefaultChannelsAutoJoinService /
+      // GeneralChannelAutoJoinService 等监听方把用户自动加入 #general、#welcome 等默认频道。
+      // 关键修复：此前只有 UserService.createUser()（管理员创建用户）会发布该事件，
+      // 自助注册/登录时的自动入 Realm 走的是这里的独立逻辑，从未发布过事件，
+      // 导致自助注册用户虽然成为 Realm 成员，却看不到任何默认频道（需要手动跑一次性脚本修复）。
+      if (this.eventBus) {
+        await this.eventBus.publish({
+          eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          eventType: 'user.created',
+          aggregateId: userId,
+          aggregateType: 'User',
+          occurredAt: new Date(),
+          payload: { userId },
+        });
+      }
     } catch (error) {
       this.logger.error('Failed to add user to platform realm', error as Error);
       // Don't throw - this shouldn't block registration/login

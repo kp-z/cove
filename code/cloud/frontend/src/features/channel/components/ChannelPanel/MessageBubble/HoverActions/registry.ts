@@ -18,9 +18,12 @@ const defaultActionRegistry: Record<ActionType, ActionFactory> = {
     priority: 10,
     tooltip: '查看思考过程、工具调用与用量详情',
     variant: 'ghost',
-    // 只要有思考内容或工具调用记录即显示（用量数值已在气泡下方常驻展示）
-    shouldShow: (message) =>
-      !!message.agentMetadata?.thinking || (message.agentMetadata?.tool_logs?.length ?? 0) > 0,
+    // 只要该消息存在执行元数据即显示：详情面板始终有 Stats 标签兜底展示执行模式/耗时等信息，
+    // 不应仅因为没有 thinking/tool_logs 就把入口整个隐藏（例如纯文本回复、无工具调用的场景）。
+    // 注意：不要收窄为 !!thinking || tool_logs.length > 0 —— Claude CLI 流式适配器不会
+    // 上报独立的 thinking chunk（onThinking 从未被调用），纯文本回复的 thinking 字段恒为
+    // undefined，若仍按旧条件收窄会导致该按钮对大多数正常回复不可见。
+    shouldShow: (message) => !!message.agentMetadata,
     onClick: () => {
       // 由外部配置提供具体实现
     },

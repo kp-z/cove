@@ -131,7 +131,9 @@ export function ChannelPanel({
         name: currentChannel.name,
         description: currentChannel.description,
         unread_count: 0,
-        last_activity: new Date(currentChannel.updated_at),
+        // updated_at 实际存放在 channel.meta.updated_at（见 ChannelEntityJSON），
+        // 顶层不存在该字段，读取顶层会永远得到 undefined。
+        last_activity: new Date(currentChannel.meta?.updated_at ?? Date.now()),
         is_pinned: currentChannel.is_pinned || false,
         metadata: { project_id: currentChannel.project_id },
       }

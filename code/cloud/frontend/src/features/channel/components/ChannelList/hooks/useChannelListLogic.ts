@@ -48,10 +48,12 @@ export function useChannelListLogic(options: ChannelListLogicOptions = {}) {
     });
 
   // Filter and sort recent channels (non-pinned, sorted by updated_at)
+  // 注：updated_at 实际存放在 channel.meta.updated_at（见 ChannelEntityJSON），
+  // 顶层不存在该字段，读取顶层会永远得到 undefined。
   const recentChannels = channels
     .filter((ch: ChannelEntity) => !isPinned(ch.channel_id))
     .sort((a: ChannelEntity, b: ChannelEntity) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      new Date(b.meta?.updated_at ?? 0).getTime() - new Date(a.meta?.updated_at ?? 0).getTime()
     );
 
   // Event handlers

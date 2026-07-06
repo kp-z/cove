@@ -30,6 +30,7 @@ export function useSendMessage() {
   const { userId, user } = useCurrentUser();
   const mutation = trpc.message.send.useMutation();
   const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
   // 监听网络状态变化
   useEffect(() => {
     const handleOnline = () => {
@@ -129,10 +130,18 @@ export function useSendMessage() {
         // 6. 成功：标记为 sent
         messageStateManager.updatePendingStatus(tempId, 'sent');
 
-        // 7. 触发 lastMessage 缓存失效，更新 channel list
+        // 7. 触发 lastMessage 缓存失效，更新 channel list 内的最后消息预览文案
         queryClient.invalidateQueries({
           queryKey: [['message', 'getLastByChannel'], { input: { channelId } }],
         });
+
+        // 8. 根因修复：消息发送会刷新后端 Channel 的 meta.updated_at（用于
+        //    列表排序 / "最近更新"角标），但此前从未失效 channel.list 查询，
+        //    导致必须整页刷新才能看到新的排序/角标。
+        //    必须用 utils.channel.list.invalidate()（而非手写 queryKey 做
+        //    partial 匹配）——本仓库已验证手写 partial queryKey 无法可靠命中
+        //    查询（见 useAgentStreaming.ts 中 invalidateMessageList 的说明）。
+        void utils.channel.list.invalidate();
 
         // 通知队列（如果是从队列发送的）
         window.dispatchEvent(
@@ -156,7 +165,7 @@ export function useSendMessage() {
         );
       }
     },
-    [userId, user?.display_name, user?.username, mutation, queryClient]
+    [userId, user?.display_name, user?.username, mutation, queryClient, utils]
   );
 
   const retry = useCallback(

@@ -182,7 +182,39 @@ describe('authRouter', () => {
         'testuser',
         'password123',
         '192.168.1.1',
-        'Mozilla/5.0'
+        'Mozilla/5.0',
+        undefined
+      );
+    });
+
+    it('should pass rememberMe flag through to the auth service', async () => {
+      const user = UserEntity.create({
+        userId: 'user-1',
+        username: 'testuser',
+        displayName: 'Test User',
+        email: 'test@example.com',
+        role: 'user',
+        createdAt: new Date(),
+      });
+
+      vi.mocked(mockAuthService.login).mockResolvedValue({
+        user,
+        token: 'test-token-123',
+      });
+
+      const caller = router.createCaller(mockContext);
+      await caller.login({
+        username: 'testuser',
+        password: 'password123',
+        rememberMe: true,
+      });
+
+      expect(mockAuthService.login).toHaveBeenCalledWith(
+        'testuser',
+        'password123',
+        '192.168.1.1',
+        'Mozilla/5.0',
+        true
       );
     });
 

@@ -33,8 +33,14 @@ export interface ToolUseMetadata {
   status: 'pending' | 'running' | 'success' | 'error'
   /** Execution duration in milliseconds */
   duration?: number
-  /** Execution result */
-  result?: {
+  /**
+   * Execution result
+   *
+   * 支持两种形状：
+   *   - 纯字符串：适配器直接拿到工具原始输出（如 Claude CLI 的 tool_result.content）
+   *   - 结构化对象：区分 success/error/output 的历史形状，仍被部分消费者使用
+   */
+  result?: string | {
     success?: string
     error?: string
     output?: string
@@ -88,6 +94,8 @@ export interface UsageMetadata {
     /** Output throughput (tokens per second) */
     tokensPerSecond?: number
   }
+  /** 会话 ID（多轮对话场景下由适配器捕获，如 Claude CLI 的 session_id） */
+  sessionId?: string
 }
 
 /**

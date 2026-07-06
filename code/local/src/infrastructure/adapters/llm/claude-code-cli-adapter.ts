@@ -6,7 +6,7 @@
  */
 
 import { spawn } from 'child_process';
-import type { ChildProcess } from 'child_process';
+import type { ChildProcessWithoutNullStreams } from 'child_process';
 import { LlmAdapter, GenerateParams, AdapterCapabilities, BatchResponse } from './llm-adapter.interface';
 import type { ExecutionMetadata, UsageMetadata } from '../../../domain/agent-runtime/execution-metadata';
 
@@ -16,8 +16,8 @@ import type { ExecutionMetadata, UsageMetadata } from '../../../domain/agent-run
 export interface ConversationContext {
   /** 对话 ID */
   id: string;
-  /** CLI 子进程 */
-  process: ChildProcess;
+  /** CLI 子进程（始终以 stdio: ['pipe','pipe','pipe'] 创建，stdout/stdin 非空） */
+  process: ChildProcessWithoutNullStreams;
   /** 是否已结束 */
   ended: boolean;
   /** 会话 ID（从 system.init 事件捕获） */

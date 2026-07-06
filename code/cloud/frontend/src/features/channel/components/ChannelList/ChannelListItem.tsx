@@ -21,8 +21,19 @@ interface ChannelListItemProps {
   compact?: boolean;
 }
 
-function formatTime(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
+/**
+ * 将时间戳格式化为相对时间标签（如 "3d"）。
+ *
+ * `updated_at` 实际存放在 `channel.meta.updated_at`（见 ChannelEntityJSON），
+ * 部分 Channel（如刚创建、数据尚未补全）可能拿不到有效时间戳，此时返回
+ * `null` 交由调用方决定不渲染角标，避免出现 `NaNd`。
+ */
+function formatTime(dateStr: string | undefined): string | null {
+  if (!dateStr) return null;
+  const timestamp = new Date(dateStr).getTime();
+  if (Number.isNaN(timestamp)) return null;
+
+  const diff = Date.now() - timestamp;
   const m = Math.floor(diff / 60000);
   if (m < 1) return 'now';
   if (m < 60) return `${m}m`;
@@ -44,6 +55,8 @@ export function ChannelListItem({
 }: ChannelListItemProps) {
   const { t } = useTranslation('channel');
   const avatarUrl = getAvatarUrl(channel.avatar);
+  // 时间戳实际存放在 channel.meta.updated_at（详见 ChannelEntityJSON 定义）
+  const timeLabel = formatTime(channel.meta?.updated_at);
 
   // Phase 1-4: 获取频道状态（所有功能已启用）
   const channelState = useChannelState(channel, {
@@ -64,12 +77,18 @@ export function ChannelListItem({
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
         <motion.button
+          layout="position"
           onClick={onClick}
           whileHover={{ x: 2 }}
           whileTap={{ scale: 0.99 }}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{
+            layout: { duration: 0.25, ease: 'easeOut' },
+            opacity: { duration: 0.2 },
+            x: { duration: 0.2 },
+          }}
           className={`w-full ${padding} flex items-center ${compact ? 'gap-2' : 'gap-3'} rounded-lg transition-all duration-200 ${
             isActive
               ? 'bg-blue-500/20 border border-blue-500/20 text-white'
@@ -96,9 +115,11 @@ export function ChannelListItem({
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`${timeSize} text-muted-foreground`}>
-                  {formatTime(channel.updated_at)}
-                </span>
+                {timeLabel && (
+                  <span className={`${timeSize} text-muted-foreground`}>
+                    {timeLabel}
+                  </span>
+                )}
                 {/* 未读徽章 */}
                 {channelState.unreadCount > 0 && (
                   <UnreadBadge count={channelState.unreadCount} />

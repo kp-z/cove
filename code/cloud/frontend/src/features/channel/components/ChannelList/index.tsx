@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'framer-motion';
 import { PinnedChannels } from './PinnedChannels';
 import { ChannelListItem } from './ChannelListItem';
 import { ChannelListEmpty } from './ChannelListEmpty';
@@ -92,20 +93,22 @@ export function ChannelList({ selectedChannelId, onChannelSelect, compact = fals
             {t('list.recent')}
           </h3>
           <div className={listClass}>
-            {recentChannels.map((channel) => (
-              <ChannelListItem
-                key={channel.channel_id}
-                channel={channel}
-                isActive={selectedChannelId === channel.channel_id}
-                isPinned={isPinned(channel.channel_id)}
-                onClick={() => onChannelSelect(channel.channel_id)}
-                onTogglePin={handleTogglePin}
-                onMarkAsRead={handleMarkAsRead}
-                onOpenSettings={handleOpenSettings}
-                onLeaveChannel={handleLeaveChannel}
-                compact={compact}
-              />
-            ))}
+            <AnimatePresence initial={false} mode="popLayout">
+              {recentChannels.map((channel) => (
+                <ChannelListItem
+                  key={channel.channel_id}
+                  channel={channel}
+                  isActive={selectedChannelId === channel.channel_id}
+                  isPinned={isPinned(channel.channel_id)}
+                  onClick={() => onChannelSelect(channel.channel_id)}
+                  onTogglePin={handleTogglePin}
+                  onMarkAsRead={handleMarkAsRead}
+                  onOpenSettings={handleOpenSettings}
+                  onLeaveChannel={handleLeaveChannel}
+                  compact={compact}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       )}

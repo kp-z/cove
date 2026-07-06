@@ -71,4 +71,20 @@ export class ChannelQueryService {
   async findByRealmAndName(realmId: string, name: string): Promise<ChannelEntity | null> {
     return await this.channelRepository.findByRealmAndName(realmId, name);
   }
+
+  /**
+   * 消息发送后刷新 Channel 活跃时间戳（meta.updated_at）与消息计数。
+   * 复用 ChannelEntity.incrementMessageCount()（immutable update），
+   * 人类消息（message.send）与 Agent 消息（message.saveResponse）
+   * 均经由 MessageCrudService.sendMessage 调用到此，保证两条路径行为一致。
+   * @param channelId - Channel ID
+   */
+  async incrementMessageCount(channelId: string): Promise<void> {
+    const realmId = getRealmContext().realmId;
+    const channel = await this.channelRepository.findById(channelId, realmId);
+    if (!channel) {
+      throw new ChannelNotFoundError(channelId);
+    }
+    await this.channelRepository.update(channel.incrementMessageCount(), realmId);
+  }
 }

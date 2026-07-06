@@ -173,7 +173,7 @@ export default function LoginPage() {
       }
 
       loginMutation.mutate(
-        { username, password },
+        { username, password, rememberMe },
         {
           onSuccess: async (data) => {
             // 清除之前的 realm 缓存（登录是新会话的开始）
@@ -388,6 +388,7 @@ export default function LoginPage() {
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="username"
+                          name="username"
                           type="text"
                           placeholder={t('auth.usernamePlaceholder')}
                           value={username}
@@ -415,6 +416,7 @@ export default function LoginPage() {
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="email"
+                            name="email"
                             type="email"
                             placeholder={t('auth.emailPlaceholder')}
                             value={email}
@@ -435,6 +437,7 @@ export default function LoginPage() {
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="displayName"
+                            name="displayName"
                             type="text"
                             placeholder={t('auth.displayNamePlaceholder')}
                             value={displayName}
@@ -454,6 +457,7 @@ export default function LoginPage() {
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="password"
+                          name="password"
                           type={showPassword ? "text" : "password"}
                           placeholder={t('auth.passwordPlaceholder')}
                           value={password}
@@ -491,6 +495,7 @@ export default function LoginPage() {
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="confirmPassword"
+                            name="confirmPassword"
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder={t('auth.confirmPasswordPlaceholder')}
                             value={confirmPassword}

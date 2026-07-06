@@ -34,14 +34,33 @@ interface AuthState {
   setCurrentRealmId: (realmId: string) => void;
 }
 
+// 认证凭证的唯一真实来源：localStorage（"记住我"）或 sessionStorage（会话级）。
+// 注意：不要通过 zustand 的 persist 中间件持久化 token/isAuthenticated，
+// 否则会导致未勾选"记住我"时，token 已随浏览器关闭从 sessionStorage 清除，
+// 但 persist 仍把上一次的 isAuthenticated/token 写死在 localStorage 里，
+// 造成"看起来已登录、实际请求全部 401"的不一致状态。
+function getStoredAuthToken(): string | null {
+  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+}
+
+function getStoredUserId(): string | null {
+  return localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
+}
+
+function getStoredCurrentRealmId(): string | null {
+  return localStorage.getItem('current_realm_id') || sessionStorage.getItem('current_realm_id');
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      userId: null,
-      token: null,
-      isAuthenticated: false,
+      // 首次创建 store 时（应用启动/刷新）直接以持久化的凭证初始化认证状态，
+      // 而不是依赖 zustand persist 自身的全量状态快照。
+      userId: getStoredUserId(),
+      token: getStoredAuthToken(),
+      isAuthenticated: !!getStoredAuthToken() && !!getStoredUserId(),
       rememberMe: true,
-      currentRealmId: null,
+      currentRealmId: getStoredCurrentRealmId(),
 
       login: (userId, token, rememberMe = true, realmId) => {
         if (rememberMe) {
@@ -101,6 +120,17 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      // 只持久化"记住我"这一非敏感偏好；token/userId/isAuthenticated/currentRealmId
+      // 均以 localStorage/sessionStorage 中的凭证为唯一真实来源（见上方 getStored* 函数），
+      // 避免 persist 的全量快照与凭证的实际存储位置（localStorage vs sessionStorage）产生冲突。
+      partialize: (state) => ({ rememberMe: state.rememberMe }),
+      // 仅合并 rememberMe 字段：即使 localStorage 中残留旧版本写入的完整状态快照
+      // （历史上曾经把 token/isAuthenticated 也存进 'auth-storage'），也不能让这些
+      // 陈旧数据把用户"复活"成已登录状态。
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        rememberMe: (persistedState as Partial<AuthState> | undefined)?.rememberMe ?? currentState.rememberMe,
+      }),
     }
   )
 );

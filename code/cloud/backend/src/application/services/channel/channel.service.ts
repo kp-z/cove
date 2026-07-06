@@ -54,6 +54,10 @@ export class ChannelService implements IChannelQueryService {
     return this.queryService.canSendMessage(channelId, senderId);
   }
 
+  async incrementMessageCount(channelId: string): Promise<void> {
+    return this.queryService.incrementMessageCount(channelId);
+  }
+
   async getChannelsByProject(projectId: string): Promise<ChannelEntity[]> {
     return this.queryService.getChannelsByProject(projectId);
   }

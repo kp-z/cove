@@ -30,6 +30,13 @@ export function useAgentStreaming(channelId: string) {
     void utils.message.list.invalidate();
   };
 
+  // 根因修复（与 useSendMessage.ts 对齐）：Agent 回复落库后同样会刷新
+  // 后端 Channel 的 meta.updated_at，需要失效 channel.list 才能让频道列表
+  // 实时重新排序 / 刷新"最近更新"角标，否则也需要整页刷新才能看到。
+  const invalidateChannelList = () => {
+    void utils.channel.list.invalidate();
+  };
+
   // 方案A 落地：把 completed 事件携带的权威消息写入「单一真相源」。
   // 步骤：
   //   1. 若事件携带 message（新后端）→ 经 Message.fromRemote 解析为权威 server 消息，
@@ -52,6 +59,7 @@ export function useAgentStreaming(channelId: string) {
     //   返回「发 agent 回复之前」的陈旧 message.list 缓存 —— 切频道回来读缓存也不显示，
     //   只有硬刷新（全新 query）才出，正是「即使切换也不显示」的根因。
     invalidateMessageList();
+    invalidateChannelList();
   };
 
   // 订阅 Agent 响应事件

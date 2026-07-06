@@ -215,20 +215,29 @@ export class TrpcBackendGateway implements BackendGateway {
       : undefined;
 
     // 步骤2：工具调用（Local 无独立 startedAt，回退到执行起始时间戳）
+    // 注：tool.result 兼容两种形状——纯字符串（适配器直接透传的原始输出）
+    // 与结构化对象（历史 success/error/output 形状），需归一化后再映射到后端字段。
     const toolUse =
       metadata.toolUses && metadata.toolUses.length > 0
         ? {
-            logs: metadata.toolUses.map((tool) => ({
-              id: tool.id,
-              toolName: tool.toolName,
-              action: tool.action,
-              status: tool.status,
-              startedAt: metadata.timestamp,
-              durationMs: tool.duration,
-              input: tool.params,
-              output: tool.result?.output ? { output: tool.result.output } : undefined,
-              error: tool.result?.error,
-            })),
+            logs: metadata.toolUses.map((tool) => {
+              const resultText = typeof tool.result === 'string' ? tool.result : undefined;
+              const resultObj = typeof tool.result === 'object' ? tool.result : undefined;
+              const output = resultObj?.output ?? (tool.status !== 'error' ? resultText : undefined);
+              const error = resultObj?.error ?? (tool.status === 'error' ? resultText : undefined);
+
+              return {
+                id: tool.id,
+                toolName: tool.toolName,
+                action: tool.action,
+                status: tool.status,
+                startedAt: metadata.timestamp,
+                durationMs: tool.duration,
+                input: tool.params,
+                output: output ? { output } : undefined,
+                error,
+              };
+            }),
             totalTools: metadata.toolUses.length,
             successCount: metadata.toolUses.filter((t) => t.status === 'success').length,
             errorCount: metadata.toolUses.filter((t) => t.status === 'error').length,

@@ -17,7 +17,7 @@ import {
   Send,
   Loader2,
 } from 'lucide-react';
-import { useSendMessage, useTypingState, useMessageQueue } from '../../hooks';
+import { useSendMessage, useTypingState, useMessageQueue, useAgentResponding } from '../../hooks';
 import { useChannelMembers, useChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 
@@ -101,6 +101,14 @@ export function Composer({
   const { send, isLoading: isSending } = useSendMessage();
   const { startTyping, stopTyping } = useTypingState(channelId);
   const { queueSize, isOnline } = useMessageQueue();
+  // 问题3修复：isSending 仅覆盖「发送请求本身」的极短窗口（tRPC mutation.isPending），
+  // 无法覆盖 Agent 实际生成回复所需的更长时间；isAgentResponding 补上这段窗口，
+  // 与 isSending 一起构成「当前是否应禁止再次发送」的完整判断（isBusy）。
+  // 后端 Local 设备端严格串行处理消息（一次仅执行一个任务），并不支持真正的并发多轮，
+  // 因此选择在前端约束用户行为：Agent 尚未回复完成前禁用输入框/发送按钮，
+  // 而不是营造一个后端支撑不了的「可并发发送」假象。
+  const isAgentResponding = useAgentResponding(channelId);
+  const isBusy = isSending || isAgentResponding;
 
   // ── 解析「将要回复的 agent」信息（用于发送时插入拟人化占位气泡）──
   // 步骤1：取频道成员中的 agent，以及频道的 agentPool；二者任一非空即说明会有 agent 回复。
@@ -176,10 +184,10 @@ export function Composer({
 
   // Focus textarea when not generating
   useEffect(() => {
-    if (textareaRef.current && !isSending) {
+    if (textareaRef.current && !isBusy) {
       textareaRef.current.focus();
     }
-  }, [channelId, isSending]);
+  }, [channelId, isBusy]);
 
   // 输入状态管理
   useEffect(() => {
@@ -208,7 +216,7 @@ export function Composer({
 
   const handleSend = async () => {
     const trimmedContent = content.trim();
-    if (!trimmedContent || isSending) {
+    if (!trimmedContent || isBusy) {
       return;
     }
 
@@ -307,9 +315,9 @@ export function Composer({
   const modeAccent = MODE_ACCENTS[mode];
 
   const computedPlaceholder = useMemo(() => {
-    if (isSending) return 'AI 正在回复...';
+    if (isBusy) return 'AI 正在回复...';
     return placeholder;
-  }, [placeholder, isSending]);
+  }, [placeholder, isBusy]);
 
   return (
     <div className={`border-t border-white/10 bg-[#1a1d2e] ${className}`}>
@@ -398,7 +406,7 @@ export function Composer({
             }`}
             onClick={() => setToolMenuOpen(v => !v)}
             title="工具"
-            disabled={isSending}
+            disabled={isBusy}
           >
             <Wrench className="w-3.5 h-3.5" />
           </button>
@@ -438,7 +446,7 @@ export function Composer({
             className={`shrink-0 h-[34px] w-[34px] flex items-center justify-center rounded-lg border transition-colors border-white/10 hover:border-white/20 hover:bg-white/5 ${modeAccent.trigger}`}
             onClick={() => setModeMenuOpen(v => !v)}
             title={activeMode?.label}
-            disabled={isSending}
+            disabled={isBusy}
           >
             <ActiveModeIcon className="w-3.5 h-3.5" />
           </button>
@@ -481,7 +489,7 @@ export function Composer({
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={computedPlaceholder}
-          disabled={isSending}
+          disabled={isBusy}
           className="flex-1 min-w-0 h-[34px] bg-white/5 border border-white/10 rounded-lg px-3 py-[6px] text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 resize-none leading-5 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           rows={1}
           style={{
@@ -504,7 +512,8 @@ export function Composer({
         ) : (
           <button
             onClick={handleSend}
-            disabled={!content.trim()}
+            disabled={!content.trim() || isBusy}
+            title={isAgentResponding ? '请等待 Agent 回复当前消息后再发送' : undefined}
             className="shrink-0 h-[34px] px-3 rounded-lg bg-indigo-500/30 text-indigo-200 hover:bg-indigo-500/40 disabled:bg-white/5 disabled:text-gray-600 border border-indigo-500/40 disabled:border-white/10 text-sm font-medium transition-colors focus:outline-none disabled:cursor-not-allowed"
           >
             {t('common:actions.send')}

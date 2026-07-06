@@ -83,6 +83,7 @@ describe('ChannelService', () => {
       getAllChannels: vi.fn(),
       getChannelsByType: vi.fn(),
       getChannelsByStatus: vi.fn(),
+      incrementMessageCount: vi.fn(),
     } as unknown as ChannelQueryService;
 
     mockMemberService = {
@@ -141,6 +142,16 @@ describe('ChannelService', () => {
       const result = await channelService.createChannel(dto);
 
       expect(result.members).toEqual([]);
+    });
+  });
+
+  describe('incrementMessageCount', () => {
+    it('should delegate to queryService.incrementMessageCount (根因修复：消息发送后刷新 Channel 活跃时间戳)', async () => {
+      vi.mocked(mockQueryService.incrementMessageCount).mockResolvedValue(undefined);
+
+      await channelService.incrementMessageCount('channel-1');
+
+      expect(mockQueryService.incrementMessageCount).toHaveBeenCalledWith('channel-1');
     });
   });
 

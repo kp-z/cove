@@ -9,9 +9,11 @@ const mockChannel: ChannelEntity = {
   name: 'general',
   description: 'General discussion channel',
   type: 'public',
-  created_at: new Date('2024-01-01').toISOString(),
-  updated_at: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
-};
+  meta: {
+    created_at: new Date('2024-01-01').toISOString(),
+    updated_at: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
+  },
+} as ChannelEntity;
 
 describe('ChannelListItem', () => {
   it('should render channel information', () => {
@@ -162,7 +164,7 @@ describe('ChannelListItem', () => {
     const onClick = vi.fn();
     const recentChannel = {
       ...mockChannel,
-      updated_at: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago
+      meta: { ...mockChannel.meta, updated_at: new Date(Date.now() - 30000).toISOString() }, // 30 seconds ago
     };
 
     render(
@@ -180,7 +182,7 @@ describe('ChannelListItem', () => {
     const onClick = vi.fn();
     const minutesAgoChannel = {
       ...mockChannel,
-      updated_at: new Date(Date.now() - 15 * 60000).toISOString(), // 15 minutes ago
+      meta: { ...mockChannel.meta, updated_at: new Date(Date.now() - 15 * 60000).toISOString() }, // 15 minutes ago
     };
 
     render(
@@ -198,7 +200,7 @@ describe('ChannelListItem', () => {
     const onClick = vi.fn();
     const hoursAgoChannel = {
       ...mockChannel,
-      updated_at: new Date(Date.now() - 5 * 3600000).toISOString(), // 5 hours ago
+      meta: { ...mockChannel.meta, updated_at: new Date(Date.now() - 5 * 3600000).toISOString() }, // 5 hours ago
     };
 
     render(
@@ -216,7 +218,7 @@ describe('ChannelListItem', () => {
     const onClick = vi.fn();
     const daysAgoChannel = {
       ...mockChannel,
-      updated_at: new Date(Date.now() - 3 * 24 * 3600000).toISOString(), // 3 days ago
+      meta: { ...mockChannel.meta, updated_at: new Date(Date.now() - 3 * 24 * 3600000).toISOString() }, // 3 days ago
     };
 
     render(
@@ -228,6 +230,24 @@ describe('ChannelListItem', () => {
     );
 
     expect(screen.getByText('3d')).toBeInTheDocument();
+  });
+
+  it('should not render a NaN time label when updated_at timestamp is missing', () => {
+    const onClick = vi.fn();
+    const channelWithoutTimestamp = {
+      ...mockChannel,
+      meta: { ...mockChannel.meta, updated_at: undefined },
+    };
+
+    render(
+      <ChannelListItem
+        channel={channelWithoutTimestamp}
+        isActive={false}
+        onClick={onClick}
+      />
+    );
+
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 
   it('should truncate long channel names', () => {
