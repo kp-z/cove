@@ -2,11 +2,16 @@
  * 状态信息提取器
  */
 
-import { Wrench, Coins, Zap } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import type { StatusBadge, StatusExtractor } from './types';
 
 /**
  * 默认状态提取器
+ *
+ * 注意：token 数量、cache 命中率等用量细节不再以徽章展示——
+ * 花费（cost）已经由 MessageBubbleNew.tsx 里独立的行尾徽章常驻展示，
+ * 其余用量明细（token 数、cache 命中率等）统一在点击「详情」后的弹窗里查看，
+ * 避免同一份信息在 hover 行和弹窗里重复出现。
  */
 export const defaultStatusExtractor: StatusExtractor = (message) => {
   const badges: StatusBadge[] = [];
@@ -15,24 +20,7 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
     return badges;
   }
 
-  const { usage, tool_logs, execution_mode } = message.agentMetadata;
-
-  // Token 使用状态
-  if (usage?.total_tokens) {
-    const totalTokens = usage.total_tokens;
-    const cost = usage.cost?.total_cost;
-
-    badges.push({
-      id: 'tokens',
-      label: `${totalTokens.toLocaleString()} tokens`,
-      icon: Coins,
-      variant: 'green',
-      priority: 10,
-      tooltip: cost ? `Cost: $${cost.toFixed(4)}` : `${totalTokens.toLocaleString()} tokens used`,
-    });
-  }
-
-  // 思考过程不再以状态徽章展示（详情统一在点击面板查看）
+  const { tool_logs, execution_mode } = message.agentMetadata;
 
   // Tool 使用状态
   const toolCount = tool_logs?.length || 0;
@@ -55,19 +43,6 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
       variant: 'info',
       priority: 40,
       tooltip: `Execution mode: ${execution_mode}`,
-    });
-  }
-
-  // 缓存命中率（如果可用）
-  if (usage?.cache?.hit_rate !== undefined) {
-    const hitRate = usage.cache.hit_rate;
-    badges.push({
-      id: 'cache',
-      label: `${(hitRate * 100).toFixed(0)}% cache`,
-      icon: Zap,
-      variant: hitRate > 0.8 ? 'success' : hitRate > 0.5 ? 'info' : 'warning',
-      priority: 15,
-      tooltip: `Cache hit rate: ${(hitRate * 100).toFixed(1)}%`,
     });
   }
 
