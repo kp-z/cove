@@ -15,7 +15,7 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
     return badges;
   }
 
-  const { usage, tool_logs, executionMode } = message.agentMetadata;
+  const { usage, tool_logs, execution_mode } = message.agentMetadata;
 
   // Token 使用状态
   if (usage?.total_tokens) {
@@ -48,13 +48,13 @@ export const defaultStatusExtractor: StatusExtractor = (message) => {
   }
 
   // 执行模式
-  if (executionMode) {
+  if (execution_mode) {
     badges.push({
       id: 'mode',
-      label: executionMode,
+      label: execution_mode,
       variant: 'info',
       priority: 40,
-      tooltip: `Execution mode: ${executionMode}`,
+      tooltip: `Execution mode: ${execution_mode}`,
     });
   }
 

@@ -48,8 +48,10 @@ export interface AgentMetadata {
   thinking?: string;
   tool_logs?: ToolLog[];
   usage?: TokenUsage;
-  executionMode?: 'API' | 'CLI' | 'SDK';
-  streamingStatus?: 'thinking' | 'tool_use' | 'responding' | 'completed';
+  // 与后端 agent_execution_metadata 下发字段一致，统一 snake_case
+  // （此前误用 camelCase，导致 Stats 面板的执行模式/流式状态恒为空）
+  execution_mode?: 'API' | 'CLI' | 'SDK';
+  streaming_status?: 'thinking' | 'tool_use' | 'responding' | 'completed';
 }
 
 export interface Message {

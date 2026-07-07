@@ -10,6 +10,7 @@
  *   5. 非法 JSON 行被跳过且不抛错
  *   6. 能力声明随 enableStreaming 切换
  *   7. enableStreaming=false 时回退批量（JSON）路径
+ *   8. thinking 块 → onThinking（真实思考内容，不与 text/正文混淆）
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -210,6 +211,35 @@ describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {
     const statuses = streaming.onStatusChange.mock.calls.map((c: any[]) => c[0]);
     expect(statuses[0]).toBe('thinking');
     expect(statuses).toContain('completed');
+  });
+
+  it('thinking 块触发 onThinking，且不与 onContent 混淆', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const streaming = makeStreaming();
+
+    const p = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'why is the sky blue' }],
+      streaming,
+    });
+
+    driveChild(childInstances[0], [
+      '{"type":"system","subtype":"init"}\n',
+      '{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"Let me think about Rayleigh scattering...","signature":"sig123"}]}}\n',
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"The sky is blue due to Rayleigh scattering."}]}}\n',
+      '{"type":"result","result":"The sky is blue due to Rayleigh scattering.","stop_reason":"end_turn"}\n',
+    ]);
+
+    const result = await p;
+
+    expect(result).toBe('The sky is blue due to Rayleigh scattering.');
+
+    // thinking 块只触发 onThinking，不应混入 onContent
+    expect(streaming.onThinking).toHaveBeenCalledTimes(1);
+    expect(streaming.onThinking).toHaveBeenCalledWith('Let me think about Rayleigh scattering...');
+
+    expect(streaming.onContent).toHaveBeenCalledTimes(1);
+    expect(streaming.onContent).toHaveBeenCalledWith('The sky is blue due to Rayleigh scattering.');
   });
 
   it('捕获 system.init 事件中的 session_id', async () => {

@@ -10,22 +10,6 @@
 
 import type { AgentMetadata, TokenUsage, ToolLog } from '../../types';
 
-// 兼容驼峰/下划线读取数值字段
-function num(...values: Array<number | undefined>): number {
-  for (const v of values) {
-    if (typeof v === 'number' && !Number.isNaN(v)) return v;
-  }
-  return 0;
-}
-
-// 取第一个有定义的值（用于可选字段）
-function firstDefined<T>(...values: Array<T | undefined>): T | undefined {
-  for (const v of values) {
-    if (v !== undefined && v !== null) return v;
-  }
-  return undefined;
-}
-
 function normalizeToolLog(raw: Record<string, unknown>): ToolLog {
   const meta = raw.meta as Record<string, unknown> | undefined;
   const result = raw.result as ToolLog['result'] | undefined;

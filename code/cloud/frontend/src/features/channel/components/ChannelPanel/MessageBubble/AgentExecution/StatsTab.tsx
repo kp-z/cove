@@ -130,11 +130,11 @@ export const StatsTab = memo(function StatsTab({
             <div className="text-base font-semibold text-gray-200">
               {stats.totalDuration > 0 ? formatDuration(stats.totalDuration) : 'N/A'}
             </div>
-            {metadata.usage?.latency?.totalMs && (
+            {metadata.usage?.latency?.total_ms && (
               <>
                 <div className="text-xs text-gray-500 mt-2">Total Latency</div>
                 <div className="text-base font-semibold text-yellow-300">
-                  {formatDuration(metadata.usage.latency.totalMs)}
+                  {formatDuration(metadata.usage.latency.total_ms)}
                 </div>
               </>
             )}
@@ -143,24 +143,24 @@ export const StatsTab = memo(function StatsTab({
       </div>
 
       {/* Execution Mode */}
-      {metadata.executionMode && (
+      {metadata.execution_mode && (
         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Execution Mode</span>
             <span className="text-sm font-semibold text-gray-200 font-mono">
-              {metadata.executionMode}
+              {metadata.execution_mode}
             </span>
           </div>
         </div>
       )}
 
       {/* Streaming Status */}
-      {metadata.streamingStatus && (
+      {metadata.streaming_status && (
         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Streaming Status</span>
             <span className="text-sm font-semibold text-gray-200">
-              {metadata.streamingStatus.replace('_', ' ').toUpperCase()}
+              {metadata.streaming_status.replace('_', ' ').toUpperCase()}
             </span>
           </div>
         </div>

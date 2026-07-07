@@ -439,6 +439,19 @@ export const messageRouter = (messageService: MessageService, channelService?: a
             totalTokens: z.number().optional(),
             cacheReadTokens: z.number().optional(),
             cacheCreationTokens: z.number().optional(),
+            cacheHitRate: z.number().optional(),
+            cost: z.object({
+              inputCost: z.number().optional(),
+              outputCost: z.number().optional(),
+              cacheCost: z.number().optional(),
+              totalCost: z.number().optional(),
+            }).optional(),
+            model: z.string().optional(),
+            latency: z.object({
+              firstTokenMs: z.number().optional(),
+              totalMs: z.number().optional(),
+              tokensPerSecond: z.number().optional(),
+            }).optional(),
           }).optional(),
           adapter: z.object({
             name: z.string(),
@@ -497,12 +510,47 @@ export const messageRouter = (messageService: MessageService, channelService?: a
             }
 
             // 转换 execution 数据为 agentExecutionMetadata 格式
+            //
+            // 契约：Local 上传的 execution 结构（camelCase，见 backend saveResponse 的 zod schema）
+            // 必须转换为 MessageEntity/message.types.ts 期望的 snake_case 结构，
+            // 否则 toJSON() 读取 usage.input_tokens 等字段时会因为实际字段名是 inputTokens
+            // 而永远得到 undefined —— 序列化后字段被丢弃，前端归一化统一 fallback 成 0，
+            // 表现为"token 消耗恒为 0"（历史 bug，此处修复）。
+            const usage = input.execution?.usage;
+            const cache = (usage?.cacheReadTokens !== undefined || usage?.cacheCreationTokens !== undefined)
+              ? {
+                  creation_tokens: usage?.cacheCreationTokens ?? 0,
+                  read_tokens: usage?.cacheReadTokens ?? 0,
+                  hit_rate: usage?.cacheHitRate,
+                }
+              : undefined;
+            const cost = usage?.cost
+              ? {
+                  input_cost: usage.cost.inputCost ?? 0,
+                  output_cost: usage.cost.outputCost ?? 0,
+                  cache_cost: usage.cost.cacheCost ?? 0,
+                  total_cost: usage.cost.totalCost ?? 0,
+                }
+              : undefined;
+            const latency = usage?.latency
+              ? {
+                  first_token_ms: usage.latency.firstTokenMs,
+                  total_ms: usage.latency.totalMs,
+                  tokens_per_second: usage.latency.tokensPerSecond,
+                }
+              : undefined;
+
+            // execution_mode 依据实际使用的 adapter 名称推导（而非硬编码 'CLI'）：
+            // Local 端 claude-cli 系 adapter 上报的 adapter.name 含 'cli'，其余（anthropic/openai）视为 API 调用。
+            const adapterName = input.execution?.adapter?.name ?? '';
+            const executionMode = adapterName.toLowerCase().includes('cli') ? 'CLI' as const : 'API' as const;
+
             const agentExecutionMetadata = input.execution ? {
               thinking: input.execution.thinking?.content,
               tool_logs: input.execution.toolUse?.logs.map(log => ({
                 id: log.id,
                 timestamp: log.startedAt,
-                toolName: log.toolName,
+                tool_name: log.toolName,
                 action: log.action,
                 params: log.input,
                 status: log.status,
@@ -513,14 +561,16 @@ export const messageRouter = (messageService: MessageService, channelService?: a
                   output: log.output ? JSON.stringify(log.output) : undefined,
                 },
               })),
-              usage: input.execution.usage ? {
-                inputTokens: input.execution.usage.inputTokens,
-                outputTokens: input.execution.usage.outputTokens,
-                totalTokens: input.execution.usage.totalTokens,
-                cacheReadTokens: input.execution.usage.cacheReadTokens,
-                cacheCreationTokens: input.execution.usage.cacheCreationTokens,
+              usage: usage ? {
+                input_tokens: usage.inputTokens ?? 0,
+                output_tokens: usage.outputTokens ?? 0,
+                total_tokens: usage.totalTokens ?? 0,
+                cache,
+                cost,
+                model: usage.model,
+                latency,
               } : undefined,
-              execution_mode: 'CLI' as const,
+              execution_mode: executionMode,
               streaming_status: 'completed' as const,
             } : undefined;
 

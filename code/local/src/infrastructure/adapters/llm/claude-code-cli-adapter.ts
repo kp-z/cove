@@ -68,6 +68,9 @@ interface ClaudeStreamEvent {
       type: string;
       // text 块
       text?: string;
+      // thinking 块（--thinking enabled 且模型支持 extended thinking 时，
+      // assistant 消息里会出现 { type: 'thinking', thinking: '...', signature: '...' }）
+      thinking?: string;
       // tool_use 块
       id?: string;
       name?: string;
@@ -181,14 +184,13 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       const totalMs = endTime - startTime;
 
       // 从 CLI 输出构建完整元数据
+      //
+      // 注意：`--output-format=json`（批量模式）的输出是被压平的 { result, usage, ... }，
+      // 不含结构化 content blocks，因此没有真正的 thinking 内容可用——此前这里把最终回答
+      // 正文（parsed.result）误当作 thinking.content 填充，是伪造数据，已移除。
+      // 真实的 thinking 采集见流式路径（generateStreamingResponse → dispatchStreamEvent）。
       const metadata: ExecutionMetadata = {
-        thinking: this.thinkingEnabled && parsed.result
-          ? {
-              content: parsed.result,
-              chunks: 1,
-              firstTokenMs: parsed.ttft_ms
-            }
-          : undefined,
+        thinking: undefined,
         toolUses: [],
         usage: this.buildUsageMetadata(parsed, totalMs),
         statusHistory: [
@@ -245,6 +247,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
    *   2. 对 stdout 做行缓冲（NDJSON），逐行 JSON.parse。
    *   3. 按事件 type 分发：
    *      - system.init → 捕获 session_id
+   *      - assistant.thinking → onThinking（真实思考过程，需 --thinking enabled + 模型支持）
    *      - assistant.text → onContent
    *      - assistant.tool_use → onToolUse
    *      - user.tool_result → 更新工具状态
@@ -422,7 +425,13 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       case 'assistant': {
         const blocks = event.message?.content ?? [];
         for (const block of blocks) {
-          if (block.type === 'text' && block.text) {
+          if (block.type === 'thinking' && block.thinking) {
+            // 思考块：--thinking enabled 且模型支持 extended thinking 时才会出现。
+            // 此前这里完全没有处理，onThinking 从未被调用，导致执行详情面板的
+            // Thinking 标签页永远为空——这是修复的核心问题之一。
+            const thinking = block.thinking;
+            enqueue(() => streaming?.onThinking?.(thinking));
+          } else if (block.type === 'text' && block.text) {
             // 正文块：累计并按段/句上报
             onText(block.text);
             const text = block.text;

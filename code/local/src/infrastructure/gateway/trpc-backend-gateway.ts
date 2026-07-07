@@ -244,7 +244,8 @@ export class TrpcBackendGateway implements BackendGateway {
           }
         : undefined;
 
-    // 步骤3：Token 用量
+    // 步骤3：Token 用量（补全 cache 命中率 / cost / model / latency 的透传——
+    // 此前这几个字段被静默丢弃，即使 Claude CLI 已经算出了真实 cost，后端 UsageTab 也永远拿不到）
     const usage = metadata.usage
       ? {
           inputTokens: metadata.usage.inputTokens,
@@ -252,6 +253,23 @@ export class TrpcBackendGateway implements BackendGateway {
           totalTokens: metadata.usage.totalTokens,
           cacheReadTokens: metadata.usage.cache?.readTokens,
           cacheCreationTokens: metadata.usage.cache?.creationTokens,
+          cacheHitRate: metadata.usage.cache?.hitRate,
+          cost: metadata.usage.cost
+            ? {
+                inputCost: metadata.usage.cost.inputCost,
+                outputCost: metadata.usage.cost.outputCost,
+                cacheCost: metadata.usage.cost.cacheCost,
+                totalCost: metadata.usage.cost.totalCost,
+              }
+            : undefined,
+          model: metadata.usage.model,
+          latency: metadata.usage.latency
+            ? {
+                firstTokenMs: metadata.usage.latency.firstTokenMs,
+                totalMs: metadata.usage.latency.totalMs,
+                tokensPerSecond: metadata.usage.latency.tokensPerSecond,
+              }
+            : undefined,
         }
       : undefined;
 
