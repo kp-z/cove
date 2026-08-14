@@ -417,9 +417,16 @@ export const realmRouter = (
             const realm = await realmService.getRealmById(input.realmId);
             const isOwner = realm.owner_id === ctx.userId;
             const isSuperAdminUser = await isSuperAdmin(ctx.userId || '');
+            // 开发栈（code/dev/start.sh）需要用普通登录用户给已存在的 Nexus 设备签发 apiKey；
+            // 生产环境仍仅限 owner / 超级管理员。
+            const allowDevStack =
+              process.env.NODE_ENV === 'development' || process.env.COVE_DEV_STACK === '1';
 
-            if (!isOwner && !isSuperAdminUser) {
+            if (!isOwner && !isSuperAdminUser && !allowDevStack) {
               throw new Error('Only realm owner or super admin can generate device start command');
+            }
+            if (!isOwner && !isSuperAdminUser && allowDevStack && !ctx.userId) {
+              throw new Error('Authentication required to generate device start command');
             }
 
             // Get or create realm device
@@ -469,6 +476,7 @@ export const realmRouter = (
 
               return {
                 hasExistingKey: true,
+                deviceId: device.device_id,
                 startCommand,
                 apiKey,
                 warning: '⚠️ A new API key has been generated. The old key has been revoked. Please save this key securely.',
@@ -484,6 +492,7 @@ export const realmRouter = (
 
               return {
                 hasExistingKey: false,
+                deviceId: device.device_id,
                 startCommand,
                 apiKey,
                 warning: '⚠️ API Key will only be shown once. Please save it securely.',

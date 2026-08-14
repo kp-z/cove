@@ -12,11 +12,21 @@
 import jwt from 'jsonwebtoken';
 import { UserEntity, UserRole } from '../../../domain/models/user/user.entity';
 import { IUserRepository, ILogger, IRealmRepository, IRealmMemberRepository } from '../../interfaces';
-import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from './auth.errors';
+import {
+  AccountLockedError,
+  InvalidCredentialsError,
+  InvalidTokenError,
+  UserDisabledError,
+} from './auth.errors';
 import { AuditService } from '../audit/audit.service';
 import { TRPCError } from '@trpc/server';
 import { RealmMemberEntity } from '../../../domain/models/realm-member/realm-member.entity';
 import type { IEventBus } from '../../interfaces/event-bus.interface';
+
+/** 连续密码错误达到该次数后锁定账号 */
+const MAX_FAILED_LOGIN_ATTEMPTS = 50;
+/** 锁定时长（分钟） */
+const ACCOUNT_LOCK_DURATION_MINUTES = 15;
 
 export interface JWTPayload {
   userId: string;
@@ -96,12 +106,9 @@ export class AuthService {
     }
 
     // 检查账号是否被锁定
-    if (user.isLocked()) {
+    if (user.isLocked() && user.lockedUntil) {
       this.logger.warn('Login failed: account locked', { username, lockedUntil: user.lockedUntil });
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: `Account is locked until ${user.lockedUntil?.toISOString()}. Please try again later.`,
-      });
+      throw new AccountLockedError(user.lockedUntil);
     }
 
     // 检查账号状态
@@ -128,13 +135,13 @@ export class AuthService {
       // 增加失败次数
       let updatedUser = user.incrementFailedLoginAttempts();
 
-      // 如果失败次数达到 3 次，锁定账号 15 分钟
-      if (updatedUser.failedLoginAttempts >= 3) {
-        updatedUser = updatedUser.lockAccount(15);
+      // 连续失败达到阈值后锁定一段时间
+      if (updatedUser.failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+        updatedUser = updatedUser.lockAccount(ACCOUNT_LOCK_DURATION_MINUTES);
         this.logger.warn('Account locked due to too many failed attempts', {
           username,
           attempts: updatedUser.failedLoginAttempts,
-          lockedUntil: updatedUser.lockedUntil
+          lockedUntil: updatedUser.lockedUntil,
         });
       }
 

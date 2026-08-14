@@ -11,6 +11,7 @@ import type { MessageTask } from './message-orchestrator.interface'
  */
 export interface ProcessResult {
   success: boolean
+  aborted?: boolean
   error?: string
 }
 

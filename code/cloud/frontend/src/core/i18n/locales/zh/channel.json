@@ -10,6 +10,9 @@
     "emptyTitle": "暂无消息",
     "emptyDescription": "发送第一条消息开始对话"
   },
+  "message": {
+    "stopped": "已停止"
+  },
   "tabs": {
     "close": "关闭",
     "newThread": "新建线程"

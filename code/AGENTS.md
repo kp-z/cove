@@ -93,9 +93,9 @@ src/
 
 **具体规则：**
 
-- 新的领域逻辑放进 `domain/<子领域>/`，新的基础设施实现放进 `infrastructure/<类别>/`。**不要继续往 `src/` 根目录堆放新文件**——`src/` 根目录下现存的 `adapter-executor.ts`、`adapter-utils.ts`、`config.ts`、`device-client.ts`、`trpc-client.ts`、`types.ts`、`websocket-client.ts`、`test-adapter.ts`、`test-claude-cli-adapter.ts` 属于早期未完成迁移的历史文件（未纳入 domain/infrastructure 分层），是本仓库尚待改进项，而非应该效仿的模式。新代码必须直接进入正确的分层子目录。
+- 新的领域逻辑放进 `domain/<子领域>/`，新的基础设施实现放进 `infrastructure/<类别>/`。**不要继续往 `src/` 根目录堆放新文件**——`src/` 根目录下仍有部分早期未完成迁移的历史文件（如 `adapter-executor.ts`、`config.ts`、`device-client.ts` 等），是本仓库尚待改进项，而非应该效仿的模式。新代码必须直接进入正确的分层子目录。
 - 确认某个能力是否已经存在时，先看 `domain/` 和 `infrastructure/adapters/`、`infrastructure/gateway/` 下是否已有同类实现，避免出现前文提到的 `claude-code-cli-adapter.ts` 命名冲突问题。
-- 废弃代码移入 `deprecated/`（已有先例：`deprecated/test-device-standalone.ts`），不要让新旧实现同时留在同一目录下用文件名区分版本（如 `xxx.v1.ts`、`xxx-old.ts`）。
+- 废弃代码应删除或移入专门的废弃隔离区，不要让新旧实现同时留在同一目录下用文件名区分版本（如 `xxx.v1.ts`、`xxx-old.ts`）。
 
 ### 2.2 Cloud Backend（`code/cloud/backend/src`）
 
@@ -169,13 +169,14 @@ src/
 
 仓库已有约定：说明性文档应存放在仓库根目录 `doc/` 下，按类型（如 `design/`、`release/`）和时间归类命名。
 
-**本仓库中的真实反例（不要继续这样做）：**
+**本仓库中曾出现的反例（已清理，不要再引入）：**
 
-- `code/` 根目录下散落着 `BACKEND_ADAPTATION_GUIDE.md`、`BACKEND_ADAPTATION_SUMMARY.md`、`E2E_TESTING_GUIDE.md`、`EXECUTION_METADATA_PROJECT_SUMMARY.md`、`FRONTEND_ADAPTATION_GUIDE.md` 等多个游离的说明文档。
-- `code/cloud/backend/` 根目录下散落着 `API-FLOW-ANALYSIS.md`、`CLEANUP_PROGRESS.md`、`FINAL_SUCCESS_REPORT.md`、`P0-IMPLEMENTATION-SUMMARY.md`、`P1-IMPLEMENTATION-SUMMARY.md`、`STAGE_4_CLEANUP_SUMMARY.md`、`SUCCESS_REPORT.md`。
-- `code/cloud/frontend/` 根目录下散落着 `ADAPTER_MANAGEMENT_TESTING.md`、`AGENT_METADATA_IMPLEMENTATION.md`、`AGENT_REPLY_FLOW.md`、`MESSAGE_FEEDBACK_ANALYSIS.md`、`MESSAGE_FLOW_ANALYSIS.md`、`SYSTEM_TIMELINE_IMPLEMENTATION.md` 等十余个阶段性总结文档。
+- `code/`、`code/cloud/backend/`、`code/cloud/frontend/` 根目录下曾散落大量阶段性总结文档（`*_SUMMARY.md`、`*_ANALYSIS.md`、`*_FIXES.md`、`SUCCESS_REPORT.md` 等）。
+- 前端曾用 `ChannelBasicInfoSection.v1.tsx` 与正式组件长期并存。
 
-这些文件大多是开发过程中的一次性总结报告，散落在代码目录里既不便查找也会随时间失去时效性。**正确做法**：新的设计说明/总结类文档一律放入仓库根目录 `doc/` 对应分类下（例如 `doc/design/`），不要在 `code/` 或任何子项目根目录下新建这类游离 md 文件。少量与代码强绑定、帮助理解某个具体模块的 `README.md`（例如 `features/channel/components/ChannelPanel/README.md`）可以保留在模块内，但篇幅较长的项目级总结/进度报告不属于此类。
+这些文件是开发过程中的一次性总结/旧版本，散落在代码目录里既不便查找也会随时间失去时效性。**正确做法**：新的设计说明/总结类文档一律放入仓库根目录 `doc/` 对应分类下（例如 `doc/design/`），不要在 `code/` 或任何子项目根目录下新建这类游离 md 文件。少量与代码强绑定、帮助理解某个具体模块的 `README.md`（例如 `features/channel/components/ChannelPanel/README.md`）可以保留在模块内，但篇幅较长的项目级总结/进度报告不属于此类。
+
+开发调试请使用 `./code/dev/start.sh` 与本文「六、AI 调试指南」，不要再依赖已删除的一次性脚本（如旧的 `create-admin-kp.ts` / `init-basic-data.ts`）。
 
 ---
 
@@ -221,19 +222,33 @@ src/
 
 ### 6.1 一分钟起本地全栈环境
 
-本项目**没有** `docker-compose`、也**不需要**外部数据库服务——backend 用的是本地 SQLite 文件（`DATABASE_URL=file:...`），首次启动会自动迁移建表并初始化默认数据，因此启动流程只是三条独立的 npm 脚本，各自在自己的目录下用 `npm run dev` 启动即可（不需要额外编排工具）：
+本项目**没有** `docker-compose`、也**不需要**外部数据库服务——backend 用的是本地 SQLite 文件（`DATABASE_URL=file:...`），首次启动会自动迁移建表并初始化默认数据。
+
+**推荐：一条命令拉起全栈（默认单 Local）**
 
 ```bash
-# 1) 后端（必须最先启动；默认监听 3002 端口）
+./code/dev/start.sh
+# 只要前后端（纯 UI）：     ./code/dev/start.sh --no-local
+# 需要双 Local 时再加：    ./code/dev/start.sh --dual
+```
+
+行为约定：
+
+- 默认启动 Backend（3002）+ Frontend（5174）+ **1 个 Local**：
+  - `local:nexus` → 官方 Realm（`realm-nexus`）
+- `--dual` 时额外再起 `local:custom`（固定复用 Realm 名 `cove-dev-custom`）。
+- 首次会自动注册开发用户 `cove_dev_stack` / `CoveDev123!`，并通过 tRPC 自动签发设备凭证；之后凭证固定复用，落在 `~/.cove/dev-stack/`（如 `nexus.config.json`），**不进 git**。
+- Ctrl+C / 脚本退出时会**杀掉本脚本拉起的全部进程（含 backend/frontend）**。设备凭证与 Realm **不删**（固定复用）。
+- 日志在 `~/.cove/dev-stack/logs/`。若凭证坏了（例如在别处轮换了 apiKey），删掉对应 `*.config.json` 后重跑即可重建。
+
+相关文件：`code/dev/start.sh`、`code/dev/provision.mjs`。
+
+**手动分步启动（不推荐，仅排查时用）**
+
+```bash
 cd code/cloud/backend && npm run dev
-
-# 2) 前端（Vite 默认监听 5174 端口）
 cd code/cloud/frontend && npm run dev
-
-# 3)（可选，仅在需要调试 Agent 真实执行/设备侧逻辑时才需要）本地设备端
-#    device-id / api-key 需要从 Device 管理界面或数据库里取一个已存在的设备凭证，
-#    纯前端 UI 调试通常不需要启动这一步。
-npm --prefix code/local run dev -- --server ws://localhost:3002/trpc --device-id <device-id> --api-key <api-key> --realm-id realm-nexus
+npm --prefix code/local run dev -- --config ~/.cove/dev-stack/nexus.config.json
 ```
 
 **首次启动前必须配置的环境变量**（`code/cloud/backend/.env`，可从 `.env.example` 复制）：
@@ -248,7 +263,7 @@ npm --prefix code/local run dev -- --server ws://localhost:3002/trpc --device-id
 
 后端 `auth.register`（`code/cloud/backend/src/infrastructure/trpc/routers/auth.router.ts`）是公开的自助注册接口，注册成功会**自动加入 Nexus realm**（`AuthService.register` → `addUserToPlatformRealm`），落地后能直接看到 `#general`、`#welcome` 默认频道和内置 Agent「小张」发的欢迎消息。前端登录页（`features/auth/components/LoginPage.tsx`）本身就有"注册/登录"切换，也可以直接在浏览器里点"注册"完成，不需要用 curl。
 
-推荐做法：**每次调试任务都注册一个新的、一次性的测试账号**，不要复用他人凭证，也不要把真实密码写进代码或文档。示例：
+推荐做法：**每次调试任务都注册一个新的、一次性的测试账号**，不要复用他人凭证，也不要把真实密码写进代码或文档。也可以直接用开发栈固定账号 `cove_dev_stack` / `CoveDev123!`（由 `./code/dev/start.sh` 自动注册）。示例：
 
 ```bash
 curl -s -X POST 'http://localhost:3002/trpc/auth.register' \
@@ -260,9 +275,7 @@ curl -s -X POST 'http://localhost:3002/trpc/auth.register' \
 
 返回体里的 `token` 可以直接用于后续带 `Authorization: Bearer <token>` 的 tRPC 调用；前端浏览器里则是走登录页表单，成功后 token 会存进 `localStorage`。
 
-**已知的一个真实 bug 及其修复**（供理解现状，也是本次任务实际修复的内容之一）：此前自助注册接口只会把新用户加入 Nexus realm 的成员表（`RealmMember`），但**不会**把用户加进 `#general`/`#welcome` 频道——因为频道自动加入逻辑（`DefaultChannelsAutoJoinService`/`GeneralChannelAutoJoinService`，见 `application/services/channel/`）是监听 `user.created` 事件触发的，而 `AuthService.register()` 走的是独立的入库逻辑，从未发布过这个事件。仓库里此前有两个为此手写的一次性修复脚本（`scripts/add-users-to-channels.ts`、`scripts/add-users-to-channels-fixed.ts`），就是这个 bug 反复发作留下的历史痕迹；本次任务已在 `AuthService.addUserToPlatformRealm()` 里补上了 `user.created` 事件发布（见 `auth.service.ts`）修复根因，新注册用户现在无需重启后端、无需跑修复脚本，注册后立刻就能看到默认频道——已用两个新注册的测试账号在本地实际验证通过，随后这两个不再需要的一次性脚本也已删除，不再让新旧修复方式并存。
-
-不要使用 `code/cloud/backend/scripts/create-admin-kp.ts`、`init-basic-data.ts` 这两个脚本作为"标准测试账号"来源——它们是开发者本人的历史一次性脚本（硬编码了个人用户名/密码，且 `init-basic-data.ts` 创建 Channel/Agent 时没有填 `realmId` 字段，已经和当前 Prisma schema 不兼容，跑了会直接报错），不是为 AI 调试场景设计的，也不应该被当作范例复制。
+**已知的一个真实 bug 及其修复**（供理解现状）：此前自助注册接口只会把新用户加入 Nexus realm 的成员表（`RealmMember`），但**不会**把用户加进 `#general`/`#welcome` 频道——因为频道自动加入逻辑是监听 `user.created` 事件触发的，而 `AuthService.register()` 走的是独立入库逻辑，从未发布过这个事件。该问题已在 `AuthService.addUserToPlatformRealm()` 里补上事件发布修复；新注册用户现在无需额外脚本即可看到默认频道。
 
 ### 6.3 用浏览器 MCP 工具做 UI 调试的具体建议
 

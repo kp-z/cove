@@ -50,6 +50,7 @@
     "signingUp": "Signing up...",
     "invalidCredentials": "Invalid username or password",
     "accountDisabled": "Your account has been disabled. Please contact an administrator.",
+    "accountLocked": "Too many failed login attempts. Your account is temporarily locked. Please try again later.",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "unknownError": "An unexpected error occurred. Please try again.",
     "passwordMismatch": "Passwords do not match",

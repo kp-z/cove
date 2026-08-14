@@ -23,6 +23,9 @@ describe('messageRouter', () => {
     } as unknown as MessageService;
 
     mockContext = {
+      userId: 'user-1',
+      realmId: 'realm-1',
+      userType: 'human',
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -562,6 +565,279 @@ describe('messageRouter', () => {
       });
 
       expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('abort lifecycle', () => {
+    const deviceCaller = {
+      userId: 'device-1',
+      realmId: 'realm-1',
+      userType: 'agent' as const,
+    };
+
+    function channelInRealm(overrides: Record<string, unknown> = {}) {
+      return {
+        realmId: 'realm-1',
+        hasMember: vi.fn().mockReturnValue(true),
+        ...overrides,
+      };
+    }
+
+    it('broadcasts message.abort only to online devices in the channel realm', async () => {
+      const channelService = {
+        getChannelById: vi.fn().mockResolvedValue(channelInRealm()),
+      };
+      const deviceConnectionManager = {
+        getOnlineDevices: vi.fn().mockReturnValue(['device-1', 'device-2']),
+        getConnection: vi.fn((deviceId: string) => ({
+          metadata: { realmId: deviceId === 'device-1' ? 'realm-1' : 'realm-2' },
+        })),
+        broadcastToDevices: vi.fn().mockResolvedValue(1),
+      };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        channelService as any,
+        undefined,
+        deviceConnectionManager as any
+      );
+
+      const result = await abortRouter.createCaller(mockContext).abort({
+        agentMessageId: 'agent-message-1',
+        channelId: 'channel-1',
+        reason: 'user',
+      });
+
+      expect(result).toEqual({ ok: true, dispatched: true });
+      expect(channelService.getChannelById).toHaveBeenCalledWith('channel-1');
+      expect(deviceConnectionManager.broadcastToDevices).toHaveBeenCalledWith(
+        ['device-1'],
+        expect.objectContaining({
+          type: 'message.abort',
+          payload: expect.objectContaining({
+            agentMessageId: 'agent-message-1',
+            reason: 'user',
+          }),
+        })
+      );
+    });
+
+    it('rejects unauthenticated abort requests', async () => {
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn() } as any,
+        undefined,
+        {
+          getOnlineDevices: vi.fn(),
+          getConnection: vi.fn(),
+          broadcastToDevices: vi.fn(),
+        } as any
+      );
+
+      await expect(
+        abortRouter.createCaller({ ...mockContext, userId: undefined }).abort({
+          agentMessageId: 'agent-message-1',
+          channelId: 'channel-1',
+          reason: 'user',
+        })
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    });
+
+    it('rejects abort when the channel belongs to another realm', async () => {
+      const deviceConnectionManager = {
+        getOnlineDevices: vi.fn(),
+        getConnection: vi.fn(),
+        broadcastToDevices: vi.fn(),
+      };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm({ realmId: 'realm-2' })) } as any,
+        undefined,
+        deviceConnectionManager as any
+      );
+
+      await expect(
+        abortRouter.createCaller(mockContext).abort({
+          agentMessageId: 'agent-message-1',
+          channelId: 'channel-other-realm',
+          reason: 'user',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(deviceConnectionManager.broadcastToDevices).not.toHaveBeenCalled();
+    });
+
+    it('rejects abort when the caller is not a channel member', async () => {
+      const deviceConnectionManager = {
+        getOnlineDevices: vi.fn(),
+        getConnection: vi.fn(),
+        broadcastToDevices: vi.fn(),
+      };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm({ hasMember: () => false })) } as any,
+        undefined,
+        deviceConnectionManager as any
+      );
+
+      await expect(
+        abortRouter.createCaller(mockContext).abort({
+          agentMessageId: 'agent-message-1',
+          channelId: 'channel-1',
+          reason: 'user',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(deviceConnectionManager.broadcastToDevices).not.toHaveBeenCalled();
+    });
+
+    it('rejects abort when the agent message belongs to another channel', async () => {
+      vi.mocked(mockMessageService.getMessageById).mockResolvedValue({
+        channelId: 'channel-other',
+      } as any);
+      const deviceConnectionManager = {
+        getOnlineDevices: vi.fn(),
+        getConnection: vi.fn(),
+        broadcastToDevices: vi.fn(),
+      };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm()) } as any,
+        undefined,
+        deviceConnectionManager as any
+      );
+
+      await expect(
+        abortRouter.createCaller(mockContext).abort({
+          agentMessageId: 'agent-message-1',
+          channelId: 'channel-1',
+          reason: 'user',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(deviceConnectionManager.broadcastToDevices).not.toHaveBeenCalled();
+    });
+
+    it('does not broadcast when the channel cannot be resolved in the authenticated realm', async () => {
+      const deviceConnectionManager = {
+        getOnlineDevices: vi.fn(),
+        getConnection: vi.fn(),
+        broadcastToDevices: vi.fn(),
+      };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockRejectedValue(new Error('Channel not found')) } as any,
+        undefined,
+        deviceConnectionManager as any
+      );
+
+      await expect(
+        abortRouter.createCaller(mockContext).abort({
+          agentMessageId: 'agent-message-1',
+          channelId: 'channel-other-realm',
+          reason: 'user',
+        })
+      ).rejects.toThrow('Channel not found');
+      expect(deviceConnectionManager.broadcastToDevices).not.toHaveBeenCalled();
+    });
+
+    it('persists and publishes an abort before resolving the user-message wait', async () => {
+      const eventBus = { publish: vi.fn().mockResolvedValue(undefined) };
+      const messageOrchestrator = { notifyAborted: vi.fn() };
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm()) } as any,
+        eventBus as any,
+        undefined,
+        messageOrchestrator as any
+      );
+
+      await abortRouter.createCaller({ ...mockContext, ...deviceCaller }).reportAbort({
+        channelId: 'realm-1:channel-1',
+        messageId: 'agent-message-1',
+        userMessageId: 'user-message-1',
+        agentId: 'agent-1',
+        reason: 'user',
+        partialContent: 'partial',
+      });
+
+      expect(mockMessageService.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messageId: 'agent-message-1',
+          channelId: 'channel-1',
+          content: 'partial',
+          agentExecutionMetadata: {
+            aborted: true,
+            abort_reason: 'user',
+          },
+        })
+      );
+      expect(eventBus.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'agent.response.aborted',
+          payload: expect.objectContaining({
+            messageId: 'agent-message-1',
+            channelId: 'channel-1',
+          }),
+        })
+      );
+      expect(messageOrchestrator.notifyAborted).toHaveBeenCalledWith('user-message-1');
+    });
+
+    it('rejects abort reports without the user message id used to release cloud pending state', async () => {
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm()) } as any
+      );
+
+      await expect(
+        abortRouter.createCaller({ ...mockContext, ...deviceCaller }).reportAbort({
+          channelId: 'channel-1',
+          messageId: 'agent-message-1',
+        } as any)
+      ).rejects.toThrow();
+    });
+
+    it('rejects unauthenticated abort reports', async () => {
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn() } as any
+      );
+
+      await expect(
+        abortRouter.createCaller({ ...mockContext, userId: undefined, userType: 'agent' }).reportAbort({
+          channelId: 'channel-1',
+          messageId: 'agent-message-1',
+          userMessageId: 'user-message-1',
+        })
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    });
+
+    it('rejects human callers on reportAbort', async () => {
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn() } as any
+      );
+
+      await expect(
+        abortRouter.createCaller(mockContext).reportAbort({
+          channelId: 'channel-1',
+          messageId: 'agent-message-1',
+          userMessageId: 'user-message-1',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('rejects abort reports for a channel in another realm', async () => {
+      const abortRouter = messageRouter(
+        mockMessageService,
+        { getChannelById: vi.fn().mockResolvedValue(channelInRealm({ realmId: 'realm-2' })) } as any
+      );
+
+      await expect(
+        abortRouter.createCaller({ ...mockContext, ...deviceCaller }).reportAbort({
+          channelId: 'channel-1',
+          messageId: 'agent-message-1',
+          userMessageId: 'user-message-1',
+        })
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(mockMessageService.sendMessage).not.toHaveBeenCalled();
     });
   });
 });

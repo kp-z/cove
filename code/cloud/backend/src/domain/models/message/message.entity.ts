@@ -79,6 +79,8 @@ export class MessageEntity {
         count: r.count,
       })),
       agentExecutionMetadata: json.agent_execution_metadata ? {
+        aborted: json.agent_execution_metadata.aborted,
+        abort_reason: json.agent_execution_metadata.abort_reason,
         thinking: json.agent_execution_metadata.thinking,
         tool_logs: json.agent_execution_metadata.tool_logs?.map(log => ({
           id: log.id,
@@ -160,8 +162,8 @@ export class MessageEntity {
       throw new Error(`Invalid content format: ${this.props.contentFormat}. Must be one of: ${VALID_CONTENT_FORMATS.join(', ')}`);
     }
 
-    // Content cannot be empty unless there are attachments
-    if (!this.props.content && this.props.attachments.length === 0) {
+    // 中止消息允许空正文；其终态由 agentExecutionMetadata.aborted 明确标识。
+    if (!this.props.content && this.props.attachments.length === 0 && !this.props.agentExecutionMetadata?.aborted) {
       throw new Error('Message must have either content or attachments');
     }
   }
@@ -615,6 +617,8 @@ export class MessageEntity {
         count: r.count,
       })),
       agent_execution_metadata: this.props.agentExecutionMetadata ? {
+        aborted: this.props.agentExecutionMetadata.aborted,
+        abort_reason: this.props.agentExecutionMetadata.abort_reason,
         thinking: this.props.agentExecutionMetadata.thinking,
         tool_logs: this.props.agentExecutionMetadata.tool_logs?.map(log => ({
           id: log.id,

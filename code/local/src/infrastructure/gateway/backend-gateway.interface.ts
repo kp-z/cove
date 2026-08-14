@@ -128,6 +128,19 @@ export interface BackendGateway {
   }): Promise<void>;
 
   /**
+   * 上报 agent 响应已由用户中止。
+   * userMessageId 用于后端解除触发消息对应的 pending 状态。
+   */
+  reportAgentAbort(abort: {
+    channelId: string;
+    messageId: string;
+    userMessageId: string;
+    agentId?: string;
+    partialContent?: string;
+    reason?: string;
+  }): Promise<void>;
+
+  /**
    * Sync local agent metadata to backend (upsert)
    *
    * Local 扫描本地 agent.md 后，将解析出的元数据批量推送给 Backend 入库。

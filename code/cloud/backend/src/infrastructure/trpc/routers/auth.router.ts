@@ -5,7 +5,12 @@
 import { z } from 'zod';
 import { router, procedure, protectedProcedure } from '../trpc';
 import type { AuthService } from '../../../application/services/auth/auth.service';
-import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from '../../../application/services/auth/auth.errors';
+import {
+  AccountLockedError,
+  InvalidCredentialsError,
+  InvalidTokenError,
+  UserDisabledError,
+} from '../../../application/services/auth/auth.errors';
 import { TRPCError } from '@trpc/server';
 
 // 注册请求 schema
@@ -104,10 +109,20 @@ export function createAuthRouter(authService: AuthService) {
             context: result.context,
           };
         } catch (error: any) {
+          // 已是 TRPCError 时原样抛出，避免再包一层 INTERNAL_SERVER_ERROR
+          if (error instanceof TRPCError) {
+            throw error;
+          }
           if (error instanceof InvalidCredentialsError) {
             throw new TRPCError({
               code: 'UNAUTHORIZED',
               message: 'Invalid username or password',
+            });
+          }
+          if (error instanceof AccountLockedError) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: error.message,
             });
           }
           if (error instanceof UserDisabledError) {

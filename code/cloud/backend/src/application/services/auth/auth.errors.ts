@@ -22,3 +22,14 @@ export class UserDisabledError extends Error {
     this.name = 'UserDisabledError';
   }
 }
+
+/** 登录失败次数过多导致账号临时锁定 */
+export class AccountLockedError extends Error {
+  readonly lockedUntil: Date;
+
+  constructor(lockedUntil: Date) {
+    super(`Account is locked until ${lockedUntil.toISOString()}. Please try again later.`);
+    this.name = 'AccountLockedError';
+    this.lockedUntil = lockedUntil;
+  }
+}

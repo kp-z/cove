@@ -14,13 +14,16 @@
  */
 
 import { z } from 'zod';
-import { router, publicProcedure } from '../trpc';
+import { TRPCError } from '@trpc/server';
+import { router, publicProcedure, protectedProcedure } from '../trpc';
 import { MessageService } from '../../../application/services/message/message.service';
 import { mapErrorToTRPC } from '../../../common/errors';
 import { RealmContext } from '../../../application/context/realm-context';
 import { runWithContext } from '../../../application/context/realm-context-store';
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 import { bareChannelId } from '../../../common/channel-ref';
+import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
+import type { MessageOrchestrator } from '../../../domain/message-orchestrator/message-orchestrator';
 
 // Zod Schemas
 const mentionSchema = z.object({
@@ -38,6 +41,21 @@ const sendMessageSchema = z.object({
   threadId: z.string().optional(),
   attachments: z.array(z.string()).readonly().optional(),
   mentions: z.array(mentionSchema).readonly().optional(),
+});
+
+const abortMessageSchema = z.object({
+  agentMessageId: z.string(),
+  channelId: z.string(),
+  reason: z.enum(['user', 'system']).optional(),
+});
+
+const reportAbortSchema = z.object({
+  channelId: z.string(),
+  messageId: z.string(),
+  userMessageId: z.string(),
+  agentId: z.string().optional(),
+  reason: z.string().optional(),
+  partialContent: z.string().optional(),
 });
 
 const updateMessageSchema = z.object({
@@ -85,7 +103,37 @@ function mapSenderTypeToRole(senderType: unknown): 'user' | 'assistant' | null {
   }
 }
 
-export const messageRouter = (messageService: MessageService, channelService?: any, eventBus?: IEventBus) =>
+function assertDeviceCaller(ctx: { userId?: string; realmId?: string; userType?: 'human' | 'agent' }): void {
+  if (!ctx.userId || !ctx.realmId) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Device authentication is required',
+    });
+  }
+  if (ctx.userType !== 'agent') {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Only authenticated devices can report abort',
+    });
+  }
+}
+
+function assertChannelInRealm(channel: { realmId?: string }, realmId: string): void {
+  if (channel.realmId !== realmId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Channel does not belong to the authenticated realm',
+    });
+  }
+}
+
+export const messageRouter = (
+  messageService: MessageService,
+  channelService?: any,
+  eventBus?: IEventBus,
+  deviceConnectionManager?: DeviceConnectionManager,
+  messageOrchestrator?: MessageOrchestrator
+) =>
   router({
     // 发送消息
     send: publicProcedure
@@ -101,6 +149,61 @@ export const messageRouter = (messageService: MessageService, channelService?: a
           ctx.logger.error('Failed to send message', error as Error, {
             channelId: input.channelId,
           });
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // 请求在线 Local Device 中止指定 Agent 执行。
+    abort: protectedProcedure
+      .input(abortMessageSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          if (!channelService) {
+            throw new Error('Channel service unavailable');
+          }
+
+          const channelId = bareChannelId(input.channelId);
+          const channel = await channelService.getChannelById(channelId);
+          assertChannelInRealm(channel, ctx.realmId!);
+          if (typeof channel.hasMember !== 'function' || !channel.hasMember(ctx.userId!)) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'You do not have access to this channel',
+            });
+          }
+
+          let existing: { channelId: string } | null = null;
+          try {
+            existing = await messageService.getMessageById(input.agentMessageId);
+          } catch {
+            existing = null;
+          }
+          if (existing && existing.channelId !== channelId) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Agent message does not belong to this channel',
+            });
+          }
+
+          const realmDeviceIds = deviceConnectionManager?.getOnlineDevices().filter(
+            (deviceId) =>
+              deviceConnectionManager.getConnection(deviceId)?.metadata?.realmId === channel.realmId
+          ) ?? [];
+          const dispatched = await deviceConnectionManager?.broadcastToDevices(
+            realmDeviceIds,
+            {
+              type: 'message.abort',
+              payload: {
+                agentMessageId: input.agentMessageId,
+                reason: input.reason,
+                requestedAt: new Date().toISOString(),
+              },
+            }
+          ) ?? 0;
+
+          return { ok: true, dispatched: dispatched > 0 };
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
           throw mapErrorToTRPC(error);
         }
       }),
@@ -631,6 +734,79 @@ export const messageRouter = (messageService: MessageService, channelService?: a
             return message.toJSON();
           });
         } catch (error: any) {
+          throw mapErrorToTRPC(error);
+        }
+      }),
+
+    // Local 确认中止后持久化终态、发布事件并结束云端等待。
+    // 设备鉴权与 saveResponse/reportFailure 相同：context 层 device auth，过程本身不走 protectedProcedure。
+    reportAbort: publicProcedure
+      .input(reportAbortSchema)
+      .mutation(async ({ input, ctx }) => {
+        try {
+          assertDeviceCaller(ctx);
+          const context = RealmContext.create(ctx.realmId!, ctx.userId!);
+          return await runWithContext(context, async () => {
+            const channelId = bareChannelId(input.channelId);
+            if (!channelService) {
+              throw new Error('Channel service unavailable');
+            }
+
+            const channel = await channelService.getChannelById(channelId);
+            assertChannelInRealm(channel, ctx.realmId!);
+
+            let senderId = input.agentId;
+            if (!senderId) {
+              const agentPool = Array.isArray(channel.agentPool)
+                ? channel.agentPool
+                : typeof channel.agentPool === 'string'
+                  ? JSON.parse(channel.agentPool)
+                  : [];
+              senderId = agentPool[0];
+            }
+            senderId ??= channelId;
+
+            await messageService.sendMessage({
+              senderId,
+              senderType: 'agent',
+              channelId,
+              content: input.partialContent ?? '',
+              messageId: input.messageId,
+              agentExecutionMetadata: {
+                aborted: true,
+                abort_reason: input.reason,
+              },
+            });
+
+            if (eventBus) {
+              try {
+                await eventBus.publish({
+                  eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                  eventType: 'agent.response.aborted',
+                  aggregateId: input.messageId,
+                  aggregateType: 'Message',
+                  occurredAt: new Date(),
+                  payload: {
+                    messageId: input.messageId,
+                    channelId,
+                    agentId: input.agentId,
+                    reason: input.reason,
+                    partialContent: input.partialContent,
+                  },
+                });
+              } catch (error) {
+                ctx.logger.warn('Failed to publish agent.response.aborted', {
+                  messageId: input.messageId,
+                  error: (error as Error).message,
+                });
+              }
+            }
+
+            messageOrchestrator?.notifyAborted(input.userMessageId);
+            return { success: true };
+          });
+        } catch (error: any) {
+          if (error instanceof TRPCError) throw error;
           throw mapErrorToTRPC(error);
         }
       }),

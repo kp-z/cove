@@ -90,6 +90,8 @@ export interface TokenUsage {
 }
 
 export interface AgentExecutionMetadata {
+  readonly aborted?: boolean;
+  readonly abort_reason?: string;
   readonly thinking?: string;
   readonly tool_logs?: readonly ToolLog[];
   readonly usage?: TokenUsage;
@@ -141,6 +143,8 @@ export interface MessageContent {
     isImportant: boolean;
   };
   agentExecutionMetadata?: {
+    aborted?: boolean;
+    abortReason?: string;
     thinking?: string;
     toolLogs?: Array<{
       id: string;
@@ -269,6 +273,8 @@ export interface MessageEntityJSON {
     readonly count: number;
   }[];
   readonly agent_execution_metadata?: {
+    readonly aborted?: boolean;
+    readonly abort_reason?: string;
     readonly thinking?: string;
     readonly tool_logs?: readonly {
       readonly id: string;

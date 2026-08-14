@@ -414,6 +414,39 @@ export class MessageStateManager {
   }
 
   /**
+   * 将 agent 进度标记为已中止，并保留已经收到的部分正文。
+   */
+  abortAgentProgress(agentMessageId: string): void {
+    const progress = this.agentProgress.get(agentMessageId);
+    if (!progress) return;
+
+    this.clearPendingTimer(agentMessageId);
+    this.agentProgress.set(agentMessageId, { ...progress, phase: 'aborted' });
+    this.notifySubscribers(progress.channelId);
+  }
+
+  /**
+   * 返回频道内可中止的权威 agent 消息 id。
+   */
+  getInFlightAgentMessageIds(channelId: string): string[] {
+    const activePhases: StreamingPhase[] = [
+      'accepted',
+      'thinking',
+      'tool_use',
+      'responding',
+    ];
+
+    return Array.from(this.agentProgress.values())
+      .filter(
+        (progress) =>
+          progress.channelId === channelId &&
+          !!progress.agentMessageId &&
+          activePhases.includes(progress.phase)
+      )
+      .map((progress) => progress.agentMessageId!);
+  }
+
+  /**
    * 超时兜底：若 provisional 占位长时间仍停留在 pending（agent 始终未被触发 / 无 accepted），
    * 则按 provisional key 清理它。若期间已被 promote 认领（key 已变为权威 id），此处查不到 → 空操作。
    */
@@ -487,7 +520,12 @@ export class MessageStateManager {
           inReplyTo: replyAnchorId,
           timestamp: progress.startedAt,
           source: 'local',
-          status: progress.phase === 'failed' ? 'failed' : 'streaming',
+          status:
+            progress.phase === 'failed'
+              ? 'failed'
+              : progress.phase === 'aborted'
+                ? 'sent'
+                : 'streaming',
           streamingPhase: effectivePhase,
           streamingData: {
             thinking: progress.thinking,

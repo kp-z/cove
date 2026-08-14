@@ -11,6 +11,7 @@ import type { MessageTask } from './message-orchestrator.interface'
  */
 export interface ProcessResult {
   success: boolean
+  aborted?: boolean
   error?: string
 }
 
@@ -24,4 +25,5 @@ export interface IMessageProcessor {
    * @returns 处理结果
    */
   process(task: MessageTask): Promise<ProcessResult>
+  notifyAborted?(messageId: string): void
 }

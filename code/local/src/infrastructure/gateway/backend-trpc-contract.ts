@@ -72,6 +72,16 @@ export interface ReportFailureInput {
   error?: string;
 }
 
+/** message.reportAbort 入参 */
+export interface ReportAbortInput {
+  channelId: string;
+  messageId: string;
+  userMessageId: string;
+  agentId?: string;
+  partialContent?: string;
+  reason?: string;
+}
+
 /** channel.getById 出参的 Local 使用子集 */
 export interface ChannelInfo {
   id?: string;
@@ -117,6 +127,7 @@ export interface BackendTrpcContract {
     saveResponse: Mutation<SaveResponseInput, unknown>;
     pushChunk: Mutation<PushChunkInput, unknown>;
     reportFailure: Mutation<ReportFailureInput, unknown>;
+    reportAbort: Mutation<ReportAbortInput, unknown>;
   };
   channel: {
     getById: Query<{ channelId: string }, ChannelInfo>;

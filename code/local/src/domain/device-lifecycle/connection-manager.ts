@@ -145,12 +145,20 @@ export class ConnectionManager {
     }
 
     if (this.ws) {
-      this.ws.removeAllListeners()
+      const ws = this.ws
+      ws.removeAllListeners()
 
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.close(1000, 'Normal closure')
+      // 主动断开时，若 socket 仍处于 CONNECTING（例如正撞上后台重连的一次尝试），
+      // terminate() 会让 ws 库异步抛出一个 "WebSocket was closed before the
+      // connection was established" 的 error 事件；上一行 removeAllListeners()
+      // 刚好把所有监听器都摘掉了，Node 对无人监听的 'error' 事件会当作未捕获异常
+      // 抛出、直接拖垮进程。这里补一个空监听器吞掉这类噪音。
+      ws.on('error', () => {})
+
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, 'Normal closure')
       } else {
-        this.ws.terminate()
+        ws.terminate()
       }
 
       this.ws = null

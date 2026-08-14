@@ -94,7 +94,17 @@ export class DeviceLifecycleManager implements IDeviceLifecycleManager {
       await this.errorRecoveryService.recoverPendingTasks()
 
       // 2. 建立连接
-      await this.connectionManager.connect()
+      // 连接失败不阻断启动：ConnectionManager 内部的 close → scheduleReconnect()
+      // 已经会在后台按指数退避自动重试（见 connection-manager.ts），这里只需要
+      // 不让"首次连接失败"变成致命错误一路冒泡到 main.ts 把整个进程杀掉——
+      // 否则后台重连定时器还没到点，进程就已经被 process.exit(1) 提前终止。
+      try {
+        await this.connectionManager.connect()
+      } catch (error) {
+        this.logger.warn('⚠️  Initial connection failed, retrying in background', {
+          error: (error as Error).message,
+        })
+      }
 
       // 3. 启动健康监控
       this.healthMonitor.start()
@@ -144,7 +154,10 @@ export class DeviceLifecycleManager implements IDeviceLifecycleManager {
   getState(): DeviceState {
     const connectionState = this.connectionManager.getState()
 
-    if (connectionState === 'ERROR' && this.state === 'RUNNING') {
+    // 未真正连上（包括首次连接失败后台重连中的 DISCONNECTED/RECONNECTING，
+    // 以及彻底耗尽重试的 ERROR）都应该反映为 DEGRADED，而不是只在 ERROR 时才降级——
+    // 否则 start() 里"连接失败但不阻断启动"的场景会让 getState() 短暂虚报 RUNNING。
+    if (connectionState !== 'CONNECTED' && this.state === 'RUNNING') {
       this.state = 'DEGRADED'
     } else if (connectionState === 'CONNECTED' && this.state === 'DEGRADED') {
       this.state = 'RUNNING'

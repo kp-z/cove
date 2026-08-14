@@ -73,6 +73,7 @@ export function useAgentStreaming(channelId: string) {
         'agent.response.tool_use',
         'agent.response.streaming',
         'agent.response.completed',
+        'agent.response.aborted',
         'agent.response.failed',
       ],
     },
@@ -167,6 +168,18 @@ export function useAgentStreaming(channelId: string) {
             // 方案A——直接把事件携带的权威正文写入 serverMessages，原地显示完整正文，
             // 派生占位随之自动消失（不刷新 / 不重复 / 不消失 / 位置正确）。
             finalizeAgentResponse(agentMessageId, data);
+            break;
+
+          case 'agent.response.aborted':
+            // 中止：保留本地已累积正文；事件携带更完整正文时以事件内容覆盖。
+            if (typeof data.partialContent === 'string') {
+              messageStateManager.updateAgentProgress(agentMessageId, {
+                partialContent: data.partialContent,
+              });
+            }
+            messageStateManager.abortAgentProgress(agentMessageId);
+            invalidateMessageList();
+            invalidateChannelList();
             break;
 
           case 'agent.response.failed':

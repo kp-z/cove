@@ -31,17 +31,20 @@ export class OpenAIAdapter implements LlmAdapter {
   }
 
   private async generateNonStreamingResponse(params: GenerateParams): Promise<string> {
-    const response = await this.client.chat.completions.create({
-      model: this.model,
-      max_tokens: params.maxTokens || this.defaultMaxTokens,
-      messages: [
-        { role: 'system' as const, content: params.systemPrompt },
-        ...params.messages.map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-      ],
-    });
+    const response = await this.client.chat.completions.create(
+      {
+        model: this.model,
+        max_tokens: params.maxTokens || this.defaultMaxTokens,
+        messages: [
+          { role: 'system' as const, content: params.systemPrompt },
+          ...params.messages.map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+        ],
+      },
+      { signal: params.signal }
+    );
 
     return response.choices[0]?.message?.content || '';
   }
@@ -52,19 +55,22 @@ export class OpenAIAdapter implements LlmAdapter {
 
     await streaming?.onStatusChange?.('thinking');
 
-    const stream = await this.client.chat.completions.create({
-      model: this.model,
-      max_tokens: params.maxTokens || this.defaultMaxTokens,
-      messages: [
-        { role: 'system' as const, content: params.systemPrompt },
-        ...params.messages.map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-      ],
-      stream: true,
-      stream_options: { include_usage: true },
-    });
+    const stream = await this.client.chat.completions.create(
+      {
+        model: this.model,
+        max_tokens: params.maxTokens || this.defaultMaxTokens,
+        messages: [
+          { role: 'system' as const, content: params.systemPrompt },
+          ...params.messages.map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+        ],
+        stream: true,
+        stream_options: { include_usage: true },
+      },
+      { signal: params.signal }
+    );
 
     let fullResponse = '';
     let inputTokens = 0;

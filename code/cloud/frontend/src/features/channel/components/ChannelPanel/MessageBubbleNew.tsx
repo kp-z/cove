@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import type { TFunction } from 'i18next';
-import { Coins } from 'lucide-react';
+import { Coins, AlertCircle } from 'lucide-react';
 import { Avatar, useEntityAvatarData } from '@/shared/components/display/Avatar';
 import { AgentExecutionModal, type TabType } from './MessageBubble/AgentExecution/AgentExecutionModal';
 import { MessageStatus } from './MessageStatus';
@@ -154,6 +154,7 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                   message.streamingPhase === 'pending' ? 'bg-gray-500/10 border border-gray-500/20' :
                   message.streamingPhase === 'thinking' ? 'bg-blue-500/10 border border-blue-500/20' :
                   message.streamingPhase === 'tool_use' ? 'bg-purple-500/10 border border-purple-500/20' :
+                  message.streamingPhase === 'failed' ? 'bg-red-500/10 border border-red-500/20' :
                   'bg-white/[0.05] border'
                 }`}
                 style={{ borderColor: isFailed ? undefined : (message.streamingPhase ? undefined : borderColor) }}
@@ -180,6 +181,41 @@ export function MessageBubble({ message, isGrouped, t, onRetry }: MessageBubbleP
                       isStreaming={true}
                       skipAnimation={message.skipAnimation}
                     />
+                  </div>
+                )}
+
+                {/* failed 阶段：明确展示失败原因，而不是留一个空气泡。
+                    根因：AgentProgressPanel 对 phase === 'failed' 直接 return null，
+                    而下面「completed 或无 phase」的内容条件又没把 failed 纳入，
+                    二者叠加导致失败时气泡内什么都不渲染——用户既看不到正文也看不到
+                    失败提示，只看到一个几乎空白的气泡，表现为「回复消失了」。 */}
+                {message.streamingPhase === 'failed' && (
+                  <div className="space-y-1.5">
+                    {/* 失败前已生成的部分正文（如有）：让用户知道并非完全没有产出。 */}
+                    {message.content && (
+                      <div className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+                        {message.content}
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2 text-sm text-red-400 leading-relaxed">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span className="whitespace-pre-wrap break-words">
+                        {message.error?.message || 'Agent 响应失败，请重试'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {message.streamingPhase === 'aborted' && (
+                  <div className="space-y-1.5">
+                    {(message.streamingData?.partialContent || message.content) && (
+                      <div className="text-sm text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+                        {message.streamingData?.partialContent || message.content}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500 leading-relaxed">
+                      {t('channel:message.stopped')}
+                    </div>
                   </div>
                 )}
 

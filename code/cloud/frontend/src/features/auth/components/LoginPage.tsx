@@ -256,7 +256,12 @@ export default function LoginPage() {
               if (code === 'UNAUTHORIZED') {
                 setError(t('auth.invalidCredentials'));
               } else if (code === 'FORBIDDEN') {
-                setError(t('auth.accountDisabled'));
+                // 后端锁定文案含 "locked"；禁用账号为 "Account is disabled"
+                if (/locked/i.test(err.message)) {
+                  setError(t('auth.accountLocked'));
+                } else {
+                  setError(t('auth.accountDisabled'));
+                }
               } else {
                 setError(t('auth.unknownError'));
               }

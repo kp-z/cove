@@ -86,6 +86,13 @@ export class MessageOrchestrator implements IMessageOrchestrator {
   }
 
   /**
+   * 结束等待中的 Device 任务。中止属于成功终态，不进入失败重试。
+   */
+  notifyAborted(userMessageId: string): void {
+    this.deviceProcessor.notifyAborted?.(userMessageId)
+  }
+
+  /**
    * 处理下一条待处理消息
    */
   async processNext(): Promise<boolean> {

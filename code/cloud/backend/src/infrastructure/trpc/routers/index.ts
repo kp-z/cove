@@ -42,6 +42,7 @@ import type { FileSystemService } from '../../../application/services/filesystem
 import type { IEventBus } from '../../../application/interfaces/event-bus.interface';
 import type { DeviceConnectionManager } from '../../websocket/device-connection-manager';
 import type { ILogger } from '../../../application/interfaces/logger.interface';
+import type { MessageOrchestrator } from '../../../domain/message-orchestrator/message-orchestrator';
 
 export interface RouterDependencies {
   agentService: AgentService;
@@ -64,6 +65,7 @@ export interface RouterDependencies {
   fileSystemService: FileSystemService;
   eventBus: IEventBus;
   deviceConnectionManager: DeviceConnectionManager;
+  messageOrchestrator: MessageOrchestrator;
   logger: ILogger;
 }
 
@@ -112,7 +114,13 @@ export function createAppRouter(deps: RouterDependencies): ReturnType<typeof rou
     channel: channelRouter(deps.channelService),
 
     // Message router
-    message: messageRouter(deps.messageService, deps.channelService, deps.eventBus),
+    message: messageRouter(
+      deps.messageService,
+      deps.channelService,
+      deps.eventBus,
+      deps.deviceConnectionManager,
+      deps.messageOrchestrator
+    ),
 
     // Task router
     task: taskRouter(deps.taskService),

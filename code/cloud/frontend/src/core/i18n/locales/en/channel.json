@@ -10,6 +10,9 @@
     "emptyTitle": "No messages",
     "emptyDescription": "Send the first message to start a conversation"
   },
+  "message": {
+    "stopped": "Stopped"
+  },
   "tabs": {
     "close": "Close",
     "newThread": "New Thread"

@@ -21,12 +21,13 @@ export function useAgentResponding(channelId: string): boolean {
 
   useEffect(() => {
     const unsubscribe = messageStateManager.subscribe(channelId, (messages) => {
-      // agent 进度占位消息始终携带 streamingPhase；'failed' 代表已终止，不算「响应中」。
+      // agent 进度占位消息始终携带 streamingPhase；失败或中止均不算「响应中」。
       const active = messages.some(
         (message) =>
           message.senderType === 'agent' &&
           !!message.streamingPhase &&
-          message.streamingPhase !== 'failed'
+          message.streamingPhase !== 'failed' &&
+          message.streamingPhase !== 'aborted'
       );
       setIsResponding(active);
     });
@@ -34,4 +35,17 @@ export function useAgentResponding(channelId: string): boolean {
   }, [channelId]);
 
   return isResponding;
+}
+
+export function useAgentAbortable(channelId: string): boolean {
+  const [isAbortable, setIsAbortable] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = messageStateManager.subscribe(channelId, () => {
+      setIsAbortable(messageStateManager.getInFlightAgentMessageIds(channelId).length > 0);
+    });
+    return unsubscribe;
+  }, [channelId]);
+
+  return isAbortable;
 }

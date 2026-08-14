@@ -10,6 +10,34 @@ import type { ChildProcessWithoutNullStreams } from 'child_process';
 import { LlmAdapter, GenerateParams, AdapterCapabilities, BatchResponse } from './llm-adapter.interface';
 import type { ExecutionMetadata, UsageMetadata } from '../../../domain/agent-runtime/execution-metadata';
 
+function createAbortError(): Error {
+  const error = new Error('Claude CLI execution aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
+function bindAbortToProcess(
+  signal: AbortSignal | undefined,
+  child: ChildProcessWithoutNullStreams,
+  onAbort: () => void
+): () => void {
+  if (!signal) return () => {};
+
+  const handleAbort = (): void => {
+    signal.removeEventListener('abort', handleAbort);
+    if (!child.killed) child.kill('SIGTERM');
+    onAbort();
+  };
+
+  if (signal.aborted) {
+    handleAbort();
+  } else {
+    signal.addEventListener('abort', handleAbort, { once: true });
+  }
+
+  return () => signal.removeEventListener('abort', handleAbort);
+}
+
 /**
  * 多轮对话上下文
  */
@@ -178,7 +206,7 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
 
     try {
       // 通过 stdin 传递 prompt
-      const output = await this.executeCli(args, fullPrompt);
+      const output = await this.executeCli(args, fullPrompt, params.signal);
       const parsed = this.parseCliOutput(output);
       const endTime = Date.now();
       const totalMs = endTime - startTime;
@@ -208,6 +236,9 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         metadata
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
       throw new Error(`Claude CLI execution failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -291,13 +322,33 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      let unbindAbort = (): void => {};
+
       // 超时保护
       const timeoutId = setTimeout(() => {
         if (settled) return;
         settled = true;
+        unbindAbort();
         child.kill('SIGTERM');
         reject(new Error(`CLI streaming timeout after ${this.timeout}ms`));
       }, this.timeout);
+
+      child.on('error', (error: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        unbindAbort();
+        reject(new Error(`Failed to spawn CLI: ${error.message}`));
+      });
+
+      unbindAbort = bindAbortToProcess(params.signal, child, () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(createAbortError());
+      });
+
+      if (settled) return;
 
       // 首个心跳：进入"思考中"
       enqueue(() => streaming?.onStatusChange?.('thinking'));
@@ -349,16 +400,10 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         stderr += data.toString();
       });
 
-      child.on('error', (error: Error) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        reject(new Error(`Failed to spawn CLI: ${error.message}`));
-      });
-
       child.on('close', (code: number | null) => {
         if (settled) return;
         clearTimeout(timeoutId);
+        unbindAbort();
 
         // 处理可能残留的最后一行
         if (lineBuffer.trim()) {
@@ -602,10 +647,11 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
       .join('\n\n');
   }
 
-  private executeCli(args: string[], prompt: string): Promise<string> {
+  private executeCli(args: string[], prompt: string, signal?: AbortSignal): Promise<string> {
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
+      let settled = false;
 
       const child = spawn(this.cliPath, args, {
         cwd: this.workingDir,
@@ -613,11 +659,33 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      let unbindAbort = (): void => {};
+
       // 设置超时
       const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        unbindAbort();
         child.kill('SIGTERM');
         reject(new Error(`CLI execution timeout after ${this.timeout}ms`));
       }, this.timeout);
+
+      child.on('error', (error: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        unbindAbort();
+        reject(new Error(`Failed to spawn CLI: ${error.message}`));
+      });
+
+      unbindAbort = bindAbortToProcess(signal, child, () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(createAbortError());
+      });
+
+      if (settled) return;
 
       // 写入 prompt 到 stdin
       child.stdin.write(prompt);
@@ -631,13 +699,11 @@ export class ClaudeCodeCLIAdapter implements LlmAdapter {
         stderr += data.toString();
       });
 
-      child.on('error', (error: Error) => {
-        clearTimeout(timeoutId);
-        reject(new Error(`Failed to spawn CLI: ${error.message}`));
-      });
-
       child.on('close', (code: number | null) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timeoutId);
+        unbindAbort();
 
         if (code !== 0) {
           reject(new Error(`CLI exited with code ${code}. stderr: ${stderr}`));

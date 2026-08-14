@@ -32,6 +32,9 @@ export function mapStreamingPhaseToAvatarStatus(
       return 'tool';
     case 'responding':
       return 'responding';
+    case 'aborted':
+      // 已中止：不显示 loading/错误胶囊，保持头像静止
+      return undefined;
     default:
       // 步骤 3：completed / 无 phase → 不显示状态胶囊
       return undefined;

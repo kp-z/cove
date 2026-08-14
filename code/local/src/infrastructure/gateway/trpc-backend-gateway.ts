@@ -25,7 +25,8 @@ export class TrpcBackendGateway implements BackendGateway {
     private backendUrl: string,
     private realmId?: string,
     private deviceId?: string,
-    logger?: ILogger
+    logger?: ILogger,
+    private apiKey?: string
   ) {
     this.logger = logger ?? {
       debug: () => {},
@@ -47,7 +48,11 @@ export class TrpcBackendGateway implements BackendGateway {
               headers['x-realm-id'] = this.realmId;
             }
             if (this.deviceId) {
+              headers['x-device-id'] = this.deviceId;
               headers['x-user-id'] = this.deviceId;
+            }
+            if (this.apiKey) {
+              headers['x-api-key'] = this.apiKey;
             }
             return headers;
           },
@@ -311,6 +316,17 @@ export class TrpcBackendGateway implements BackendGateway {
       this.logger.warn('⚠️  Failed to report agent failure', { error: (error as Error).message });
       // Don't throw - failure reporting is best-effort（避免二次失败掩盖原始错误）
     }
+  }
+
+  async reportAgentAbort(abort: {
+    channelId: string;
+    messageId: string;
+    userMessageId: string;
+    agentId?: string;
+    partialContent?: string;
+    reason?: string;
+  }): Promise<void> {
+    await this.client.message.reportAbort.mutate(abort);
   }
 
   async syncAgentMetadata(payload: {

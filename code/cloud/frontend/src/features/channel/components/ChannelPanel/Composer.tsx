@@ -17,7 +17,13 @@ import {
   Send,
   Loader2,
 } from 'lucide-react';
-import { useSendMessage, useTypingState, useMessageQueue, useAgentResponding } from '../../hooks';
+import {
+  useSendMessage,
+  useTypingState,
+  useMessageQueue,
+  useAgentAbortable,
+  useAgentResponding,
+} from '../../hooks';
 import { useChannelMembers, useChannel } from '@/lib/trpc/hooks/channel.hooks';
 import { useAgent } from '@/lib/trpc/hooks/agent.hooks';
 
@@ -32,6 +38,7 @@ interface Attachment {
 
 interface ComposerProps {
   channelId: string;
+  onStop: () => void | Promise<void>;
   placeholder?: string;
   className?: string;
 }
@@ -91,6 +98,7 @@ const MODE_ACCENTS: Record<ComposerMode, { trigger: string; icon: string; active
 
 export function Composer({
   channelId,
+  onStop,
   placeholder: placeholderProp,
   className = '',
 }: ComposerProps) {
@@ -108,6 +116,7 @@ export function Composer({
   // 因此选择在前端约束用户行为：Agent 尚未回复完成前禁用输入框/发送按钮，
   // 而不是营造一个后端支撑不了的「可并发发送」假象。
   const isAgentResponding = useAgentResponding(channelId);
+  const isGenerating = useAgentAbortable(channelId);
   const isBusy = isSending || isAgentResponding;
 
   // ── 解析「将要回复的 agent」信息（用于发送时插入拟人化占位气泡）──
@@ -232,7 +241,7 @@ export function Composer({
   };
 
   const handleStop = () => {
-    // TODO: 实现停止生成功能
+    void onStop();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -500,7 +509,7 @@ export function Composer({
         />
 
         {/* Send/Stop Button */}
-        {isSending ? (
+        {isGenerating ? (
           <button
             onClick={handleStop}
             className="shrink-0 h-[34px] px-3 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40 text-sm font-medium transition-colors focus:outline-none"

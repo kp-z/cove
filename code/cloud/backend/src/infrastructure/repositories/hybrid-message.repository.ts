@@ -84,6 +84,8 @@ export class HybridMessageRepository
       })),
       reactions: content.reactions || [],
       agentExecutionMetadata: content.agentExecutionMetadata ? {
+        aborted: content.agentExecutionMetadata.aborted,
+        abort_reason: content.agentExecutionMetadata.abortReason,
         thinking: content.agentExecutionMetadata.thinking,
         tool_logs: content.agentExecutionMetadata.toolLogs?.map(log => ({
           id: log.id,
@@ -194,6 +196,8 @@ export class HybridMessageRepository
       })),
       meta: entity.meta,
       agentExecutionMetadata: entity.agentExecutionMetadata ? {
+        aborted: entity.agentExecutionMetadata.aborted,
+        abortReason: entity.agentExecutionMetadata.abort_reason,
         thinking: entity.agentExecutionMetadata.thinking,
         toolLogs: entity.agentExecutionMetadata.tool_logs?.map(log => ({
           id: log.id,

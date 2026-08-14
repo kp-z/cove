@@ -23,6 +23,7 @@ export type StreamingPhase =
   | 'tool_use'   // 工具调用
   | 'responding' // 正在回复
   | 'completed'  // 完成
+  | 'aborted'    // 已中止
   | 'failed';    // 失败
 
 export type MessageError = {

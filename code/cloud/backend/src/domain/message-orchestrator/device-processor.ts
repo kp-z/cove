@@ -41,7 +41,16 @@ export class DeviceProcessor implements IMessageProcessor {
     private readonly dependencies: DeviceProcessorDependencies,
     config: DeviceProcessorConfig = {}
   ) {
-    this.timeout = config.timeout ?? 60000 // 60 秒超时
+    // 根因修复：此处的「等待 Device 响应」仅是一层兜底轮询（数据库对账），
+    // 真正的完成/失败信号由 Local 通过 tRPC 直接上报（message.router 的
+    // saveResponse / reportFailure），并独立驱动前端的 agent.response.* 事件。
+    // 旧默认值 60s 远小于真实 CLI Agent 任务（thinking/tool 多轮）的常见耗时，
+    // 一旦超时就会触发 handleFailure 重新入队 → 再次向同一 Device 推送
+    // message.process，导致同一条用户消息被并发/重复处理（重复计费、
+    // 流式事件交叉污染），而前端却因为独立的 tRPC 事件链路完全无感知。
+    // 因此把它调大为一个「设备彻底失联」才会触发的超长兜底值，正常任务
+    // 无论跑多久都不会被这层轮询误判为失败。
+    this.timeout = config.timeout ?? 30 * 60 * 1000 // 30 分钟兜底超时（非正常完成信号）
     this.pollInterval = config.pollInterval ?? 1000 // 1 秒轮询间隔
   }
 
@@ -207,6 +216,13 @@ export class DeviceProcessor implements IMessageProcessor {
       this.pendingTasks.delete(messageId)
       task.resolve(result)
     }
+  }
+
+  /**
+   * 将用户中止作为成功终态解析，避免编排器触发失败重试。
+   */
+  notifyAborted(userMessageId: string): void {
+    this.handleDeviceResponse(userMessageId, { success: true, aborted: true })
   }
 
   /**

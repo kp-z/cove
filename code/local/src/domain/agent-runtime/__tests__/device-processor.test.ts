@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DeviceProcessor } from '../device-processor'
+import { ExecutionRegistry } from '../execution-registry'
 import type { MessageTask } from '../message-orchestrator.interface'
 import type { BackendGateway } from '../../../infrastructure/gateway/backend-gateway.interface'
 import type { IAdapterManager } from '../../../infrastructure/adapters/adapter-manager.interface'
@@ -13,6 +14,7 @@ describe('DeviceProcessor', () => {
   let mockBackendGateway: BackendGateway
   let mockAdapterManager: IAdapterManager
   let mockAdapter: any
+  let executionRegistry: ExecutionRegistry
 
   beforeEach(() => {
     // Mock LLM Adapter
@@ -45,6 +47,7 @@ describe('DeviceProcessor', () => {
       saveAgentResponse: vi.fn().mockResolvedValue(undefined),
       pushResponseChunk: vi.fn().mockResolvedValue(undefined),
       reportAgentFailure: vi.fn().mockResolvedValue(undefined),
+      reportAgentAbort: vi.fn().mockResolvedValue(undefined),
       getExecutionMode: vi.fn(),
       isFeatureFlagEnabled: vi.fn(),
       getFeatureFlags: vi.fn(),
@@ -55,7 +58,13 @@ describe('DeviceProcessor', () => {
       healthCheck: vi.fn()
     }
 
-    deviceProcessor = new DeviceProcessor(mockBackendGateway, mockAdapterManager)
+    executionRegistry = new ExecutionRegistry()
+    deviceProcessor = new DeviceProcessor(
+      mockBackendGateway,
+      mockAdapterManager,
+      {},
+      executionRegistry
+    )
   })
 
   describe('process()', () => {
@@ -228,6 +237,223 @@ describe('DeviceProcessor', () => {
       expect(result.error).toBe('API error')
     })
 
+    it('用户中止执行后应上报 abort 终态且不按失败处理', async () => {
+      const agentMessageId = 'agent-message-1'
+      const task: MessageTask = {
+        id: 'task-abort',
+        messageId: 'user-message-fallback',
+        channelId: 'channel-1',
+        content: 'Test message',
+        state: 'PENDING',
+        executionMode: 'device',
+        attempts: 0,
+        maxAttempts: 3,
+        priority: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          agentId: 'agent-1',
+          agentMessageId,
+          userMessageId: 'user-message-1'
+        }
+      }
+
+      mockAdapter.generateResponse = vi.fn().mockImplementation(({ signal }) => {
+        if (!signal) {
+          return Promise.reject(new Error('AbortSignal missing'))
+        }
+
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            const error = new Error('Aborted')
+            error.name = 'AbortError'
+            reject(error)
+          }, { once: true })
+        })
+      })
+
+      const processing = deviceProcessor.process(task)
+      await vi.waitFor(() => expect(executionRegistry.has(agentMessageId)).toBe(true))
+      expect(executionRegistry.abort(agentMessageId)).toBe(true)
+
+      await expect(processing).resolves.toEqual({ success: true, aborted: true })
+      expect(mockBackendGateway.reportAgentAbort).toHaveBeenCalledWith({
+        channelId: 'channel-1',
+        messageId: agentMessageId,
+        userMessageId: 'user-message-1',
+        agentId: 'agent-1',
+        reason: 'user'
+      })
+      expect(mockBackendGateway.reportAgentFailure).not.toHaveBeenCalled()
+      expect(executionRegistry.has(agentMessageId)).toBe(false)
+    })
+
+    it('abort 终态连续上报失败时应返回失败且不得上报普通执行失败', async () => {
+      const agentMessageId = 'agent-message-report-failure'
+      const task: MessageTask = {
+        id: 'task-abort-report-failure',
+        messageId: 'user-message-1',
+        channelId: 'channel-1',
+        content: 'Test message',
+        state: 'PENDING',
+        executionMode: 'device',
+        attempts: 0,
+        maxAttempts: 3,
+        priority: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          agentId: 'agent-1',
+          agentMessageId,
+          userMessageId: 'user-message-1'
+        }
+      }
+
+      mockAdapter.generateResponse = vi.fn().mockImplementation(({ signal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            const error = new Error('Aborted')
+            error.name = 'AbortError'
+            reject(error)
+          }, { once: true })
+        })
+      )
+      mockBackendGateway.reportAgentAbort = vi.fn().mockRejectedValue(new Error('Cloud unavailable'))
+
+      const processing = deviceProcessor.process(task)
+      await vi.waitFor(() => expect(executionRegistry.has(agentMessageId)).toBe(true))
+      executionRegistry.abort(agentMessageId)
+
+      await expect(processing).resolves.toMatchObject({
+        success: false,
+        aborted: true,
+        error: expect.stringContaining('Cloud unavailable')
+      })
+      expect(mockBackendGateway.reportAgentAbort).toHaveBeenCalledTimes(3)
+      expect(mockBackendGateway.reportAgentFailure).not.toHaveBeenCalled()
+    })
+
+    it('abort 上报短暂失败后应重试并在成功后结束云端等待', async () => {
+      const agentMessageId = 'agent-message-report-retry'
+      const task: MessageTask = {
+        id: 'task-abort-report-retry',
+        messageId: 'user-message-1',
+        channelId: 'channel-1',
+        content: 'Test message',
+        state: 'PENDING',
+        executionMode: 'device',
+        attempts: 0,
+        maxAttempts: 3,
+        priority: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          agentId: 'agent-1',
+          agentMessageId,
+          userMessageId: 'user-message-1'
+        }
+      }
+
+      mockAdapter.generateResponse = vi.fn().mockImplementation(({ signal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            const error = new Error('Aborted')
+            error.name = 'AbortError'
+            reject(error)
+          }, { once: true })
+        })
+      )
+      mockBackendGateway.reportAgentAbort = vi.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined)
+
+      const processing = deviceProcessor.process(task)
+      await vi.waitFor(() => expect(executionRegistry.has(agentMessageId)).toBe(true))
+      executionRegistry.abort(agentMessageId)
+
+      await expect(processing).resolves.toEqual({ success: true, aborted: true })
+      expect(mockBackendGateway.reportAgentAbort).toHaveBeenCalledTimes(2)
+      expect(mockBackendGateway.reportAgentFailure).not.toHaveBeenCalled()
+    })
+
+    it('abort 上报缺少 metadata userMessageId 时应使用 task.messageId', async () => {
+      const agentMessageId = 'agent-message-user-fallback'
+      const task: MessageTask = {
+        id: 'task-abort-user-fallback',
+        messageId: 'user-message-fallback',
+        channelId: 'channel-1',
+        content: 'Test message',
+        state: 'PENDING',
+        executionMode: 'device',
+        attempts: 0,
+        maxAttempts: 3,
+        priority: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: { agentMessageId }
+      }
+
+      mockAdapter.generateResponse = vi.fn().mockImplementation(({ signal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            const error = new Error('Aborted')
+            error.name = 'AbortError'
+            reject(error)
+          }, { once: true })
+        })
+      )
+
+      const processing = deviceProcessor.process(task)
+      await vi.waitFor(() => expect(executionRegistry.has(agentMessageId)).toBe(true))
+      executionRegistry.abort(agentMessageId)
+      await processing
+
+      expect(mockBackendGateway.reportAgentAbort).toHaveBeenCalledWith(
+        expect.objectContaining({ userMessageId: 'user-message-fallback' })
+      )
+    })
+
+    it('历史拉取期间收到 abort 应命中 registry 并上报 abort 终态', async () => {
+      const agentMessageId = 'agent-message-history-abort'
+      const task: MessageTask = {
+        id: 'task-history-abort',
+        messageId: 'user-message-fallback',
+        channelId: 'channel-1',
+        content: 'Test message',
+        state: 'PENDING',
+        executionMode: 'device',
+        attempts: 0,
+        maxAttempts: 3,
+        priority: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          agentId: 'agent-1',
+          agentMessageId,
+          userMessageId: 'user-message-1'
+        }
+      }
+
+      mockBackendGateway.getMessageHistory = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
+      )
+
+      const processing = deviceProcessor.process(task)
+      await vi.waitFor(() => expect(executionRegistry.has(agentMessageId)).toBe(true))
+      expect(executionRegistry.abort(agentMessageId)).toBe(true)
+
+      await expect(processing).resolves.toEqual({ success: true, aborted: true })
+      expect(mockBackendGateway.reportAgentAbort).toHaveBeenCalledWith({
+        channelId: 'channel-1',
+        messageId: agentMessageId,
+        userMessageId: 'user-message-1',
+        agentId: 'agent-1',
+        reason: 'user'
+      })
+      expect(mockAdapter.generateResponse).not.toHaveBeenCalled()
+      expect(executionRegistry.has(agentMessageId)).toBe(false)
+    })
+
     it('当保存响应失败时应该返回错误', async () => {
       mockBackendGateway.saveAgentResponse = vi.fn().mockRejectedValue(new Error('Save failed'))
 
@@ -335,7 +561,8 @@ describe('DeviceProcessor', () => {
         {
           defaultAdapter: 'primary-adapter',
           fallbackAdapters: ['fallback-adapter']
-        }
+        },
+        executionRegistry
       )
 
       const task: MessageTask = {
@@ -372,7 +599,8 @@ describe('DeviceProcessor', () => {
         mockAdapterManager,
         {
           maxHistoryMessages: 10
-        }
+        },
+        executionRegistry
       )
 
       const task: MessageTask = {
@@ -411,7 +639,8 @@ describe('DeviceProcessor', () => {
         mockAdapterManager,
         {
           defaultSystemPrompt: 'You are a coding assistant.'
-        }
+        },
+        executionRegistry
       )
 
       const task: MessageTask = {

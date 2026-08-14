@@ -7,6 +7,7 @@
 import { PrismaClient } from '../../../generated/client'
 import { MessageOrchestrator } from './message-orchestrator'
 import { DeviceProcessor } from './device-processor'
+import { ExecutionRegistry } from './execution-registry'
 import { SqliteMessageQueue } from '../../infrastructure/storage/sqlite-message-queue'
 import { SqliteTaskStore } from '../../infrastructure/storage/sqlite-task-store'
 import type { BackendGateway } from '../../infrastructure/gateway/backend-gateway.interface'
@@ -22,14 +23,15 @@ export function createMessageOrchestrator(
   prisma: PrismaClient,
   backendGateway: BackendGateway,
   adapterManager: IAdapterManager,
-  config?: MessageOrchestratorConfig
+  config?: MessageOrchestratorConfig,
+  executionRegistry: ExecutionRegistry = new ExecutionRegistry()
 ): MessageOrchestrator {
   // 创建存储层
   const messageQueue = new SqliteMessageQueue(prisma)
   const taskStore = new SqliteTaskStore(prisma)
 
-  // 创建本地处理器（注入依赖）
-  const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager)
+  // 创建本地处理器（注入与 DeviceClient 相同的共享 registry 模式）
+  const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager, config, executionRegistry)
 
   // 创建 MessageOrchestrator
   return new MessageOrchestrator(

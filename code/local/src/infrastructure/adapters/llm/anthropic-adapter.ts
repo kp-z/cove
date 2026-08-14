@@ -58,15 +58,18 @@ export class AnthropicAdapter implements LlmAdapter {
 
   private async generateNonStreamingResponse(params: GenerateParams): Promise<string> {
     console.log('[AnthropicAdapter] Calling API with model:', this.model);
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: params.maxTokens || this.defaultMaxTokens,
-      system: params.systemPrompt,
-      messages: params.messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+    const response = await this.client.messages.create(
+      {
+        model: this.model,
+        max_tokens: params.maxTokens || this.defaultMaxTokens,
+        system: params.systemPrompt,
+        messages: params.messages.map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      },
+      { signal: params.signal }
+    );
 
     const textBlock = response.content.find(b => b.type === 'text');
     return textBlock ? textBlock.text : '';
@@ -79,15 +82,18 @@ export class AnthropicAdapter implements LlmAdapter {
     // 通知开始 thinking
     await streaming?.onStatusChange?.('thinking');
 
-    const stream = await this.client.messages.stream({
-      model: this.model,
-      max_tokens: params.maxTokens || this.defaultMaxTokens,
-      system: params.systemPrompt,
-      messages: params.messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+    const stream = await this.client.messages.stream(
+      {
+        model: this.model,
+        max_tokens: params.maxTokens || this.defaultMaxTokens,
+        system: params.systemPrompt,
+        messages: params.messages.map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      },
+      { signal: params.signal }
+    );
 
     let fullResponse = '';
     const startTime = Date.now();

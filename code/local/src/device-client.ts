@@ -19,6 +19,7 @@ import { SqliteTaskStore } from './infrastructure/storage/sqlite-task-store';
 import { SqliteConfigCache } from './infrastructure/storage/sqlite-config-cache';
 import { MessageOrchestrator } from './domain/agent-runtime/message-orchestrator';
 import { DeviceProcessor } from './domain/agent-runtime/device-processor';
+import { ExecutionRegistry } from './domain/agent-runtime/execution-registry';
 import { ConfigurationService } from './domain/configuration/configuration-service';
 import { DeviceLifecycleManager } from './domain/device-lifecycle/device-lifecycle-manager';
 import { AdapterManager } from './infrastructure/adapters/adapter-manager';
@@ -36,6 +37,7 @@ export class DeviceClient {
   private messageOrchestrator: MessageOrchestrator | null = null;
   private configService: ConfigurationService | null = null;
   private lifecycleManager: DeviceLifecycleManager | null = null;
+  private readonly executionRegistry = new ExecutionRegistry();
   private running = false;
   private shuttingDown = false;
 
@@ -75,7 +77,8 @@ export class DeviceClient {
         httpUrl,
         this.config.device.realmId,
         this.config.device.id,
-        gatewayLogger
+        gatewayLogger,
+        this.config.device.apiKey
       );
       this.logger.debug(`⚙️  Backend: ${httpUrl}`);
 
@@ -122,10 +125,15 @@ export class DeviceClient {
 
       // 步骤 5 — 创建消息处理器
       const processorLogger = this.logger.scope('Processor');
-      const deviceProcessor = new DeviceProcessor(backendGateway, adapterManager, {
-        defaultAdapter: 'claude-cli-adapter',
-        logger: processorLogger,
-      });
+      const deviceProcessor = new DeviceProcessor(
+        backendGateway,
+        adapterManager,
+        {
+          defaultAdapter: 'claude-cli-adapter',
+          logger: processorLogger,
+        },
+        this.executionRegistry
+      );
 
       // 步骤 6 — 创建消息编排器
       this.messageOrchestrator = new MessageOrchestrator(
@@ -287,6 +295,13 @@ export class DeviceClient {
       type:       message.type,
       hasPayload: !!message.payload,
     });
+
+    if (message.type === 'message.abort' && message.payload?.agentMessageId) {
+      const agentMessageId = message.payload.agentMessageId as string;
+      const hit = this.executionRegistry.abort(agentMessageId);
+      this.logger.info('message.abort handled', { agentMessageId, hit });
+      return;
+    }
 
     if (!this.messageOrchestrator) {
       this.logger.error('❌ Message orchestrator not initialized');

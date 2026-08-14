@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAgentResponding } from './useAgentResponding';
+import { useAgentAbortable, useAgentResponding } from './useAgentResponding';
 import { messageStateManager } from '../domain/MessageStateManager';
 import { Message } from '../domain/models/Message';
 
@@ -91,5 +91,31 @@ describe('useAgentResponding', () => {
     });
 
     expect(result.current).toBe(false);
+  });
+});
+
+describe('useAgentAbortable', () => {
+  it('enables Stop only after provisional progress receives an authoritative id', () => {
+    const channelId = `${CHANNEL_ID}-abortable`;
+    const { result } = renderHook(() => useAgentAbortable(channelId));
+
+    act(() => {
+      messageStateManager.startAgentProgress(channelId, {
+        repliesToLocalId: 'temp-abortable',
+        agentId: 'agent-1',
+        agentName: 'Agent',
+      });
+    });
+    expect(result.current).toBe(false);
+
+    act(() => {
+      messageStateManager.promoteAgentProgress({
+        agentMessageId: 'agent-msg-abortable',
+        agentId: 'agent-1',
+        agentName: 'Agent',
+        channelId,
+      });
+    });
+    expect(result.current).toBe(true);
   });
 });

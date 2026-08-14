@@ -19,6 +19,7 @@ import {
   MetadataExtractionPostProcessor
 } from './post-processors'
 import { DeduplicationManager } from './deduplication'
+import { ExecutionRegistry } from './execution-registry'
 import {
   MetadataCollectorFactory,
   ResilientTransmissionStrategy,
@@ -63,7 +64,8 @@ export class DeviceProcessor implements IMessageProcessor {
   constructor(
     private readonly backendGateway: BackendGateway,
     private readonly adapterManager: IAdapterManager,
-    config: DeviceProcessorConfig = {}
+    config: DeviceProcessorConfig = {},
+    private readonly executionRegistry: ExecutionRegistry
   ) {
     this.logger = config.logger ?? {
       debug: () => {},
@@ -173,103 +175,124 @@ export class DeviceProcessor implements IMessageProcessor {
         }
       }
 
-      // 2. 获取对话历史
-      const historyStart = Date.now()
-      const history = await this.getMessageHistory(task.channelId)
-      metrics.historyFetchTime = Date.now() - historyStart
+      const agentMessageId = task.metadata?.agentMessageId || task.messageId
+      const executionHandle = this.executionRegistry.register(agentMessageId)
+      const { controller } = executionHandle
 
-      // 3. 尝试主 Adapter 和备用 Adapters
-      const adapters = [this.defaultAdapter, ...this.fallbackAdapters]
-      let lastError: string | undefined
+      try {
+        // 2. 获取对话历史（register 前置，使 history fetch 期间 message.abort 可命中）
+        const historyStart = Date.now()
+        const history = await this.getMessageHistory(task.channelId)
+        metrics.historyFetchTime = Date.now() - historyStart
 
-      for (const adapterName of adapters) {
-        const adapter = await this.adapterManager.getAdapter(adapterName)
-        if (!adapter) {
-          lastError = `Adapter '${adapterName}' not found`
-          this.logger.warn(`⚠️  Adapter not found`, { adapter: adapterName })
-          continue
+        if (controller.signal.aborted) {
+          return await this.finishAborted(task)
         }
 
-        try {
-          metrics.adapterUsed = adapterName
+        // 3. 尝试主 Adapter 和备用 Adapters
+        const adapters = [this.defaultAdapter, ...this.fallbackAdapters]
+        let lastError: string | undefined
 
-          // 3. 调用 LLM API 生成响应（返回 response + metadata）
-          const llmStart = Date.now()
-          const { response: rawResponse, metadata: executionMetadata } = await this.generateResponse(task, history, adapter)
-          metrics.llmCallTime = Date.now() - llmStart
-
-          // 4. 后处理响应
-          let response = rawResponse
-          if (this.postProcessorManager) {
-            const postProcessStart = Date.now()
-            const postProcessResult = await this.postProcessorManager.process(
-              rawResponse,
-              {
-                channelId: task.channelId,
-                messageId: task.messageId,
-                taskId: task.id,
-                adapter: adapterName,
-                timestamp: new Date(),
-                metrics
-              }
-            )
-
-            response = postProcessResult.content
-            metrics.postProcessingTime = Date.now() - postProcessStart
-
-            // 合并后处理元数据
-            if (postProcessResult.metadata) {
-              metrics.postProcessing = postProcessResult.metadata
-            }
-
-            // 记录验证错误
-            if (postProcessResult.validationErrors) {
-              this.logger.warn('⚠️  Response validation errors', { errors: postProcessResult.validationErrors })
-              metrics.validationErrors = postProcessResult.validationErrors
-            }
-          }
-
-          // 5. 保存响应到 Backend（使用 ExecutionMetadata）
-          const saveStart = Date.now()
-          await this.saveResponse(task, response, executionMetadata)
-          metrics.responseSaveTime = Date.now() - saveStart
-
-          metrics.totalTime = Date.now() - startTime
-
-          // 6. 缓存响应（用于去重）
-          if (this.deduplicationManager) {
-            const idempotencyKey = (task as any).idempotencyKey
-            this.deduplicationManager.cacheResponse(
-              task.content,
-              response,
-              metrics,
-              idempotencyKey
-            )
-          }
-
-          return { success: true }
-        } catch (error) {
-          lastError = error instanceof Error ? error.message : 'Unknown error'
-          this.logger.warn(`⚠️  Adapter failed`, { adapter: adapterName, error: lastError })
-
-          // 如果不是最后一个 adapter，继续尝试下一个
-          if (adapterName !== adapters[adapters.length - 1]) {
-            this.logger.info(`🔄 Falling back to next adapter`)
+        for (const adapterName of adapters) {
+          const adapter = await this.adapterManager.getAdapter(adapterName)
+          if (!adapter) {
+            lastError = `Adapter '${adapterName}' not found`
+            this.logger.warn(`⚠️  Adapter not found`, { adapter: adapterName })
             continue
           }
+
+          try {
+            metrics.adapterUsed = adapterName
+
+            // 4. 调用 LLM API 生成响应（返回 response + metadata）
+            const llmStart = Date.now()
+            const { response: rawResponse, metadata: executionMetadata } = await this.generateResponse(
+              task,
+              history,
+              adapter,
+              controller.signal
+            )
+            metrics.llmCallTime = Date.now() - llmStart
+
+            // 5. 后处理响应
+            let response = rawResponse
+            if (this.postProcessorManager) {
+              const postProcessStart = Date.now()
+              const postProcessResult = await this.postProcessorManager.process(
+                rawResponse,
+                {
+                  channelId: task.channelId,
+                  messageId: task.messageId,
+                  taskId: task.id,
+                  adapter: adapterName,
+                  timestamp: new Date(),
+                  metrics
+                }
+              )
+
+              response = postProcessResult.content
+              metrics.postProcessingTime = Date.now() - postProcessStart
+
+              // 合并后处理元数据
+              if (postProcessResult.metadata) {
+                metrics.postProcessing = postProcessResult.metadata
+              }
+
+              // 记录验证错误
+              if (postProcessResult.validationErrors) {
+                this.logger.warn('⚠️  Response validation errors', { errors: postProcessResult.validationErrors })
+                metrics.validationErrors = postProcessResult.validationErrors
+              }
+            }
+
+            // 6. 保存响应到 Backend（使用 ExecutionMetadata）
+            const saveStart = Date.now()
+            await this.saveResponse(task, response, executionMetadata)
+            metrics.responseSaveTime = Date.now() - saveStart
+
+            metrics.totalTime = Date.now() - startTime
+
+            // 7. 缓存响应（用于去重）
+            if (this.deduplicationManager) {
+              const idempotencyKey = (task as any).idempotencyKey
+              this.deduplicationManager.cacheResponse(
+                task.content,
+                response,
+                metrics,
+                idempotencyKey
+              )
+            }
+
+            return { success: true }
+          } catch (error) {
+            if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+              return await this.finishAborted(task)
+            }
+
+            lastError = error instanceof Error ? error.message : 'Unknown error'
+            this.logger.warn(`⚠️  Adapter failed`, { adapter: adapterName, error: lastError })
+
+            // 如果不是最后一个 adapter，继续尝试下一个
+            if (adapterName !== adapters[adapters.length - 1]) {
+              this.logger.info(`🔄 Falling back to next adapter`)
+              continue
+            }
+          }
         }
-      }
 
-      // 所有 Adapters 都失败
-      metrics.totalTime = Date.now() - startTime
+        // 所有 Adapters 都失败
+        metrics.totalTime = Date.now() - startTime
 
-      const allFailedError = lastError ?? 'All adapters failed'
-      this.logger.error('❌ All adapters failed for agent task', undefined, { ...corr, error: allFailedError })
-      await this.reportFailure(task, allFailedError)
+        const allFailedError = lastError ?? 'All adapters failed'
+        this.logger.error('❌ All adapters failed for agent task', undefined, { ...corr, error: allFailedError })
+        await this.reportFailure(task, allFailedError)
 
-      return {
-        success: false,
-        error: allFailedError
+        return {
+          success: false,
+          error: allFailedError
+        }
+      } finally {
+        this.executionRegistry.unregister(executionHandle)
       }
     } catch (error) {
       metrics.totalTime = Date.now() - startTime
@@ -319,6 +342,52 @@ export class DeviceProcessor implements IMessageProcessor {
     }
   }
 
+  private async finishAborted(task: MessageTask): Promise<ProcessResult> {
+    try {
+      await this.reportAbort(task)
+      return { success: true, aborted: true }
+    } catch (error) {
+      return {
+        success: false,
+        aborted: true,
+        error: `Local execution aborted but cloud reporting failed: ${(error as Error).message}`
+      }
+    }
+  }
+
+  /**
+   * 上报用户中止终态。连续失败时抛出，避免云端静默停留在 pending。
+   */
+  private async reportAbort(task: MessageTask): Promise<void> {
+    const agentMessageId = task.metadata?.agentMessageId || task.messageId
+    let lastError: Error | undefined
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await this.backendGateway.reportAgentAbort({
+          channelId: task.channelId,
+          messageId: agentMessageId,
+          userMessageId: task.metadata?.userMessageId || task.messageId,
+          agentId: task.metadata?.agentId,
+          reason: 'user'
+        })
+        return
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        this.logger.warn('⚠️  Failed to report agent abort', {
+          agentMessageId,
+          attempt,
+          error: lastError.message
+        })
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+      }
+    }
+
+    throw lastError
+  }
+
   /**
    * 获取对话历史
    */
@@ -340,7 +409,8 @@ export class DeviceProcessor implements IMessageProcessor {
   private async generateResponse(
     task: MessageTask,
     history: Array<{ role: 'user' | 'assistant'; content: string }>,
-    adapter: LlmAdapter
+    adapter: LlmAdapter,
+    signal: AbortSignal
   ): Promise<{ response: string; metadata: ExecutionMetadata }> {
     const capabilities = adapter.getCapabilities()
     const truncatedHistory = this.truncateHistory(history)
@@ -369,7 +439,8 @@ export class DeviceProcessor implements IMessageProcessor {
       const batch = await adapter.generateBatchResponse({
         systemPrompt,
         messages,
-        maxTokens: undefined
+        maxTokens: undefined,
+        signal
       })
 
       // 可选：推送 usage 到 Backend（实时显示）
@@ -401,6 +472,7 @@ export class DeviceProcessor implements IMessageProcessor {
         adapter.generateResponse({
           systemPrompt,
           messages,
+          signal,
           streaming: this.createStreamingCallbacks(task, collector, () => idle.reset())
         }),
         idle.promise

@@ -791,6 +791,7 @@ function createStandaloneServer(deps: {
     fileSystemService: deps.fileSystemService,
     eventBus: deps.eventBus,
     deviceConnectionManager: deps.deviceConnectionManager,
+    messageOrchestrator: deps.messageOrchestrator,
     logger: deps.logger,
   });
 

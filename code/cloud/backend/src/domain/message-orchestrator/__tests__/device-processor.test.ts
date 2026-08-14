@@ -189,6 +189,14 @@ describe('DeviceProcessor', () => {
       expect(result.error).toBe('Device processing failed')
     })
 
+    it('should resolve an aborted task as a successful terminal result', async () => {
+      const processing = processor.process(createMockTask())
+
+      setTimeout(() => processor.notifyAborted('msg-1'), 10)
+
+      await expect(processing).resolves.toEqual({ success: true, aborted: true })
+    })
+
     it('should clean up resources on destroy', async () => {
       const task = createMockTask()
 

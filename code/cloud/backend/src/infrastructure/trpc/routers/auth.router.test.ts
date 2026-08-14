@@ -3,7 +3,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { createAuthRouter } from './auth.router';
 import { AuthService } from '../../../application/services/auth/auth.service';
 import { UserEntity } from '../../../domain/models/user/user.entity';
-import { InvalidCredentialsError, InvalidTokenError, UserDisabledError } from '../../../application/services/auth/auth.errors';
+import { InvalidCredentialsError, InvalidTokenError, UserDisabledError, AccountLockedError } from '../../../application/services/auth/auth.errors';
 
 describe('authRouter', () => {
   let mockAuthService: AuthService;
@@ -246,6 +246,22 @@ describe('authRouter', () => {
           password: 'password123',
         })
       ).rejects.toThrow('Account is disabled');
+    });
+
+    it('should throw FORBIDDEN for locked account', async () => {
+      const lockedUntil = new Date('2030-01-01T00:00:00.000Z');
+      vi.mocked(mockAuthService.login).mockRejectedValue(
+        new AccountLockedError(lockedUntil)
+      );
+
+      const caller = router.createCaller(mockContext);
+
+      await expect(
+        caller.login({
+          username: 'testuser',
+          password: 'password123',
+        })
+      ).rejects.toThrow(/Account is locked until/);
     });
 
     it('should handle other login errors', async () => {

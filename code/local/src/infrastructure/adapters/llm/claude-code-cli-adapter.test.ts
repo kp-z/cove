@@ -23,7 +23,11 @@ class FakeChild extends EventEmitter {
   stdout = new EventEmitter();
   stderr = new EventEmitter();
   stdin = { write: vi.fn(), end: vi.fn() };
-  kill = vi.fn();
+  killed = false;
+  kill = vi.fn((_signal?: NodeJS.Signals) => {
+    this.killed = true;
+    return true;
+  });
 }
 
 // 记录每次 spawn 创建的假子进程，供测试驱动事件
@@ -427,6 +431,62 @@ describe('ClaudeCodeCLIAdapter - stream-json 流式解析', () => {
     driveChild(childInstances[0], ['{"type":"system"}\n'], 1);
 
     await expect(p).rejects.toThrow(/exited with code 1/);
+  });
+});
+
+describe('ClaudeCodeCLIAdapter - 取消执行', () => {
+  it('流式执行收到 abort 时应终止子进程并抛出 AbortError', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const controller = new AbortController();
+
+    const responsePromise = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+      signal: controller.signal,
+    });
+
+    const child = childInstances[0];
+    controller.abort();
+
+    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    await expect(responsePromise).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('批量执行收到已取消信号时应立即终止子进程并保留 AbortError', async () => {
+    const adapter = new ClaudeCodeCLIAdapter({ enableStreaming: false });
+    const controller = new AbortController();
+    controller.abort();
+
+    const responsePromise = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      signal: controller.signal,
+    });
+
+    const child = childInstances[0];
+    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+    expect(child.stdin.write).not.toHaveBeenCalled();
+    await expect(responsePromise).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('正常完成后应解绑 abort 监听器', async () => {
+    const adapter = new ClaudeCodeCLIAdapter();
+    const controller = new AbortController();
+
+    const responsePromise = adapter.generateResponse({
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'hi' }],
+      streaming: makeStreaming(),
+      signal: controller.signal,
+    });
+    const child = childInstances[0];
+
+    driveChild(child, ['{"type":"result","result":"done"}\n']);
+    await expect(responsePromise).resolves.toBe('done');
+
+    controller.abort();
+    expect(child.kill).not.toHaveBeenCalled();
   });
 });
 

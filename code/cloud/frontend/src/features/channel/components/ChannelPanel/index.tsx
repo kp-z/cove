@@ -13,6 +13,7 @@ import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAgentStreaming } from '../../hooks/useAgentStreaming';
 import { systemLog } from '../../stores/systemEventStore';
+import { messageStateManager } from '../../domain/MessageStateManager';
 
 // UI-specific types
 type ChannelType = 'public' | 'private' | 'dm' | 'thread';
@@ -70,6 +71,7 @@ export function ChannelPanel({
   const { data: channelsData, isLoading: channelLoading } = useChannels();
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
+  const { mutateAsync: abortMessage } = trpc.message.abort.useMutation();
 
   // 订阅 Agent 流式更新 (统一入口)
   useAgentStreaming(channel_id);
@@ -139,9 +141,28 @@ export function ChannelPanel({
       }
     : null;
 
-  const handleStopGeneration = useCallback(() => {
-    // TODO: stop agent generation
-  }, []);
+  const handleStopGeneration = useCallback(async () => {
+    const agentMessageIds = messageStateManager.getInFlightAgentMessageIds(channel_id);
+    if (agentMessageIds.length === 0) return;
+
+    const results = await Promise.allSettled(
+      agentMessageIds.map((agentMessageId) =>
+        abortMessage({
+          agentMessageId,
+          channelId: channel_id,
+          reason: 'user',
+        })
+      )
+    );
+
+    const failedCount = results.filter((result) => result.status === 'rejected').length;
+    if (failedCount > 0) {
+      systemLog.error(channel_id, 'error.network', 'Failed to stop agent generation', {
+        failedCount,
+        totalCount: agentMessageIds.length,
+      });
+    }
+  }, [abortMessage, channel_id]);
 
   const handleThreadChange = useCallback((threadId: string | null) => {
     setActiveThreadId(threadId);
@@ -231,7 +252,7 @@ export function ChannelPanel({
         channelId={channel_id}
         targetMessageId={message_id}
       />
-      <Composer channelId={channel_id} />
+      <Composer channelId={channel_id} onStop={handleStopGeneration} />
     </div>
   );
 }

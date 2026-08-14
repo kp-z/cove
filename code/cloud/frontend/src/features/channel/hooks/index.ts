@@ -6,4 +6,4 @@ export { useMessageList } from './useMessageList';
 export { useSendMessage } from './useSendMessage';
 export { useTypingState } from './useTypingState';
 export { useMessageQueue } from './useMessageQueue';
-export { useAgentResponding } from './useAgentResponding';
+export { useAgentAbortable, useAgentResponding } from './useAgentResponding';

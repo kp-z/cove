@@ -327,6 +327,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
                 'agent.response.status',
                 'agent.response.completed',
                 'agent.response.failed',
+                'agent.response.aborted',
               ])
             )
             .optional(),
@@ -350,6 +351,7 @@ export function createSubscriptionRouter(deps: SubscriptionRouterDependencies): 
             'agent.response.status',
             'agent.response.completed',
             'agent.response.failed',
+            'agent.response.aborted',
           ];
 
           const unsubscribe = deps.eventBus.subscribeMany(eventTypes, (event) => {

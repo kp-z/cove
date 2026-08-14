@@ -79,6 +79,8 @@ export interface GenerateParams {
   systemPrompt: string;
   messages: ChatMessage[];
   maxTokens?: number;
+  /** 用于取消正在执行的模型请求。 */
+  signal?: AbortSignal;
   /**
    * 流式回调（可选）
    * 如果提供，adapter 可以在执行过程中调用这些回调
